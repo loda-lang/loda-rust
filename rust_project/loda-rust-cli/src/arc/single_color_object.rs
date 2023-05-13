@@ -88,7 +88,7 @@ impl SingleColorObjectSparse {
         let blank = Image::zero(cropped_mask.width(), cropped_mask.height());
 
         // TODO: perform the same operation with both 4-connected and 8-connected.
-        let object_mask_vec: Vec<Image> = blank.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask)?;
+        let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &blank, &ignore_mask)?;
 
         let mut objects_with_hole_vec = Vec::<Image>::new();
         let mut result_image = Image::zero(cropped_mask.width(), cropped_mask.height());
@@ -138,7 +138,7 @@ impl SingleColorObjectSparse {
 
         // Find the clusters
         let ignore_mask: Image = result_image.invert_mask();
-        let object_mask_vec2: Vec<Image> = blank.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask)?;
+        let object_mask_vec2: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &blank, &ignore_mask)?;
 
         // println!("number of clusters: {}", object_mask_vec2.len());
         let mut cluster_vec = Vec::<SingleColorObjectCluster>::new();

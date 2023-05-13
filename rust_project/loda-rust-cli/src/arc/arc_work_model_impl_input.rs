@@ -297,7 +297,7 @@ impl arc_work_model::Input {
             }
         };
         let background_ignore_mask: Image = self.image.to_mask_where_color_is(background_color);
-        let object_mask_vec: Vec<Image> = self.image.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &background_ignore_mask)?;
+        let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &self.image, &background_ignore_mask)?;
         Ok(object_mask_vec)
     }
 

@@ -44,34 +44,22 @@ pub enum PixelConnectivity {
     Connectivity8,
 }
 
-pub trait ConnectedComponent {
+pub struct ConnectedComponent;
+
+impl ConnectedComponent {
     /// Identify clusters of connected pixels with an `ignore_mask` of areas to be ignored
     /// 
     /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
     /// 
     /// Counts the number of pixels in each of the objects, so that this costly operation can be avoided.
-    fn find_objects_with_ignore_mask_inner(&self, connectivity: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ConnectedComponentItem>>;
-
-    /// Identify clusters of connected pixels
-    /// 
-    /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
-    fn find_objects(&self, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>>;
-    
-    /// Identify clusters of connected pixels with an `ignore_mask` of areas to be ignored
-    /// 
-    /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
-    fn find_objects_with_ignore_mask(&self, connectivity: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<Image>>;
-}
-
-impl ConnectedComponent for Image {
-    fn find_objects_with_ignore_mask_inner(&self, connectivity: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ConnectedComponentItem>> {
-        if ignore_mask.size() != self.size() {
+    pub fn find_objects_with_ignore_mask_inner(connectivity: PixelConnectivity, image: &Image, ignore_mask: &Image) -> anyhow::Result<Vec<ConnectedComponentItem>> {
+        if ignore_mask.size() != image.size() {
             return Err(anyhow::anyhow!("The size of the ignore_mask must be the same, but is different"));
         }
         let mut object_mask_vec = Vec::<ConnectedComponentItem>::new();
         let mut accumulated_mask: Image = ignore_mask.clone();
-        for y in 0..(self.height() as i32) {
-            for x in 0..(self.width() as i32) {
+        for y in 0..(image.height() as i32) {
+            for x in 0..(image.width() as i32) {
                 // Only visit pixels that have not yet been visited
                 let mask_value: u8 = accumulated_mask.get(x, y).unwrap_or(255);
                 if mask_value > 0 {
@@ -80,20 +68,20 @@ impl ConnectedComponent for Image {
                 }
 
                 // Flood fill
-                let color: u8 = self.get(x, y).unwrap_or(255);
+                let color: u8 = image.get(x, y).unwrap_or(255);
                 let mut object_mask = ignore_mask.clone();
                 match connectivity {
                     PixelConnectivity::Connectivity4 => {
-                        object_mask.mask_flood_fill4(&self, x, y, color);
+                        object_mask.mask_flood_fill4(&image, x, y, color);
                     },
                     PixelConnectivity::Connectivity8 => {
-                        object_mask.mask_flood_fill8(&self, x, y, color);
+                        object_mask.mask_flood_fill8(&image, x, y, color);
                     },
                 }
 
                 // Clear pixels that are in the original ignore_mask
-                for yy in 0..(self.height() as i32) {
-                    for xx in 0..(self.width() as i32) {
+                for yy in 0..(image.height() as i32) {
+                    for xx in 0..(image.width() as i32) {
                         let mask_value: u8 = ignore_mask.get(xx, yy).unwrap_or(255);
                         if mask_value > 0 {
                             let _ = object_mask.set(xx, yy, 0);
@@ -109,8 +97,8 @@ impl ConnectedComponent for Image {
                 let mut mass: u32 = 0;
                 let mut first_nonzero_pixel_x: u8 = 0;
                 let mut first_nonzero_pixel_y: u8 = 0;
-                for yy in 0..self.height() {
-                    for xx in 0..self.width() {
+                for yy in 0..image.height() {
+                    for xx in 0..image.width() {
                         let mask_value: u8 = object_mask.get(xx as i32, yy as i32).unwrap_or(255);
                         if mask_value == 0 {
                             continue;
@@ -137,13 +125,19 @@ impl ConnectedComponent for Image {
         Ok(object_mask_vec)
     }
 
-    fn find_objects(&self, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
-        let ignore_mask = Image::zero(self.width(), self.height());
-        self.find_objects_with_ignore_mask(connectivity, &ignore_mask)
+    /// Identify clusters of connected pixels
+    /// 
+    /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
+    pub fn find_objects(connectivity: PixelConnectivity, image: &Image) -> anyhow::Result<Vec<Image>> {
+        let ignore_mask = Image::zero(image.width(), image.height());
+        Self::find_objects_with_ignore_mask(connectivity, image, &ignore_mask)
     }
 
-    fn find_objects_with_ignore_mask(&self, connectivity: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<Image>> {
-        let items: Vec<ConnectedComponentItem> = self.find_objects_with_ignore_mask_inner(connectivity, ignore_mask)?;
+    /// Identify clusters of connected pixels with an `ignore_mask` of areas to be ignored
+    /// 
+    /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
+    pub fn find_objects_with_ignore_mask(connectivity: PixelConnectivity, image: &Image, ignore_mask: &Image) -> anyhow::Result<Vec<Image>> {
+        let items: Vec<ConnectedComponentItem> = Self::find_objects_with_ignore_mask_inner(connectivity, image, ignore_mask)?;
         let images: Vec<Image> = items.into_iter().map(|item| item.mask ).collect();
         Ok(images)
     }
@@ -167,7 +161,7 @@ mod tests {
         let input: Image = Image::try_create(5, 4, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity4).expect("vec");
+        let mask_vec: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity4, &input).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 3);
@@ -205,7 +199,7 @@ mod tests {
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity4).expect("vec");
+        let mask_vec: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity4, &input).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 3);
@@ -244,7 +238,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity4).expect("vec");
+        let mask_vec: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity4, &input).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 5);
@@ -285,7 +279,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity4).expect("vec");
+        let mask_vec: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity4, &input).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);
@@ -314,7 +308,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity4).expect("vec");
+        let mask_vec: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity4, &input).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);
@@ -344,7 +338,7 @@ mod tests {
         let ignore_mask = Image::zero(input.width(), input.height());
 
         // Act
-        let mask_vec: Vec<ConnectedComponentItem> = input.find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
+        let mask_vec: Vec<ConnectedComponentItem> = ConnectedComponent::find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity8, &input, &ignore_mask).expect("vec");
 
         // Assert
         let mut expected = Vec::<ConnectedComponentItem>::new();
@@ -400,7 +394,7 @@ mod tests {
         let ignore_mask: Image = Image::try_create(4, 4, ignore_pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<ConnectedComponentItem> = input.find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
+        let mask_vec: Vec<ConnectedComponentItem> = ConnectedComponent::find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity8, &input, &ignore_mask).expect("vec");
 
         // Assert
         let mut expected = Vec::<ConnectedComponentItem>::new();
@@ -450,7 +444,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity8).expect("vec");
+        let mask_vec: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity8, &input).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);
@@ -485,7 +479,7 @@ mod tests {
         let ignore_mask: Image = Image::try_create(3, 3, mask_pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
+        let mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &input, &ignore_mask).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);
@@ -522,7 +516,7 @@ mod tests {
         let ignore_mask: Image = Image::try_create(4, 4, mask_pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
+        let mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &input, &ignore_mask).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);

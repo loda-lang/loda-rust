@@ -356,7 +356,7 @@ impl arc_work_model::Task {
 
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            let result = image_mask.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask);
+            let result = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &image_mask, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -434,8 +434,7 @@ impl arc_work_model::Task {
 
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            // let result = image_mask.find_objects(ImageSegmentAlgorithm::All);
-            let result = image_mask.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask);
+            let result = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &image_mask, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -1686,7 +1685,7 @@ impl arc_work_model::Task {
             let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            let result = image_mask.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask);
+            let result = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &image_mask, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -1764,7 +1763,7 @@ impl arc_work_model::Task {
             let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            let result = image_mask.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask);
+            let result = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &image_mask, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -1924,7 +1923,7 @@ impl arc_work_model::Task {
 
             let mask: &Image = &grid.line_mask;
             let blank: Image = Image::zero(mask.width(), mask.height());
-            let cells: Vec<Image> = blank.find_objects_with_ignore_mask(PixelConnectivity::Connectivity4, mask)?;
+            let cells: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity4, &blank, mask)?;
             if cells.is_empty() {
                 return Err(anyhow::anyhow!("Expected grid to have 1 or more cells"));
             }
