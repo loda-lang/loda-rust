@@ -84,10 +84,10 @@ impl ImageSegment for Image {
                 let mut object_mask = ignore_mask.clone();
                 match algorithm {
                     PixelConnectivity::Connectivity4 => {
-                        object_mask.flood_fill_visit4(&self, x, y, color);
+                        object_mask.mask_flood_fill4(&self, x, y, color);
                     },
                     PixelConnectivity::Connectivity8 => {
-                        object_mask.flood_fill_visit8(&self, x, y, color);
+                        object_mask.mask_flood_fill8(&self, x, y, color);
                     },
                 }
 

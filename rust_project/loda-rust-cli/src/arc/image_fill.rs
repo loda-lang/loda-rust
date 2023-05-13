@@ -12,10 +12,14 @@ pub trait ImageFill {
     fn flood_fill8(&mut self, x: i32, y: i32, from_color: u8, to_color: u8);
 
     /// Build a mask of connected pixels that has the same color
-    fn flood_fill_visit4(&mut self, image: &Image, x: i32, y: i32, color: u8);
+    /// 
+    /// Visit 4 neighbors around a pixel.
+    fn mask_flood_fill4(&mut self, image: &Image, x: i32, y: i32, color: u8);
 
     /// Build a mask of connected pixels that has the same color
-    fn flood_fill_visit8(&mut self, image: &Image, x: i32, y: i32, color: u8);
+    /// 
+    /// Visit 8 neighbors around a pixel.
+    fn mask_flood_fill8(&mut self, image: &Image, x: i32, y: i32, color: u8);
 }
 
 impl ImageFill for Image {
@@ -53,7 +57,7 @@ impl ImageFill for Image {
         self.flood_fill8(x+1, y+1, from_color, to_color);
     }
 
-    fn flood_fill_visit4(&mut self, image: &Image, x: i32, y: i32, color: u8) {
+    fn mask_flood_fill4(&mut self, image: &Image, x: i32, y: i32, color: u8) {
         assert!(self.width() == image.width());
         assert!(self.height() == image.height());
         if x < 0 || y < 0 || x >= (self.width() as i32) || y >= (self.height() as i32) {
@@ -69,13 +73,13 @@ impl ImageFill for Image {
             return;
         }
         let _ = self.set(x, y, 1); // flag as visited
-        self.flood_fill_visit4(image, x-1, y, color);
-        self.flood_fill_visit4(image, x+1, y, color);
-        self.flood_fill_visit4(image, x, y-1, color);
-        self.flood_fill_visit4(image, x, y+1, color);
+        self.mask_flood_fill4(image, x-1, y, color);
+        self.mask_flood_fill4(image, x+1, y, color);
+        self.mask_flood_fill4(image, x, y-1, color);
+        self.mask_flood_fill4(image, x, y+1, color);
     }
 
-    fn flood_fill_visit8(&mut self, image: &Image, x: i32, y: i32, color: u8) {
+    fn mask_flood_fill8(&mut self, image: &Image, x: i32, y: i32, color: u8) {
         assert!(self.width() == image.width());
         assert!(self.height() == image.height());
         if x < 0 || y < 0 || x >= (self.width() as i32) || y >= (self.height() as i32) {
@@ -91,14 +95,14 @@ impl ImageFill for Image {
             return;
         }
         let _ = self.set(x, y, 1); // flag as visited
-        self.flood_fill_visit8(image, x-1, y-1, color);
-        self.flood_fill_visit8(image, x, y-1, color);
-        self.flood_fill_visit8(image, x+1, y-1, color);
-        self.flood_fill_visit8(image, x-1, y, color);
-        self.flood_fill_visit8(image, x+1, y, color);
-        self.flood_fill_visit8(image, x-1, y+1, color);
-        self.flood_fill_visit8(image, x, y+1, color);
-        self.flood_fill_visit8(image, x+1, y+1, color);
+        self.mask_flood_fill8(image, x-1, y-1, color);
+        self.mask_flood_fill8(image, x, y-1, color);
+        self.mask_flood_fill8(image, x+1, y-1, color);
+        self.mask_flood_fill8(image, x-1, y, color);
+        self.mask_flood_fill8(image, x+1, y, color);
+        self.mask_flood_fill8(image, x-1, y+1, color);
+        self.mask_flood_fill8(image, x, y+1, color);
+        self.mask_flood_fill8(image, x+1, y+1, color);
     }
 }
 
@@ -212,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_flood_fill_visit4() {
+    fn test_30000_mask_flood_fill4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -225,7 +229,7 @@ mod tests {
         let color: u8 = input.get(0, 0).unwrap_or(255);
 
         // Act
-        output.flood_fill_visit4(&input, 0, 0, color);
+        output.mask_flood_fill4(&input, 0, 0, color);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -239,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30001_flood_fill_visit4() {
+    fn test_30001_mask_flood_fill4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -252,7 +256,7 @@ mod tests {
         let color: u8 = input.get(1, 1).unwrap_or(255);
 
         // Act
-        output.flood_fill_visit4(&input, 1, 1, color);
+        output.mask_flood_fill4(&input, 1, 1, color);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -266,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30002_flood_fill_visit4() {
+    fn test_30002_mask_flood_fill4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -279,7 +283,7 @@ mod tests {
         let color: u8 = input.get(4, 1).unwrap_or(255);
 
         // Act
-        output.flood_fill_visit4(&input, 4, 1, color);
+        output.mask_flood_fill4(&input, 4, 1, color);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -293,7 +297,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30003_flood_fill_visit4() {
+    fn test_30003_mask_flood_fill4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -305,7 +309,7 @@ mod tests {
         let color: u8 = input.get(2, 0).unwrap_or(255);
 
         // Act
-        output.flood_fill_visit4(&input, 2, 0, color);
+        output.mask_flood_fill4(&input, 2, 0, color);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -318,7 +322,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_flood_fill_visit8() {
+    fn test_40000_mask_flood_fill8() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -330,7 +334,7 @@ mod tests {
         let color: u8 = input.get(2, 0).unwrap_or(255);
 
         // Act
-        output.flood_fill_visit8(&input, 2, 0, color);
+        output.mask_flood_fill8(&input, 2, 0, color);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
