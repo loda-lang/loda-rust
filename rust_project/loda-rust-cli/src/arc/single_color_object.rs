@@ -36,9 +36,11 @@ pub struct SingleColorObjectSparse {
     /// Histogram of the non-object pixels 
     pub histogram_non_object: Histogram,
 
-    pub cluster_vec: Vec::<SingleColorObjectCluster>,
+    pub cluster4_vec: Vec::<SingleColorObjectCluster>,
+    pub cluster8_vec: Vec::<SingleColorObjectCluster>,
 
     // Future experiments:
+    // Are cluster4_vec and cluster8_vec identical?
     // vector with clusters, number of clusters, enumerated clusters
     // number of holes in each cluster
     // shape type: L shape, T shape, + shape, diagonal shape, other shape
@@ -66,22 +68,22 @@ impl SingleColorObjectSparse {
         let mass_object: u16 = histogram.get(color).min(u16::MAX as u32) as u16;
         histogram.set_counter_to_zero(color);
         let mass_non_object: u16 = histogram.sum().min(u16::MAX as u32) as u16;
-        let instance = SingleColorObjectSparse {
+        let mut instance = SingleColorObjectSparse {
             color,
             mask,
             bounding_box: rect,
             mass_object,
             mass_non_object,
             histogram_non_object: histogram,
-            cluster_vec: vec!(),
+            cluster4_vec: vec!(),
+            cluster8_vec: vec!(),
         };
-        // instance.analyze()?;
+        instance.analyze(PixelConnectivity::Connectivity4)?;
+        instance.analyze(PixelConnectivity::Connectivity8)?;
         Ok(instance)
     }
 
     /// The `connectivity` parameter is for choosing between 4-connected and 8-connected.
-    /// 
-    /// TODO: perform the same operation with both 4-connected and 8-connected.
     fn analyze(&mut self, connectivity: PixelConnectivity) -> anyhow::Result<()> {
         // Objects that is not the background
         let cropped_mask: Image = self.mask.crop(self.bounding_box)?;
@@ -155,7 +157,14 @@ impl SingleColorObjectSparse {
             cluster_vec.push(item);
         }
 
-        self.cluster_vec = cluster_vec;
+        match connectivity {
+            PixelConnectivity::Connectivity4 => {
+                self.cluster4_vec = cluster_vec;
+            },
+            PixelConnectivity::Connectivity8 => {
+                self.cluster8_vec = cluster_vec;
+            },
+        }
         Ok(())
     }
 }
@@ -321,7 +330,11 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(9, 8, pixels).expect("image");
+        
+        // Act
         let actual: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+
+        // Assert
         assert_eq!(actual.rectangle_vec.len(), 0);
         assert_eq!(actual.sparse_vec.len(), 2);
         {
@@ -336,13 +349,9 @@ mod tests {
             assert_eq!(object.mass_object, 18);
         }
 
-        // Act
-        let mut object: SingleColorObjectSparse = actual.sparse_vec[1].clone();
-        object.analyze(PixelConnectivity::Connectivity8).expect("ok");
-
-        // Assert
-        assert_eq!(object.cluster_vec.len(), 2);
-        let cluster_image: Image = SingleColorObjectCluster::enumerate_clusters(&object.cluster_vec).expect("ok");
+        let object: &SingleColorObjectSparse = &actual.sparse_vec[1];
+        assert_eq!(object.cluster8_vec.len(), 2);
+        let cluster_image: Image = SingleColorObjectCluster::enumerate_clusters(&object.cluster8_vec).expect("ok");
 
         let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 0,
