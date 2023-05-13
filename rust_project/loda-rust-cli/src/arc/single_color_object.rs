@@ -79,16 +79,16 @@ impl SingleColorObjectSparse {
         Ok(instance)
     }
 
-    // TODO: parameter for choosing between 4-connected and 8-connected.
-    fn analyze(&mut self) -> anyhow::Result<()> {
+    /// The `connectivity` parameter is for choosing between 4-connected and 8-connected.
+    /// 
+    /// TODO: perform the same operation with both 4-connected and 8-connected.
+    fn analyze(&mut self, connectivity: PixelConnectivity) -> anyhow::Result<()> {
         // Objects that is not the background
         let cropped_mask: Image = self.mask.crop(self.bounding_box)?;
         let ignore_mask: Image = cropped_mask.invert_mask();
 
         let blank = Image::zero(cropped_mask.width(), cropped_mask.height());
-
-        // TODO: perform the same operation with both 4-connected and 8-connected.
-        let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &blank, &ignore_mask)?;
+        let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &ignore_mask)?;
 
         let mut objects_with_hole_vec = Vec::<Image>::new();
         let mut result_image = Image::zero(cropped_mask.width(), cropped_mask.height());
@@ -114,8 +114,14 @@ impl SingleColorObjectSparse {
                     }
                     let pixel: u8 = object_image.get(x, y).unwrap_or(255);
                     if pixel == 0 {
-                        // TODO: distinguish between 4-connected and 8-connected
-                        object_image.flood_fill4(x, y, 0, 1);
+                        match connectivity {
+                            PixelConnectivity::Connectivity4 => {
+                                object_image.flood_fill4(x, y, 0, 1);
+                            },
+                            PixelConnectivity::Connectivity8 => {
+                                object_image.flood_fill8(x, y, 0, 1);
+                            },
+                        }
                     }
                 }
             }
@@ -138,7 +144,7 @@ impl SingleColorObjectSparse {
 
         // Find the clusters
         let ignore_mask: Image = result_image.invert_mask();
-        let object_mask_vec2: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &blank, &ignore_mask)?;
+        let object_mask_vec2: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &ignore_mask)?;
 
         // println!("number of clusters: {}", object_mask_vec2.len());
         let mut cluster_vec = Vec::<SingleColorObjectCluster>::new();
@@ -332,7 +338,7 @@ mod tests {
 
         // Act
         let mut object: SingleColorObjectSparse = actual.sparse_vec[1].clone();
-        object.analyze().expect("ok");
+        object.analyze(PixelConnectivity::Connectivity8).expect("ok");
 
         // Assert
         assert_eq!(object.cluster_vec.len(), 2);

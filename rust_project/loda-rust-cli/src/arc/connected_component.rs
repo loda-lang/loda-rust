@@ -11,7 +11,7 @@ pub struct ConnectedComponentItem {
     pub y: u8,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum PixelConnectivity {
     /// Considers only the 4 neighbors around the center pixel, the top/bottom/left/right pixels.
     /// 
