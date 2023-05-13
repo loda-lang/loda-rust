@@ -2,7 +2,7 @@ use super::arc_work_model;
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel, GridLabel, SingleColorObjectLabel};
 use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
-use super::{ImageSegment, PixelConnectivity, ImageMask, ImageCrop, SingleColorObjects};
+use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop, SingleColorObjects};
 use std::collections::{HashMap, HashSet};
 
 impl arc_work_model::Input {

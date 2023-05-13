@@ -1,14 +1,14 @@
 use super::{Image, ImageFill};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ImageSegmentItem {
+pub struct ConnectedComponentItem {
     mask: Image,
     mass: u16,
     x: u8,
     y: u8,
 }
 
-impl ImageSegmentItem {
+impl ConnectedComponentItem {
     #[allow(dead_code)]
     pub fn mask(&self) -> &Image {
         &self.mask
@@ -44,13 +44,13 @@ pub enum PixelConnectivity {
     Connectivity8,
 }
 
-pub trait ImageSegment {
+pub trait ConnectedComponent {
     /// Identify clusters of connected pixels with an `ignore_mask` of areas to be ignored
     /// 
     /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
     /// 
     /// Counts the number of pixels in each of the objects, so that this costly operation can be avoided.
-    fn find_objects_with_ignore_mask_inner(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ImageSegmentItem>>;
+    fn find_objects_with_ignore_mask_inner(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ConnectedComponentItem>>;
 
     /// Identify clusters of connected pixels
     /// 
@@ -63,12 +63,12 @@ pub trait ImageSegment {
     fn find_objects_with_ignore_mask(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<Image>>;
 }
 
-impl ImageSegment for Image {
-    fn find_objects_with_ignore_mask_inner(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ImageSegmentItem>> {
+impl ConnectedComponent for Image {
+    fn find_objects_with_ignore_mask_inner(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ConnectedComponentItem>> {
         if ignore_mask.size() != self.size() {
             return Err(anyhow::anyhow!("The size of the ignore_mask must be the same, but is different"));
         }
-        let mut object_mask_vec = Vec::<ImageSegmentItem>::new();
+        let mut object_mask_vec = Vec::<ConnectedComponentItem>::new();
         let mut accumulated_mask: Image = ignore_mask.clone();
         for y in 0..(self.height() as i32) {
             for x in 0..(self.width() as i32) {
@@ -125,7 +125,7 @@ impl ImageSegment for Image {
                 }
                 let mass: u16 = mass.min(u16::MAX as u32) as u16;
 
-                let item = ImageSegmentItem {
+                let item = ConnectedComponentItem {
                     mask: object_mask,
                     mass,
                     x: first_nonzero_pixel_x,
@@ -143,7 +143,7 @@ impl ImageSegment for Image {
     }
 
     fn find_objects_with_ignore_mask(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<Image>> {
-        let items: Vec<ImageSegmentItem> = self.find_objects_with_ignore_mask_inner(algorithm, ignore_mask)?;
+        let items: Vec<ConnectedComponentItem> = self.find_objects_with_ignore_mask_inner(algorithm, ignore_mask)?;
         let images: Vec<Image> = items.into_iter().map(|item| item.mask ).collect();
         Ok(images)
     }
@@ -344,10 +344,10 @@ mod tests {
         let ignore_mask = Image::zero(input.width(), input.height());
 
         // Act
-        let mask_vec: Vec<ImageSegmentItem> = input.find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
+        let mask_vec: Vec<ConnectedComponentItem> = input.find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
 
         // Assert
-        let mut expected = Vec::<ImageSegmentItem>::new();
+        let mut expected = Vec::<ConnectedComponentItem>::new();
         {
             let pixels: Vec<u8> = vec![
                 1, 0, 0,
@@ -355,7 +355,7 @@ mod tests {
                 0, 0, 1,
             ];
             let mask: Image = Image::try_create(3, 3, pixels).expect("image");
-            let item = ImageSegmentItem {
+            let item = ConnectedComponentItem {
                 mask,
                 mass: 3,
                 x: 0,
@@ -370,7 +370,7 @@ mod tests {
                 1, 1, 0,
             ];
             let mask: Image = Image::try_create(3, 3, pixels).expect("image");
-            let item = ImageSegmentItem {
+            let item = ConnectedComponentItem {
                 mask,
                 mass: 6,
                 x: 1,
@@ -400,10 +400,10 @@ mod tests {
         let ignore_mask: Image = Image::try_create(4, 4, ignore_pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<ImageSegmentItem> = input.find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
+        let mask_vec: Vec<ConnectedComponentItem> = input.find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
 
         // Assert
-        let mut expected = Vec::<ImageSegmentItem>::new();
+        let mut expected = Vec::<ConnectedComponentItem>::new();
         {
             let pixels: Vec<u8> = vec![
                 0, 0, 0, 0,
@@ -412,7 +412,7 @@ mod tests {
                 0, 0, 0, 0,
             ];
             let mask: Image = Image::try_create(4, 4, pixels).expect("image");
-            let item = ImageSegmentItem {
+            let item = ConnectedComponentItem {
                 mask,
                 mass: 2,
                 x: 2,
@@ -428,7 +428,7 @@ mod tests {
                 1, 1, 0, 0,
             ];
             let mask: Image = Image::try_create(4, 4, pixels).expect("image");
-            let item = ImageSegmentItem {
+            let item = ConnectedComponentItem {
                 mask,
                 mass: 3,
                 x: 0,

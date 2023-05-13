@@ -1,6 +1,6 @@
 use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectLabel, SingleColorObjects, SingleColorObjectRectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction};
-use super::{Image, ImageMask, ImageMaskCount, ImageSegment, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
+use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};

@@ -4,7 +4,7 @@ mod tests {
     use crate::arc::arc_work_model::{self, PairType};
     use crate::arc::{ActionLabel, convolution3x3};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, PixelConnectivity, ImageSegmentItem, ImageMask, Histogram};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ConnectedComponent, PixelConnectivity, ConnectedComponentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern, ImageFill};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
@@ -3225,10 +3225,10 @@ mod tests {
 
             let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
             let ignore_mask: Image = color_count.to_mask_where_color_is_equal_or_less_than(3);
-            let mut objects: Vec<ImageSegmentItem> = input.find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity4, &ignore_mask)?;
+            let mut objects: Vec<ConnectedComponentItem> = input.find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity4, &ignore_mask)?;
             objects.sort_unstable_by_key(|item| (item.mass(), item.x(), item.y()));
             objects.reverse();
-            let biggest_object: ImageSegmentItem = match objects.first() {
+            let biggest_object: ConnectedComponentItem = match objects.first() {
                 Some(value) => value.clone(),
                 None => {
                     return Err(anyhow::anyhow!("biggest object"));

@@ -1,4 +1,4 @@
-use super::{Image, ImageSegment, PixelConnectivity, ImageColorProfile, ImageMask, ImageTrim};
+use super::{Image, ConnectedComponent, PixelConnectivity, ImageColorProfile, ImageMask, ImageTrim};
 use anyhow::Context;
 use std::collections::HashMap;
 

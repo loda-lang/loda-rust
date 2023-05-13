@@ -36,7 +36,7 @@ struct Item {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::{ImageTryCreate, ImageSegment, PixelConnectivity, ImageObjectEnumerate, ImageMask};
+    use crate::arc::{ImageTryCreate, ConnectedComponent, PixelConnectivity, ImageObjectEnumerate, ImageMask};
 
     #[test]
     fn test_10000_sort_by_mass() {
