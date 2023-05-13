@@ -32,18 +32,16 @@ impl ImageSegmentItem {
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub enum ImageSegmentAlgorithm {
-    /// Visit 4 neighbors around a pixel.
-    /// 
-    /// Flood fill the top/bottom/left/right pixels.
+pub enum PixelConnectivity {
+    /// Considers only the 4 neighbors around the center pixel, the top/bottom/left/right pixels.
     /// 
     /// Don't visit the corners.
-    Neighbors,
+    Connectivity4,
 
-    /// Visit all 8 neighbors around a pixel.
+    /// Considers all the 8 neighbors around the center pixel.
     /// 
-    /// Flood fill diagonally via corners.
-    All,
+    /// This can be useful for diagonal flood filling via corners.
+    Connectivity8,
 }
 
 pub trait ImageSegment {
@@ -68,17 +66,17 @@ pub trait ImageSegment {
     /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
     /// 
     /// Counts the number of pixels in each of the objects, so that this costly operation can be avoided.
-    fn find_objects_with_ignore_mask_inner(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: &Image) -> anyhow::Result<Vec<ImageSegmentItem>>;
+    fn find_objects_with_ignore_mask_inner(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ImageSegmentItem>>;
 
     /// Identify clusters of connected pixels
     /// 
     /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
-    fn find_objects(&self, algorithm: ImageSegmentAlgorithm) -> anyhow::Result<Vec<Image>>;
+    fn find_objects(&self, algorithm: PixelConnectivity) -> anyhow::Result<Vec<Image>>;
     
     /// Identify clusters of connected pixels with an `ignore_mask` of areas to be ignored
     /// 
     /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
-    fn find_objects_with_ignore_mask(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: &Image) -> anyhow::Result<Vec<Image>>;
+    fn find_objects_with_ignore_mask(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<Image>>;
 }
 
 impl ImageSegment for Image {
@@ -164,7 +162,7 @@ impl ImageSegment for Image {
         self.flood_fill_visit8(image, x+1, y+1, color);
     }
 
-    fn find_objects_with_ignore_mask_inner(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: &Image) -> anyhow::Result<Vec<ImageSegmentItem>> {
+    fn find_objects_with_ignore_mask_inner(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ImageSegmentItem>> {
         if ignore_mask.size() != self.size() {
             return Err(anyhow::anyhow!("The size of the ignore_mask must be the same, but is different"));
         }
@@ -183,10 +181,10 @@ impl ImageSegment for Image {
                 let color: u8 = self.get(x, y).unwrap_or(255);
                 let mut object_mask = ignore_mask.clone();
                 match algorithm {
-                    ImageSegmentAlgorithm::Neighbors => {
+                    PixelConnectivity::Connectivity4 => {
                         object_mask.flood_fill_visit4(&self, x, y, color);
                     },
-                    ImageSegmentAlgorithm::All => {
+                    PixelConnectivity::Connectivity8 => {
                         object_mask.flood_fill_visit8(&self, x, y, color);
                     },
                 }
@@ -237,12 +235,12 @@ impl ImageSegment for Image {
         Ok(object_mask_vec)
     }
 
-    fn find_objects(&self, algorithm: ImageSegmentAlgorithm) -> anyhow::Result<Vec<Image>> {
+    fn find_objects(&self, algorithm: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
         let ignore_mask = Image::zero(self.width(), self.height());
         self.find_objects_with_ignore_mask(algorithm, &ignore_mask)
     }
 
-    fn find_objects_with_ignore_mask(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: &Image) -> anyhow::Result<Vec<Image>> {
+    fn find_objects_with_ignore_mask(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<Image>> {
         let items: Vec<ImageSegmentItem> = self.find_objects_with_ignore_mask_inner(algorithm, ignore_mask)?;
         let images: Vec<Image> = items.into_iter().map(|item| item.mask ).collect();
         Ok(images)
@@ -502,7 +500,7 @@ mod tests {
         let input: Image = Image::try_create(5, 4, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("vec");
+        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity4).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 3);
@@ -540,7 +538,7 @@ mod tests {
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("vec");
+        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity4).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 3);
@@ -579,7 +577,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("vec");
+        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity4).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 5);
@@ -620,7 +618,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("vec");
+        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity4).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);
@@ -649,7 +647,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("vec");
+        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity4).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);
@@ -679,7 +677,7 @@ mod tests {
         let ignore_mask = Image::zero(input.width(), input.height());
 
         // Act
-        let mask_vec: Vec<ImageSegmentItem> = input.find_objects_with_ignore_mask_inner(ImageSegmentAlgorithm::All, &ignore_mask).expect("vec");
+        let mask_vec: Vec<ImageSegmentItem> = input.find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
 
         // Assert
         let mut expected = Vec::<ImageSegmentItem>::new();
@@ -735,7 +733,7 @@ mod tests {
         let ignore_mask: Image = Image::try_create(4, 4, ignore_pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<ImageSegmentItem> = input.find_objects_with_ignore_mask_inner(ImageSegmentAlgorithm::All, &ignore_mask).expect("vec");
+        let mask_vec: Vec<ImageSegmentItem> = input.find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
 
         // Assert
         let mut expected = Vec::<ImageSegmentItem>::new();
@@ -785,7 +783,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::All).expect("vec");
+        let mask_vec: Vec<Image> = input.find_objects(PixelConnectivity::Connectivity8).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);
@@ -820,7 +818,7 @@ mod tests {
         let ignore_mask: Image = Image::try_create(3, 3, mask_pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("vec");
+        let mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);
@@ -857,7 +855,7 @@ mod tests {
         let ignore_mask: Image = Image::try_create(4, 4, mask_pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("vec");
+        let mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask).expect("vec");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);

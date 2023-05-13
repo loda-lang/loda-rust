@@ -1,4 +1,4 @@
-use super::{ImageSegment, ImageSegmentAlgorithm, ImageOverlay, ImageObjectEnumerate};
+use super::{ImageSegment, PixelConnectivity, ImageOverlay, ImageObjectEnumerate};
 use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle, ImageMix, ImageSize, MixMode, ImageMaskCount, ImageCrop};
 
 /// A rectangle filled with a single solid color and no other colors are present inside the object.
@@ -88,7 +88,7 @@ impl SingleColorObjectSparse {
         let blank = Image::zero(cropped_mask.width(), cropped_mask.height());
 
         // TODO: perform the same operation with both 4-connected and 8-connected.
-        let object_mask_vec: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask)?;
+        let object_mask_vec: Vec<Image> = blank.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask)?;
 
         let mut objects_with_hole_vec = Vec::<Image>::new();
         let mut result_image = Image::zero(cropped_mask.width(), cropped_mask.height());
@@ -138,7 +138,7 @@ impl SingleColorObjectSparse {
 
         // Find the clusters
         let ignore_mask: Image = result_image.invert_mask();
-        let object_mask_vec2: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask)?;
+        let object_mask_vec2: Vec<Image> = blank.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask)?;
 
         // println!("number of clusters: {}", object_mask_vec2.len());
         let mut cluster_vec = Vec::<SingleColorObjectCluster>::new();

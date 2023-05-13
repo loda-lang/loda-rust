@@ -163,7 +163,7 @@ pub use image_replace_regex::{ImageReplaceRegex, ImageReplaceRegexToColor};
 pub use image_replace_simple::ImageReplaceSimple;
 pub use image_resize::ImageResize;
 pub use image_rotate::ImageRotate;
-pub use image_segment::{ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem};
+pub use image_segment::{ImageSegment, PixelConnectivity, ImageSegmentItem};
 pub use image_set_pixel_where::ImageSetPixelWhere;
 pub use image_size::ImageSize;
 pub use image_stack::ImageStack;

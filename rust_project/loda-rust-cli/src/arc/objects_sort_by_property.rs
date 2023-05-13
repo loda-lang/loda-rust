@@ -36,7 +36,7 @@ struct Item {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::{ImageTryCreate, ImageSegment, ImageSegmentAlgorithm, ImageObjectEnumerate, ImageMask};
+    use crate::arc::{ImageTryCreate, ImageSegment, PixelConnectivity, ImageObjectEnumerate, ImageMask};
 
     #[test]
     fn test_10000_sort_by_mass() {
@@ -53,7 +53,7 @@ mod tests {
 
         let image_mask: Image = input.to_mask_where_color_is_different(background_color);
         let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
-        let objects: Vec<Image> = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("objects");
+        let objects: Vec<Image> = image_mask.find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &ignore_mask).expect("objects");
         assert_eq!(objects.len(), 3);
 
         // Act
