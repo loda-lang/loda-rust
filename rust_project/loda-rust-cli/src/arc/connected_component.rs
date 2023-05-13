@@ -50,21 +50,21 @@ pub trait ConnectedComponent {
     /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
     /// 
     /// Counts the number of pixels in each of the objects, so that this costly operation can be avoided.
-    fn find_objects_with_ignore_mask_inner(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ConnectedComponentItem>>;
+    fn find_objects_with_ignore_mask_inner(&self, connectivity: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ConnectedComponentItem>>;
 
     /// Identify clusters of connected pixels
     /// 
     /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
-    fn find_objects(&self, algorithm: PixelConnectivity) -> anyhow::Result<Vec<Image>>;
+    fn find_objects(&self, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>>;
     
     /// Identify clusters of connected pixels with an `ignore_mask` of areas to be ignored
     /// 
     /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
-    fn find_objects_with_ignore_mask(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<Image>>;
+    fn find_objects_with_ignore_mask(&self, connectivity: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<Image>>;
 }
 
 impl ConnectedComponent for Image {
-    fn find_objects_with_ignore_mask_inner(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ConnectedComponentItem>> {
+    fn find_objects_with_ignore_mask_inner(&self, connectivity: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<ConnectedComponentItem>> {
         if ignore_mask.size() != self.size() {
             return Err(anyhow::anyhow!("The size of the ignore_mask must be the same, but is different"));
         }
@@ -82,7 +82,7 @@ impl ConnectedComponent for Image {
                 // Flood fill
                 let color: u8 = self.get(x, y).unwrap_or(255);
                 let mut object_mask = ignore_mask.clone();
-                match algorithm {
+                match connectivity {
                     PixelConnectivity::Connectivity4 => {
                         object_mask.mask_flood_fill4(&self, x, y, color);
                     },
@@ -137,13 +137,13 @@ impl ConnectedComponent for Image {
         Ok(object_mask_vec)
     }
 
-    fn find_objects(&self, algorithm: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
+    fn find_objects(&self, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
         let ignore_mask = Image::zero(self.width(), self.height());
-        self.find_objects_with_ignore_mask(algorithm, &ignore_mask)
+        self.find_objects_with_ignore_mask(connectivity, &ignore_mask)
     }
 
-    fn find_objects_with_ignore_mask(&self, algorithm: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<Image>> {
-        let items: Vec<ConnectedComponentItem> = self.find_objects_with_ignore_mask_inner(algorithm, ignore_mask)?;
+    fn find_objects_with_ignore_mask(&self, connectivity: PixelConnectivity, ignore_mask: &Image) -> anyhow::Result<Vec<Image>> {
+        let items: Vec<ConnectedComponentItem> = self.find_objects_with_ignore_mask_inner(connectivity, ignore_mask)?;
         let images: Vec<Image> = items.into_iter().map(|item| item.mask ).collect();
         Ok(images)
     }
@@ -156,7 +156,7 @@ mod tests {
     use crate::arc::ImageStack;
 
     #[test]
-    fn test_50000_find_objects_neighbors() {
+    fn test_10000_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_find_objects_neighbors() {
+    fn test_10001_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -234,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50002_find_objects_neighbors() {
+    fn test_10002_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -275,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50003_find_objects_neighbors() {
+    fn test_10003_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 
@@ -304,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50004_find_objects_neighbors() {
+    fn test_10004_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -333,7 +333,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_find_objects_with_ignore_mask_inner() {
+    fn test_20000_find_objects_with_ignore_mask_inner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -382,7 +382,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60001_find_objects_with_ignore_mask_inner() {
+    fn test_20001_find_objects_with_ignore_mask_inner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5,
@@ -440,7 +440,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70000_find_objects_all() {
+    fn test_30000_find_objects_all() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -469,7 +469,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80000_find_objects_with_ignore_mask() {
+    fn test_40000_find_objects_with_ignore_mask() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -504,7 +504,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80001_find_objects_with_ignore_mask() {
+    fn test_40001_find_objects_with_ignore_mask() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 6, 6, 
