@@ -3226,7 +3226,7 @@ mod tests {
             let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
             let ignore_mask: Image = color_count.to_mask_where_color_is_equal_or_less_than(3);
             let mut objects: Vec<ConnectedComponentItem> = ConnectedComponent::find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity4, &input, &ignore_mask)?;
-            objects.sort_unstable_by_key(|item| (item.mass(), item.x(), item.y()));
+            objects.sort_unstable_by_key(|item| (item.mass, item.x, item.y));
             objects.reverse();
             let biggest_object: ConnectedComponentItem = match objects.first() {
                 Some(value) => value.clone(),
@@ -3237,7 +3237,7 @@ mod tests {
             let color_to_be_trimmed: u8 = 0;
             
             // Idea, with the actionlabel, check the size of the masked area correspond to the output size
-            let rect: Rectangle = biggest_object.mask().inner_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
+            let rect: Rectangle = biggest_object.mask.inner_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
             if rect.is_empty() {
                 return Err(anyhow::anyhow!("bounding box is empty"));
             }

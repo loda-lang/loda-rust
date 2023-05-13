@@ -1,36 +1,16 @@
+//! Connected component labeling/analysis
+//! 
+//! https://en.wikipedia.org/wiki/Connected-component_labeling
 use super::{Image, ImageFill};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConnectedComponentItem {
-    mask: Image,
-    mass: u16,
-    x: u8,
-    y: u8,
+    pub mask: Image,
+    pub mass: u16,
+    pub x: u8,
+    pub y: u8,
 }
 
-impl ConnectedComponentItem {
-    #[allow(dead_code)]
-    pub fn mask(&self) -> &Image {
-        &self.mask
-    }
-
-    #[allow(dead_code)]
-    pub fn mass(&self) -> u16 {
-        self.mass
-    }
-
-    #[allow(dead_code)]
-    pub fn x(&self) -> u8 {
-        self.x
-    }
-
-    #[allow(dead_code)]
-    pub fn y(&self) -> u8 {
-        self.y
-    }
-}
-
-#[allow(dead_code)]
 #[derive(Debug)]
 pub enum PixelConnectivity {
     /// Considers only the 4 neighbors around the center pixel, the top/bottom/left/right pixels.
@@ -146,8 +126,7 @@ impl ConnectedComponent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::ImageTryCreate;
-    use crate::arc::ImageStack;
+    use crate::arc::{ImageStack, ImageTryCreate};
 
     #[test]
     fn test_10000_find_objects_neighbors() {
