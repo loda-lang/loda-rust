@@ -1,4 +1,4 @@
-use super::{ImageSegment, PixelConnectivity, ImageOverlay, ImageObjectEnumerate};
+use super::{ImageFill, ImageSegment, PixelConnectivity, ImageOverlay, ImageObjectEnumerate};
 use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle, ImageMix, ImageSize, MixMode, ImageMaskCount, ImageCrop};
 
 /// A rectangle filled with a single solid color and no other colors are present inside the object.

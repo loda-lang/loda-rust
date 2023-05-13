@@ -6,7 +6,7 @@ mod tests {
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, PixelConnectivity, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
-    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
+    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern, ImageFill};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
     use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ReverseColorPopularity, ObjectsAndMass};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
