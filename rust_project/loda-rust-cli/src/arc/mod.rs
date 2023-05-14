@@ -177,7 +177,7 @@ pub use image_trim::ImageTrim;
 pub use image_try_create::ImageTryCreate;
 pub use image_unicode_formatting::ImageUnicodeFormatting;
 pub use html_from_task::HtmlFromTask;
-pub use label::{ActionLabel, ActionLabelSet, GridLabel, ImageCorner, ImageEdge, InputLabel, InputLabelSet, ObjectLabel, PropertyInput, PropertyOutput, SingleColorObjectLabel, SymmetryLabel};
+pub use label::{ActionLabel, ActionLabelSet, GridLabel, ImageCorner, ImageEdge, InputLabel, InputLabelSet, ObjectLabel, PropertyInput, PropertyOutput, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel, SymmetryLabel};
 pub use ngram::{ImageNgram, RecordBigram, RecordTrigram};
 pub use number_to_image::NumberToImage;
 pub use object_with_different_color::ObjectWithDifferentColor;

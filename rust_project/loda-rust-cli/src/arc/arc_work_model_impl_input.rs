@@ -1,6 +1,6 @@
 use super::arc_work_model;
 use super::arc_work_model::Object;
-use super::{PropertyInput, InputLabel, GridLabel, SingleColorObjectLabel};
+use super::{PropertyInput, InputLabel, GridLabel, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel};
 use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
 use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop, SingleColorObjects};
 use std::collections::{HashMap, HashSet};
@@ -252,37 +252,49 @@ impl arc_work_model::Input {
         };
         for object in &single_color_objects.rectangle_vec {
             {
-                let label = SingleColorObjectLabel::RectangleWithColor { color: object.color };
-                let input_label = InputLabel::InputSingleColorObject { label };
+                let label = SingleColorObjectRectangleLabel::RectangleWithColor { color: object.color };
+                let input_label = InputLabel::InputSingleColorObjectRectangle { label };
                 self.input_label_set.insert(input_label);
             }
             {
-                let label = SingleColorObjectLabel::RectangleWithSomeColor;
-                let input_label = InputLabel::InputSingleColorObject { label };
+                let label = SingleColorObjectRectangleLabel::RectangleWithSomeColor;
+                let input_label = InputLabel::InputSingleColorObjectRectangle { label };
                 self.input_label_set.insert(input_label);
             }
             if object.is_square {
                 {
-                    let label = SingleColorObjectLabel::SquareWithColor { color: object.color };
-                    let input_label = InputLabel::InputSingleColorObject { label };
+                    let label = SingleColorObjectRectangleLabel::SquareWithColor { color: object.color };
+                    let input_label = InputLabel::InputSingleColorObjectRectangle { label };
                     self.input_label_set.insert(input_label);
                 }
                 {
-                    let label = SingleColorObjectLabel::SquareWithSomeColor;
-                    let input_label = InputLabel::InputSingleColorObject { label };
+                    let label = SingleColorObjectRectangleLabel::SquareWithSomeColor;
+                    let input_label = InputLabel::InputSingleColorObjectRectangle { label };
                     self.input_label_set.insert(input_label);
                 }
             } else {
                 {
-                    let label = SingleColorObjectLabel::NonSquareWithColor { color: object.color };
-                    let input_label = InputLabel::InputSingleColorObject { label };
+                    let label = SingleColorObjectRectangleLabel::NonSquareWithColor { color: object.color };
+                    let input_label = InputLabel::InputSingleColorObjectRectangle { label };
                     self.input_label_set.insert(input_label);
                 }
                 {
-                    let label = SingleColorObjectLabel::NonSquareWithSomeColor;
-                    let input_label = InputLabel::InputSingleColorObject { label };
+                    let label = SingleColorObjectRectangleLabel::NonSquareWithSomeColor;
+                    let input_label = InputLabel::InputSingleColorObjectRectangle { label };
                     self.input_label_set.insert(input_label);
                 }
+            }
+        }
+        for object in &single_color_objects.sparse_vec {
+            {
+                let label = SingleColorObjectSparseLabel::SparseWithColor { color: object.color };
+                let input_label = InputLabel::InputSingleColorObjectSparse { label };
+                self.input_label_set.insert(input_label);
+            }
+            {
+                let label = SingleColorObjectSparseLabel::SparseWithSomeColor;
+                let input_label = InputLabel::InputSingleColorObjectSparse { label };
+                self.input_label_set.insert(input_label);
             }
         }
         self.single_color_objects = Some(single_color_objects);

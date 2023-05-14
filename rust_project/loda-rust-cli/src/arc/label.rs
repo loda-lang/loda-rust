@@ -96,17 +96,19 @@ pub enum GridLabel {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum SingleColorObjectLabel {
+pub enum SingleColorObjectRectangleLabel {
     RectangleWithColor { color: u8 },
     RectangleWithSomeColor,
     SquareWithColor { color: u8 },
     SquareWithSomeColor,
     NonSquareWithColor { color: u8 },
     NonSquareWithSomeColor,
+}
 
-    // Ideas for more
-    // RectangleWithColorDifferentThan { color: u8 },
-    // RectangleWithMass { mass: u16 },
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum SingleColorObjectSparseLabel {
+    SparseWithColor { color: u8 },
+    SparseWithSomeColor,
 }
 
 /// Properties about the input image.
@@ -114,7 +116,8 @@ pub enum SingleColorObjectLabel {
 pub enum InputLabel {
     InputSymmetry { label: SymmetryLabel },
     InputGrid { label: GridLabel },
-    InputSingleColorObject { label: SingleColorObjectLabel },
+    InputSingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },
+    InputSingleColorObjectSparse { label: SingleColorObjectSparseLabel },
 
     // Ideas for more
     // UnambiguousEnumeratedObjects, // in the 3x3, are the 8 neighbours the same as the 4 neighbours 
@@ -188,7 +191,7 @@ pub enum ActionLabel {
     OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
-    OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObjectLabel },
+    OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObjectRectangleLabel },
     
     OutputImageIsSymmetricX,
     OutputImageIsSymmetricY,

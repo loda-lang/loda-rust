@@ -1,4 +1,4 @@
-use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectLabel, SingleColorObjects, SingleColorObjectRectangle};
+use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObjects, SingleColorObjectRectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction};
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
@@ -485,11 +485,11 @@ impl arc_work_model::Task {
     }
 
     /// Extract `Vec<SingleColorObjectLabel>` from `input_label_set_intersection`.
-    fn single_color_object_labels_from_input(&self) -> Vec<SingleColorObjectLabel> {
-        let mut single_color_object_labels = Vec::<SingleColorObjectLabel>::new();
+    fn single_color_object_labels_from_input(&self) -> Vec<SingleColorObjectRectangleLabel> {
+        let mut single_color_object_labels = Vec::<SingleColorObjectRectangleLabel>::new();
         for input_label in &self.input_label_set_intersection {
-            let single_color_object_label: SingleColorObjectLabel = match input_label {
-                InputLabel::InputSingleColorObject { label } => label.clone(),
+            let single_color_object_label: SingleColorObjectRectangleLabel = match input_label {
+                InputLabel::InputSingleColorObjectRectangle { label } => label.clone(),
                 _ => continue
             };
             single_color_object_labels.push(single_color_object_label);
@@ -498,47 +498,47 @@ impl arc_work_model::Task {
     }
 
     pub fn assign_action_labels_related_to_single_color_objects_and_output_size(&mut self) -> anyhow::Result<()> {
-        let single_color_object_labels: Vec<SingleColorObjectLabel> = self.single_color_object_labels_from_input();
+        let single_color_object_labels: Vec<SingleColorObjectRectangleLabel> = self.single_color_object_labels_from_input();
         if single_color_object_labels.is_empty() {
             return Ok(());
         }
 
         for query_id in 0..6u8 {
             let mut ambiguity_count: usize = 0;
-            let mut found_label: Option<&SingleColorObjectLabel> = None;
+            let mut found_label: Option<&SingleColorObjectRectangleLabel> = None;
             for single_color_object_label in &single_color_object_labels {
                 match single_color_object_label {
-                    SingleColorObjectLabel::SquareWithColor { color: _ } => {
+                    SingleColorObjectRectangleLabel::SquareWithColor { color: _ } => {
                         if query_id == 0 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
                         }
                     },
-                    SingleColorObjectLabel::NonSquareWithColor { color: _ } => {
+                    SingleColorObjectRectangleLabel::NonSquareWithColor { color: _ } => {
                         if query_id == 1 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
                         }
                     },
-                    SingleColorObjectLabel::RectangleWithColor { color: _ } => {
+                    SingleColorObjectRectangleLabel::RectangleWithColor { color: _ } => {
                         if query_id == 2 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
                         }
                     },
-                    SingleColorObjectLabel::SquareWithSomeColor => {
+                    SingleColorObjectRectangleLabel::SquareWithSomeColor => {
                         if query_id == 3 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
                         }
                     },
-                    SingleColorObjectLabel::NonSquareWithSomeColor => {
+                    SingleColorObjectRectangleLabel::NonSquareWithSomeColor => {
                         if query_id == 4 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
                         }
                     },
-                    SingleColorObjectLabel::RectangleWithSomeColor => {
+                    SingleColorObjectRectangleLabel::RectangleWithSomeColor => {
                         if query_id == 5 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
@@ -550,7 +550,7 @@ impl arc_work_model::Task {
                 // Reject ambiguous scenarios with 2 or more labels.
                 continue;
             }
-            let single_color_object_label: &SingleColorObjectLabel = match found_label {
+            let single_color_object_label: &SingleColorObjectRectangleLabel = match found_label {
                 Some(value) => value,
                 None => continue
             };
@@ -589,7 +589,7 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    fn assign_output_size_for_single_color_objects_with_label(&mut self, single_color_object_label: &SingleColorObjectLabel, execute: bool) -> anyhow::Result<()> {
+    fn assign_output_size_for_single_color_objects_with_label(&mut self, single_color_object_label: &SingleColorObjectRectangleLabel, execute: bool) -> anyhow::Result<()> {
         let mut predicted_sizes = HashMap::<usize, ImageSize>::new();
         for (pair_index, pair) in self.pairs.iter().enumerate() {
             let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
