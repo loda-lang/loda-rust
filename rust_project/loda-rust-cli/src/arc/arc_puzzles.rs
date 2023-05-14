@@ -4245,4 +4245,103 @@ mod tests {
         let result: String = run_analyze_and_solve("56ff96f3", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
+
+    mod solve_7e0986d6 {
+        use crate::arc::{SingleColorObjectClusterContainer, ImageRepairTrigram, ImageMix, MixMode};
+
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+
+                let mut result_image: Image = Image::zero(input.width(), input.height());
+                // let mut result_image: Image = input.clone();
+                let mut noise_color: u8 = 255;
+                let mut noise_mask: Image = Image::zero(input.width(), input.height());
+                for sparse_object in &single_color_objects.sparse_vec {
+                    if sparse_object.color == background_color {
+                        continue;
+                    }
+                    let container: &SingleColorObjectClusterContainer = match &sparse_object.container4 {
+                        Some(value) => value,
+                        None => {
+                            return Err(anyhow::anyhow!("missing container4"));
+                        }
+                    };
+                    let cluster_count: usize = container.cluster_vec.len();
+                    if cluster_count != sparse_object.mass_object as usize {
+                        continue;
+                    }
+                    // Same number of clusters as the mass of the color. This is a noise color.
+                    noise_color = sparse_object.color;
+                    noise_mask = sparse_object.mask.clone();
+                    // noise_mask = noise_mask.overlay_with_position(&sparse_object.mask, sparse_object.bounding_box.min_x(), sparse_object.bounding_box.min_y())?;
+                    break;
+                }
+                println!("noise color: {}", noise_color);
+                for sparse_object in &single_color_objects.sparse_vec {
+                    if sparse_object.color == background_color {
+                        continue;
+                    }
+                    let container: &SingleColorObjectClusterContainer = match &sparse_object.container4 {
+                        Some(value) => value,
+                        None => {
+                            return Err(anyhow::anyhow!("missing container4"));
+                        }
+                    };
+                    let l: usize = container.cluster_vec.len();
+                    if l == sparse_object.mass_object as usize {
+                        // result_image.repair_trigram_algorithm(sparse_object.color)?;
+                        // result_image = result_image.denoise_type2(sparse_object.color)?;
+                        continue;
+                    }
+
+                    let mut n: Image = container.enumerated_clusters.clone();
+                    // n = n.denoise_type2(0)?;
+                    // n = n.denoise_type6()?;
+                    // n = n.denoise_type7(&noise_mask)?;
+                    // n = n.blur()?;
+
+
+                    // let mut m: Image = sparse_object.mask.clone();
+                    // m = m.mix(&noise_mask, MixMode::BooleanOr)?;
+                    // m = m.denoise_type6()?;
+                    // m = m.denoise_type7(&noise_mask)?;
+
+                    // result_image = noise_mask.clone();
+                    // result_image = m;
+                    // result_image = n;
+                    // result_image = m.denoise_type4()?;
+                    // result_image = m.denoise_type5(noise_color)?;
+
+                    // result_image = result_image.overlay_with_position(&n, sparse_object.bounding_box.min_x(), sparse_object.bounding_box.min_y())?;
+                    result_image = sparse_object.mask.clone();
+
+                    // let rect: Rectangle = sparse_object.bounding_box;
+                    // result_image = result_image.fill_inside_rect(rect, sparse_object.color)?;
+                }
+                // result_image = result_image.count_duplicate_pixels_in_neighbours()?;
+                // result_image = result_image.denoise_type2(1)?;
+                // result_image = result_image.denoise_type7(&noise_mask)?;
+                result_image = input.denoise_type7(&noise_mask)?;
+
+                // Ok(noise_mask)
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_850000_puzzle_7e0986d6() {
+        let mut instance = solve_7e0986d6::MySolution {};
+        let result: String = run_analyze_and_solve("7e0986d6", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
 }

@@ -1,9 +1,14 @@
-use super::{Image, ImageHistogram, ImagePadding, ImageNoiseColor, Histogram, convolution3x3};
+use super::{Image, ImageHistogram, ImagePadding, ImageNoiseColor, Histogram, convolution3x3, convolution5x5_special, ImageMask};
 
 pub trait ImageDenoise {
     fn denoise_type1(&self, background_color: u8) -> anyhow::Result<Image>;
     fn denoise_type2(&self, noise_color: u8) -> anyhow::Result<Image>;
     fn denoise_type3(&self, repair_iterations: u8) -> anyhow::Result<Image>;
+    fn denoise_type4(&self) -> anyhow::Result<Image>;
+    fn denoise_type5(&self, noise_color: u8) -> anyhow::Result<Image>;
+    fn denoise_type6(&self) -> anyhow::Result<Image>;
+    fn blur(&self) -> anyhow::Result<Image>;
+    fn denoise_type7(&self, repair_mask: &Image) -> anyhow::Result<Image>;
 }
 
 impl ImageDenoise for Image {
@@ -107,6 +112,252 @@ impl ImageDenoise for Image {
             image = image.denoise_type2(*noise_color)?;
         }
         Ok(image)
+    }
+
+    fn denoise_type4(&self) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        let input_padded: Image = self.padding_with_color(1, 0)?;
+        let denoised_image: Image = convolution3x3(&input_padded, |bm| {
+            let tl: u8 = bm.get(0, 0).unwrap_or(255);
+            let tc: u8 = bm.get(1, 0).unwrap_or(255);
+            let tr: u8 = bm.get(2, 0).unwrap_or(255);
+            let cl: u8 = bm.get(0, 1).unwrap_or(255);
+            let cc: u8 = bm.get(1, 1).unwrap_or(255);
+            let cr: u8 = bm.get(2, 1).unwrap_or(255);
+            let bl: u8 = bm.get(0, 2).unwrap_or(255);
+            let bc: u8 = bm.get(1, 2).unwrap_or(255);
+            let br: u8 = bm.get(2, 2).unwrap_or(255);
+            if cc > 0 {
+                // not a noisy pixel
+                return Ok(1);
+            }
+            if tc > 0 && cl > 0 {
+                return Ok(1);
+            }
+            if tc > 0 && cr > 0 {
+                return Ok(1);
+            }
+            if bc > 0 && cl > 0 {
+                return Ok(1);
+            }
+            if bc > 0 && cr > 0 {
+                return Ok(1);
+            }
+            Ok(0)
+        })?;
+        Ok(denoised_image)
+    }
+
+    fn denoise_type5(&self, noise_color: u8) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        let input_padded: Image = self.padding_with_color(1, 0)?;
+        let denoised_image: Image = convolution3x3(&input_padded, |bm| {
+            let tl: u8 = bm.get(0, 0).unwrap_or(255);
+            let tc: u8 = bm.get(1, 0).unwrap_or(255);
+            let tr: u8 = bm.get(2, 0).unwrap_or(255);
+            let cl: u8 = bm.get(0, 1).unwrap_or(255);
+            let cc: u8 = bm.get(1, 1).unwrap_or(255);
+            let cr: u8 = bm.get(2, 1).unwrap_or(255);
+            let bl: u8 = bm.get(0, 2).unwrap_or(255);
+            let bc: u8 = bm.get(1, 2).unwrap_or(255);
+            let br: u8 = bm.get(2, 2).unwrap_or(255);
+            if cc != noise_color {
+                // not a noisy pixel
+                return Ok(cc);
+            }
+            if tc > 0 && cl > 0 {
+                return Ok(1);
+            }
+            if tc > 0 && cr > 0 {
+                return Ok(1);
+            }
+            if bc > 0 && cl > 0 {
+                return Ok(1);
+            }
+            if bc > 0 && cr > 0 {
+                return Ok(1);
+            }
+            Ok(0)
+        })?;
+        Ok(denoised_image)
+    }
+
+    fn denoise_type6(&self) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        let input_padded: Image = self.padding_with_color(1, 0)?;
+        let denoised_image: Image = convolution3x3(&input_padded, |bm| {
+            let tl: u8 = bm.get(0, 0).unwrap_or(255);
+            let tc: u8 = bm.get(1, 0).unwrap_or(255);
+            let tr: u8 = bm.get(2, 0).unwrap_or(255);
+            let cl: u8 = bm.get(0, 1).unwrap_or(255);
+            let cc: u8 = bm.get(1, 1).unwrap_or(255);
+            let cr: u8 = bm.get(2, 1).unwrap_or(255);
+            let bl: u8 = bm.get(0, 2).unwrap_or(255);
+            let bc: u8 = bm.get(1, 2).unwrap_or(255);
+            let br: u8 = bm.get(2, 2).unwrap_or(255);
+            if cc > 0 {
+                // not a noisy pixel
+                return Ok(cc);
+            }
+            // let h: Histogram = bm.histogram_all();
+            // let colors = [tc, cl, cr, bc];
+            // let mut count: u8 = 0;
+            // for color in colors {
+            //     if color == cc {
+            //         count += 1;
+            //     }
+            // }
+            // if count >= 3 {
+            //     return Ok(1);
+            // }
+
+            if tc == bc && tc == 0 {
+                // empty column
+                return Ok(0);
+            }
+            if cl == cr && cl == 0 {
+                // empty row
+                return Ok(0);
+            }
+
+            let has_top_left: bool = tl == tc && tl == cl && tl > 0;
+            let has_top_right: bool = tr == tc && tr == cr && tr > 0; 
+            let has_bottom_left: bool = bl == bc && bl == cl && bl > 0;
+            let has_bottom_right: bool = br == bc && br == cr && br > 0;
+
+            if tc > 0 && tc == cl && tc == cr && tc == bc {
+                // connect-4 crosshair
+                return Ok(tc);
+            }
+            if has_top_left && has_top_right {
+                return Ok(tc);
+            }
+            if has_top_left && has_bottom_left {
+                return Ok(cl);
+            }
+            if has_top_right && has_bottom_right {
+                return Ok(cr);
+            }
+            if has_bottom_left && has_bottom_right {
+                return Ok(bc);
+            }
+
+            // if has_top_left && tc == tl && tc != tr && tc != cr {
+            //     return Ok(tc);
+            // }
+            // if has_top_right && tc == tr && tc != tl {
+            //     return Ok(tc);
+            // }
+            // if has_bottom_left && bc == bl && bc != br {
+            //     return Ok(bc);
+            // }
+            // if has_bottom_right && bc == br && bc != bl {
+            //     return Ok(bc);
+            // }
+
+            if has_top_left {
+                return Ok(tc);
+            }
+            if has_top_right {
+                return Ok(tc);
+            }
+            if has_bottom_left {
+                return Ok(bc);
+            }
+            if has_bottom_right {
+                return Ok(bc);
+            }
+            // if tc == cl && (tc == cr || tc == bc) {
+            //     return Ok(tc);
+            // }
+            // if tc > 0 && cl > 0 {
+            //     return Ok(1);
+            // }
+            // if tc > 0 && cr > 0 {
+            //     return Ok(1);
+            // }
+            // if bc > 0 && cl > 0 {
+            //     return Ok(1);
+            // }
+            // if bc > 0 && cr > 0 {
+            //     return Ok(1);
+            // }
+            Ok(0)
+        })?;
+        Ok(denoised_image)
+    }
+
+    fn blur(&self) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        let input_padded: Image = self.padding_with_color(1, 0)?;
+        let denoised_image: Image = convolution3x3(&input_padded, |bm| {
+            let cc: u8 = bm.get(1, 1).unwrap_or(255);
+            if cc > 0 {
+                // not a noisy pixel
+                return Ok(cc);
+            }
+            let mut h: Histogram = bm.histogram_all();
+            h.set_counter_to_zero(0);
+            let color: u8 = h.most_popular_color_disallow_ambiguous().unwrap_or(0);
+            Ok(color)
+        })?;
+        Ok(denoised_image)
+    }
+
+    fn denoise_type7(&self, repair_mask: &Image) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        let input_padded: Image = self.padding_with_color(2, 0)?;
+        let input_target: Image = Image::zero(input_padded.width(), input_padded.height());
+        // let inverted_repair_mask: Image = repair_mask.invert_mask();
+        let output: Image = convolution5x5_special(&input_padded, &input_target, &repair_mask, 42, |source, target| {
+            let center: u8 = source.get(2, 2).unwrap_or(255);
+            // if color > 0 {
+            //     // not a noisy pixel
+            //     return Ok(color);
+            // }
+            let top_center: u8 = source.get(2, 1).unwrap_or(255);
+            let center_left: u8 = source.get(1, 2).unwrap_or(255);
+            let center_right: u8 = source.get(3, 2).unwrap_or(255);
+            let bottom_center: u8 = source.get(2, 3).unwrap_or(255);
+            let top_bottom_separator: bool = top_center == 0 && bottom_center == 0;
+            let left_right_separator: bool = center_left == 0 && center_right == 0;
+            if top_bottom_separator || left_right_separator {
+                return Ok(0);
+            }
+            // if top_center
+
+            // let mut h: Histogram = source.histogram_all();
+            // h.set_counter_to_zero(0);
+            // h.set_counter_to_zero(center);
+            // let color: u8 = h.most_popular_color_disallow_ambiguous().unwrap_or(0);
+            if top_center > 0 {
+                return Ok(top_center);
+            }
+            if bottom_center > 0 {
+                return Ok(bottom_center);
+            }
+            if center_left > 0 {
+                return Ok(center_left);
+            }
+            if center_right > 0 {
+                return Ok(center_right);
+            }
+
+
+            Ok(0)
+        })?;
+        let output_full: Image = repair_mask.select_from_images(&self, &output)?;
+        Ok(output_full)
     }
 }
 
