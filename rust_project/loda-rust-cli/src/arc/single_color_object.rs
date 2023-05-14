@@ -93,7 +93,7 @@ impl SingleColorObjectSparse {
         let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &ignore_mask)?;
 
         let mut objects_with_hole_vec = Vec::<Image>::new();
-        let mut result_image = Image::zero(cropped_mask.width(), cropped_mask.height());
+        let mut cluster_mask = Image::zero(cropped_mask.width(), cropped_mask.height());
         for object in &object_mask_vec {
             // println!("object: {:?}", object);
             let rect: Rectangle = match object.bounding_box() {
@@ -141,18 +141,18 @@ impl SingleColorObjectSparse {
             // println!("inverted_mask: {:?}", inverted_mask);
             let combined: Image = cropped_object.mix(&inverted_mask, MixMode::BooleanOr)?;
 
-            result_image = result_image.overlay_with_mask_and_position(&combined, &combined, rect.x() as i32, rect.y() as i32)?;
+            cluster_mask = cluster_mask.overlay_with_mask_and_position(&combined, &combined, rect.x() as i32, rect.y() as i32)?;
         }
 
         // Find the clusters
-        let ignore_mask: Image = result_image.invert_mask();
-        let object_mask_vec2: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &ignore_mask)?;
+        let ignore_mask: Image = cluster_mask.invert_mask();
+        let cluster_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &ignore_mask)?;
 
         // println!("number of clusters: {}", object_mask_vec2.len());
         let mut cluster_vec = Vec::<SingleColorObjectCluster>::new();
-        for object in &object_mask_vec2 {
+        for cluster_mask in &cluster_mask_vec {
             let item = SingleColorObjectCluster {
-                mask: object.clone(),
+                mask: cluster_mask.clone(),
             };
             cluster_vec.push(item);
         }
