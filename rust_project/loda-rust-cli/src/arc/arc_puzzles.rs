@@ -13,6 +13,7 @@ mod tests {
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
+    use crate::arc::{ImageDrawRect, SingleColorObjects};
     use std::collections::HashMap;
     use regex::Regex;
 
@@ -4210,5 +4211,38 @@ mod tests {
         let mut instance = solve_810b9b61::MySolution {};
         let result: String = run_analyze_and_solve("810b9b61", &mut instance).expect("String");
         assert_eq!(result, "3 1");
+    }
+
+    mod solve_56ff96f3 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+
+                let mut result_image: Image = Image::zero(input.width(), input.height());
+                for sparse_object in &single_color_objects.sparse_vec {
+                    if sparse_object.color == background_color {
+                        continue;
+                    }
+                    let rect: Rectangle = sparse_object.bounding_box;
+                    result_image = result_image.fill_inside_rect(rect, sparse_object.color)?;
+                }
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_840000_puzzle_56ff96f3() {
+        let mut instance = solve_56ff96f3::MySolution {};
+        let result: String = run_analyze_and_solve("56ff96f3", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
     }
 }
