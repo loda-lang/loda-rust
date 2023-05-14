@@ -49,24 +49,15 @@ pub struct SingleColorObjectSparse {
     pub container8: Option<SingleColorObjectClusterContainer>,
 
     // Future experiments:
-    // Are cluster4_vec and cluster8_vec identical?
-    // vector with clusters, number of clusters, enumerated clusters
-    // number of holes in each cluster
-    // shape type: L shape, T shape, + shape, diagonal shape, other shape
-    // symmetry
-    // is a box
-    // outermost pixels have same color
+    // Are container4 and container8 identical? same shape, same number of holes.
+    // histogram of areas between clusters.
     // number of holes
     // are the non-object pixels a single color
-    // child objects
-    // surrounding objects
     // If there is only a single color that isn't ObjectWithOneColor
     // then it may be because it's the background color.
     // compare the background color across all the single objects if it's the same.
-    // 
-    // Segment the mask into objects.
-    // Identify each object.
-    //
+    // child objects
+    // surrounding objects
     // Detect objects with multiple colors
 }
 
@@ -165,19 +156,36 @@ impl SingleColorObjectSparse {
             let item = SingleColorObjectCluster {
                 cluster_id: index + 1,
                 mask: cluster_mask.clone(),
+                one_or_more_holes: false,
             };
             cluster_vec.push(item);
         }
 
-        // TODO: identify holes and non-holes in each cluster
-        // for object in &object_mask_vec {
-            // let hole_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &cluster_mask)?;
-            // println!("number of holes: {}", hole_mask_vec.len());
-            // println!("hole_mask_vec: {:?}", hole_mask_vec);
-            // compare what cluster it belongs to, by looking at the enumerated_cluster
-            // if there is overlap, then it belongs to that cluster.
-            // then add it as a hole to that cluster.
-        // }
+        // Compare what cluster an "object-with-hole" belongs to, by looking at the enumerated_cluster
+        // if there is overlap, then it belongs to that cluster.
+        // then flag that cluster as having one or more holes.
+        for object in &objects_with_hole_vec {
+            let h: Histogram = enumerated_clusters.histogram_with_mask(&object)?;
+            let cluster_id: u8 = match h.most_popular_color_disallow_ambiguous() {
+                Some(value) => value,
+                None => {
+                    // println!("color: {} ambiguous what cluster the object belong to", self.color);
+                    continue;
+                }
+            };
+            // println!("color: {} connectivity: {:?} cluster_id: {}", self.color, connectivity, cluster_id);
+            if cluster_id == 0 {
+                // println!("cluster_id is not supposed to be 0. Ignoring this object.");
+                continue;
+            }
+            let index = (cluster_id - 1) as usize;
+            if index >= cluster_vec.len() {
+                // println!("cluster_id is out of range. Ignoring this object.");
+                continue;
+            }
+            cluster_vec[index].one_or_more_holes = true;
+
+        }
 
         let container = SingleColorObjectClusterContainer {
             cluster_vec,
@@ -200,18 +208,21 @@ impl SingleColorObjectSparse {
 pub struct SingleColorObjectCluster {
     pub cluster_id: usize,
     pub mask: Image,
+    pub one_or_more_holes: bool,
 
     // Future experiments:
-    // TODO: number of holes in this cluster
+    // mass_cluster,
+    // mass_holes,
+    // is a box
+    // shape type: L shape, T shape, + shape, diagonal shape, other shape
+    // symmetry
+    // outermost pixels have same color
+    // histogram of all holes in this cluster.
+    // number of holes in this cluster
+    // list of holes in this cluster
+    // shape of each hole. square, non-square, rectangular, other.
+    // color of each hole. same, different.
     // shape of cluster
-}
-
-impl SingleColorObjectCluster {
-    #[allow(dead_code)]
-    fn enumerate_clusters(cluster_vec: &Vec<SingleColorObjectCluster>) -> anyhow::Result<Image> {
-        let masks: Vec<Image> = cluster_vec.iter().map(|cluster| cluster.mask.clone()).collect();
-        Image::object_enumerate(&masks)
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -380,18 +391,29 @@ mod tests {
         let object: &SingleColorObjectSparse = &actual.sparse_vec[1];
         let container: &SingleColorObjectClusterContainer = object.container4.as_ref().expect("container");
         assert_eq!(container.cluster_vec.len(), 2);
-        let cluster_image: Image = SingleColorObjectCluster::enumerate_clusters(&container.cluster_vec).expect("ok");
 
-        let expected_pixels: Vec<u8> = vec![
-            1, 1, 1, 1, 0,
-            1, 1, 1, 0, 0,
-            1, 1, 1, 0, 2,
-            1, 0, 0, 0, 2,
-            0, 0, 0, 2, 2,
-            0, 2, 2, 2, 2,
-        ];
-        let expected: Image = Image::try_create(5, 6, expected_pixels).expect("image");
-        assert_eq!(cluster_image, expected);
-        assert_eq!(container.enumerated_clusters, expected);
+        {
+            let expected_pixels: Vec<u8> = vec![
+                1, 1, 1, 1, 0,
+                1, 1, 1, 0, 0,
+                1, 1, 1, 0, 2,
+                1, 0, 0, 0, 2,
+                0, 0, 0, 2, 2,
+                0, 2, 2, 2, 2,
+            ];
+            let expected: Image = Image::try_create(5, 6, expected_pixels).expect("image");
+            assert_eq!(container.enumerated_clusters, expected);
+        }
+
+        {
+            let cluster: &SingleColorObjectCluster = &container.cluster_vec[0];
+            assert_eq!(cluster.cluster_id, 1);
+            assert_eq!(cluster.one_or_more_holes, true);
+        }
+        {
+            let cluster: &SingleColorObjectCluster = &container.cluster_vec[1];
+            assert_eq!(cluster.cluster_id, 2);
+            assert_eq!(cluster.one_or_more_holes, false);
+        }
     }
 }
