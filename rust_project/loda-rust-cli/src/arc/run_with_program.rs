@@ -186,7 +186,10 @@ pub struct SolutionSimpleData {
 pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
 
 pub trait AnalyzeAndSolve {
-    fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()>;
+    fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image>;
 }
 

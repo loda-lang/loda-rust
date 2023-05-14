@@ -1088,10 +1088,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let enumerated_objects: &Image = match &pair.input.enumerated_objects {
@@ -2599,10 +2595,6 @@ mod tests {
             }
         }
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
 
@@ -3284,10 +3276,6 @@ mod tests {
             }
         }
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
 
@@ -3325,10 +3313,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let repair_mask: Image = match &pair.input.repair_mask {
@@ -3427,10 +3411,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let repaired_image: Image = match &pair.input.repaired_image {
@@ -3503,10 +3483,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 println!("grid: {:?}", pair.input.grid);
@@ -3530,10 +3506,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3618,10 +3590,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3698,10 +3666,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3763,10 +3727,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3835,10 +3795,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3923,10 +3879,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -4033,10 +3985,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -4089,10 +4037,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let enumerated_objects: &Image = match &pair.input.enumerated_objects {
@@ -4141,10 +4085,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let enumerated_objects: &Image = match &pair.input.enumerated_objects {
@@ -4194,10 +4134,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let image: &Image = match &pair.input.predicted_single_color_image {
@@ -4225,10 +4161,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
