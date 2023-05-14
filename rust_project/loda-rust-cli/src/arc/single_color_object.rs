@@ -11,6 +11,12 @@ pub struct SingleColorObjectRectangle {
     pub is_square: bool,
 }
 
+#[derive(Clone, Debug)]
+pub struct SingleColorObjectClusterContainer {
+    pub cluster_vec: Vec::<SingleColorObjectCluster>,
+    pub enumerated_clusters: Image,
+}
+
 /// A mask of pixels that have the same color, but isn't fully connected.
 /// 
 /// It may be separate objects.
@@ -36,8 +42,11 @@ pub struct SingleColorObjectSparse {
     /// Histogram of the non-object pixels 
     pub histogram_non_object: Histogram,
 
-    pub cluster4_vec: Vec::<SingleColorObjectCluster>,
-    pub cluster8_vec: Vec::<SingleColorObjectCluster>,
+    /// Child objects by analyzing with `PixelConnectivity4`
+    pub container4: Option<SingleColorObjectClusterContainer>,
+
+    /// Child objects by analyzing with `PixelConnectivity8`
+    pub container8: Option<SingleColorObjectClusterContainer>,
 
     // Future experiments:
     // Are cluster4_vec and cluster8_vec identical?
@@ -75,8 +84,8 @@ impl SingleColorObjectSparse {
             mass_object,
             mass_non_object,
             histogram_non_object: histogram,
-            cluster4_vec: vec!(),
-            cluster8_vec: vec!(),
+            container4: None,
+            container8: None,
         };
         instance.analyze(PixelConnectivity::Connectivity4)?;
         instance.analyze(PixelConnectivity::Connectivity8)?;
@@ -148,21 +157,39 @@ impl SingleColorObjectSparse {
         let ignore_mask: Image = cluster_mask.invert_mask();
         let cluster_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &ignore_mask)?;
 
+        let enumerated_clusters: Image = Image::object_enumerate(&cluster_mask_vec)?;
+
         // println!("number of clusters: {}", object_mask_vec2.len());
         let mut cluster_vec = Vec::<SingleColorObjectCluster>::new();
-        for cluster_mask in &cluster_mask_vec {
+        for (index, cluster_mask) in cluster_mask_vec.iter().enumerate() {
             let item = SingleColorObjectCluster {
+                cluster_id: index + 1,
                 mask: cluster_mask.clone(),
             };
             cluster_vec.push(item);
         }
 
+        // TODO: identify holes and non-holes in each cluster
+        // for object in &object_mask_vec {
+            // let hole_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &cluster_mask)?;
+            // println!("number of holes: {}", hole_mask_vec.len());
+            // println!("hole_mask_vec: {:?}", hole_mask_vec);
+            // compare what cluster it belongs to, by looking at the enumerated_cluster
+            // if there is overlap, then it belongs to that cluster.
+            // then add it as a hole to that cluster.
+        // }
+
+        let container = SingleColorObjectClusterContainer {
+            cluster_vec,
+            enumerated_clusters,
+        };
+
         match connectivity {
             PixelConnectivity::Connectivity4 => {
-                self.cluster4_vec = cluster_vec;
+                self.container4 = Some(container);
             },
             PixelConnectivity::Connectivity8 => {
-                self.cluster8_vec = cluster_vec;
+                self.container8 = Some(container);
             },
         }
         Ok(())
@@ -171,10 +198,11 @@ impl SingleColorObjectSparse {
 
 #[derive(Clone, Debug)]
 pub struct SingleColorObjectCluster {
+    pub cluster_id: usize,
     pub mask: Image,
 
     // Future experiments:
-    // number of holes in this cluster
+    // TODO: number of holes in this cluster
     // shape of cluster
 }
 
@@ -350,8 +378,9 @@ mod tests {
         }
 
         let object: &SingleColorObjectSparse = &actual.sparse_vec[1];
-        assert_eq!(object.cluster8_vec.len(), 2);
-        let cluster_image: Image = SingleColorObjectCluster::enumerate_clusters(&object.cluster8_vec).expect("ok");
+        let container: &SingleColorObjectClusterContainer = object.container4.as_ref().expect("container");
+        assert_eq!(container.cluster_vec.len(), 2);
+        let cluster_image: Image = SingleColorObjectCluster::enumerate_clusters(&container.cluster_vec).expect("ok");
 
         let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 0,
@@ -363,5 +392,6 @@ mod tests {
         ];
         let expected: Image = Image::try_create(5, 6, expected_pixels).expect("image");
         assert_eq!(cluster_image, expected);
+        assert_eq!(container.enumerated_clusters, expected);
     }
 }
