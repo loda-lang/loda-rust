@@ -13,7 +13,7 @@ mod tests {
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
-    use crate::arc::{ImageDrawRect, SingleColorObjects};
+    use crate::arc::{ImageDrawRect, SingleColorObjects, SingleColorObjectClusterContainer};
     use std::collections::HashMap;
     use regex::Regex;
 
@@ -4247,8 +4247,6 @@ mod tests {
     }
 
     mod solve_7e0986d6 {
-        use crate::arc::{SingleColorObjectClusterContainer, ImageRepairTrigram, ImageMix, MixMode};
-
         use super::*;
 
         pub struct MySolution;
@@ -4261,10 +4259,11 @@ mod tests {
 
                 let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
 
-                let mut result_image: Image = Image::zero(input.width(), input.height());
-                // let mut result_image: Image = input.clone();
+                // Find the color with the most number of clusters. This may be the noise color.
+                // Does all the training pairs agree on the same noise color,
+                // or does each training pair have its own noise color.
+                // measure the size of each cluster. If the size of each cluster is 1x1 then it's single pixels.
                 let mut noise_color: u8 = 255;
-                let mut noise_mask: Image = Image::zero(input.width(), input.height());
                 for sparse_object in &single_color_objects.sparse_vec {
                     if sparse_object.color == background_color {
                         continue;
@@ -4281,62 +4280,11 @@ mod tests {
                     }
                     // Same number of clusters as the mass of the color. This is a noise color.
                     noise_color = sparse_object.color;
-                    noise_mask = sparse_object.mask.clone();
-                    // noise_mask = noise_mask.overlay_with_position(&sparse_object.mask, sparse_object.bounding_box.min_x(), sparse_object.bounding_box.min_y())?;
                     break;
                 }
-                println!("noise color: {}", noise_color);
-                for sparse_object in &single_color_objects.sparse_vec {
-                    if sparse_object.color == background_color {
-                        continue;
-                    }
-                    let container: &SingleColorObjectClusterContainer = match &sparse_object.container4 {
-                        Some(value) => value,
-                        None => {
-                            return Err(anyhow::anyhow!("missing container4"));
-                        }
-                    };
-                    let l: usize = container.cluster_vec.len();
-                    if l == sparse_object.mass_object as usize {
-                        // result_image.repair_trigram_algorithm(sparse_object.color)?;
-                        // result_image = result_image.denoise_type2(sparse_object.color)?;
-                        continue;
-                    }
+                // println!("noise color: {}", noise_color);
 
-                    let mut n: Image = container.enumerated_clusters.clone();
-                    // n = n.denoise_type2(0)?;
-                    // n = n.denoise_type6()?;
-                    // n = n.denoise_type7(&noise_mask)?;
-                    // n = n.blur()?;
-
-
-                    // let mut m: Image = sparse_object.mask.clone();
-                    // m = m.mix(&noise_mask, MixMode::BooleanOr)?;
-                    // m = m.denoise_type6()?;
-                    // m = m.denoise_type7(&noise_mask)?;
-
-                    // result_image = noise_mask.clone();
-                    // result_image = m;
-                    // result_image = n;
-                    // result_image = m.denoise_type4()?;
-                    // result_image = m.denoise_type5(noise_color)?;
-
-                    // result_image = result_image.overlay_with_position(&n, sparse_object.bounding_box.min_x(), sparse_object.bounding_box.min_y())?;
-                    result_image = sparse_object.mask.clone();
-
-                    // let rect: Rectangle = sparse_object.bounding_box;
-                    // result_image = result_image.fill_inside_rect(rect, sparse_object.color)?;
-                }
-                // result_image = result_image.count_duplicate_pixels_in_neighbours()?;
-                // result_image = result_image.denoise_type2(1)?;
-                // result_image = result_image.denoise_type7(&noise_mask)?;
-
-                // TODO: detect noise color, by running a 3x3 convolution, and pick the color that doesn't fit in.
-                // if there are consensus on a single noise color, then use that color to denoise the image.
-
-                result_image = input.denoise_type7(noise_color, background_color)?;
-
-                // Ok(noise_mask)
+                let result_image = input.denoise_type4(noise_color, background_color)?;
                 Ok(result_image)
             }
         }
