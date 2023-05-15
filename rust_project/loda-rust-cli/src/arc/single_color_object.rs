@@ -49,6 +49,8 @@ pub struct SingleColorObjectSparse {
     pub container8: Option<SingleColorObjectClusterContainer>,
 
     // Future experiments:
+    // are container4 all single pixels?
+    // Noise color for single pixel noise
     // Are container4 and container8 identical? same shape, same number of holes.
     // histogram of areas between clusters.
     // number of holes

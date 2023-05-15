@@ -8,7 +8,7 @@ pub trait ImageDenoise {
     fn denoise_type5(&self, noise_color: u8) -> anyhow::Result<Image>;
     fn denoise_type6(&self) -> anyhow::Result<Image>;
     fn blur(&self) -> anyhow::Result<Image>;
-    fn denoise_type7(&self, noise_color: u8) -> anyhow::Result<Image>;
+    fn denoise_type7(&self, noise_color: u8, background_color: u8) -> anyhow::Result<Image>;
 }
 
 impl ImageDenoise for Image {
@@ -312,11 +312,14 @@ impl ImageDenoise for Image {
         Ok(denoised_image)
     }
 
-    fn denoise_type7(&self, noise_color: u8) -> anyhow::Result<Image> {
+    fn denoise_type7(&self, noise_color: u8, background_color: u8) -> anyhow::Result<Image> {
+        if noise_color == background_color {
+            return Err(anyhow::anyhow!("noise color and background color must be different"));
+        }
         if self.is_empty() {
             return Ok(Image::empty());
         }
-        let input_padded: Image = self.padding_with_color(1, 0)?;
+        let input_padded: Image = self.padding_with_color(1, background_color)?;
         let output: Image = convolution3x3(&input_padded, |source| {
             let center: u8 = source.get(1, 1).unwrap_or(255);
             if center != noise_color {
@@ -327,10 +330,10 @@ impl ImageDenoise for Image {
             let center_left: u8 = source.get(0, 1).unwrap_or(255);
             let center_right: u8 = source.get(2, 1).unwrap_or(255);
             let bottom_center: u8 = source.get(1, 2).unwrap_or(255);
-            let top_bottom_separator: bool = top_center == 0 && bottom_center == 0;
-            let left_right_separator: bool = center_left == 0 && center_right == 0;
+            let top_bottom_separator: bool = top_center == background_color && bottom_center == background_color;
+            let left_right_separator: bool = center_left == background_color && center_right == background_color;
             if top_bottom_separator || left_right_separator {
-                return Ok(0);
+                return Ok(background_color);
             }
             // if top_center
 
@@ -351,8 +354,7 @@ impl ImageDenoise for Image {
                 return Ok(center_right);
             }
 
-
-            Ok(0)
+            Ok(background_color)
         })?;
         Ok(output)
     }
