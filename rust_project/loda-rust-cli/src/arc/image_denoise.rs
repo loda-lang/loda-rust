@@ -131,28 +131,25 @@ impl ImageDenoise for Image {
             let top_bottom_separator: bool = top_center == background_color && bottom_center == background_color;
             let left_right_separator: bool = center_left == background_color && center_right == background_color;
             if top_bottom_separator || left_right_separator {
+                // preserve a separator that has the background color
                 return Ok(background_color);
             }
-            // if top_center
 
-            // let mut h: Histogram = source.histogram_all();
-            // h.set_counter_to_zero(0);
-            // h.set_counter_to_zero(center);
-            // let color: u8 = h.most_popular_color_disallow_ambiguous().unwrap_or(0);
-            if top_center > 0 {
-                return Ok(top_center);
-            }
-            if bottom_center > 0 {
-                return Ok(bottom_center);
-            }
-            if center_left > 0 {
-                return Ok(center_left);
-            }
-            if center_right > 0 {
-                return Ok(center_right);
-            }
-
-            Ok(background_color)
+            let mut histogram = Histogram::new();
+            histogram.increment(top_center);
+            histogram.increment(center_left);
+            histogram.increment(center_right);
+            histogram.increment(bottom_center);
+            histogram.set_counter_to_zero(background_color);
+            histogram.set_counter_to_zero(noise_color);
+            let color: u8 = match histogram.most_popular_color_disallow_ambiguous() {
+                Some(value) => value,
+                None => {
+                    // ambiguous what color to pick, pick the background color
+                    return Ok(background_color);
+                }
+            };
+            Ok(color)
         })?;
         Ok(output)
     }
@@ -384,6 +381,35 @@ mod tests {
             5, 5, 5, 5, 0,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40001_denoise_type4() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            5, 5, 0, 9, 6, 6, 6,
+            5, 0, 0, 6, 6, 9, 6,
+            9, 0, 0, 0, 0, 6, 6,
+            0, 7, 7, 7, 9, 6, 6,
+            0, 7, 9, 7, 0, 0, 0,
+            0, 7, 7, 7, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(7, 6, input_pixels).expect("image");
+
+        // Act
+        let actual: Image = input.denoise_type4(9, 0).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 5, 0, 6, 6, 6, 6,
+            5, 0, 0, 6, 6, 6, 6,
+            0, 0, 0, 0, 0, 6, 6,
+            0, 7, 7, 7, 0, 6, 6,
+            0, 7, 7, 7, 0, 0, 0,
+            0, 7, 7, 7, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(7, 6, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
