@@ -4330,7 +4330,11 @@ mod tests {
                 // result_image = result_image.count_duplicate_pixels_in_neighbours()?;
                 // result_image = result_image.denoise_type2(1)?;
                 // result_image = result_image.denoise_type7(&noise_mask)?;
-                result_image = input.denoise_type7(&noise_mask)?;
+
+                // TODO: detect noise color, by running a 3x3 convolution, and pick the color that doesn't fit in.
+                // if there are consensus on a single noise color, then use that color to denoise the image.
+
+                result_image = input.denoise_type7(noise_color)?;
 
                 // Ok(noise_mask)
                 Ok(result_image)

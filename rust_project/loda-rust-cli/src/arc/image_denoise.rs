@@ -1,4 +1,4 @@
-use super::{Image, ImageHistogram, ImagePadding, ImageNoiseColor, Histogram, convolution3x3, convolution5x5_special, ImageMask};
+use super::{Image, ImageHistogram, ImagePadding, ImageNoiseColor, Histogram, convolution3x3};
 
 pub trait ImageDenoise {
     fn denoise_type1(&self, background_color: u8) -> anyhow::Result<Image>;
@@ -8,7 +8,7 @@ pub trait ImageDenoise {
     fn denoise_type5(&self, noise_color: u8) -> anyhow::Result<Image>;
     fn denoise_type6(&self) -> anyhow::Result<Image>;
     fn blur(&self) -> anyhow::Result<Image>;
-    fn denoise_type7(&self, repair_mask: &Image) -> anyhow::Result<Image>;
+    fn denoise_type7(&self, noise_color: u8) -> anyhow::Result<Image>;
 }
 
 impl ImageDenoise for Image {
@@ -312,23 +312,21 @@ impl ImageDenoise for Image {
         Ok(denoised_image)
     }
 
-    fn denoise_type7(&self, repair_mask: &Image) -> anyhow::Result<Image> {
+    fn denoise_type7(&self, noise_color: u8) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Ok(Image::empty());
         }
-        let input_padded: Image = self.padding_with_color(2, 0)?;
-        let input_target: Image = Image::zero(input_padded.width(), input_padded.height());
-        // let inverted_repair_mask: Image = repair_mask.invert_mask();
-        let output: Image = convolution5x5_special(&input_padded, &input_target, &repair_mask, 42, |source, target| {
-            let center: u8 = source.get(2, 2).unwrap_or(255);
-            // if color > 0 {
-            //     // not a noisy pixel
-            //     return Ok(color);
-            // }
-            let top_center: u8 = source.get(2, 1).unwrap_or(255);
-            let center_left: u8 = source.get(1, 2).unwrap_or(255);
-            let center_right: u8 = source.get(3, 2).unwrap_or(255);
-            let bottom_center: u8 = source.get(2, 3).unwrap_or(255);
+        let input_padded: Image = self.padding_with_color(1, 0)?;
+        let output: Image = convolution3x3(&input_padded, |source| {
+            let center: u8 = source.get(1, 1).unwrap_or(255);
+            if center != noise_color {
+                // not a noisy pixel
+                return Ok(center);
+            }
+            let top_center: u8 = source.get(1, 0).unwrap_or(255);
+            let center_left: u8 = source.get(0, 1).unwrap_or(255);
+            let center_right: u8 = source.get(2, 1).unwrap_or(255);
+            let bottom_center: u8 = source.get(1, 2).unwrap_or(255);
             let top_bottom_separator: bool = top_center == 0 && bottom_center == 0;
             let left_right_separator: bool = center_left == 0 && center_right == 0;
             if top_bottom_separator || left_right_separator {
@@ -356,8 +354,7 @@ impl ImageDenoise for Image {
 
             Ok(0)
         })?;
-        let output_full: Image = repair_mask.select_from_images(&self, &output)?;
-        Ok(output_full)
+        Ok(output)
     }
 }
 
