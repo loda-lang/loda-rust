@@ -120,6 +120,8 @@ pub enum InputLabel {
     InputSingleColorObjectSparse { label: SingleColorObjectSparseLabel },
 
     // Ideas for more
+    // Does all the training pairs agree on the same noise color,
+    // or does each training pair have its own noise color.
     // UnambiguousEnumeratedObjects, // in the 3x3, are the 8 neighbours the same as the 4 neighbours 
     // AmbiguousEnumeratedObjects, // in the 3x3, does the segmentation algorithm variants yield different results
     // SplitColor { color: u8 },

@@ -126,9 +126,13 @@ impl Histogram {
         }
     }
 
-    pub fn increment(&mut self, index: u8) {
+    pub fn increment_by(&mut self, index: u8, increment: u32) {
         let count: u32 = self.counters[index as usize];
-        self.counters[index as usize] = count + 1;
+        self.counters[index as usize] = count + increment;
+    }
+
+    pub fn increment(&mut self, index: u8) {
+        self.increment_by(index, 1);
     }
 
     pub fn set_counter_to_zero(&mut self, index: u8) {

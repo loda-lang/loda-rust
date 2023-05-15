@@ -4256,34 +4256,8 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
                 let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
-
                 let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
-
-                // Find the color with the most number of clusters. This may be the noise color.
-                // Does all the training pairs agree on the same noise color,
-                // or does each training pair have its own noise color.
-                // measure the size of each cluster. If the size of each cluster is 1x1 then it's single pixels.
-                let mut noise_color: u8 = 255;
-                for sparse_object in &single_color_objects.sparse_vec {
-                    if sparse_object.color == background_color {
-                        continue;
-                    }
-                    let container: &SingleColorObjectClusterContainer = match &sparse_object.container4 {
-                        Some(value) => value,
-                        None => {
-                            return Err(anyhow::anyhow!("missing container4"));
-                        }
-                    };
-                    let cluster_count: usize = container.cluster_vec.len();
-                    if cluster_count != sparse_object.mass_object as usize {
-                        continue;
-                    }
-                    // Same number of clusters as the mass of the color. This is a noise color.
-                    noise_color = sparse_object.color;
-                    break;
-                }
-                // println!("noise color: {}", noise_color);
-
+                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
                 let result_image = input.denoise_type4(noise_color, background_color)?;
                 Ok(result_image)
             }

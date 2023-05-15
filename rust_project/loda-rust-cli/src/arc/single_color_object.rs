@@ -294,6 +294,39 @@ impl SingleColorObjects {
         }
         Ok(())
     }
+
+    /// Determine if there are there sprinkled noise pixels over the image.
+    /// 
+    /// The noise pixels are isolated lonely pixels with a mass of 1 pixel.
+    /// 
+    /// Pick the color with the most noise pixels.
+    /// 
+    /// Returns `None` when it's ambiguous what is the most popular noise color.
+    /// 
+    /// Returns `None` when the all colors have an area with `mass > 1`. And thus no single pixels can be identified.
+    #[allow(dead_code)]
+    pub fn single_pixel_noise_color(&self) -> Option<u8> {
+        let mut histogram: Histogram = Histogram::new();
+        for object in &self.rectangle_vec {
+            if object.mass == 1 {
+                histogram.increment(object.color);
+            }
+        }
+        for object in &self.sparse_vec {
+            let container: &SingleColorObjectClusterContainer = match &object.container4 {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            }; 
+            if container.cluster_vec.len() == object.mass_object as usize {
+                // There are as many clusters as there are pixels with the object color.
+                // the clusters are separated by 1 or more pixels, so there is a high chance that it's noise.
+                histogram.increment_by(object.color, object.mass_object as u32);
+            }
+        }
+        histogram.most_popular_color_disallow_ambiguous()
+    }
 }
 
 #[cfg(test)]
@@ -417,5 +450,71 @@ mod tests {
             assert_eq!(cluster.cluster_id, 2);
             assert_eq!(cluster.one_or_more_holes, false);
         }
+    }
+
+    #[test]
+    fn test_40000_single_pixel_noise_color_from_rectangle_object() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 0, 0, 5, 5, 5, 5,
+            7, 7, 7, 0, 0, 5, 5, 5, 5,
+            7, 7, 7, 0, 0, 5, 5, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+            9, 8, 8, 8, 8, 8, 8, 5, 5,
+        ];
+        let input: Image = Image::try_create(9, 7, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Option<u8> = objects.single_pixel_noise_color();
+
+        // Assert
+        assert_eq!(actual, Some(9));
+    }
+
+    #[test]
+    fn test_40001_single_pixel_noise_color_from_sparse_object() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 0, 0, 5, 5, 5, 5,
+            7, 7, 7, 0, 3, 5, 5, 5, 5,
+            7, 7, 3, 0, 0, 5, 5, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+            9, 8, 8, 8, 8, 8, 8, 5, 5,
+        ];
+        let input: Image = Image::try_create(9, 7, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Option<u8> = objects.single_pixel_noise_color();
+
+        // Assert
+        assert_eq!(actual, Some(3));
+    }
+
+    #[test]
+    fn test_40002_single_pixel_noise_color_from_sparse_object_ambiguous() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 0, 0, 5, 5, 5, 5,
+            7, 7, 7, 0, 3, 5, 5, 5, 5,
+            7, 7, 3, 0, 0, 5, 5, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 9, 5,
+            9, 8, 8, 8, 8, 8, 8, 5, 5,
+        ];
+        let input: Image = Image::try_create(9, 7, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Option<u8> = objects.single_pixel_noise_color();
+
+        // Assert
+        assert_eq!(actual, None);
     }
 }
