@@ -429,12 +429,23 @@ impl TraverseProgramsAndModels {
             // if task.has_repaired_image() {
             //     found = true;
             // }
-            if task.has_predicted_single_color_image() {
-                found = true;
-            }
+            // if task.has_predicted_single_color_image() {
+            //     found = true;
+            // }
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
+            for input_label in &task.input_label_set_intersection {
+                match input_label {
+                    InputLabel::InputNoiseWithColor { color: _ } => {
+                        found = true;
+                    },
+                    InputLabel::InputNoiseWithSomeColor => {
+                        found = true;
+                    },
+                    _ => {}
+                }
+            }
             // for input_label in &task.input_label_set_intersection {
             //     let grid_label: GridLabel = match input_label {
             //         InputLabel::InputGrid { label } => label.clone(),

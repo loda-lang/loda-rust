@@ -297,6 +297,16 @@ impl arc_work_model::Input {
                 self.input_label_set.insert(input_label);
             }
         }
+        if let Some(color) = single_color_objects.single_pixel_noise_color() {
+            {
+                let input_label = InputLabel::InputNoiseWithColor { color };
+                self.input_label_set.insert(input_label);
+            }
+            {
+                let input_label = InputLabel::InputNoiseWithSomeColor;
+                self.input_label_set.insert(input_label);
+            }
+        }
         self.single_color_objects = Some(single_color_objects);
         Ok(())
     }

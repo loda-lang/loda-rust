@@ -119,6 +119,9 @@ pub enum InputLabel {
     InputSingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },
     InputSingleColorObjectSparse { label: SingleColorObjectSparseLabel },
 
+    InputNoiseWithColor { color: u8 },
+    InputNoiseWithSomeColor,
+
     // Ideas for more
     // Does all the training pairs agree on the same noise color,
     // or does each training pair have its own noise color.
