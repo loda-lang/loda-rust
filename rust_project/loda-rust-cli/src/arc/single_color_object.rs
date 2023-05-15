@@ -299,6 +299,10 @@ impl SingleColorObjects {
     /// 
     /// The noise pixels are isolated lonely pixels with a mass of 1 pixel.
     /// 
+    /// Known flaw: It cannot detect when pixels are located on a diagonal line, and
+    /// each will appear as noise pixels.
+    /// Future experiment: Investigate how to suppress diagonal lines.
+    /// 
     /// Pick the color with the most noise pixels.
     /// 
     /// Returns `None` when it's ambiguous what is the most popular noise color.
