@@ -299,10 +299,6 @@ impl SingleColorObjects {
     /// 
     /// The noise pixels are isolated lonely pixels with a mass of 1 pixel.
     /// 
-    /// Known flaw: It cannot detect when pixels are located on a diagonal line, and
-    /// each will appear as noise pixels.
-    /// Future experiment: Investigate how to suppress diagonal lines.
-    /// 
     /// Pick the color with the most noise pixels.
     /// 
     /// Returns `None` when it's ambiguous what is the most popular noise color.
@@ -317,17 +313,48 @@ impl SingleColorObjects {
             }
         }
         for object in &self.sparse_vec {
-            let container: &SingleColorObjectClusterContainer = match &object.container4 {
+            let container4: &SingleColorObjectClusterContainer = match &object.container4 {
                 Some(value) => value,
                 None => {
                     continue;
                 }
             }; 
-            if container.cluster_vec.len() == object.mass_object as usize {
-                // There are as many clusters as there are pixels with the object color.
-                // the clusters are separated by 1 or more pixels, so there is a high chance that it's noise.
-                histogram.increment_by(object.color, object.mass_object as u32);
+            if container4.cluster_vec.len() != object.mass_object as usize {
+                // there are fewer clusters than the mass of the object.
+                // one ore more of the clusters are bigger than 2 pixels.
+                continue;
             }
+            let container8: &SingleColorObjectClusterContainer = match &object.container8 {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            let mut mass_of_clusters_bigger_than_1pixel: usize = 0;
+            for cluster in &container8.cluster_vec {
+                let cluster_mass: u16 = cluster.mask.mask_count_one();
+                if cluster_mass >= 2 {
+                    // the cluster is bigger than 1 pixel.
+                    mass_of_clusters_bigger_than_1pixel += cluster_mass as usize;
+                }
+            }
+
+            // A low value rejects diagonal lines.
+            // A high value allows for more diagonal lines.
+            let fuzzy_percent: usize = 20;
+            
+            if mass_of_clusters_bigger_than_1pixel > ((object.mass_object as usize) * fuzzy_percent / 100) {
+                // Ignoring this cluster. It seems to contain diagonal lines, so it's not noise.
+                // with pixel-connectivity-4 there are as many clusters as there are pixels with the object color.
+                // however when using pixel-connectivity-8, there are may be diagonal connected pixels. 
+                // If all of the pixels are in a diagonal line, then it's not noise.
+                // Thus only reject when exceeding 20% of pixels are allowed to be greater than 1 pixel.
+                // println!("ignoring this cluster mass_of_clusters_bigger_than_1pixel: {}", mass_of_clusters_bigger_than_1pixel);
+                continue;
+            }
+            // There are as many clusters as there are pixels with the object color.
+            // the clusters are separated by 1 or more pixels, so there is a high chance that it's noise.
+            histogram.increment_by(object.color, object.mass_object as u32);
         }
         histogram.most_popular_color_disallow_ambiguous()
     }
@@ -520,5 +547,27 @@ mod tests {
 
         // Assert
         assert_eq!(actual, None);
+    }
+
+    #[test]
+    fn test_40003_single_pixel_noise_color_from_sparse_object_ignore_diagonal() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 0, 0, 5, 3, 5, 3,
+            7, 7, 7, 0, 0, 5, 5, 5, 5,
+            7, 7, 7, 0, 0, 5, 5, 3, 5,
+            8, 8, 8, 9, 8, 8, 8, 5, 5,
+            8, 8, 9, 8, 8, 8, 8, 5, 5,
+            8, 9, 8, 8, 8, 8, 8, 5, 5,
+            9, 8, 8, 8, 8, 8, 8, 5, 5,
+        ];
+        let input: Image = Image::try_create(9, 7, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Option<u8> = objects.single_pixel_noise_color();
+
+        // Assert
+        assert_eq!(actual, Some(3));
     }
 }
