@@ -359,4 +359,31 @@ mod tests {
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
+
+    #[test]
+    fn test_40000_denoise_type4() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            5, 5, 0, 5, 9,
+            5, 5, 0, 5, 5,
+            9, 0, 9, 0, 0,
+            5, 9, 5, 5, 0,
+            5, 5, 5, 5, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: Image = input.denoise_type4(9, 0).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 5, 0, 5, 5,
+            5, 5, 0, 5, 5,
+            0, 0, 0, 0, 0,
+            5, 5, 5, 5, 0,
+            5, 5, 5, 5, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
 }
