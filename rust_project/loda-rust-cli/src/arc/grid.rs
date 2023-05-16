@@ -38,6 +38,7 @@ pub struct GridPattern {
     // horizontal/vertical periodicity
     // enumerated cell objects
     // corner mask
+    // detect dots that makes up a grid
 }
 
 #[derive(Clone, Debug, PartialEq)]

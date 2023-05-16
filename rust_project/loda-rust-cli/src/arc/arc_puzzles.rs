@@ -4432,4 +4432,53 @@ mod tests {
         let result: String = run_analyze_and_solve("2c608aff", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
+
+    mod solve_21f83797 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let mut found = false;
+                for action_label in &task.action_label_set_intersection {
+                    match action_label {
+                        ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage => {
+                            found = true;
+                        },
+                        _ => {}
+                    }
+                }
+                if !found {
+                    return Err(anyhow::anyhow!("OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage not found"));
+                }
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
+
+                let mask: Image = input.to_mask_where_color_is(noise_color);
+
+                let mut result_image: Image = input.clone();
+                for object in &single_color_objects.sparse_vec {
+                    if object.color != noise_color {
+                        continue;
+                    }
+                    result_image = result_image.fill_inside_rect(object.bounding_box, 42)?;
+                }
+
+                result_image.draw_line_where_row_or_column_contains_color(&mask, noise_color)?;
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_900000_puzzle_21f83797() {
+        let mut instance = solve_21f83797::MySolution {};
+        let result: String = run_analyze_and_solve("21f83797", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
 }
