@@ -4323,4 +4323,32 @@ mod tests {
         let result: String = run_analyze_and_solve("ded97339", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
+
+    mod solve_f5b8619d {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
+                let mask: Image = input.to_mask_where_color_is(noise_color);
+                let mut result_image: Image = input.clone();
+                _ = result_image.draw_line_where_column_contains_color(&mask, 42)?;
+                result_image = mask.select_from_images(&result_image, input)?;
+                result_image = result_image.repeat_by_count(2, 2)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_870000_puzzle_f5b8619d() {
+        let mut instance = solve_f5b8619d::MySolution {};
+        let result: String = run_analyze_and_solve("f5b8619d", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
