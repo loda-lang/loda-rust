@@ -3284,8 +3284,8 @@ mod tests {
             let line_color: u8 = least_popular_color;
             let mut result_image: Image = cropped_input.clone();
 
-            // Shoot out lines in all directions
-            _ = result_image.draw_line_where_row_or_column_contains_color(&cropped_input, least_popular_color, line_color)?;
+            let mask: Image = cropped_input.to_mask_where_color_is(least_popular_color);
+            _ = result_image.draw_line_where_row_or_column_contains_color(&mask, line_color)?;
 
             Ok(result_image)
         };
