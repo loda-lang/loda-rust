@@ -229,6 +229,9 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // possible explanation why the input image is repeated N times in the output image
+    // InputImageOccurInsideOutputImageSameNumberOfTimesAsColor { color: u8 },
+    //
     // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
     // OutputSymmetry { label: SymmetryLabel },
