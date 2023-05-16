@@ -14,6 +14,7 @@ mod tests {
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use crate::arc::{ImageDrawRect, SingleColorObjects};
+    use crate::arc::{MixMode, ImageMix};
     use std::collections::HashMap;
     use regex::Regex;
 
@@ -4349,6 +4350,36 @@ mod tests {
     fn test_870000_puzzle_f5b8619d() {
         let mut instance = solve_f5b8619d::MySolution {};
         let result: String = run_analyze_and_solve("f5b8619d", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_af902bf9 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
+                let mask1: Image = input.to_mask_where_color_is(noise_color);
+                let mut mask2: Image = mask1.clone();
+                mask2.draw_line_between_top_bottom_and_left_right(&mask1, 1)?;
+                let mut mask3: Image = mask2.clone();
+                mask3.draw_line_between_top_bottom_and_left_right(&mask2, 1)?;
+                let mask4: Image = mask3.mix(&mask2, MixMode::Minus)?;
+                let result_image: Image = mask4.select_from_image_and_color(input, 9)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_880000_puzzle_af902bf9() {
+        let mut instance = solve_af902bf9::MySolution {};
+        let result: String = run_analyze_and_solve("af902bf9", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 }
