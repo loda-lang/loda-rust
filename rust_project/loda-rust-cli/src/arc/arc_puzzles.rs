@@ -2180,6 +2180,33 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
+    mod solve_dbc1a6ce {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
+                let mask: Image = input.to_mask_where_color_is(noise_color);
+                let mut result_image: Image = input.clone();
+                _ = result_image.draw_line_between_top_bottom_and_left_right(&mask, 42)?;
+                result_image = mask.select_from_images(&result_image, input)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_460001_puzzle_dbc1a6ce() {
+        let mut instance = solve_dbc1a6ce::MySolution {};
+        let result: String = run_analyze_and_solve("dbc1a6ce", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
     mod solve_ea959feb {
         use super::*;
 
