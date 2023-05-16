@@ -1,4 +1,4 @@
-use super::Image;
+use super::{Image, ImageRotate};
 
 pub trait ImageDrawLineWhere {
     /// Draw a horizontal line if the `mask` contains one or more non-zero pixels.
@@ -52,6 +52,13 @@ pub trait ImageDrawLineWhere {
     /// 
     /// Returns tuple with `(number of columns, number of rows)` that was drawn.
     fn draw_line_between_top_bottom_and_left_right(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<(u8,u8)>;
+
+    /// Draw lines between the `color0` pixels and `color1` pixels when both occur in the same column/row.
+    /// 
+    /// In rows/columns that contains both `color0` pixels and `color1` pixels. If one of the colors is missing then no line is drawn.
+    /// 
+    /// Returns tuple with `(number of columns, number of rows)` that was drawn.
+    fn draw_line_connecting_two_colors(&mut self, color0: u8, color1: u8, line_color: u8) -> anyhow::Result<(u8,u8)>;
 }
 
 impl ImageDrawLineWhere for Image {
@@ -181,6 +188,61 @@ impl ImageDrawLineWhere for Image {
         let count_rows: u8 = self.draw_line_between_left_right(mask, line_color)?;
         Ok((count_columns, count_rows))
     }
+
+    fn draw_line_connecting_two_colors(&mut self, color0: u8, color1: u8, line_color: u8) -> anyhow::Result<(u8,u8)> {
+        let mut self_rotated: Image = self.rotate_cw()?;
+        let original_rotated: Image = self_rotated.clone();
+
+        // draw columns
+        let count_columns: u8 = inner_draw_line_connecting_two_colors(&mut self_rotated, &original_rotated, color0, color1, line_color)?;
+        let mut self_rotated_back: Image = self_rotated.rotate_ccw()?;
+
+        // draw rows
+        let count_rows: u8 = inner_draw_line_connecting_two_colors(&mut self_rotated_back, self, color0, color1, line_color)?;
+
+        self.set_image(self_rotated_back);
+        Ok((count_columns, count_rows))
+    }
+
+}
+
+fn inner_draw_line_connecting_two_colors(image: &mut Image, original_image: &Image, color0: u8, color1: u8, line_color: u8) -> anyhow::Result<u8> {
+    if image.size() != original_image.size() {
+        return Err(anyhow::anyhow!("Expected image.size to be the same as original_image.size"));
+    }
+    let mut number_of_lines: u8 = 0;
+    for y in 0..(image.height() as i32) {
+        let mut min_value: i32 = 255;
+        let mut max_value: i32 = 0;
+        let mut count_color0: u8 = 0;
+        let mut count_color1: u8 = 0;
+        for x in 0..(image.width() as i32) {
+            let color: u8 = image.get(x, y).unwrap_or(0);
+            if color != color0 && color != color1 {
+                continue;
+            }
+            if color == color0 {
+                count_color0 += 1;
+            }
+            if color == color1 {
+                count_color1 += 1;
+            }
+            min_value = min_value.min(x);
+            max_value = max_value.max(x);
+        }
+        if count_color0 < 1 || count_color1 < 1 || min_value >= max_value {
+            continue;
+        }
+        number_of_lines += 1;
+        for x in min_value..=max_value {
+            let color: u8 = original_image.get(x, y).unwrap_or(0);
+            if color == color0 || color == color1 {
+                continue;
+            }
+            _ = image.set(x, y, line_color);
+        }
+    }
+    Ok(number_of_lines)
 }
 
 #[cfg(test)]
@@ -414,5 +476,43 @@ mod tests {
         assert_eq!(actual, expected);
         assert_eq!(count_columns, 2);
         assert_eq!(count_rows, 3);
+    }
+
+    #[test]
+    fn test_50000_draw_line_connecting_two_colors() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 7, 7, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            7, 0, 0, 5, 5, 5, 0, 0, 0,
+            0, 0, 0, 5, 5, 5, 0, 0, 0,
+            3, 0, 0, 5, 5, 5, 0, 0, 7,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 7, 0, 0, 0, 7,
+        ];
+        let input: Image = Image::try_create(9, 9, pixels).expect("image");
+
+        // Act
+        let mut actual = input.clone();
+        let (count_columns, count_rows) = actual.draw_line_connecting_two_colors(5, 7, 1).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 7, 7, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            7, 1, 1, 5, 5, 5, 0, 0, 0,
+            0, 0, 0, 5, 5, 5, 0, 0, 0,
+            3, 0, 0, 5, 5, 5, 1, 1, 7,
+            0, 0, 0, 0, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 7, 0, 0, 0, 7,
+        ];
+        let expected: Image = Image::try_create(9, 9, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+        assert_eq!(count_columns, 1);
+        assert_eq!(count_rows, 2);
     }
 }
