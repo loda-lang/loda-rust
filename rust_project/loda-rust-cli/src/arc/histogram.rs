@@ -154,6 +154,19 @@ impl Histogram {
         }
     }
 
+    /// Multiply the counters with the counters of another histogram.
+    /// 
+    /// The counters are clamped to `u32::MAX`.
+    #[allow(dead_code)]
+    pub fn multiply_histogram(&mut self, other: &Histogram) {
+        for i in 0..256 {
+            let a: u64 = self.counters[i] as u64;
+            let b: u64 = other.counters[i] as u64;
+            let c: u64 = a * b;
+            self.counters[i] = c.min(u32::MAX as u64) as u32;
+        }
+    }
+
     /// Finds the `intersection` between two histograms, similar to performing an `AND` operation.
     /// 
     /// The counter is `1` when the color is present in both histograms.
@@ -908,15 +921,11 @@ mod tests {
     fn test_110000_add_histogram() {
         // Arrange
         let mut h0 = Histogram::new();
-        h0.increment(42);
-        h0.increment(42);
+        h0.increment_by(42, 2);
         h0.increment(9);
         let mut h1 = Histogram::new();
-        h1.increment(42);
-        h1.increment(42);
-        h1.increment(42);
-        h1.increment(11);
-        h1.increment(11);
+        h1.increment_by(42, 3);
+        h1.increment_by(11, 2);
 
         // Act
         let mut h: Histogram = h0.clone();
@@ -929,7 +938,31 @@ mod tests {
     }
 
     #[test]
-    fn test_120000_intersection_histogram() {
+    fn test_120000_multiply_histogram() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment_by(2, 1);
+        h0.increment_by(3, 10);
+        h0.increment_by(4, 100);
+        h0.increment_by(5, 42);
+        let mut h1 = Histogram::new();
+        h1.increment_by(2, 100);
+        h1.increment_by(3, 10);
+        h1.increment_by(4, 1);
+        h1.increment_by(8, 42);
+
+        // Act
+        let mut h: Histogram = h0.clone();
+        h.multiply_histogram(&h1);
+        
+        // Assert
+        let pairs: Vec<(u32, u8)> = h.pairs_ordered_by_color();
+        let expected: Vec<(u32, u8)> = vec![(100, 2), (100, 3), (100, 4)];
+        assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_130000_intersection_histogram() {
         // Arrange
         let mut h0 = Histogram::new();
         h0.increment(42);
@@ -954,7 +987,7 @@ mod tests {
     }
 
     #[test]
-    fn test_130000_subtract_histogram() {
+    fn test_140000_subtract_histogram() {
         // Arrange
         let mut h0 = Histogram::new();
         h0.increment(42);
@@ -980,7 +1013,7 @@ mod tests {
     }
 
     #[test]
-    fn test_140000_is_equal_yes() {
+    fn test_150000_is_equal_yes() {
         // Arrange
         let mut h0 = Histogram::new();
         h0.increment(42);
@@ -997,7 +1030,7 @@ mod tests {
     }
 
     #[test]
-    fn test_140001_is_equal_yes() {
+    fn test_150001_is_equal_yes() {
         // Arrange
         let mut h0 = Histogram::new();
         h0.increment(42);
@@ -1015,7 +1048,7 @@ mod tests {
     }
 
     #[test]
-    fn test_150000_hash() {
+    fn test_160000_hash() {
         // Arrange
         let mut h0 = Histogram::new();
         h0.increment(42);
@@ -1038,7 +1071,7 @@ mod tests {
     }
 
     #[test]
-    fn test_150001_hash() {
+    fn test_160001_hash() {
         // Arrange
         let mut h0 = Histogram::new();
         h0.increment(42);
@@ -1056,7 +1089,7 @@ mod tests {
     }
 
     #[test]
-    fn test_160000_sum() {
+    fn test_170000_sum() {
         // Arrange
         let mut h = Histogram::new();
         h.increment(42);
