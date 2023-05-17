@@ -66,6 +66,13 @@ impl arc_work_model::Pair {
                 if count == 1 {
                     self.action_label_set.insert(ActionLabel::InputImageIsPresentExactlyOnceInsideOutputImage);
                 }
+                if count >= 1 {
+                    for (color_count, color) in self.input.histogram.pairs_ordered_by_color() {
+                        if color_count == count as u32 {
+                            self.action_label_set.insert(ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsColor { color });
+                        }
+                    }
+                }
             }
         }
 

@@ -208,6 +208,11 @@ pub enum ActionLabel {
     OutputImageIsPresentExactlyOnceInsideInputImage,
     InputImageIsPresentExactlyOnceInsideOutputImage,
 
+    /// The input image is repeated 1 or more times in the output image
+    /// the same number of times a particular color occur.
+    /// This happens in task `cce03e0d` and task `ad7e01d0`.
+    InputImageOccurInsideOutputImageSameNumberOfTimesAsColor { color: u8 },
+
     OutputImageHistogramEqualToInputImageHistogram,
     RemovalColorIsThePrimaryColorOfInputImage,
 
@@ -229,9 +234,6 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
-    // possible explanation why the input image is repeated N times in the output image
-    // InputImageOccurInsideOutputImageSameNumberOfTimesAsColor { color: u8 },
-    //
     // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
     // OutputSymmetry { label: SymmetryLabel },
