@@ -1,5 +1,6 @@
 use super::{Image, ImageRotate, ImageSymmetry};
 
+#[allow(dead_code)]
 pub enum GravityDirection {
     Up,
     Down,
@@ -7,6 +8,7 @@ pub enum GravityDirection {
     Right,
 }
 
+#[allow(dead_code)]
 pub trait ImageGravity {
     fn gravity(&self, background_color: u8, direction: GravityDirection) -> anyhow::Result<Image>;
 }
