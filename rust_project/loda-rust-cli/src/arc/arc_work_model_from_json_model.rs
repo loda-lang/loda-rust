@@ -119,6 +119,12 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             }
         }
     
+        // Copies over the counters from the histogram_union to the histogram_intersection
+        input_histogram_intersection.clamp01();
+        input_histogram_intersection.multiply_histogram(&input_histogram_union);
+        output_histogram_intersection.clamp01();
+        output_histogram_intersection.multiply_histogram(&output_histogram_union);
+
         let mut task = arc_work_model::Task {
             id: task_id,
             pairs: result_pairs,

@@ -4514,9 +4514,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let mut histogram: Histogram = task.input_histogram_union.clone();
-                histogram.multiply_histogram(&task.input_histogram_intersection);
-                let background_color: u8 = histogram.most_popular_color_disallow_ambiguous().expect("color");
+                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
                 let image_with_gravity: Image = input.gravity(background_color, GravityDirection::Right)?;
                 let result_image: Image = image_with_gravity.sort_by_color(background_color, ImageSortMode::RowsAscending)?;
                 Ok(result_image)
