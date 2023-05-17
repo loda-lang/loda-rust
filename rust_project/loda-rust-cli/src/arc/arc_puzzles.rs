@@ -14,7 +14,7 @@ mod tests {
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use crate::arc::{ImageDrawRect, SingleColorObjects};
-    use crate::arc::{MixMode, ImageMix, GravityDirection, ImageGravity};
+    use crate::arc::{MixMode, ImageMix, GravityDirection, ImageGravity, ImageSort, ImageSortMode};
     use std::collections::HashMap;
     use regex::Regex;
 
@@ -4502,6 +4502,32 @@ mod tests {
     fn test_910000_puzzle_1e0a9b12() {
         let mut instance = solve_1e0a9b12::MySolution {};
         let result: String = run_analyze_and_solve("1e0a9b12", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_beb8660c {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let mut histogram: Histogram = task.input_histogram_union.clone();
+                histogram.multiply_histogram(&task.input_histogram_intersection);
+                let background_color: u8 = histogram.most_popular_color_disallow_ambiguous().expect("color");
+                let image_with_gravity: Image = input.gravity(background_color, GravityDirection::Right)?;
+                let result_image: Image = image_with_gravity.sort_by_color(background_color, ImageSortMode::RowsAscending)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_920000_puzzle_beb8660c() {
+        let mut instance = solve_beb8660c::MySolution {};
+        let result: String = run_analyze_and_solve("beb8660c", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 }
