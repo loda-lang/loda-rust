@@ -72,6 +72,16 @@ impl arc_work_model::Pair {
                             self.action_label_set.insert(ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsColor { color });
                         }
                     }
+                    if let Some((_color, color_count)) = self.input.histogram.most_popular_pair_disallow_ambiguous() {
+                        if color_count == count as u32 {
+                            self.action_label_set.insert(ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsTheMostPopularColorOfInputImage);
+                        }
+                    }
+                    if let Some((_color, color_count)) = self.input.histogram.least_popular_pair_disallow_ambiguous() {
+                        if color_count == count as u32 {
+                            self.action_label_set.insert(ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsTheLeastPopularColorOfInputImage);
+                        }
+                    }
                 }
             }
         }

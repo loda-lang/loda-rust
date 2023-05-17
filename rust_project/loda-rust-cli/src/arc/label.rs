@@ -212,6 +212,16 @@ pub enum ActionLabel {
     /// the same number of times a particular color occur.
     /// This happens in task `cce03e0d` and task `ad7e01d0`.
     InputImageOccurInsideOutputImageSameNumberOfTimesAsColor { color: u8 },
+    
+    /// The input image is repeated 1 or more times in the output image
+    /// the same number of times as the most popular color.
+    /// This happens in task `27f8ce4f`.
+    InputImageOccurInsideOutputImageSameNumberOfTimesAsTheMostPopularColorOfInputImage,
+
+    /// The input image is repeated 1 or more times in the output image
+    /// the same number of times as the least popular color.
+    /// This happens in task `48f8583b`.
+    InputImageOccurInsideOutputImageSameNumberOfTimesAsTheLeastPopularColorOfInputImage,
 
     OutputImageHistogramEqualToInputImageHistogram,
     RemovalColorIsThePrimaryColorOfInputImage,
