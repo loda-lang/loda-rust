@@ -407,6 +407,18 @@ impl Histogram {
     pub fn sum(&self) -> u32 {
         self.counters.iter().sum()
     }
+
+    /// Make sure that no counters exceeds the range `[0..1]`.
+    /// 
+    /// All zero counters stays with a zero value.
+    /// 
+    /// All non-zero counters are set to 1.
+    #[allow(dead_code)]
+    pub fn clamp01(&mut self) {
+        for i in 0..256 {
+            self.counters[i] = self.counters[i].min(1);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1103,5 +1115,22 @@ mod tests {
 
         // Assert
         assert_eq!(actual, 5);
+    }
+
+    #[test]
+    fn test_180000_clamp01() {
+        // Arrange
+        let mut h = Histogram::new();
+        h.increment_by(42, 2);
+        h.increment_by(3, 7);
+        h.increment(8);
+
+        // Act
+        h.clamp01();
+
+        // Assert
+        let pairs: Vec<(u32, u8)> = h.pairs_ordered_by_color();
+        let expected: Vec<(u32, u8)> = vec![(1, 3), (1, 8), (1, 42)];
+        assert_eq!(pairs, expected);
     }
 }
