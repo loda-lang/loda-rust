@@ -4528,4 +4528,51 @@ mod tests {
         let result: String = run_analyze_and_solve("beb8660c", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
+
+    mod solve_d5d6de2d {
+        use crate::arc::SingleColorObjectClusterContainer;
+
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+                let foreground_mask: Image = input.to_mask_where_color_is_different(background_color);
+
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+
+                let mut result_image: Image = Image::zero(input.width(), input.height());
+                for object in &single_color_objects.sparse_vec {
+                    if object.color == background_color {
+                        continue;
+                    }
+                    let container: &SingleColorObjectClusterContainer = match &object.container4 {
+                        Some(value) => value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    // Future experiment:
+                    // TODO: SingleColorObjectClusterContainer.enumerated_clusters, should be padded,
+                    // so that overlay_with_position can be avoided.
+                    let mask2: Image = container.enumerated_clusters.to_mask_where_color_is_different(0);
+                    result_image = result_image.overlay_with_position(&mask2, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+                }
+
+                result_image = result_image.mix(&foreground_mask, MixMode::Minus)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_930000_puzzle_d5d6de2d() {
+        let mut instance = solve_d5d6de2d::MySolution {};
+        let result: String = run_analyze_and_solve("d5d6de2d", &mut instance).expect("String");
+        assert_eq!(result, "3 2");
+    }
 }
