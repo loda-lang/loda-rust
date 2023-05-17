@@ -14,7 +14,7 @@ mod tests {
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use crate::arc::{ImageDrawRect, SingleColorObjects};
-    use crate::arc::{MixMode, ImageMix};
+    use crate::arc::{MixMode, ImageMix, GravityDirection, ImageGravity};
     use std::collections::HashMap;
     use regex::Regex;
 
@@ -4480,5 +4480,28 @@ mod tests {
         let mut instance = solve_21f83797::MySolution {};
         let result: String = run_analyze_and_solve("21f83797", &mut instance).expect("String");
         assert_eq!(result, "2 1");
+    }
+
+    mod solve_1e0a9b12 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+                let result_image: Image = input.gravity(background_color, GravityDirection::Down)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_910000_puzzle_1e0a9b12() {
+        let mut instance = solve_1e0a9b12::MySolution {};
+        let result: String = run_analyze_and_solve("1e0a9b12", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
     }
 }
