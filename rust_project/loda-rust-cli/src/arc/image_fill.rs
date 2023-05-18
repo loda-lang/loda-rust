@@ -9,7 +9,7 @@ pub trait ImageFill {
     /// Build a mask of connected pixels that has the same color
     /// 
     /// Visit 4 or 8 neighbors around a pixel.
-    fn mask_flood_fill(&mut self, image: &Image, x: i32, y: i32, color: u8, connectivity: PixelConnectivity);
+    fn mask_flood_fill(&mut self, image: &Image, x: i32, y: i32, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<()>;
 }
 
 impl ImageFill for Image {
@@ -20,11 +20,15 @@ impl ImageFill for Image {
         }
     }
 
-    fn mask_flood_fill(&mut self, image: &Image, x: i32, y: i32, color: u8, connectivity: PixelConnectivity) {
+    fn mask_flood_fill(&mut self, image: &Image, x: i32, y: i32, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+        if self.size() != image.size() {
+            return Err(anyhow::anyhow!("both images must have same size"));
+        }
         match connectivity {
             PixelConnectivity::Connectivity4 => FloodFill::mask_flood_fill4(self, image, x, y, color),
             PixelConnectivity::Connectivity8 => FloodFill::mask_flood_fill8(self, image, x, y, color),
         }
+        Ok(())
     }
 }
 
@@ -237,7 +241,7 @@ mod tests {
         let color: u8 = input.get(0, 0).unwrap_or(255);
 
         // Act
-        output.mask_flood_fill(&input, 0, 0, color, PixelConnectivity::Connectivity4);
+        output.mask_flood_fill(&input, 0, 0, color, PixelConnectivity::Connectivity4).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -264,7 +268,7 @@ mod tests {
         let color: u8 = input.get(1, 1).unwrap_or(255);
 
         // Act
-        output.mask_flood_fill(&input, 1, 1, color, PixelConnectivity::Connectivity4);
+        output.mask_flood_fill(&input, 1, 1, color, PixelConnectivity::Connectivity4).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -291,7 +295,7 @@ mod tests {
         let color: u8 = input.get(4, 1).unwrap_or(255);
 
         // Act
-        output.mask_flood_fill(&input, 4, 1, color, PixelConnectivity::Connectivity4);
+        output.mask_flood_fill(&input, 4, 1, color, PixelConnectivity::Connectivity4).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -317,7 +321,7 @@ mod tests {
         let color: u8 = input.get(2, 0).unwrap_or(255);
 
         // Act
-        output.mask_flood_fill(&input, 2, 0, color, PixelConnectivity::Connectivity4);
+        output.mask_flood_fill(&input, 2, 0, color, PixelConnectivity::Connectivity4).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -342,7 +346,7 @@ mod tests {
         let color: u8 = input.get(2, 0).unwrap_or(255);
 
         // Act
-        output.mask_flood_fill(&input, 2, 0, color, PixelConnectivity::Connectivity8);
+        output.mask_flood_fill(&input, 2, 0, color, PixelConnectivity::Connectivity8).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
