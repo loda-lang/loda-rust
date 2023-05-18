@@ -1,8 +1,10 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor, ReverseColorPopularity, ObjectsAndMass, ImageFill, ImageGravity};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity, GravityDirection};
 use super::{ImageGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
+use super::{ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue};
+use super::{ObjectWithDifferentColor, ReverseColorPopularity, ObjectsAndMass, ImageFill, ImageGravity, ImageSort, ImageSortMode};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -2758,6 +2760,57 @@ impl UnofficialFunction for GravityFunction {
     }
 }
 
+struct SortRowsColumnsByColorFunction {
+    id: u32,
+    mode: ImageSortMode,
+}
+
+impl SortRowsColumnsByColorFunction {
+    fn new(id: u32, mode: ImageSortMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for SortRowsColumnsByColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        let mode_name: &str = match self.mode {
+            ImageSortMode::RowsAscending => "rows-ascending",
+            ImageSortMode::RowsDescending => "rows-descending",
+            ImageSortMode::ColumnsAscending => "columns-ascending",
+            ImageSortMode::ColumnsDescending => "columns-descending",
+        };
+        format!("Sort {} by color", mode_name)
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is background_color
+        let background_color: u8 = input[1].to_u8().context("u8 background_color")?;
+
+        let output_image: Image = input_image.sort_by_color(background_color, self.mode)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ObjectsUniqueColorCountFunction {
     id: u32,
 }
@@ -3234,6 +3287,12 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(GravityFunction::new(102191, GravityDirection::Down));
     register_function!(GravityFunction::new(102192, GravityDirection::Left));
     register_function!(GravityFunction::new(102193, GravityDirection::Right));
+
+    // Sort rows/cols by color mass
+    register_function!(SortRowsColumnsByColorFunction::new(102200, ImageSortMode::RowsAscending));
+    register_function!(SortRowsColumnsByColorFunction::new(102201, ImageSortMode::RowsDescending));
+    register_function!(SortRowsColumnsByColorFunction::new(102202, ImageSortMode::ColumnsAscending));
+    register_function!(SortRowsColumnsByColorFunction::new(102203, ImageSortMode::ColumnsDescending));
 
     // Count unique colors in each object
     register_function!(ObjectsUniqueColorCountFunction::new(104000));

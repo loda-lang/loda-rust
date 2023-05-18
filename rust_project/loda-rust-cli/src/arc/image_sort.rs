@@ -1,6 +1,6 @@
 use super::{Image, ImageCrop, ImageOverlay, ImageSymmetry, Rectangle, ImageRotate};
 
-#[allow(dead_code)]
+#[derive(Clone, Copy, Debug)]
 pub enum ImageSortMode {
     RowsAscending,
     RowsDescending,
