@@ -119,12 +119,25 @@ pub enum InputLabel {
     InputSingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },
     InputSingleColorObjectSparse { label: SingleColorObjectSparseLabel },
 
+    /// Isolated noise pixels that each have `mass=1`.
+    /// 
+    /// A noise pixel may be connected diagonally with another noise pixel,
+    /// however bigger diagonal shapes are suppressed.
+    ///
+    /// When all the training pairs agree on the same noise color,
+    /// then that color may have some meaning.
     InputNoiseWithColor { color: u8 },
+
+    /// Isolated noise pixels that each have `mass=1`.
+    /// 
+    /// A noise pixel may be connected diagonally with another noise pixel,
+    /// however bigger diagonal shapes are suppressed.
+    ///
+    /// Each of the training pair have its own noise color,
+    /// then that color may have some meaning.
     InputNoiseWithSomeColor,
 
     // Ideas for more
-    // Does all the training pairs agree on the same noise color,
-    // or does each training pair have its own noise color.
     // UnambiguousEnumeratedObjects, // in the 3x3, are the 8 neighbours the same as the 4 neighbours 
     // AmbiguousEnumeratedObjects, // in the 3x3, does the segmentation algorithm variants yield different results
     // SplitColor { color: u8 },
@@ -235,6 +248,11 @@ pub enum ActionLabel {
     OutputImageUniqueColorCount { count: u8 },
     OutputImageColorsComesFromInputImage,
 
+    /// The output size is the same as the input size.
+    /// Each pixel have the same number of identical pixels as in the input.
+    /// Clusters of pixels are changing color between input and output.
+    /// The action is usually to recolor each cluster.
+    /// It does not detect if some of the clusters gets hidden.
     OutputImageHasSameStructureAsInputImage,
 
     OutputImageIsInputImageWithNoChangesToPixelsWithColor { color: u8 },
@@ -244,6 +262,9 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // OutputImageContainSingleColorObject { color: u8 },
+    // OutputImageDoesNotContainSingleColorObject { color: u8 },
+    // OutputPropertyIsEqualToNumberOfClustersWithColor { output: PropertyOutput, color: u8 },
     // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
     // OutputSymmetry { label: SymmetryLabel },
