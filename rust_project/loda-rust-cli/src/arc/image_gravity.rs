@@ -1,6 +1,6 @@
 use super::{Image, ImageRotate, ImageSymmetry};
 
-#[allow(dead_code)]
+#[derive(Clone, Copy, Debug)]
 pub enum GravityDirection {
     Up,
     Down,
