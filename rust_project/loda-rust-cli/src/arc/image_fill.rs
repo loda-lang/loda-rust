@@ -10,6 +10,11 @@ pub trait ImageFill {
     /// 
     /// Visit 4 or 8 neighbors around a pixel.
     fn mask_flood_fill(&mut self, image: &Image, x: i32, y: i32, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<()>;
+
+    /// Flood fill at every pixel along the border
+    /// 
+    /// Visit 4 or 8 neighbors around a pixel.
+    fn border_flood_fill(&mut self, from_color: u8, to_color: u8, connectivity: PixelConnectivity);
 }
 
 impl ImageFill for Image {
@@ -30,6 +35,24 @@ impl ImageFill for Image {
         }
         Ok(())
     }
+
+    fn border_flood_fill(&mut self, from_color: u8, to_color: u8, connectivity: PixelConnectivity) {
+        let x1: i32 = (self.width() as i32) - 1;
+        let y1: i32 = (self.height() as i32) - 1;
+        for y in 0..(self.height() as i32) {
+            for x in 0..(self.width() as i32) {
+                if x > 0 && x < x1 && y > 0 && y < y1 { 
+                    continue;
+                }
+                self.flood_fill(x, y, from_color, to_color, connectivity);
+                // let pixel: u8 = self.get(x, y).unwrap_or(255);
+                // if pixel == from_color {
+                //     self.flood_fill(x, y, from_color, to_color, connectivity);
+                // }
+            }
+        }
+    }
+    
 }
 
 struct FloodFill;
@@ -355,6 +378,58 @@ mod tests {
             1, 1, 0,
         ];
         let expected = Image::create_raw(3, 3, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_50000_border_flood_fill4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 3, 0, 0, 0,
+            0, 0, 3, 3, 3, 7,
+            3, 3, 0, 7, 0, 7,
+            0, 0, 3, 3, 3, 7,
+        ];
+        let input: Image = Image::try_create(6, 4, pixels).expect("image");
+
+        // Act
+        let mut output: Image = input.clone();
+        output.border_flood_fill(0, 1, PixelConnectivity::Connectivity4);
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 3, 1, 1, 1,
+            1, 1, 3, 3, 3, 7,
+            3, 3, 0, 7, 0, 7,
+            1, 1, 3, 3, 3, 7,
+        ];
+        let expected = Image::create_raw(6, 4, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_50001_border_flood_fill8() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 3, 0, 0, 0,
+            0, 0, 3, 3, 3, 7,
+            3, 3, 0, 7, 0, 7,
+            0, 0, 3, 3, 3, 7,
+        ];
+        let input: Image = Image::try_create(6, 4, pixels).expect("image");
+
+        // Act
+        let mut output: Image = input.clone();
+        output.border_flood_fill(0, 1, PixelConnectivity::Connectivity8);
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 3, 1, 1, 1,
+            1, 1, 3, 3, 3, 7,
+            3, 3, 1, 7, 0, 7,
+            1, 1, 3, 3, 3, 7,
+        ];
+        let expected = Image::create_raw(6, 4, expected_pixels);
         assert_eq!(output, expected);
     }
 }
