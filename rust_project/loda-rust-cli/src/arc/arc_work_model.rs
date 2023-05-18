@@ -79,6 +79,7 @@ pub enum Prediction {
     OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color: u8 },
 
     // Ideas for more
+    // background color, the most popular intersection color in input and output, across all training pairs
     // substitution, replace this image with that image
     // replace this color with that color
     // weak prediction: the color is a subset of this palette.
