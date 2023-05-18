@@ -4709,4 +4709,56 @@ mod tests {
         let result: String = run_analyze_and_solve("e0fb7511", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
+
+    mod solve_62ab2642 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let mut found = false;
+                for action_label in &task.action_label_set_intersection {
+                    match action_label {
+                        ActionLabel::OutputImageHasSameStructureAsInputImage => {
+                            found = true;
+                        },
+                        _ => {}
+                    }
+                }
+                if !found {
+                    return Err(anyhow::anyhow!("OutputImageHasSameStructureAsInputImage not found"));
+                }
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+
+                let mut result_image: Image = input.clone();
+                for object in &single_color_objects.sparse_vec {
+                    if object.color != background_color {
+                        continue;
+                    }
+                    let container: &SingleColorObjectClusterContainer = match &object.container4 {
+                        Some(value) => value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    let oam: ObjectsAndMass = ObjectsAndMass::new(&container.enumerated_clusters_uncropped)?;
+                    let enumerated_by_mass: Image = oam.group3_small_medium_big(false)?;
+                    result_image = result_image.mix(&enumerated_by_mass, MixMode::Plus)?;
+                }
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_980000_puzzle_62ab2642() {
+        let mut instance = solve_62ab2642::MySolution {};
+        let result: String = run_analyze_and_solve("62ab2642", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
