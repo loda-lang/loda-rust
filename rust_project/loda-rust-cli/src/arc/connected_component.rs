@@ -37,14 +37,7 @@ impl ConnectedComponent {
                 // Flood fill
                 let color: u8 = image.get(x, y).unwrap_or(255);
                 let mut object_mask = ignore_mask.clone();
-                match connectivity {
-                    PixelConnectivity::Connectivity4 => {
-                        object_mask.mask_flood_fill4(&image, x, y, color);
-                    },
-                    PixelConnectivity::Connectivity8 => {
-                        object_mask.mask_flood_fill8(&image, x, y, color);
-                    },
-                }
+                object_mask.mask_flood_fill(&image, x, y, color, connectivity);
 
                 // Clear pixels that are in the original ignore_mask
                 for yy in 0..(image.height() as i32) {

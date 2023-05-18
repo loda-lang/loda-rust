@@ -125,14 +125,7 @@ impl SingleColorObjectSparse {
                     }
                     let pixel: u8 = object_image.get(x, y).unwrap_or(255);
                     if pixel == 0 {
-                        match connectivity {
-                            PixelConnectivity::Connectivity4 => {
-                                object_image.flood_fill4(x, y, 0, 1);
-                            },
-                            PixelConnectivity::Connectivity8 => {
-                                object_image.flood_fill8(x, y, 0, 1);
-                            },
-                        }
+                        object_image.flood_fill(x, y, 0, 1, connectivity);
                     }
                 }
             }
