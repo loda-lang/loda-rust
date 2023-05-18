@@ -147,6 +147,16 @@ impl arc_work_model::Task {
         true
     }
 
+    #[allow(dead_code)]
+    pub fn has_removal_color(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.removal_color.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
     fn assign_repair_mask(&mut self) {
         self.assign_repair_mask_based_on_single_color_removal_and_changes_limited_to_color();
         self.assign_repair_mask_with_symmetry_repair_color();
@@ -681,6 +691,7 @@ impl arc_work_model::Task {
         self.assign_predicted_output_palette();
         self.assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color();
         _ = self.assign_predicted_single_color_image();
+        _ = self.assign_removal_color();
         Ok(())
     }
 
@@ -1221,7 +1232,7 @@ impl arc_work_model::Task {
         histogram.subtract_histogram(&self.removal_histogram_intersection);
 
         if self.removal_histogram_intersection.number_of_counters_greater_than_zero() == 0 {
-            if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsThePrimaryColorOfInputImage) {
+            if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsTheMostPopularColorOfInputImage) {
                 if let Some(color) = histogram.most_popular_color() {
                     histogram.set_counter_to_zero(color);
                 }
@@ -1292,6 +1303,28 @@ impl arc_work_model::Task {
             if let Some(image) = predicted_output_images.get(&pair_index) {
                 pair.input.predicted_single_color_image = Some(image.clone());
             }
+        }
+
+        Ok(())
+    }
+
+    fn assign_removal_color(&mut self) -> anyhow::Result<()> {
+        // All the training pairs agree on the same color
+        if let Some(color) = self.removal_histogram_intersection.most_popular_color_disallow_ambiguous() {
+            for pair in self.pairs.iter_mut() {
+                pair.input.removal_color = Some(color);
+            }
+            return Ok(());
+        }
+
+        if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsTheMostPopularColorOfInputImage) {
+            for pair in self.pairs.iter_mut() {
+                let histogram: &Histogram = &pair.input.histogram;
+                if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
+                    pair.input.removal_color = Some(color);
+                }
+            }
+            return Ok(());
         }
 
         Ok(())

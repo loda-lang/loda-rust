@@ -104,7 +104,7 @@ impl arc_work_model::Pair {
                 None => break
             };
             if removal_color == most_popular_color {
-                self.action_label_set.insert(ActionLabel::RemovalColorIsThePrimaryColorOfInputImage);
+                self.action_label_set.insert(ActionLabel::RemovalColorIsTheMostPopularColorOfInputImage);
             }
         }
 

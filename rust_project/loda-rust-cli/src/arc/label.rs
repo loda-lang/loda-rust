@@ -237,7 +237,7 @@ pub enum ActionLabel {
     InputImageOccurInsideOutputImageSameNumberOfTimesAsTheLeastPopularColorOfInputImage,
 
     OutputImageHistogramEqualToInputImageHistogram,
-    RemovalColorIsThePrimaryColorOfInputImage,
+    RemovalColorIsTheMostPopularColorOfInputImage,
 
     OutputImageIsTheObjectWithObjectLabel { object_label: ObjectLabel },
 

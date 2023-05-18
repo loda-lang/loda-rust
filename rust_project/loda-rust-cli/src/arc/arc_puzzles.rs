@@ -4579,7 +4579,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let color: u8 = task.removal_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+                let color: u8 = pair.input.removal_color.expect("color");
                 let mut result_image: Image = input.clone();
                 result_image.border_flood_fill(color, 255, PixelConnectivity::Connectivity4);
                 Ok(result_image)
