@@ -14,7 +14,12 @@ pub struct SingleColorObjectRectangle {
 #[derive(Clone, Debug)]
 pub struct SingleColorObjectClusterContainer {
     pub cluster_vec: Vec::<SingleColorObjectCluster>,
-    pub enumerated_clusters: Image,
+
+    /// This image has the same size as the `bounding_box`.
+    pub enumerated_clusters_cropped: Image,
+
+    /// This image has the same size as the original image.
+    pub enumerated_clusters_uncropped: Image,
 }
 
 /// A mask of pixels that have the same color, but isn't fully connected.
@@ -28,6 +33,8 @@ pub struct SingleColorObjectClusterContainer {
 #[derive(Clone, Debug)]
 pub struct SingleColorObjectSparse {
     pub color: u8,
+
+    /// This image has the same size as the original image.
     pub mask: Image,
 
     /// Bounding box of the mask
@@ -152,6 +159,9 @@ impl SingleColorObjectSparse {
 
         let enumerated_clusters: Image = Image::object_enumerate(&cluster_mask_vec)?;
 
+        let mut enumerated_clusters_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
+        enumerated_clusters_uncropped = enumerated_clusters_uncropped.overlay_with_position(&enumerated_clusters, self.bounding_box.min_x(), self.bounding_box.min_y())?;
+
         // println!("number of clusters: {}", object_mask_vec2.len());
         let mut cluster_vec = Vec::<SingleColorObjectCluster>::new();
         for (index, cluster_mask) in cluster_mask_vec.iter().enumerate() {
@@ -186,12 +196,12 @@ impl SingleColorObjectSparse {
                 continue;
             }
             cluster_vec[index].one_or_more_holes = true;
-
         }
 
         let container = SingleColorObjectClusterContainer {
             cluster_vec,
-            enumerated_clusters,
+            enumerated_clusters_cropped: enumerated_clusters,
+            enumerated_clusters_uncropped,
         };
 
         match connectivity {
@@ -304,7 +314,6 @@ impl SingleColorObjects {
     /// Returns `None` when it's ambiguous what is the most popular noise color.
     /// 
     /// Returns `None` when the all colors have an area with `mass > 1`. And thus no single pixels can be identified.
-    #[allow(dead_code)]
     pub fn single_pixel_noise_color(&self) -> Option<u8> {
         let mut histogram: Histogram = Histogram::new();
         for object in &self.rectangle_vec {
@@ -468,7 +477,22 @@ mod tests {
                 0, 2, 2, 2, 2,
             ];
             let expected: Image = Image::try_create(5, 6, expected_pixels).expect("image");
-            assert_eq!(container.enumerated_clusters, expected);
+            assert_eq!(container.enumerated_clusters_cropped, expected);
+        }
+
+        {
+            let expected_pixels: Vec<u8> = vec![
+                0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 1, 1, 1, 1, 0, 0, 0,
+                0, 0, 1, 1, 1, 0, 0, 0, 0,
+                0, 0, 1, 1, 1, 0, 2, 0, 0,
+                0, 0, 1, 0, 0, 0, 2, 0, 0,
+                0, 0, 0, 0, 0, 2, 2, 0, 0,
+                0, 0, 0, 2, 2, 2, 2, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ];
+            let expected: Image = Image::try_create(9, 8, expected_pixels).expect("image");
+            assert_eq!(container.enumerated_clusters_uncropped, expected);
         }
 
         {

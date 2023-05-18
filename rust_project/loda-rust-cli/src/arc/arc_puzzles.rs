@@ -4556,11 +4556,7 @@ mod tests {
                             continue;
                         }
                     };
-                    // Future experiment:
-                    // TODO: SingleColorObjectClusterContainer.enumerated_clusters, should be padded,
-                    // so that overlay_with_position can be avoided.
-                    let mask2: Image = container.enumerated_clusters.to_mask_where_color_is_different(0);
-                    result_image = result_image.overlay_with_position(&mask2, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+                    result_image = container.enumerated_clusters_uncropped.to_mask_where_color_is_different(0);
                 }
 
                 result_image = result_image.mix(&foreground_mask, MixMode::Minus)?;
