@@ -110,6 +110,9 @@ enum MemoryLayoutItem {
     /// or each training pair has its own color that is being removed.
     RemovalColor = 13,
 
+    /// The input image's most popular color across all the training pairs.
+    InputMostPopularColor = 14,
+
     // Ideas for more
     // Number of cells horizontal
     // Number of cells vertical
@@ -532,6 +535,19 @@ impl RunWithProgram {
                     state.set_u64(address + MemoryLayoutItem::RemovalColor as u64, value).context("pair.RemovalColor, set_u64")?;
                 }
             }
+            
+            // memory[x*100+114] = train[x].most_popular_intersection_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.most_popular_intersection_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::InputMostPopularColor as u64, value).context("pair.RemovalColor, set_u64")?;
+                }
+            }
 
             // Ideas for data to make available to the program.
             // output_palette
@@ -708,6 +724,19 @@ impl RunWithProgram {
                 }
                 if let Some(value) = the_color.to_bigint() {
                     state.set_u64(address + MemoryLayoutItem::RemovalColor as u64, value).context("pair.RemovalColor, set_u64")?;
+                }
+            }
+            
+            // memory[x*100+114] = test[x].most_popular_intersection_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.most_popular_intersection_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::InputMostPopularColor as u64, value).context("pair.RemovalColor, set_u64")?;
                 }
             }
 

@@ -692,6 +692,7 @@ impl arc_work_model::Task {
         self.assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color();
         _ = self.assign_predicted_single_color_image();
         _ = self.assign_removal_color();
+        _ = self.assign_most_popular_intersection_color();
         Ok(())
     }
 
@@ -1327,7 +1328,17 @@ impl arc_work_model::Task {
             }
             return Ok(());
         }
+        Ok(())
+    }
 
+    fn assign_most_popular_intersection_color(&mut self) -> anyhow::Result<()> {
+        // All the training pairs agree on the same color
+        if let Some(color) = self.input_histogram_intersection.most_popular_color_disallow_ambiguous() {
+            for pair in self.pairs.iter_mut() {
+                pair.input.most_popular_intersection_color = Some(color);
+            }
+            return Ok(());
+        }
         Ok(())
     }
 

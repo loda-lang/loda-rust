@@ -59,6 +59,8 @@ pub struct Input {
 
     pub removal_color: Option<u8>,
 
+    pub most_popular_intersection_color: Option<u8>,
+
     // Future experiments to do.
     // Resolving these properties is similar to a package manager, a DAG (directed acyclic graph).
     // One property may depend on another property that depends on a third property.
