@@ -4505,6 +4505,28 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    const PROGRAM_1E0A9B12: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; most popular color across inputs
+        f21 $0,102191 ; Gravity in the down direction
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_910001_puzzle_1e0a9b12_loda() {
+        let result: String = run_advanced("1e0a9b12", PROGRAM_1E0A9B12).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     mod solve_beb8660c {
         use super::*;
 
