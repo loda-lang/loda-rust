@@ -4571,4 +4571,28 @@ mod tests {
         let result: String = run_analyze_and_solve("d5d6de2d", &mut instance).expect("String");
         assert_eq!(result, "3 2");
     }
+
+    mod solve_84db8fc4 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let color: u8 = task.removal_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+                let mut result_image: Image = input.clone();
+                result_image.border_flood_fill(color, 255, PixelConnectivity::Connectivity4);
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_940000_puzzle_84db8fc4() {
+        let mut instance = solve_84db8fc4::MySolution {};
+        let result: String = run_analyze_and_solve("84db8fc4", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
 }
