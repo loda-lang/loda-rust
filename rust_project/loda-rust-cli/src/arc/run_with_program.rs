@@ -106,6 +106,10 @@ enum MemoryLayoutItem {
     /// When it's not available then the value is `-1`.
     PredictedSingleColorImage = 12,
 
+    /// The training pairs agree on removing a single color,
+    /// or each training pair has its own color that is being removed.
+    RemovalColor = 13,
+
     // Ideas for more
     // Number of cells horizontal
     // Number of cells vertical
@@ -516,6 +520,19 @@ impl RunWithProgram {
                 }
             }
             
+            // memory[x*100+113] = train[x].removal_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.removal_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::RemovalColor as u64, value).context("pair.RemovalColor, set_u64")?;
+                }
+            }
+
             // Ideas for data to make available to the program.
             // output_palette
             // substitutions, replace this color with that color
@@ -678,6 +695,19 @@ impl RunWithProgram {
                     if let Some(value) = (-1i16).to_bigint() {
                         state.set_u64(address + MemoryLayoutItem::PredictedSingleColorImage as u64, value).context("predicted_single_color_image, set_u64 with -1")?;
                     }
+                }
+            }
+            
+            // memory[x*100+113] = test[x].removal_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.removal_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::RemovalColor as u64, value).context("pair.RemovalColor, set_u64")?;
                 }
             }
 

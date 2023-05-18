@@ -1317,6 +1317,7 @@ impl arc_work_model::Task {
             return Ok(());
         }
 
+        // In each pair, the color is the same as most popular color of the input
         if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsTheMostPopularColorOfInputImage) {
             for pair in self.pairs.iter_mut() {
                 let histogram: &Histogram = &pair.input.histogram;
