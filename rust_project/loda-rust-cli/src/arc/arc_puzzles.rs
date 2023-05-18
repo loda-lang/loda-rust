@@ -4260,7 +4260,7 @@ mod tests {
                         continue;
                     }
                     let rect: Rectangle = sparse_object.bounding_box;
-                    result_image = result_image.fill_inside_rect(rect, sparse_object.color)?;
+                    result_image = result_image.draw_rect_filled(rect, sparse_object.color)?;
                 }
                 Ok(result_image)
             }
@@ -4465,7 +4465,7 @@ mod tests {
                     if object.color != noise_color {
                         continue;
                     }
-                    result_image = result_image.fill_inside_rect(object.bounding_box, 42)?;
+                    result_image = result_image.draw_rect_filled(object.bounding_box, 42)?;
                 }
 
                 result_image.draw_line_where_row_or_column_contains_color(&mask, noise_color)?;

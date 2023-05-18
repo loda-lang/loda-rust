@@ -311,7 +311,7 @@ impl Grid {
 
                     let xx = (x & 255) as u8;
                     let r = Rectangle::new(xx, 0, 1, result_image.height());
-                    mask = mask.fill_inside_rect(r, 1)?;
+                    mask = mask.draw_rect_filled(r, 1)?;
                 }
                 x += 1;
                 if x >= width {
@@ -349,7 +349,7 @@ impl Grid {
 
                     let yy = (y & 255) as u8;
                     let r = Rectangle::new(0, yy, result_image.width(), 1);
-                    mask = mask.fill_inside_rect(r, 1)?;
+                    mask = mask.draw_rect_filled(r, 1)?;
                 }
                 y += 1;
                 if y >= height {
