@@ -1,7 +1,7 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor, ReverseColorPopularity, ObjectsAndMass};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor, ReverseColorPopularity, ObjectsAndMass, ImageFill};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
-use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean};
+use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity};
 use super::{ImageGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
@@ -2655,6 +2655,58 @@ impl UnofficialFunction for ReverseColorPopularityApplyToObjectsFunction {
     }
 }
 
+struct BorderFloodFillFunction {
+    id: u32,
+    connectivity: PixelConnectivity,
+}
+
+impl BorderFloodFillFunction {
+    fn new(id: u32, connectivity: PixelConnectivity) -> Self {
+        Self {
+            id,
+            connectivity,
+        }
+    }
+}
+
+impl UnofficialFunction for BorderFloodFillFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.connectivity {
+            PixelConnectivity::Connectivity4 => "Flood fill at every pixel along the border, connectivity-4.".to_string(),
+            PixelConnectivity::Connectivity8 => "Flood fill at every pixel along the border, connectivity-8.".to_string(),
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is from_color
+        let from_color: u8 = input[1].to_u8().context("u8 from_color")?;
+
+        // input2 is to_color
+        let to_color: u8 = input[2].to_u8().context("u8 to_color")?;
+
+        let mut output_image: Image = input_image;
+        output_image.border_flood_fill(from_color, to_color, self.connectivity);
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ObjectsUniqueColorCountFunction {
     id: u32,
 }
@@ -3121,6 +3173,10 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Reverse color popularity
     register_function!(ReverseColorPopularityApplyToImageFunction::new(102170));
     register_function!(ReverseColorPopularityApplyToObjectsFunction::new(102171));
+    
+    // Flood fill
+    register_function!(BorderFloodFillFunction::new(102180, PixelConnectivity::Connectivity4));
+    register_function!(BorderFloodFillFunction::new(102181, PixelConnectivity::Connectivity8));
 
     // Count unique colors in each object
     register_function!(ObjectsUniqueColorCountFunction::new(104000));

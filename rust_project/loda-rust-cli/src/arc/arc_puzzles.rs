@@ -4594,6 +4594,29 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
+    const PROGRAM_84DB8FC4: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,113 ; address of vector[0].RemovalColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; set source color = removal color
+        mov $2,42 ; set destination color to 42
+        f31 $0,102180 ; Flood fill at every pixel along the border, connectivity-4.
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_940001_puzzle_84db8fc4_loda() {
+        let result: String = run_advanced("84db8fc4", PROGRAM_84DB8FC4).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
     mod solve_e7639916 {
         use super::*;
 
