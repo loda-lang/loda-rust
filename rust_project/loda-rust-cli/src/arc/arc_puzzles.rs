@@ -4529,6 +4529,32 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    const PROGRAM_BEB8660C: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; most popular color across inputs
+        f21 $0,102193 ; Gravity in the right direction
+
+        ; $1 holds the most popular color across inputs
+        f21 $0,102200 ; Sort rows-ascending by color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_920001_puzzle_beb8660c_loda() {
+        let result: String = run_advanced("beb8660c", PROGRAM_BEB8660C).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     mod solve_d5d6de2d {
         use super::*;
 
