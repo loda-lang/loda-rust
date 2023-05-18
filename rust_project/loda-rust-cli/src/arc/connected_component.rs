@@ -1,7 +1,7 @@
 //! Connected component labeling/analysis
 //! 
 //! https://en.wikipedia.org/wiki/Connected-component_labeling
-use super::{Image, ImageFill};
+use super::{Image, ImageFill, PixelConnectivity};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConnectedComponentItem {
@@ -9,19 +9,6 @@ pub struct ConnectedComponentItem {
     pub mass: u16,
     pub x: u8,
     pub y: u8,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum PixelConnectivity {
-    /// Considers only the 4 neighbors around the center pixel, the top/bottom/left/right pixels.
-    /// 
-    /// Don't visit the corners.
-    Connectivity4,
-
-    /// Considers all the 8 neighbors around the center pixel.
-    /// 
-    /// This can be useful for diagonal flood filling via corners.
-    Connectivity8,
 }
 
 pub struct ConnectedComponent;
