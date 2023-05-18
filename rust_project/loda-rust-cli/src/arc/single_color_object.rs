@@ -145,10 +145,12 @@ impl SingleColorObjectSparse {
         // println!("number of clusters: {}", object_mask_vec2.len());
         let mut cluster_vec = Vec::<SingleColorObjectCluster>::new();
         for (index, cluster_mask) in cluster_mask_vec.iter().enumerate() {
+            let mass_cluster: u16 = cluster_mask.mask_count_one();
             let item = SingleColorObjectCluster {
                 cluster_id: index + 1,
                 mask: cluster_mask.clone(),
                 one_or_more_holes: false,
+                mass_cluster,
             };
             cluster_vec.push(item);
         }
@@ -201,9 +203,9 @@ pub struct SingleColorObjectCluster {
     pub cluster_id: usize,
     pub mask: Image,
     pub one_or_more_holes: bool,
+    pub mass_cluster: u16,
 
     // Future experiments:
-    // mass_cluster,
     // mass_holes,
     // is a box
     // shape type: L shape, T shape, + shape, diagonal shape, other shape

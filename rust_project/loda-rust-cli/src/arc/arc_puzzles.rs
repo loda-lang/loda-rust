@@ -13,7 +13,7 @@ mod tests {
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
-    use crate::arc::{ImageDrawRect, SingleColorObjects};
+    use crate::arc::{ImageDrawRect, SingleColorObjects, SingleColorObjectClusterContainer};
     use crate::arc::{MixMode, ImageMix, GravityDirection, ImageGravity, ImageSort, ImageSortMode};
     use std::collections::HashMap;
     use regex::Regex;
@@ -4530,8 +4530,6 @@ mod tests {
     }
 
     mod solve_d5d6de2d {
-        use crate::arc::SingleColorObjectClusterContainer;
-
         use super::*;
 
         pub struct MySolution;
@@ -4640,6 +4638,75 @@ mod tests {
     fn test_960000_puzzle_e7639916() {
         let mut instance = solve_e7639916::MySolution {};
         let result: String = run_analyze_and_solve("e7639916", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_e0fb7511 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let mut found = false;
+                for action_label in &task.action_label_set_intersection {
+                    match action_label {
+                        ActionLabel::OutputImageHasSameStructureAsInputImage => {
+                            found = true;
+                        },
+                        _ => {}
+                    }
+                }
+                if !found {
+                    return Err(anyhow::anyhow!("OutputImageHasSameStructureAsInputImage not found"));
+                }
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+
+                // Histogram of the isolated pixels
+                let mut isolated_pixels: Image = input.count_duplicate_pixels_in_neighbours()?;
+                isolated_pixels = isolated_pixels.to_mask_where_color_is(1);
+                let histogram: Histogram = input.histogram_with_mask(&isolated_pixels)?;
+                // println!("histogram: {:?}", histogram.pairs_descending());
+                let noise_color: u8 = histogram.most_popular_color_disallow_ambiguous().expect("color");
+
+                let mut result_image: Image = input.clone();
+                for object in &single_color_objects.sparse_vec {
+                    if object.color != noise_color {
+                        continue;
+                    }
+                    let container: &SingleColorObjectClusterContainer = match &object.container4 {
+                        Some(value) => value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    let mut enumerated_objects: Image = container.enumerated_clusters_uncropped.clone();
+                    for cluster in &container.cluster_vec {
+                        if cluster.mass_cluster <= 1 {
+                            continue;
+                        }
+                        if cluster.cluster_id > (u8::MAX as usize) {
+                            continue;
+                        }
+                        let source_color: u8 = cluster.cluster_id as u8;
+                        enumerated_objects = enumerated_objects.replace_color(source_color, 0)?;
+                    }
+                    let mask: Image = enumerated_objects.to_mask_where_color_is_different(0);
+                    result_image = mask.select_from_image_and_color(&result_image, 42)?;
+                }
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_970000_puzzle_e0fb7511() {
+        let mut instance = solve_e0fb7511::MySolution {};
+        let result: String = run_analyze_and_solve("e0fb7511", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 }
