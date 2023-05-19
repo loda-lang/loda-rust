@@ -4283,9 +4283,8 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
-                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
+                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
                 let result_image = input.denoise_type4(noise_color, background_color)?;
                 Ok(result_image)
             }
@@ -4296,6 +4295,31 @@ mod tests {
     fn test_850000_puzzle_7e0986d6() {
         let mut instance = solve_7e0986d6::MySolution {};
         let result: String = run_analyze_and_solve("7e0986d6", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    const PROGRAM_7E0986D6: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    mov $84,115 ; address of vector[0].InputSinglePixelNoiseColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$84 ; noise color
+        mov $2,$$83 ; background color
+        f31 $0,101093 ; Denoise type4. denoise noisy pixels.
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+        add $84,100
+    lpe
+    ";
+
+    #[test]
+    fn test_850001_puzzle_7e0986d6_loda() {
+        let result: String = run_advanced("7e0986d6", PROGRAM_7E0986D6).expect("String");
         assert_eq!(result, "2 1");
     }
 
