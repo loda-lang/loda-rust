@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity, GravityDirection};
@@ -2857,6 +2857,56 @@ impl UnofficialFunction for SortRowsColumnsByColorFunction {
     }
 }
 
+struct DrawLineConnectingTwoColorsFunction {
+    id: u32,
+}
+
+impl DrawLineConnectingTwoColorsFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for DrawLineConnectingTwoColorsFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 4, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Draw lines between the `color0` pixels and `color1` pixels when both occur in the same column/row.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 4 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is color0
+        let color0: u8 = input[1].to_u8().context("u8 color0")?;
+
+        // input2 is color1
+        let color1: u8 = input[2].to_u8().context("u8 color1")?;
+
+        // input3 is line_color
+        let line_color: u8 = input[3].to_u8().context("u8 line_color")?;
+
+        let mut output_image: Image = input_image;
+        let (_count_columns, _count_rows) = output_image.draw_line_connecting_two_colors(color0, color1, line_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ObjectsUniqueColorCountFunction {
     id: u32,
 }
@@ -3340,6 +3390,9 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(SortRowsColumnsByColorFunction::new(102201, ImageSortMode::RowsDescending));
     register_function!(SortRowsColumnsByColorFunction::new(102202, ImageSortMode::ColumnsAscending));
     register_function!(SortRowsColumnsByColorFunction::new(102203, ImageSortMode::ColumnsDescending));
+
+    // Draw lines connecting two colors
+    register_function!(DrawLineConnectingTwoColorsFunction::new(102210));
 
     // Count unique colors in each object
     register_function!(ObjectsUniqueColorCountFunction::new(104000));
