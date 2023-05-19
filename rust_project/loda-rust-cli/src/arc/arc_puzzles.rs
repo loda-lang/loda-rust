@@ -3285,7 +3285,7 @@ mod tests {
             let mut result_image: Image = cropped_input.clone();
 
             let mask: Image = cropped_input.to_mask_where_color_is(least_popular_color);
-            _ = result_image.draw_line_where_row_or_column_contains_color(&mask, line_color)?;
+            _ = result_image.draw_line_where_mask_is_nonzero(&mask, line_color)?;
 
             Ok(result_image)
         };
@@ -4382,7 +4382,7 @@ mod tests {
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
                 let mask: Image = input.to_mask_where_color_is(noise_color);
                 let mut result_image: Image = input.clone();
-                _ = result_image.draw_line_where_column_contains_color(&mask, 42)?;
+                _ = result_image.draw_line_column_where_mask_is_nonzero(&mask, 42)?;
                 result_image = mask.select_from_images(&result_image, input)?;
                 result_image = result_image.repeat_by_count(2, 2)?;
                 Ok(result_image)
@@ -4507,7 +4507,7 @@ mod tests {
                     result_image = result_image.draw_rect_filled(object.bounding_box, 42)?;
                 }
 
-                result_image.draw_line_where_row_or_column_contains_color(&mask, noise_color)?;
+                result_image.draw_line_where_mask_is_nonzero(&mask, noise_color)?;
 
                 Ok(result_image)
             }

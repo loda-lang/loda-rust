@@ -4,19 +4,19 @@ pub trait ImageDrawLineWhere {
     /// Draw a horizontal line if the `mask` contains one or more non-zero pixels.
     /// 
     /// Returns the number of rows that was drawn.
-    fn draw_line_where_row_contains_color(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<u8>;
+    fn draw_line_row_where_mask_is_nonzero(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<u8>;
     
     /// Draw a vertical line if the `mask` contains one or more non-zero pixels.
     /// 
     /// Returns the number of columns that was drawn.
-    fn draw_line_where_column_contains_color(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<u8>;
+    fn draw_line_column_where_mask_is_nonzero(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<u8>;
     
     /// Shoot out lines in all directions
     /// 
     /// Draw horizontal lines and vertical lines where the `mask` contains one or more non-zero pixels.
     /// 
     /// Returns tuple with `(number of columns, number of rows)` that was drawn.
-    fn draw_line_where_row_or_column_contains_color(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<(u8,u8)>;
+    fn draw_line_where_mask_is_nonzero(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<(u8,u8)>;
 
     /// Draw lines between the top-most pixel and the bottom-most pixel.
     /// 
@@ -62,7 +62,7 @@ pub trait ImageDrawLineWhere {
 }
 
 impl ImageDrawLineWhere for Image {
-    fn draw_line_where_row_contains_color(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<u8> {
+    fn draw_line_row_where_mask_is_nonzero(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<u8> {
         if self.size() != mask.size() {
             return Err(anyhow::anyhow!("Expected mask.size to be the same as self.size"));
         }
@@ -89,7 +89,7 @@ impl ImageDrawLineWhere for Image {
         Ok(number_of_lines)
     }
 
-    fn draw_line_where_column_contains_color(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<u8> {
+    fn draw_line_column_where_mask_is_nonzero(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<u8> {
         if self.size() != mask.size() {
             return Err(anyhow::anyhow!("Expected mask.size to be the same as self.size"));
         }
@@ -116,13 +116,10 @@ impl ImageDrawLineWhere for Image {
         Ok(number_of_lines)
     }
 
-    fn draw_line_where_row_or_column_contains_color(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<(u8,u8)> {
-        let count_columns: u8 = self.draw_line_where_column_contains_color(mask, line_color)?;
-        let count_rows: u8 = self.draw_line_where_row_contains_color(mask, line_color)?;
+    fn draw_line_where_mask_is_nonzero(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<(u8,u8)> {
+        let count_columns: u8 = self.draw_line_column_where_mask_is_nonzero(mask, line_color)?;
+        let count_rows: u8 = self.draw_line_row_where_mask_is_nonzero(mask, line_color)?;
         Ok((count_columns, count_rows))
-        // _ = self.draw_line_where_row_contains_color(mask, line_color)?;
-        // _ = self.draw_line_where_column_contains_color(mask, line_color)?;
-        // Ok(())
     }
 
     fn draw_line_between_top_bottom(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<u8> {
@@ -269,7 +266,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_draw_line_where_row_contains_color() {
+    fn test_10000_draw_line_row_where_mask_is_nonzero() {
         // Arrange
         let pixels0: Vec<u8> = vec![
             1, 0, 1, 0, 1,
@@ -291,7 +288,7 @@ mod tests {
 
         // Act
         let mut actual = input0.clone();
-        let line_count: u8 = actual.draw_line_where_row_contains_color(&input1, 5).expect("line count");
+        let line_count: u8 = actual.draw_line_row_where_mask_is_nonzero(&input1, 5).expect("line count");
 
         // Assert
         assert_eq!(line_count, 2);
@@ -307,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_draw_line_where_column_contains_color() {
+    fn test_20000_draw_line_column_where_mask_is_nonzero() {
         // Arrange
         let pixels0: Vec<u8> = vec![
             1, 0, 1, 0, 1,
@@ -329,7 +326,7 @@ mod tests {
 
         // Act
         let mut actual = input0.clone();
-        let line_count: u8 = actual.draw_line_where_column_contains_color(&input1, 5).expect("line count");
+        let line_count: u8 = actual.draw_line_column_where_mask_is_nonzero(&input1, 5).expect("line count");
 
         // Assert
         assert_eq!(line_count, 2);
@@ -345,7 +342,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_draw_line_where_row_or_column_contains_color() {
+    fn test_30000_draw_line_where_mask_is_nonzero() {
         // Arrange
         let pixels0: Vec<u8> = vec![
             1, 0, 1, 0, 1,
@@ -367,7 +364,7 @@ mod tests {
 
         // Act
         let mut actual = input0.clone();
-        let (count_columns, count_rows) = actual.draw_line_where_row_or_column_contains_color(&input1, 5).expect("ok");
+        let (count_columns, count_rows) = actual.draw_line_where_mask_is_nonzero(&input1, 5).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
