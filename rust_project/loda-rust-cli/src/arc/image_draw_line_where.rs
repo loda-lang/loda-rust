@@ -479,7 +479,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_draw_line_connecting_two_colors() {
+    fn test_50000_draw_line_connecting_two_colors_different_color_values() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -514,5 +514,39 @@ mod tests {
         assert_eq!(actual, expected);
         assert_eq!(count_columns, 1);
         assert_eq!(count_rows, 2);
+    }
+
+    #[test]
+    fn test_50001_draw_line_connecting_two_colors_same_color_value() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 7, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 7, 0,
+            0, 0, 0, 3, 3, 3, 0, 0, 0,
+            0, 7, 0, 3, 3, 3, 0, 7, 0,
+            0, 0, 0, 5, 5, 5, 0, 0, 0,
+            0, 0, 0, 7, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 7, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(9, 7, pixels).expect("image");
+
+        // Act
+        let mut actual = input.clone();
+        let (count_columns, count_rows) = actual.draw_line_connecting_two_colors(7, 7, 1).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 7, 0, 0, 0,
+            0, 0, 0, 0, 0, 1, 0, 7, 0,
+            0, 0, 0, 3, 3, 1, 0, 1, 0,
+            0, 7, 1, 1, 1, 1, 1, 7, 0,
+            0, 0, 0, 5, 5, 1, 0, 0, 0,
+            0, 0, 0, 7, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 0, 7, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(9, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+        assert_eq!(count_columns, 2);
+        assert_eq!(count_rows, 1);
     }
 }
