@@ -1,4 +1,4 @@
-use super::{Image, ImageRotate};
+use super::{Histogram, Image, ImageRotate, ImageHistogram, ImageReplaceColor};
 
 pub trait ImageDrawLineWhere {
     /// Draw a horizontal line if the `mask` contains one or more non-zero pixels.
@@ -190,15 +190,33 @@ impl ImageDrawLineWhere for Image {
     }
 
     fn draw_line_connecting_two_colors(&mut self, color0: u8, color1: u8, line_color: u8) -> anyhow::Result<(u8,u8)> {
+        // Draw with a color value that isn't clashing with color0 or color1.
+        let mut draw_color: u8 = line_color;
+        if line_color == color0 && line_color == color1 {
+            let histogram: Histogram = self.histogram_all();
+            let unused_color: u8 = match histogram.unused_color() {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Unable to find an unused color"));
+                }
+            };
+            draw_color = unused_color;
+        }
+
         let mut self_rotated: Image = self.rotate_cw()?;
         let original_rotated: Image = self_rotated.clone();
 
-        // draw columns
-        let count_columns: u8 = inner_draw_line_connecting_two_colors(&mut self_rotated, &original_rotated, color0, color1, line_color)?;
+        // Draw columns
+        let count_columns: u8 = inner_draw_line_connecting_two_colors(&mut self_rotated, &original_rotated, color0, color1, draw_color)?;
         let mut self_rotated_back: Image = self_rotated.rotate_ccw()?;
 
-        // draw rows
-        let count_rows: u8 = inner_draw_line_connecting_two_colors(&mut self_rotated_back, self, color0, color1, line_color)?;
+        // Draw rows
+        let count_rows: u8 = inner_draw_line_connecting_two_colors(&mut self_rotated_back, self, color0, color1, draw_color)?;
+
+        // Restore from the clashing draw_color to the line_color
+        if line_color != draw_color {
+            self_rotated_back = self_rotated_back.replace_color(draw_color, line_color)?;
+        }
 
         self.set_image(self_rotated_back);
         Ok((count_columns, count_rows))
@@ -542,6 +560,40 @@ mod tests {
             0, 7, 1, 1, 1, 1, 1, 7, 0,
             0, 0, 0, 5, 5, 1, 0, 0, 0,
             0, 0, 0, 7, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 0, 7, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(9, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+        assert_eq!(count_columns, 2);
+        assert_eq!(count_rows, 1);
+    }
+
+    #[test]
+    fn test_50002_draw_line_connecting_two_colors_same_as_line_color() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 7, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 7, 0,
+            0, 0, 0, 3, 3, 3, 0, 0, 0,
+            0, 7, 0, 3, 3, 3, 0, 7, 0,
+            0, 0, 0, 5, 5, 5, 0, 0, 0,
+            0, 0, 0, 7, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 7, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(9, 7, pixels).expect("image");
+
+        // Act
+        let mut actual = input.clone();
+        let (count_columns, count_rows) = actual.draw_line_connecting_two_colors(7, 7, 7).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 7, 0, 0, 0,
+            0, 0, 0, 0, 0, 7, 0, 7, 0,
+            0, 0, 0, 3, 3, 7, 0, 7, 0,
+            0, 7, 7, 7, 7, 7, 7, 7, 0,
+            0, 0, 0, 5, 5, 7, 0, 0, 0,
+            0, 0, 0, 7, 0, 7, 0, 0, 0,
             0, 0, 0, 0, 0, 7, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(9, 7, expected_pixels).expect("image");

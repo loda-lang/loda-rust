@@ -4332,9 +4332,8 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
-                let mask: Image = input.to_mask_where_color_is(noise_color);
                 let mut result_image: Image = input.clone();
-                _ = result_image.draw_line_between_top_bottom_and_left_right(&mask, noise_color)?;
+                _ = result_image.draw_line_connecting_two_colors(noise_color, noise_color, noise_color)?;
                 Ok(result_image)
             }
         }
