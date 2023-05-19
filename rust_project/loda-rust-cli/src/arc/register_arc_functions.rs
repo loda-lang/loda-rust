@@ -1,7 +1,7 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
-use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity, GravityDirection};
+use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity, GravityDirection, ImageCountUniqueColors};
 use super::{ImageGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
 use super::{ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue};
 use super::{ObjectWithDifferentColor, ReverseColorPopularity, ObjectsAndMass, ImageFill, ImageGravity, ImageSort, ImageSortMode};
@@ -1753,6 +1753,64 @@ impl UnofficialFunction for ImageNumberOfUniqueColorsFunction {
     }
 }
 
+enum ImageCountUniqueColorsPerRowColumnFunctionMode {
+    Row,
+    Column,
+}
+
+struct ImageCountUniqueColorsPerRowColumnFunction {
+    id: u32,
+    mode: ImageCountUniqueColorsPerRowColumnFunctionMode,
+}
+
+impl ImageCountUniqueColorsPerRowColumnFunction {
+    fn new(id: u32, mode: ImageCountUniqueColorsPerRowColumnFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageCountUniqueColorsPerRowColumnFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImageCountUniqueColorsPerRowColumnFunctionMode::Row => "count unique colors per row".to_string(),
+            ImageCountUniqueColorsPerRowColumnFunctionMode::Column => "count unique colors per column".to_string(),
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let output_image: Image;
+        match self.mode {
+            ImageCountUniqueColorsPerRowColumnFunctionMode::Row => {
+                output_image = image.count_unique_colors_per_row()?;
+            },
+            ImageCountUniqueColorsPerRowColumnFunctionMode::Column => {
+                output_image = image.count_unique_colors_per_column()?;
+            },
+        }
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[derive(Debug)]
 enum ImageToMaskFunctionMode {
     WhereColorIs,
@@ -3450,6 +3508,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Unique colors
     register_function!(ImageNumberOfUniqueColorsFunction::new(101240));
+    register_function!(ImageCountUniqueColorsPerRowColumnFunction::new(101241, ImageCountUniqueColorsPerRowColumnFunctionMode::Row));
+    register_function!(ImageCountUniqueColorsPerRowColumnFunction::new(101242, ImageCountUniqueColorsPerRowColumnFunctionMode::Column));
 
     // Mask
     register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionMode::WhereColorIs));

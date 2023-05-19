@@ -2953,6 +2953,24 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
+    const PROGRAM_25D8A9C8: &'static str = "
+    mov $1,$0
+    f11 $1,101000 ; get width
+    ; $1 is the width of the input image
+
+    f11 $0,101241 ; count unique colors per row
+
+    ; $1 is the width of the input image
+    mov $2,1
+    f31 $0,102120 ; repeat image
+    ";
+
+    #[test]
+    fn test_580001_puzzle_25d8a9c8_loda() {
+        let result: String = run_simple("25d8a9c8", PROGRAM_25D8A9C8).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
     #[test]
     fn test_590000_puzzle_50cb2852() {
         let solution: SolutionSimple = |data| {
