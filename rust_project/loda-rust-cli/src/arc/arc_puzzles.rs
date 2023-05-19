@@ -1627,6 +1627,22 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    const PROGRAM_F8FF0B80: &'static str = "
+    f11 $0,101230 ; Histogram of image. The most popular to the left, least popular to the right. The top row is the counters. The bottom row is the colors.
+
+    mov $1,1
+    f21 $0,101224 ; remove top-most row
+
+    ; $1 is 1
+    f21 $0,101226 ; remove left-most column
+    ";
+
+    #[test]
+    fn test_340001_puzzle_f8ff0b80_loda() {
+        let result: String = run_simple("f8ff0b80", PROGRAM_F8FF0B80).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     #[test]
     fn test_350000_puzzle_a68b268e() {
         let solution: SolutionSimple = |data| {
