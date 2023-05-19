@@ -4610,14 +4610,12 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
-                let mask1: Image = input.to_mask_where_color_is(noise_color);
-                let mut mask2: Image = mask1.clone();
-                mask2.draw_line_between_top_bottom_and_left_right(&mask1, 1)?;
-                let mut mask3: Image = mask2.clone();
-                mask3.draw_line_between_top_bottom_and_left_right(&mask2, 1)?;
-                let mask4: Image = mask3.mix(&mask2, MixMode::Minus)?;
-                let result_image: Image = mask4.select_from_image_and_color(input, 9)?;
-                Ok(result_image)
+                let mut a: Image = input.to_mask_where_color_is(noise_color);
+                _ = a.draw_line_connecting_two_colors(1, 1, 2)?;
+                _ = a.draw_line_connecting_two_colors(2, 2, 3)?;
+                let b: Image = a.to_mask_where_color_is(3);
+                let c: Image = b.select_from_image_and_color(&input, 255)?;
+                Ok(c)
             }
         }
     }
