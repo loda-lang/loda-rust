@@ -1287,6 +1287,62 @@ mod tests {
         assert_eq!(result, "2 1");
     }
 
+    mod solve_aabf363d {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
+                let mut result_image: Image = input.replace_color(noise_color, background_color)?;
+                result_image = result_image.replace_colors_other_than(background_color, noise_color)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_280001_puzzle_aabf363d() {
+        let mut instance = solve_aabf363d::MySolution {};
+        let result: String = run_analyze_and_solve("aabf363d", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    const PROGRAM_AABF363D: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    mov $84,115 ; address of vector[0].InputSinglePixelNoiseColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$84 ; noise color
+        mov $2,$$83 ; background color
+        f31 $0,101050 ; Replace noise pixels with background color
+
+        mov $3,$1
+        mov $1,$2 ; background color
+        mov $2,$3 ; noise color
+        f31 $0,101051 ; Replace non-background-pixels with noise color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+        add $84,100
+    lpe
+    ";
+
+    #[test]
+    fn test_280002_puzzle_aabf363d_loda() {
+        let result: String = run_advanced("aabf363d", PROGRAM_AABF363D).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
     #[test]
     fn test_290000_puzzle_00d62c1b() {
         let solution: SolutionSimple = |data| {
