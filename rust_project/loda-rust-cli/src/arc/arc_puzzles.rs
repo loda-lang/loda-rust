@@ -2,7 +2,7 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{ActionLabel, convolution3x3, ImageCollect};
+    use crate::arc::{ActionLabel, convolution3x3, ImageCollect, ImageSize, ImageLayout, ImageLayoutMode};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ConnectedComponent, PixelConnectivity, ConnectedComponentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
@@ -337,36 +337,15 @@ mod tests {
             let input = data.image;
             let background_color: u8 = input.most_popular_color().expect("pixel");
 
-            let t: Image = input.rotate_cw()?;
-            let mask: Image = t.to_mask_where_color_is_different(background_color);
-            // Traverse columns
-            let mut stack: Vec<u8> = t.collect_pixels_as_vec(&mask)?;
+            // Collect pixels by traversing columns
+            let rotated: Image = input.rotate_cw()?;
+            let mask: Image = rotated.to_mask_where_color_is_different(background_color);
+            let pixels: Image = rotated.collect_pixels_as_image(&mask)?;
 
-            // Padding to 9 items
-            while stack.len() < 9 {
-                stack.push(0);
-            }
-    
-            // Transfer values from the 9 element stack to the 3x3 bitmap
-            let mut result_bitmap: Image = Image::zero(3, 3);
-            for (index, pixel_value) in stack.iter().enumerate() {
-                let y: usize = index / 3;
-                let mut x: usize = index % 3;
-                if y == 1 {
-                    // The middle row is reversed
-                    x = 2 - x;
-                }
-                let set_x: i32 = x as i32;
-                let set_y: i32 = y as i32;
-                match result_bitmap.set(set_x, set_y, *pixel_value) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) in the result_bitmap", x, y));
-                    }
-                }
-            }
-
-            Ok(result_bitmap)
+            // Layout the collected pixels in a 3x3 image
+            let size = ImageSize { width: 3, height: 3 };
+            let result_image: Image = pixels.layout(size, 0, ImageLayoutMode::ReverseOddRows).expect("ok");
+            Ok(result_image)
         };
         let result: String = solution.run("cdecee7f").expect("String");
         assert_eq!(result, "3 1");
