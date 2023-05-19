@@ -351,6 +351,55 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    const PROGRAM_CDECEE7F: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; most popular color across inputs
+
+        ; rotate input by 90 degrees clockwise
+        mov $3,$0
+        mov $4,1
+        f21 $3,101170 ; rotate cw
+        ; $3 is the rotated input image
+    
+        ; extract mask
+        mov $5,$3
+        mov $6,$1
+        f21 $5,101251 ; where color is different than background color
+        ; $5 is the mask
+
+        ; collect pixels
+        mov $7,$3 ; the rotated input image
+        mov $8,$5 ; mask
+        f21 $7,102230 ; collect pixels
+        ; $7 is a single row with the collected pixels
+
+        ; change layout of the pixels
+        mov $9,$7 ; pixels to be re-layouted
+        mov $10,3 ; width
+        mov $11,3 ; height
+        mov $12,$1 ; background
+        f41 $9,102241 ; layout pixels with ReverseOddRows
+
+        mov $0,$9
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_70001_puzzle_cdecee7f_loda() {
+        let result: String = run_advanced("cdecee7f", PROGRAM_CDECEE7F).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     #[test]
     fn test_80000_puzzle_007bbfb7() {
         let solution: SolutionSimple = |data| {
