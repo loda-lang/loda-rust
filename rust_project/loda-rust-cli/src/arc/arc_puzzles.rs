@@ -2191,10 +2191,8 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
-                let mask: Image = input.to_mask_where_color_is(noise_color);
                 let mut result_image: Image = input.clone();
-                _ = result_image.draw_line_between_top_bottom_and_left_right(&mask, 42)?;
-                result_image = mask.select_from_images(&result_image, input)?;
+                _ = result_image.draw_line_connecting_two_colors(noise_color, noise_color, 255)?;
                 Ok(result_image)
             }
         }
@@ -2204,6 +2202,33 @@ mod tests {
     fn test_460001_puzzle_dbc1a6ce() {
         let mut instance = solve_dbc1a6ce::MySolution {};
         let result: String = run_analyze_and_solve("dbc1a6ce", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    const PROGRAM_DBC1A6CE: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,115 ; address of vector[0].InputSinglePixelNoiseColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; noise color
+
+        ; $1 is color0 = noise color
+        mov $2,$1 ; color1 = noise color
+        mov $3,255 ; line color = 255 auto fill in
+        f41 $0,102210 ; Draw lines between the `color0` pixels and `color1` pixels when both occur in the same column/row.
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_460002_puzzle_dbc1a6ce_loda() {
+        let result: String = run_advanced("dbc1a6ce", PROGRAM_DBC1A6CE).expect("String");
         assert_eq!(result, "4 1");
     }
 
