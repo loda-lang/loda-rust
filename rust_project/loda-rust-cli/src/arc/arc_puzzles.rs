@@ -2190,8 +2190,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
-                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
                 let mask: Image = input.to_mask_where_color_is(noise_color);
                 let mut result_image: Image = input.clone();
                 _ = result_image.draw_line_between_top_bottom_and_left_right(&mask, 42)?;
@@ -4332,8 +4331,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
-                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
                 let mask: Image = input.to_mask_where_color_is(noise_color);
                 let mut result_image: Image = input.clone();
                 _ = result_image.draw_line_between_top_bottom_and_left_right(&mask, noise_color)?;
@@ -4358,8 +4356,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
-                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
                 let mask: Image = input.to_mask_where_color_is(noise_color);
                 let mut result_image: Image = input.clone();
                 _ = result_image.draw_line_where_column_contains_color(&mask, 42)?;
@@ -4386,8 +4383,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
-                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
                 let mask1: Image = input.to_mask_where_color_is(noise_color);
                 let mut mask2: Image = mask1.clone();
                 mask2.draw_line_between_top_bottom_and_left_right(&mask1, 1)?;
@@ -4430,10 +4426,7 @@ mod tests {
                 let input: &Image = &pair.input.image;
 
                 let background_color: u8 = input.most_popular_color().expect("color");
-
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
-
-                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
 
                 let mut histogram: Histogram = pair.input.histogram.clone();
                 histogram.set_counter_to_zero(background_color);
@@ -4479,11 +4472,10 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
 
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
-                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
-
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");                
                 let mask: Image = input.to_mask_where_color_is(noise_color);
-
+                
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
                 let mut result_image: Image = input.clone();
                 for object in &single_color_objects.sparse_vec {
                     if object.color != noise_color {
@@ -4710,10 +4702,9 @@ mod tests {
                 }
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
 
                 let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
-                let noise_color: u8 = single_color_objects.single_pixel_noise_color().expect("color");
-
                 let mut result_image: Image = input.clone();
                 for object in &single_color_objects.sparse_vec {
                     if object.color != noise_color {
