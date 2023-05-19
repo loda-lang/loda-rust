@@ -2419,6 +2419,61 @@ impl UnofficialFunction for ImageMaskSelectFromImageAndColorFunction {
     }
 }
 
+struct ImageMaskSelectFromImagesFunction {
+    id: u32,
+}
+
+impl ImageMaskSelectFromImagesFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageMaskSelectFromImagesFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Pick pixels from two images. When the mask is 0 then pick `image_a`. When the mask is [1..255] then pick from `image_b`.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is mask
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let mask: Image = input0_uint.to_image()?;
+
+        // input1 is image_a
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image_a: Image = input1_uint.to_image()?;
+
+        // input2 is image_b
+        if input[2].is_negative() {
+            return Err(anyhow::anyhow!("Input[2] must be non-negative"));
+        }
+        let input2_uint: BigUint = input[2].to_biguint().context("BigInt to BigUint")?;
+        let image_b: Image = input2_uint.to_image()?;
+
+        let output_image: Image = mask.select_from_images(&image_a, &image_b)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 enum ImageCountDuplicatePixelsFunctionMode {
     All,
     Neighbors,
@@ -3432,6 +3487,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Mask - select from image
     register_function!(ImageMaskSelectFromColorAndImageFunction::new(102130));
     register_function!(ImageMaskSelectFromImageAndColorFunction::new(102131));
+    register_function!(ImageMaskSelectFromImagesFunction::new(102132));
     
     // Count duplicate pixels in 3x3 convolution
     register_function!(ImageCountDuplicatePixelsFunction::new(102140, ImageCountDuplicatePixelsFunctionMode::All));
@@ -3467,7 +3523,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Draw lines connecting two colors
     register_function!(DrawLineConnectingTwoColorsFunction::new(102210));
 
-    // Draw lines connecting two colors
+    // Draw lines where mask is non-zero
     register_function!(DrawLineWhereMaskIsNonZeroFunction::new(102220, DrawLineWhereMaskIsNonZeroFunctionMode::RowsAndColumns));
     register_function!(DrawLineWhereMaskIsNonZeroFunction::new(102221, DrawLineWhereMaskIsNonZeroFunctionMode::Rows));
     register_function!(DrawLineWhereMaskIsNonZeroFunction::new(102222, DrawLineWhereMaskIsNonZeroFunctionMode::Columns));
