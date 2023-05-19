@@ -2,7 +2,7 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{ActionLabel, convolution3x3};
+    use crate::arc::{ActionLabel, convolution3x3, ImageCollect};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ConnectedComponent, PixelConnectivity, ConnectedComponentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
@@ -335,19 +335,13 @@ mod tests {
     fn test_70000_puzzle_cdecee7f() {
         let solution: SolutionSimple = |data| {
             let input = data.image;
-            let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
+            let background_color: u8 = input.most_popular_color().expect("pixel");
 
+            let t: Image = input.rotate_cw()?;
+            let mask: Image = t.to_mask_where_color_is_different(background_color);
             // Traverse columns
-            let mut stack: Vec<u8> = vec!();
-            for x in 0..input.width() {
-                // Take foreground pixels that is different than the background color, and append the foreground pixel to the stack
-                for y in 0..input.height() {
-                    let pixel_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
-                    if pixel_value != background_pixel_color {
-                        stack.push(pixel_value);
-                    }
-                }
-            }
+            let mut stack: Vec<u8> = t.collect_pixels_as_vec(&mask)?;
+
             // Padding to 9 items
             while stack.len() < 9 {
                 stack.push(0);
