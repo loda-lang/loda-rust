@@ -11,7 +11,7 @@ pub trait ImageDrawLineWhere {
     /// Returns the number of columns that was drawn.
     fn draw_line_column_where_mask_is_nonzero(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<u8>;
     
-    /// Shoot out lines in all directions
+    /// Shoot out lines in all directions where `mask` is non-zero.
     /// 
     /// Draw horizontal lines and vertical lines where the `mask` contains one or more non-zero pixels.
     /// 

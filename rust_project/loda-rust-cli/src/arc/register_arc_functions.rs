@@ -2907,6 +2907,79 @@ impl UnofficialFunction for DrawLineConnectingTwoColorsFunction {
     }
 }
 
+enum DrawLineWhereMaskIsNonZeroFunctionMode {
+    RowsAndColumns,
+    Rows,
+    Columns,
+}
+
+struct DrawLineWhereMaskIsNonZeroFunction {
+    id: u32,
+    mode: DrawLineWhereMaskIsNonZeroFunctionMode,
+}
+
+impl DrawLineWhereMaskIsNonZeroFunction {
+    fn new(id: u32, mode: DrawLineWhereMaskIsNonZeroFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for DrawLineWhereMaskIsNonZeroFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            DrawLineWhereMaskIsNonZeroFunctionMode::RowsAndColumns => "Shoot out lines in all directions where mask is non-zero".to_string(),
+            DrawLineWhereMaskIsNonZeroFunctionMode::Rows => "Draw a horizontal line if the `mask` contains one or more non-zero pixels.".to_string(),
+            DrawLineWhereMaskIsNonZeroFunctionMode::Columns => "Draw a vertical line if the `mask` contains one or more non-zero pixels.".to_string(),
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is mask
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let mask: Image = input1_uint.to_image()?;
+
+        // input2 is line_color
+        let line_color: u8 = input[2].to_u8().context("u8 line_color")?;
+
+        let mut output_image: Image = input_image;
+        match self.mode {
+            DrawLineWhereMaskIsNonZeroFunctionMode::RowsAndColumns => {
+                let (_count_columns, _count_rows) = output_image.draw_line_where_mask_is_nonzero(&mask, line_color)?;
+            },
+            DrawLineWhereMaskIsNonZeroFunctionMode::Rows => {
+                let _count_rows = output_image.draw_line_row_where_mask_is_nonzero(&mask, line_color)?;
+            },
+            DrawLineWhereMaskIsNonZeroFunctionMode::Columns => {
+                let _count_columns = output_image.draw_line_column_where_mask_is_nonzero(&mask, line_color)?;
+            },
+        }
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ObjectsUniqueColorCountFunction {
     id: u32,
 }
@@ -3393,6 +3466,11 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Draw lines connecting two colors
     register_function!(DrawLineConnectingTwoColorsFunction::new(102210));
+
+    // Draw lines connecting two colors
+    register_function!(DrawLineWhereMaskIsNonZeroFunction::new(102220, DrawLineWhereMaskIsNonZeroFunctionMode::RowsAndColumns));
+    register_function!(DrawLineWhereMaskIsNonZeroFunction::new(102221, DrawLineWhereMaskIsNonZeroFunctionMode::Rows));
+    register_function!(DrawLineWhereMaskIsNonZeroFunction::new(102222, DrawLineWhereMaskIsNonZeroFunctionMode::Columns));
 
     // Count unique colors in each object
     register_function!(ObjectsUniqueColorCountFunction::new(104000));
