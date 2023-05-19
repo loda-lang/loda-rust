@@ -693,6 +693,7 @@ impl arc_work_model::Task {
         _ = self.assign_predicted_single_color_image();
         _ = self.assign_removal_color();
         _ = self.assign_most_popular_intersection_color();
+        _ = self.assign_single_pixel_noise_color();
         Ok(())
     }
 
@@ -1338,6 +1339,42 @@ impl arc_work_model::Task {
                 pair.input.most_popular_intersection_color = Some(color);
             }
             return Ok(());
+        }
+        Ok(())
+    }
+
+    fn assign_single_pixel_noise_color(&mut self) -> anyhow::Result<()> {
+        let mut found = false;
+        for input_label in &self.input_label_set_intersection {
+            match input_label {
+                InputLabel::InputNoiseWithColor { color: _ } => {
+                    found = true;
+                    break;
+                },
+                InputLabel::InputNoiseWithSomeColor => {
+                    found = true;
+                    break;
+                },
+                _ => {}
+            }
+        }
+        if !found {
+            return Ok(());
+        }
+        for pair in self.pairs.iter_mut() {
+            let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            let noise_color: u8 = match single_color_objects.single_pixel_noise_color() {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            pair.input.single_pixel_noise_color = Some(noise_color);
         }
         Ok(())
     }

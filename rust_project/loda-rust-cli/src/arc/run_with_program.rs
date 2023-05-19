@@ -108,10 +108,23 @@ enum MemoryLayoutItem {
 
     /// The training pairs agree on removing a single color,
     /// or each training pair has its own color that is being removed.
+    ///
+    /// When it's not available then the value is `-1`.
     RemovalColor = 13,
 
     /// The input image's most popular color across all the training pairs.
+    ///
+    /// When there are multiple colors with same popularity, then the value is `-1`.
+    /// 
+    /// When the training pairs doesn't agree on a single color, then the value is `-1`.
     InputMostPopularColor = 14,
+
+    /// The input image's has isolated pixels with the same color.
+    ///
+    /// It's the most popular color of the isolated pixels.
+    /// 
+    /// When it's not available then the value is `-1`.
+    InputSinglePixelNoiseColor = 15,
 
     // Ideas for more
     // Number of cells horizontal
@@ -549,6 +562,19 @@ impl RunWithProgram {
                 }
             }
 
+            // memory[x*100+115] = train[x].single_pixel_noise_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.single_pixel_noise_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::InputSinglePixelNoiseColor as u64, value).context("pair.RemovalColor, set_u64")?;
+                }
+            }
+
             // Ideas for data to make available to the program.
             // output_palette
             // substitutions, replace this color with that color
@@ -737,6 +763,19 @@ impl RunWithProgram {
                 }
                 if let Some(value) = the_color.to_bigint() {
                     state.set_u64(address + MemoryLayoutItem::InputMostPopularColor as u64, value).context("pair.RemovalColor, set_u64")?;
+                }
+            }
+
+            // memory[x*100+115] = test[x].single_pixel_noise_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.single_pixel_noise_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::InputSinglePixelNoiseColor as u64, value).context("pair.RemovalColor, set_u64")?;
                 }
             }
 
