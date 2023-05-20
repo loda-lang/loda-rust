@@ -4410,18 +4410,8 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
-
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
-
-                let mut result_image: Image = Image::zero(input.width(), input.height());
-                for sparse_object in &single_color_objects.sparse_vec {
-                    if sparse_object.color == background_color {
-                        continue;
-                    }
-                    let rect: Rectangle = sparse_object.bounding_box;
-                    result_image = result_image.draw_rect_filled(rect, sparse_object.color)?;
-                }
+                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let result_image: Image = input.draw_rect_filled_foreach_color(background_color)?;
                 Ok(result_image)
             }
         }
