@@ -1,11 +1,18 @@
-use super::{Image, Rectangle, ImageMask};
+use super::{Image, Rectangle, ImageMask, Histogram, ImageHistogram, ImageMix, MixMode, ImageMaskCount};
 
 pub trait ImageDrawRect {
     /// Draw a filled rectangle
     fn draw_rect_filled(&self, rect: Rectangle, fill_color: u8) -> anyhow::Result<Image>;
 
     /// Draw a filled rectangle over the bounding box of the mask
-    fn draw_rect_filled_mask(&mut self) -> anyhow::Result<()>;
+    fn draw_rect_filled_mask(&self) -> anyhow::Result<Image>;
+
+    /// Draw non-overlapping filled rectangles over the bounding boxes of each color.
+    /// 
+    /// An error is returned when encountering overlap.
+    /// 
+    /// An error is returned when there are no colors, different than the background color.
+    fn draw_rect_filled_foreach_color(&self, background_color: u8) -> anyhow::Result<Image>;
 
     /// Draw a border around a rectangle
     fn draw_rect_border(&self, min_x: i32, min_y: i32, max_x: i32, max_y: i32, border_color: u8) -> anyhow::Result<Image>;
@@ -39,7 +46,7 @@ impl ImageDrawRect for Image {
         Ok(result_image)
     }
 
-    fn draw_rect_filled_mask(&mut self) -> anyhow::Result<()> {
+    fn draw_rect_filled_mask(&self) -> anyhow::Result<Image> {
         let rect: Rectangle = match self.bounding_box() {
             Some(value) => value,
             None => {
@@ -47,8 +54,32 @@ impl ImageDrawRect for Image {
             }
         };
         let result_image: Image = self.draw_rect_filled(rect, 1)?;
-        self.set_image(result_image);
-        Ok(())
+        Ok(result_image)
+    }
+
+    fn draw_rect_filled_foreach_color(&self, background_color: u8) -> anyhow::Result<Image> {
+        let mut histogram: Histogram = self.histogram_all();
+        histogram.set_counter_to_zero(background_color);
+        let pairs: Vec<(u32, u8)> = histogram.pairs_ordered_by_color();
+        if pairs.is_empty() {
+            return Err(anyhow::anyhow!("There are supposed to be 1 or more colors for this algorithm to make sense"));
+        }
+
+        let mut result_image: Image = self.clone();
+        let mut visited: Image = Image::zero(self.width(), self.height());
+        for (_count, color) in &pairs {
+            let mut mask: Image = self.to_mask_where_color_is(*color);
+            mask = mask.draw_rect_filled_mask()?;
+
+            let intersection_mask: Image = visited.mix(&mask, MixMode::BooleanAnd)?;
+            if intersection_mask.mask_count_one() > 0 {
+                return Err(anyhow::anyhow!("The bounding boxes are supposed to be non-overlapping, but they are intersecting. Cannot draw rects"));
+            }
+
+            result_image = mask.select_from_image_and_color(&result_image, *color)?;
+            visited = visited.mix(&mask, MixMode::BooleanOr)?;
+        }
+        Ok(result_image)
     }
 
     fn draw_rect_border(&self, min_x: i32, min_y: i32, max_x: i32, max_y: i32, border_color: u8) -> anyhow::Result<Image> {
@@ -226,10 +257,9 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 5, input_pixels).expect("image");
-        let mut actual: Image = input.clone();
 
         // Act
-        actual.draw_rect_filled_mask().expect("ok");
+        let actual: Image = input.draw_rect_filled_mask().expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -244,7 +274,34 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_draw_rect_border() {
+    fn test_30000_draw_rect_filled_foreach_color() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            0, 5, 0, 0, 0, 0, 0, 0,
+            0, 5, 0, 0, 5, 1, 0, 0,
+            0, 0, 5, 0, 0, 0, 2, 0,
+            0, 0, 0, 7, 0, 0, 0, 0,
+            7, 0, 0, 0, 0, 2, 0, 0,
+        ];
+        let input: Image = Image::try_create(8, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: Image = input.draw_rect_filled_foreach_color(0).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 5, 5, 5, 5, 0, 0, 0,
+            0, 5, 5, 5, 5, 1, 0, 0,
+            0, 5, 5, 5, 5, 2, 2, 0,
+            7, 7, 7, 7, 0, 2, 2, 0,
+            7, 7, 7, 7, 0, 2, 2, 0,
+        ];
+        let expected: Image = Image::try_create(8, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40000_draw_rect_border() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 5, 0, 3, 0,
@@ -271,7 +328,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30001_draw_rect_border_outside() {
+    fn test_40001_draw_rect_border_outside() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 5, 0, 3, 0,
