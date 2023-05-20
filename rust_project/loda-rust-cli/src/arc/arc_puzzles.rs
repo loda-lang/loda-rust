@@ -4364,19 +4364,7 @@ mod tests {
                     
                     // flood fill at every border pixel around the object
                     let mut object_image: Image = object.crop(rect)?;
-                    let x1: i32 = (object_image.width() as i32) - 1;
-                    let y1: i32 = (object_image.height() as i32) - 1;
-                    for y in 0..(object_image.height() as i32) {
-                        for x in 0..(object_image.width() as i32) {
-                            if x > 0 && x < x1 && y > 0 && y < y1 { 
-                                continue;
-                            }
-                            let pixel: u8 = object_image.get(x, y).unwrap_or(255);
-                            if pixel == 0 {
-                                object_image.flood_fill(x, y, 0, 1, PixelConnectivity::Connectivity4);
-                            }
-                        }
-                    }
+                    object_image.border_flood_fill(0, 1, PixelConnectivity::Connectivity4);
 
                     // if there are unfilled areas, then it's because there is one or more holes
                     let count: u16 = object_image.mask_count_zero();

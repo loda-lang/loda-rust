@@ -45,10 +45,6 @@ impl ImageFill for Image {
                     continue;
                 }
                 self.flood_fill(x, y, from_color, to_color, connectivity);
-                // let pixel: u8 = self.get(x, y).unwrap_or(255);
-                // if pixel == from_color {
-                //     self.flood_fill(x, y, from_color, to_color, connectivity);
-                // }
             }
         }
     }
