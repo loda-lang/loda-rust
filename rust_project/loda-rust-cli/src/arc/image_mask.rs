@@ -26,6 +26,14 @@ pub trait ImageMask {
     fn select_from_images(&self, image_a: &Image, image_b: &Image) -> anyhow::Result<Image>;
 
     /// The smallest box that can contain the mask.
+    /// 
+    /// Pixel values that are zero are ignored.
+    /// 
+    /// Pixel values that are non-zero are considered.
+    /// 
+    /// When no pixels are found, then `None` is returned.
+    /// 
+    /// The returned `Rectangle` is supposed to never be empty. The size is always 1x1 or bigger.
     fn bounding_box(&self) -> Option<Rectangle>;
 }
 
