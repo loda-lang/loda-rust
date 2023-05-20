@@ -1,8 +1,11 @@
-use super::{Image, Rectangle};
+use super::{Image, Rectangle, ImageMask};
 
 pub trait ImageDrawRect {
     /// Draw a filled rectangle
     fn draw_rect_filled(&self, rect: Rectangle, fill_color: u8) -> anyhow::Result<Image>;
+
+    /// Draw a filled rectangle over the bounding box of the mask
+    fn draw_rect_filled_mask(&mut self) -> anyhow::Result<()>;
 
     /// Draw a border around a rectangle
     fn draw_rect_border(&self, min_x: i32, min_y: i32, max_x: i32, max_y: i32, border_color: u8) -> anyhow::Result<Image>;
@@ -34,6 +37,18 @@ impl ImageDrawRect for Image {
             }
         }
         Ok(result_image)
+    }
+
+    fn draw_rect_filled_mask(&mut self) -> anyhow::Result<()> {
+        let rect: Rectangle = match self.bounding_box() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Cannot determine bounding box"));
+            }
+        };
+        let result_image: Image = self.draw_rect_filled(rect, 1)?;
+        self.set_image(result_image);
+        Ok(())
     }
 
     fn draw_rect_border(&self, min_x: i32, min_y: i32, max_x: i32, max_y: i32, border_color: u8) -> anyhow::Result<Image> {
@@ -201,7 +216,35 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_draw_rect_border() {
+    fn test_20000_draw_rect_filled_mask() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 5, 0, 0, 0, 1, 0, 0,
+            0, 0, 0, 0, 0, 0, 2, 0,
+            0, 0, 0, 7, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(8, 5, input_pixels).expect("image");
+        let mut actual: Image = input.clone();
+
+        // Act
+        actual.draw_rect_filled_mask().expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_draw_rect_border() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 5, 0, 3, 0,
@@ -228,7 +271,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_draw_rect_border_outside() {
+    fn test_30001_draw_rect_border_outside() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 5, 0, 3, 0,
