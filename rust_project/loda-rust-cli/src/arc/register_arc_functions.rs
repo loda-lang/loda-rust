@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere, ImageDrawRect};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity, GravityDirection, ImageCountUniqueColors};
@@ -3205,6 +3205,49 @@ impl UnofficialFunction for LayoutPixelsFunction {
     }
 }
 
+struct DrawRectFilledForeachColorFunction {
+    id: u32,
+}
+
+impl DrawRectFilledForeachColorFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for DrawRectFilledForeachColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Draw non-overlapping filled rectangles over the bounding boxes of each color".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is background_color
+        let background_color: u8 = input[1].to_u8().context("u8 background_color")?;
+
+        let output_image: Image = input_image.draw_rect_filled_foreach_color(background_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ObjectsUniqueColorCountFunction {
     id: u32,
 }
@@ -3706,6 +3749,9 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Layout pixels
     register_function!(LayoutPixelsFunction::new(102240, LayoutPixelsFunctionMode::Normal));
     register_function!(LayoutPixelsFunction::new(102241, LayoutPixelsFunctionMode::ReverseOddRows));
+
+    // Draw rect filled
+    register_function!(DrawRectFilledForeachColorFunction::new(102250));
 
     // Count unique colors in each object
     register_function!(ObjectsUniqueColorCountFunction::new(104000));
