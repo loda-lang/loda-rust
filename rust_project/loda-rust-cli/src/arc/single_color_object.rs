@@ -55,10 +55,16 @@ pub struct SingleColorObjectSparse {
     /// Child objects by analyzing with `PixelConnectivity8`
     pub container8: Option<SingleColorObjectClusterContainer>,
 
+    /// When `true` then `PixelConnectivity4` and `PixelConnectivity8` yields the same child objects, 
+    /// and things are easy.
+    /// 
+    /// When `false` then `PixelConnectivity4` and `PixelConnectivity8` yields different masks,
+    /// and extra care is needed to determine wheter to use `PixelConnectivity4` or `PixelConnectivity8`.
+    pub connectivity48_identical: bool,
+
     // Future experiments:
     // are container4 all single pixels?
     // Noise color for single pixel noise
-    // Are container4 and container8 identical? same shape, same number of holes.
     // histogram of areas between clusters.
     // number of holes
     // are the non-object pixels a single color
@@ -86,10 +92,38 @@ impl SingleColorObjectSparse {
             histogram_non_object: histogram,
             container4: None,
             container8: None,
+            connectivity48_identical: false,
         };
         instance.analyze(PixelConnectivity::Connectivity4)?;
         instance.analyze(PixelConnectivity::Connectivity8)?;
+        instance.update_connectivity48_identical()?;
         Ok(instance)
+    }
+
+    /// Detect identical masks for `PixelConnectivity4` and `PixelConnectivity8`.
+    fn update_connectivity48_identical(&mut self) -> anyhow::Result<()> {
+        let container4: &SingleColorObjectClusterContainer = match &self.container4 {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        }; 
+        let container8: &SingleColorObjectClusterContainer = match &self.container8 {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        };
+        if container4.cluster_vec.len() != container8.cluster_vec.len() {
+            return Ok(());
+        }
+        for (cluster4, cluster8) in container4.cluster_vec.iter().zip(container8.cluster_vec.iter()) {
+            if cluster4.mask != cluster8.mask {
+                return Ok(());
+            }
+        }
+        self.connectivity48_identical = true;
+        Ok(())
     }
 
     /// The `connectivity` parameter is for choosing between 4-connected and 8-connected.
