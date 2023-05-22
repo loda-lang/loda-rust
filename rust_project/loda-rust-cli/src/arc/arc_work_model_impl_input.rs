@@ -1,4 +1,4 @@
-use super::arc_work_model;
+use super::{arc_work_model, ImageFill};
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel, GridLabel, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel};
 use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
@@ -208,6 +208,7 @@ impl arc_work_model::Input {
         self.assign_symmetry_labels();
         self.assign_grid_labels();
         self.assign_single_color_objects()?;
+        self.assign_border_flood_fill()?;
         Ok(())
     }
 
@@ -327,6 +328,21 @@ impl arc_work_model::Input {
             }
         }
         self.single_color_objects = Some(single_color_objects);
+        Ok(())
+    }
+
+    pub fn assign_border_flood_fill(&mut self) -> anyhow::Result<()> {
+        for (_count, color) in self.histogram.pairs_ordered_by_color() {
+            let mut image: Image = self.image.clone();
+            let mask_before: Image = image.to_mask_where_color_is(color);
+            image.border_flood_fill(color, 255, PixelConnectivity::Connectivity4);
+            let mask_after: Image = image.to_mask_where_color_is(255);
+            if mask_before != mask_after {
+                continue;
+            }
+            let input_label = InputLabel::InputBorderFloodFillConnectivity4AllPixelsWithColor { color };
+            self.input_label_set.insert(input_label);
+        }
         Ok(())
     }
 

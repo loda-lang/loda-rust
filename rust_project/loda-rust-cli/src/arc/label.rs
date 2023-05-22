@@ -149,6 +149,13 @@ pub enum InputLabel {
     /// for the `4 connected` pixels as the `8 connected` pixels.
     InputUnambiguousConnectivityWithAllColors,
 
+    /// Doing flood fill along the border, and the mask of the color is still the same.
+    /// 
+    /// The color is touching the edges, and all pixels of this color is reachable.
+    /// 
+    /// There are no isolated pixels.
+    InputBorderFloodFillConnectivity4AllPixelsWithColor { color: u8 },
+
     // Ideas for more
     // AmbiguousEnumeratedObjects, // Does `PixelConnectivity4` and `PixelConnectivity8` yield different results
     // SplitColor { color: u8 },
