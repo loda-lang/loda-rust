@@ -1,3 +1,5 @@
+use crate::arc::SingleColorObjectClusterContainer;
+
 use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObjects, SingleColorObjectRectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction};
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
@@ -1688,7 +1690,15 @@ impl arc_work_model::Task {
         }
 
         // Don't care wether it succeeds or fails
-        _ = self.compute_input_enumerated_objects_based_on_same_structure();
+        _ = self.compute_input_enumerated_objects_based_on_same_structure1();
+
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            self.reset_input_enumerated_objects();
+        }
+
+        // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_based_on_same_structure2();
 
         // Reset all enumerated_objects if one or more is missing.
         if !self.has_enumerated_objects() {
@@ -1728,7 +1738,7 @@ impl arc_work_model::Task {
         }
     }
 
-    fn compute_input_enumerated_objects_based_on_same_structure(&mut self) -> anyhow::Result<()> {
+    fn compute_input_enumerated_objects_based_on_same_structure1(&mut self) -> anyhow::Result<()> {
         if self.has_enumerated_objects() {
             return Ok(());
         }
@@ -1779,7 +1789,92 @@ impl arc_work_model::Task {
             pair.input.enumerated_objects = Some(enumerated_objects);
         }
 
-        return Ok(());
+        Ok(())
+    }
+
+    fn compute_input_enumerated_objects_based_on_same_structure2(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        if !self.action_label_set_intersection.contains(&ActionLabel::OutputImageHasSameStructureAsInputImage) {
+            return Ok(());
+        }
+        if self.input_properties_intersection_get_unique_color_count() != Some(2) {
+            return Ok(());
+        }
+
+        let mut ambiguity_count: usize = 0;
+        let mut found_color = u8::MAX;
+        for action_label in &self.action_label_set_intersection {
+            match action_label {
+                ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
+                    ambiguity_count += 1;
+                    found_color = *color;
+                },
+                _ => {}
+            }
+        }
+        if ambiguity_count != 1 {
+            return Ok(());
+        }
+
+        let mut ambiguous_48connectivity = true;
+        for input_label in &self.input_label_set_intersection {
+            match *input_label {
+                InputLabel::InputUnambiguousConnectivityWithAllColors => {
+                    ambiguous_48connectivity = false;
+                },
+                _ => {}
+            }
+        }
+        if ambiguous_48connectivity {
+            return Ok(());
+        }
+
+        println!("task: {}", self.id);
+
+        for pair in &mut self.pairs {
+            let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
+                Some(value) => value,
+                None => {
+                    break;
+                }
+            };
+            let mut mask: Image = Image::empty();
+            for object in &single_color_objects.rectangle_vec {
+                if object.color == found_color {
+                    continue;
+                }
+                println!("assigned enumerated_objects from rectangle");
+                mask = object.mask.clone();
+                // pair.input.enumerated_objects = Some(object.mask.clone());
+            }
+            for object in &single_color_objects.sparse_vec {
+                if object.color == found_color {
+                    continue;
+                }
+                println!("assigned enumerated_objects from sparse");
+                mask = object.mask.clone();
+                // pair.input.enumerated_objects = Some(object.mask.clone());
+                // TODO: assign objects with holes
+                // TODO: assign objects with no-holes
+                // TODO: assign hole mask
+            }
+
+            // let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity4, &mask)?;
+
+            let ignore_mask: Image = mask.invert_mask();
+            let blank: Image = Image::zero(mask.width(), mask.height());
+            let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity4, &blank, &ignore_mask)?;
+
+            let enumerated_objects: Image = Image::object_enumerate(&object_mask_vec)?;
+
+            // pair.input.enumerated_objects = Some(mask);
+            pair.input.enumerated_objects = Some(enumerated_objects);
+        }
+
+        Ok(())
     }
 
     fn compute_input_enumerated_objects_based_on_size_of_primary_object_after_single_intersection_color(&mut self) -> anyhow::Result<()> {

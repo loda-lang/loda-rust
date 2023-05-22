@@ -323,7 +323,19 @@ impl TraverseProgramsAndModels {
         }
         println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
-        // Self::inspect_task_id(&task_vec, "83302e8f")?;
+        Self::inspect_task_id(&task_vec, "3906de3d")?;
+        // Self::inspect_task_id(&task_vec, "810b9b61")?;
+        // Self::inspect_task_id(&task_vec, "a5313dff")?;
+        // Self::inspect_task_id(&task_vec, "6455b5f5")?;
+        // Self::inspect_task_id(&task_vec, "941d9a10")?;
+        // Self::inspect_task_id(&task_vec, "b2862040")?;
+        // Self::inspect_task_id(&task_vec, "c0f76784")?;
+        // Self::inspect_task_id(&task_vec, "272f95fa")?;
+        // Self::inspect_task_id(&task_vec, "e73095fd")?;
+        // Self::inspect_task_id(&task_vec, "44d8ac46")?;
+        // Self::inspect_task_id(&task_vec, "00dbd492")?;
+        // Self::inspect_task_id(&task_vec, "e9c9d9a1")?;
+        // Self::inspect_task_id(&task_vec, "62ab2642")?;
         // Self::inspect_task_id(&task_vec, "95a58926")?;
         // Self::inspect_task_id(&task_vec, "e906de3d")?;
         // Self::inspect_task_id(&task_vec, "7837ac64")?;
@@ -368,7 +380,9 @@ impl TraverseProgramsAndModels {
         // Self::inspect_task_id(&task_vec, "aedd82e4")?;
         // Self::inspect_task_id(&task_vec, "4c5c2cf0")?;
         // Self::inspect_task_id(&task_vec, "5c0a986e")?;
+
         Self::inspect_tasks_without_solution(&task_vec)?;
+
         // Self::inspect_undecided(&task_vec)?;
         // Self::inspect_decided(&task_vec)?;
         // Self::inspect_task_id(&task_vec, "72ca375d")?;
@@ -452,9 +466,17 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
+            // for input_label in &task.input_label_set_intersection {
+            //     match input_label {
+            //         InputLabel::InputUnambiguousConnectivityWithAllColors => {
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
+            // }
             for input_label in &task.input_label_set_intersection {
                 match input_label {
-                    InputLabel::InputUnambiguousConnectivityWithAllColors => {
+                    InputLabel::InputBorderFloodFillConnectivity4AllPixelsWithColor { color: _ } => {
                         found = true;
                     },
                     _ => {}

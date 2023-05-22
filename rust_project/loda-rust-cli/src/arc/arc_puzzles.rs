@@ -4389,6 +4389,28 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    const PROGRAM_810B9B61: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,105 ; address of vector[0].OutputImageIsInputImageWithChangesLimitedToPixelsWithColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; change happens to this color
+        f21 $0,101250 ; to mask where color is
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    // #[test]
+    fn test_830001_puzzle_810b9b61_loda() {
+        let result: String = run_advanced("810b9b61", PROGRAM_810B9B61).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     mod solve_56ff96f3 {
         use super::*;
 

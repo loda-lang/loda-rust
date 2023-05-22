@@ -1,7 +1,8 @@
-use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle};
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle, ImageFill, PixelConnectivity};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
+use std::collections::HashSet;
 
 #[allow(unused_imports)]
 use crate::arc::{HtmlLog, ImageToHTML};
@@ -110,6 +111,7 @@ impl arc_work_model::Pair {
 
         _ = self.analyze_preservation_of_corners();
         _ = self.analyze_preservation_of_edges();
+        // _ = self.analyze_border_flood_fill();
         _ = self.analyze_3x3_structure();
         _ = self.analyze_if_color_is_sticky();
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
@@ -208,6 +210,41 @@ impl arc_work_model::Pair {
                 self.action_label_set.insert(ActionLabel::OutputImagePreserveInputImageEdge { edge });
             }
         }
+        Ok(())
+    }
+    
+    fn analyze_border_flood_fill(&mut self) -> anyhow::Result<()> {
+        let input: &Image = &self.input.image;
+        let output: &Image = &self.output.image;
+        if input.size() != output.size() {
+            return Ok(());
+        }
+
+        let mut color_mappings = HashSet::<(u8,u8)>::new();
+        let max_x: i32 = (input.width() as i32) - 1;
+        let max_y: i32 = (input.height() as i32) - 1;
+        for y in 0..=max_y {
+            for x in 0..=max_x {
+                if x > 0 && y > 0 && x < max_x && y < max_y {
+                    continue;
+                }
+                let from_color: u8 = input.get(x, y).unwrap_or(255);
+                let to_color: u8 = output.get(x, y).unwrap_or(255);
+                if from_color == to_color {
+                    continue;
+                }
+                color_mappings.insert((from_color, to_color));
+            }
+        }
+
+        for (from_color, to_color) in &color_mappings {
+            let mut image: Image = input.clone();
+            image.border_flood_fill(*from_color, *to_color, PixelConnectivity::Connectivity4);
+
+            // check how this compare with the output image
+            // is this a good background color
+        }
+
         Ok(())
     }
 
