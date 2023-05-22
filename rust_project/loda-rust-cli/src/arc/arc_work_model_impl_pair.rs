@@ -110,12 +110,8 @@ impl arc_work_model::Pair {
 
         _ = self.analyze_preservation_of_corners();
         _ = self.analyze_preservation_of_edges();
-
-        if width_input == width_output && height_input == height_output {
-            _ = self.analyze_3x3_structure();
-            _ = self.analyze_if_color_is_sticky();
-        }
-
+        _ = self.analyze_3x3_structure();
+        _ = self.analyze_if_color_is_sticky();
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
         _ = self.analyze_output_colors();
@@ -216,6 +212,12 @@ impl arc_work_model::Pair {
     }
 
     fn analyze_3x3_structure(&mut self) -> anyhow::Result<()> {
+        let input: &Image = &self.input.image;
+        let output: &Image = &self.output.image;
+        if input.size() != output.size() {
+            return Ok(());
+        }
+
         let same_neighbours: bool;
         {
             let input_colors: Image = self.input.image.count_duplicate_pixels_in_neighbours()?;
@@ -239,6 +241,11 @@ impl arc_work_model::Pair {
     }
 
     fn analyze_if_color_is_sticky(&mut self) -> anyhow::Result<()> {
+        let input: &Image = &self.input.image;
+        let output: &Image = &self.output.image;
+        if input.size() != output.size() {
+            return Ok(());
+        }
         let h0: &Histogram = &self.input.histogram;
         let h1: &Histogram = &self.output.histogram;
         let mut h2: Histogram = h0.clone();

@@ -273,6 +273,7 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // InputImageBorderFloodFillOnlyHappensInTheNoChangeAreaWithColor { color: u8 },
     // OutputImageContainSingleColorObject { color: u8 },
     // OutputImageDoesNotContainSingleColorObject { color: u8 },
     // OutputPropertyIsEqualToNumberOfClustersWithColor { output: PropertyOutput, color: u8 },
