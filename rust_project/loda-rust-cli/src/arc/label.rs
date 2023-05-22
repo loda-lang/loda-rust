@@ -137,9 +137,20 @@ pub enum InputLabel {
     /// then that color may have some meaning.
     InputNoiseWithSomeColor,
 
+    /// Both `PixelConnectivity4` and `PixelConnectivity8` yields the same child objects for a particular `color`.
+    /// 
+    /// When segmenting the input image into connected components, then the masks are the same
+    /// for the `4 connected` pixels as the `8 connected` pixels.
+    InputUnambiguousConnectivityWithColor { color: u8 },
+
+    /// Both `PixelConnectivity4` and `PixelConnectivity8` yields the same child objects for all the colors in the input image.
+    /// 
+    /// When segmenting the input image into connected components, then the masks are the same
+    /// for the `4 connected` pixels as the `8 connected` pixels.
+    InputUnambiguousConnectivityWithAllColors,
+
     // Ideas for more
-    // UnambiguousEnumeratedObjects, // in the 3x3, are the 8 neighbours the same as the 4 neighbours 
-    // AmbiguousEnumeratedObjects, // in the 3x3, does the segmentation algorithm variants yield different results
+    // AmbiguousEnumeratedObjects, // Does `PixelConnectivity4` and `PixelConnectivity8` yield different results
     // SplitColor { color: u8 },
     // SplitRowColor { color: u8 },
     // SplitColumnColor { color: u8 },

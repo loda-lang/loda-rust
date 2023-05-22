@@ -297,6 +297,25 @@ impl arc_work_model::Input {
                 self.input_label_set.insert(input_label);
             }
         }
+        {
+            for object in &single_color_objects.rectangle_vec {
+                let input_label = InputLabel::InputUnambiguousConnectivityWithColor { color: object.color };
+                self.input_label_set.insert(input_label);
+            }
+            let mut all_are_connectivity48_identical = true;
+            for object in &single_color_objects.sparse_vec {
+                if !object.connectivity48_identical {
+                    all_are_connectivity48_identical = false;
+                    continue;
+                }
+                let input_label = InputLabel::InputUnambiguousConnectivityWithColor { color: object.color };
+                self.input_label_set.insert(input_label);
+            }
+            if all_are_connectivity48_identical {
+                let input_label = InputLabel::InputUnambiguousConnectivityWithAllColors;
+                self.input_label_set.insert(input_label);
+            }
+        }
         if let Some(color) = single_color_objects.single_pixel_noise_color() {
             {
                 let input_label = InputLabel::InputNoiseWithColor { color };
