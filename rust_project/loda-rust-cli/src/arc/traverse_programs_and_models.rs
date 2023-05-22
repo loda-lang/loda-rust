@@ -2,7 +2,7 @@ use super::{arc_json_model, ActionLabel};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
-use super::{ImageHistogram, ImageSize, Histogram, ExperimentWithConvolution, ExportTasks};
+use super::{ImageHistogram, ImageSize, Histogram, ExportTasks};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -27,6 +27,9 @@ use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
+
+#[allow(unused_imports)]
+use super::{ExperimentWithConvolution, ExperimentWithLogisticRegression};
 
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
@@ -76,6 +79,7 @@ impl TraverseProgramsAndModels {
         let tpam = TraverseProgramsAndModels::new()?;
         let task_vec: Vec<Task> = tpam.to_task_vec();
         let mut instance = ExperimentWithConvolution::new(task_vec);
+        // let mut instance = ExperimentWithLogisticRegression::new(task_vec);
         instance.run()?;
         Ok(())
     }
