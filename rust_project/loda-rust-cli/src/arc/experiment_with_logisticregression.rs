@@ -7,9 +7,9 @@ use serde::Serialize;
 
 #[derive(Clone, Debug, Serialize)]
 struct Record {
-    pair_id: u8,
-    is_test: u8,
     classification: u8,
+    is_test: u8,
+    pair_id: u8,
     color0: u8,
     color1: u8,
     color2: u8,
@@ -83,9 +83,9 @@ impl ExperimentWithLogisticRegression {
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
                     let mut record = Record {
+                        classification: output_color,
                         is_test,
                         pair_id,
-                        classification: output_color,
                         color0: 0,
                         color1: 0,
                         color2: 0,
