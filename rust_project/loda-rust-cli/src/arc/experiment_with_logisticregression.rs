@@ -1,15 +1,13 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
-use crate::common::create_csv_file;
 use crate::config::Config;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use serde::Serialize;
+use csv::WriterBuilder;
+use std::error::Error;
 
 #[derive(Clone, Debug, Serialize)]
-struct Record {
-    classification: u8,
-    is_test: u8,
-    pair_id: u8,
+struct PixelColor {
     color0: u8,
     color1: u8,
     color2: u8,
@@ -21,6 +19,49 @@ struct Record {
     color8: u8,
     color9: u8,
     color_padding: u8,
+}
+
+impl PixelColor {
+    fn new() -> Self {
+        Self {
+            color0: 0,
+            color1: 0,
+            color2: 0,
+            color3: 0,
+            color4: 0,
+            color5: 0,
+            color6: 0,
+            color7: 0,
+            color8: 0,
+            color9: 0,
+            color_padding: 0,
+        }
+    }
+
+    fn set(&mut self, value: u8) {
+        match value {
+            0 => self.color0 = 1,
+            1 => self.color1 = 1,
+            2 => self.color2 = 1,
+            3 => self.color3 = 1,
+            4 => self.color4 = 1,
+            5 => self.color5 = 1,
+            6 => self.color6 = 1,
+            7 => self.color7 = 1,
+            8 => self.color8 = 1,
+            9 => self.color9 = 1,
+            _ => self.color_padding = 1,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct Record {
+    classification: u8,
+    is_test: u8,
+    pair_id: u8,
+    center: PixelColor,
+    top: PixelColor,
 }
 
 pub struct ExperimentWithLogisticRegression {
@@ -61,12 +102,19 @@ impl ExperimentWithLogisticRegression {
         let mut records = Vec::<Record>::new();
         let mut pair_id: u8 = 0;
         for pair in &task.pairs {
-            let mut is_test: u8 = 0;
-            if pair.pair_type == PairType::Test {
-                is_test = 1;
+            let is_test: u8;
+            let original_output: Image;
+            match pair.pair_type {
+                PairType::Train => {
+                    is_test = 0;
+                    original_output = pair.output.image.clone();
+                },
+                PairType::Test => {
+                    is_test = 1;
+                    original_output = pair.output.test_image.clone();
+                },
             }
             let original_input: Image = pair.input.image.clone();
-            let original_output: Image = pair.output.image.clone();
 
             let width: u8 = original_input.width().max(original_output.width()).min(253) + 2;
             let height: u8 = original_input.height().max(original_output.height()).min(253) + 2;
@@ -80,38 +128,22 @@ impl ExperimentWithLogisticRegression {
                     let xx: i32 = x as i32;
                     let yy: i32 = y as i32;
                     let input_color: u8 = input.get(xx, yy).unwrap_or(255);
+                    let input_color_top: u8 = input.get(xx, yy - 1).unwrap_or(255);
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
-                    let mut record = Record {
+                    let mut center = PixelColor::new();
+                    center.set(input_color);
+
+                    let mut top = PixelColor::new();
+                    top.set(input_color_top);
+
+                    let record = Record {
                         classification: output_color,
                         is_test,
                         pair_id,
-                        color0: 0,
-                        color1: 0,
-                        color2: 0,
-                        color3: 0,
-                        color4: 0,
-                        color5: 0,
-                        color6: 0,
-                        color7: 0,
-                        color8: 0,
-                        color9: 0,
-                        color_padding: 0,
+                        center,
+                        top,
                     };
-
-                    match input_color {
-                        0 => record.color0 = 1,
-                        1 => record.color1 = 1,
-                        2 => record.color2 = 1,
-                        3 => record.color3 = 1,
-                        4 => record.color4 = 1,
-                        5 => record.color5 = 1,
-                        6 => record.color6 = 1,
-                        7 => record.color7 = 1,
-                        8 => record.color8 = 1,
-                        9 => record.color9 = 1,
-                        _ => record.color_padding = 1,
-                    }
 
                     records.push(record);
                 }
@@ -121,7 +153,7 @@ impl ExperimentWithLogisticRegression {
         }
 
         println!("saving file: {:?}", path);
-        match create_csv_file(&records, &path) {
+        match create_csv_file_without_header(&records, &path) {
             Ok(()) => {},
             Err(error) => {
                 return Err(anyhow::anyhow!("could not save: {:?}", error));
@@ -130,4 +162,16 @@ impl ExperimentWithLogisticRegression {
 
         Ok(())
     }
+}
+
+fn create_csv_file_without_header<S: Serialize>(records: &Vec<S>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+    let mut wtr = WriterBuilder::new()
+        .has_headers(false)
+        .delimiter(b';')
+        .from_path(output_path)?;
+    for record in records {
+        wtr.serialize(record)?;
+    }
+    wtr.flush()?;
+    Ok(())
 }
