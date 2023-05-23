@@ -383,6 +383,41 @@ impl SingleColorObjects {
         }
         histogram.most_popular_color_disallow_ambiguous()
     }
+
+    #[allow(dead_code)]
+    pub fn mass_as_image(&self, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
+        for object in &self.rectangle_vec {
+            // println!("rectangle: {:?}", object);
+            let color: u8 = object.mass.min(255) as u8;
+            // println!("mask: {:?} mass: {}", object.mask, color);
+            result_image = object.mask.select_from_image_and_color(&result_image, color)?;
+        }
+        for object in &self.sparse_vec {
+            // println!("sparse: {:?}", object);
+            let optional_container: Option<&SingleColorObjectClusterContainer> = match connectivity {
+                PixelConnectivity::Connectivity4 => object.container4.as_ref(),
+                PixelConnectivity::Connectivity8 => object.container8.as_ref(),
+            };
+            let container: &SingleColorObjectClusterContainer = match optional_container {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing container"));
+                }
+            };
+            // println!("enumerated_clusters_cropped: {:?}", container.enumerated_clusters_cropped);
+            // println!("enumerated_clusters_uncropped: {:?}", container.enumerated_clusters_uncropped);
+            for cluster in &container.cluster_vec {
+                // println!("cluster: {:?}", cluster);
+                let color: u8 = cluster.mass_cluster.min(255) as u8;
+                let mut mask: Image = Image::zero(self.image_size.width, self.image_size.height);
+                mask = mask.overlay_with_position(&cluster.mask, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+                // println!("mask: {:?} mass: {}", cluster.mask, color);
+                result_image = mask.select_from_image_and_color(&result_image, color)?;
+            }
+        }
+        Ok(result_image)
+    }
 }
 
 #[cfg(test)]
@@ -609,5 +644,38 @@ mod tests {
 
         // Assert
         assert_eq!(actual, Some(3));
+    }
+
+    // #[test]
+    #[allow(dead_code)]
+    fn test_50000_mass_as_image_connectivity4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 0, 0, 5,
+            7, 7, 7, 0, 0, 5,
+            7, 7, 7, 0, 0, 5,
+            8, 8, 8, 8, 5, 8,
+            8, 8, 8, 5, 8, 8,
+            8, 7, 8, 8, 8, 8,
+            7, 8, 7, 8, 8, 8,
+        ];
+        let input: Image = Image::try_create(6, 7, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.mass_as_image(PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+             9,  9,  9,  6,  6,  3,
+             9,  9,  9,  6,  6,  3,
+             9,  9,  9,  6,  6,  3,
+            19, 19, 19, 19,  1, 19,
+            19, 19, 19,  1, 19, 19, // TODO: investigate why the 1 is missing from this row. Possible problem in ConnectedComponents.
+            19,  1, 19, 19, 19, 19,
+             1,  1,  1, 19, 19, 19,
+        ];
+        let expected: Image = Image::try_create(6, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
     }
 }
