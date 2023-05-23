@@ -1,11 +1,20 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
+use crate::arc::{HtmlLog, ImageCrop, Rectangle};
 use crate::config::Config;
+use anyhow::Context;
 use std::path::{PathBuf, Path};
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 use csv::WriterBuilder;
 use std::error::Error;
+use linfa::prelude::*;
+use linfa_logistic::MultiLogisticRegression;
+use ndarray::prelude::*;
+use std::fs::File;
+use std::io::Read;
+use csv::ReaderBuilder;
+use ndarray_csv::{Array2Reader, ReadError};
 
 #[derive(Clone, Debug)]
 struct PixelColor {
@@ -83,6 +92,11 @@ struct Record {
     distance_bottom: u8,
     distance_left: u8,
     distance_right: u8,
+
+    // Future experiments
+    // mass connectivity4
+    // mass connectivity8
+
 }
 
 pub struct ExperimentWithLogisticRegression {
@@ -95,6 +109,7 @@ pub struct ExperimentWithLogisticRegression {
 impl ExperimentWithLogisticRegression {
     #[allow(dead_code)]
     pub fn new(tasks: Vec<Task>) -> Self {
+        println!("loaded {} tasks", tasks.len());
         let config = Config::load();
         Self {
             tasks,
@@ -104,8 +119,25 @@ impl ExperimentWithLogisticRegression {
 
     #[allow(dead_code)]
     pub fn run(&mut self) -> anyhow::Result<()> {
-        println!("loaded {} tasks", self.tasks.len());
+        self.run_all()?;
+        // self.run_specific()?;
+        Ok(())
+    }
 
+    #[allow(dead_code)]
+    fn run_all(&mut self) -> anyhow::Result<()> {
+        let mut count: usize = 0;
+        for task in &self.tasks {
+            if count >= 0 && count <= 800 {
+                self.export_task_debug(task);
+            }
+            count += 1;
+        }
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn run_specific(&mut self) -> anyhow::Result<()> {
         let task_ids = [
             "3618c87e",
             "3aa6fb7a",
@@ -118,14 +150,13 @@ impl ExperimentWithLogisticRegression {
             "d364b489",
         ];
         for task_id in task_ids {
-            self.export_task(task_id)?;
+            self.export_task_id(task_id)?;
         }
         Ok(())
     }
 
-    fn export_task(&self, task_id: &str) -> anyhow::Result<()> {
+    fn export_task_id(&self, task_id: &str) -> anyhow::Result<()> {
         // println!("exporting task: {}", task_id);
-        let path: PathBuf = self.config.analytics_arc_dir().join(format!("{}.csv", task_id));
 
         let mut found_task: Option<&Task> = None;
         for task in &self.tasks {
@@ -140,7 +171,21 @@ impl ExperimentWithLogisticRegression {
                 return Err(anyhow::anyhow!("didn't find a task_id: {}", task_id));
             }
         };
+        self.export_task(task)
+    }
+
+    fn export_task_debug(&self, task: &Task) {
+        match self.export_task(task) {
+            Ok(()) => {},
+            Err(error) => {
+                println!("export_task: {:?}", error);
+            }
+        }
+    }
+
+    fn export_task(&self, task: &Task) -> anyhow::Result<()> {
         println!("exporting task: {}", task.id);
+        let path: PathBuf = self.config.analytics_arc_dir().join(format!("{}.csv", task.id));
 
         let mut records = Vec::<Record>::new();
         let mut pair_id: u8 = 0;
@@ -221,6 +266,13 @@ impl ExperimentWithLogisticRegression {
             }
         }
 
+        match perform_logistic_regression(task, &path) {
+            Ok(()) => {},
+            Err(error) => {
+                return Err(anyhow::anyhow!("perform_logistic_regression: {:?}", error));
+            }
+        }
+
         Ok(())
     }
 }
@@ -234,5 +286,180 @@ fn create_csv_file_without_header<S: Serialize>(records: &Vec<S>, output_path: &
         wtr.serialize(record)?;
     }
     wtr.flush()?;
+    Ok(())
+}
+
+fn array_from_csv<R: Read>(
+    csv: R,
+    has_headers: bool,
+    separator: u8,
+) -> Result<Array2<f64>, ReadError> {
+    // parse CSV
+    let mut reader = ReaderBuilder::new()
+        .has_headers(has_headers)
+        .delimiter(separator)
+        .from_reader(csv);
+
+    // extract ndarray
+    reader.deserialize_array2_dynamic()
+}
+
+struct MyDataset {
+    dataset: Dataset<f64, usize, Ix1>,
+    split_ratio: f32,
+}
+
+fn load_dataset(path: &Path) -> Result<MyDataset, Box<dyn Error>> {
+    let file = File::open(path)?;
+    let array: Array2<f64> = array_from_csv(file, false, b';')?;
+    // println!("{:?}", array);
+
+    // split using the "is_test" column
+    // the "is_test" column, determine where the split point is
+    let col1 = array.column(1);
+    let mut n_above: usize = 0;
+    let mut n_below: usize = 0;
+    for item in col1.iter() {
+        if *item > 0.01 {
+            n_above += 1;
+        } else {
+            n_below += 1;
+        }
+    }
+    let split_ratio: f32 = (n_below as f32) / ((n_above + n_below) as f32);
+    println!("train: {} test: {} split_ratio: {}", n_below, n_above, split_ratio);
+
+    let (data, targets) = (
+        array.slice(s![.., 2..]).to_owned(),
+        array.column(0).to_owned(),
+    );
+
+    let feature_names = vec![
+        "pair_id",
+        "center_color0",
+        "center_color1",
+        "center_color2",
+        "center_color3",
+        "center_color4",
+        "center_color5",
+        "center_color6",
+        "center_color7",
+        "center_color8",
+        "center_color9",
+        "center_color_padding",
+        "top_color0",
+        "top_color1",
+        "top_color2",
+        "top_color3",
+        "top_color4",
+        "top_color5",
+        "top_color6",
+        "top_color7",
+        "top_color8",
+        "top_color9",
+        "top_color_padding",
+    ];
+
+    let dataset = Dataset::new(data, targets)
+        .map_targets(|x| *x as usize)
+        .with_feature_names(feature_names);
+
+    let instance = MyDataset {
+        dataset,
+        split_ratio,
+    };
+    Ok(instance)
+}
+
+fn perform_logistic_regression(task: &Task, path: &Path) -> Result<(), Box<dyn Error>> {
+    println!("task_id: {}", task.id);
+
+    let dataset: Dataset<f64, usize, Ix1>;
+    let ratio: f32;
+    {
+        let my_dataset: MyDataset = load_dataset(&path)?;
+        ratio = my_dataset.split_ratio;
+        dataset = my_dataset.dataset;
+    }
+
+    // split using the "is_test" column
+    // let (train, valid) = dataset.split_with_ratio(0.9);
+    let (train, valid) = dataset.split_with_ratio(ratio);
+
+    println!(
+        "Fit Multinomial Logistic Regression classifier with #{} training points",
+        train.nsamples()
+    );
+
+    // fit a Logistic regression model with 150 max iterations
+    let model = MultiLogisticRegression::default()
+        .max_iterations(50)
+        .fit(&train)
+        .context("MultiLogisticRegression")?;
+
+    // predict and map targets
+    let pred = model.predict(&valid);
+
+    // create a confusion matrix
+    let cm = pred.confusion_matrix(&valid)
+        .context("confusion_matrix")?;
+
+    // Print the confusion matrix, this will print a table with four entries. On the diagonal are
+    // the number of true-positive and true-negative predictions, off the diagonal are
+    // false-positive and false-negative
+    println!("{:?}", cm);
+
+    // print out the predicted output pixel values
+    // println!("{:?}", pred);
+
+    for pair in &task.pairs {
+
+        let expected_output: Image;
+        match pair.pair_type {
+            PairType::Train => {
+                continue;
+            },
+            PairType::Test => {
+                expected_output = pair.output.test_image.clone();
+            },
+        }
+        let original_input: Image = pair.input.image.clone();
+
+        let width: u8 = original_input.width().max(expected_output.width()).min(253) + 2;
+        let height: u8 = original_input.height().max(expected_output.height()).min(253) + 2;
+
+        let mut result_image: Image = Image::color(width, height, 10);
+        for y in 0..height {
+            for x in 0..width {
+                let xx: i32 = x as i32;
+                let yy: i32 = y as i32;
+                let address: usize = (y as usize) * (width as usize) + (x as usize);
+                let predicted_color: u8 = match pred.get(address) {
+                    Some(value) => (*value).min(u8::MAX as usize) as u8,
+                    None => 255
+                };
+                _ = result_image.set(xx, yy, predicted_color);
+            }
+        }
+        result_image = result_image.crop(Rectangle::new(1, 1, expected_output.width(), expected_output.height()))?;
+
+        if result_image == expected_output {
+            HtmlLog::text(format!("{} - correct", task.id));
+            HtmlLog::image(&result_image);
+        } else {
+            HtmlLog::text(format!("{} - incorrect", task.id));
+            // let images: Vec<Image> = vec![
+            //     original_input,
+            //     expected_output,
+            //     result_image,
+            // ];
+            // HtmlLog::compare_images(images);
+        }
+    }
+
+
+    // Calculate the accuracy and Matthew Correlation Coefficient (cross-correlation between
+    // predicted and targets)
+    println!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc());
     Ok(())
 }

@@ -78,8 +78,8 @@ impl TraverseProgramsAndModels {
     pub fn experiment_with_convolution() -> anyhow::Result<()> {
         let tpam = TraverseProgramsAndModels::new()?;
         let task_vec: Vec<Task> = tpam.to_task_vec();
-        let mut instance = ExperimentWithConvolution::new(task_vec);
-        // let mut instance = ExperimentWithLogisticRegression::new(task_vec);
+        // let mut instance = ExperimentWithConvolution::new(task_vec);
+        let mut instance = ExperimentWithLogisticRegression::new(task_vec);
         instance.run()?;
         Ok(())
     }
