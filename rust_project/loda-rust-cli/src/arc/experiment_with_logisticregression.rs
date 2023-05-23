@@ -84,25 +84,41 @@ struct Record {
 pub struct ExperimentWithLogisticRegression {
     #[allow(dead_code)]
     tasks: Vec<Task>,
+
+    config: Config,
 }
 
 impl ExperimentWithLogisticRegression {
     #[allow(dead_code)]
     pub fn new(tasks: Vec<Task>) -> Self {
+        let config = Config::load();
         Self {
             tasks,
+            config,
         }
     }
 
     #[allow(dead_code)]
     pub fn run(&mut self) -> anyhow::Result<()> {
-        let config = Config::load();
-        let path: PathBuf = config.analytics_arc_dir().join("arc-task.csv");
+        println!("loaded {} tasks", self.tasks.len());
 
-        println!("will process {} tasks", self.tasks.len());
+        let task_ids = [
+            "a699fb00",
+            "a79310a0",
+            "6f8cd79b",
+            "b6afb2da",
+            "d364b489",
+        ];
+        for task_id in task_ids {
+            self.export_task(task_id)?;
+        }
+        Ok(())
+    }
 
-        let task_id: &str = "a79310a0";
-        // let task_id: &str = "6f8cd79b";
+    fn export_task(&self, task_id: &str) -> anyhow::Result<()> {
+        // println!("exporting task: {}", task_id);
+        let path: PathBuf = self.config.analytics_arc_dir().join(format!("{}.csv", task_id));
+
         let mut found_task: Option<&Task> = None;
         for task in &self.tasks {
             if task.id != task_id {
@@ -113,10 +129,10 @@ impl ExperimentWithLogisticRegression {
         let task: &Task = match found_task {
             Some(value) => value,
             None => {
-                return Err(anyhow::anyhow!("didn't find a task with the id"));
+                return Err(anyhow::anyhow!("didn't find a task_id: {}", task_id));
             }
         };
-        println!("task: {}", task.id);
+        println!("exporting task: {}", task.id);
 
         let mut records = Vec::<Record>::new();
         let mut pair_id: u8 = 0;
