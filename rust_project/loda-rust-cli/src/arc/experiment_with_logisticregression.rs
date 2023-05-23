@@ -1,6 +1,6 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
-use crate::arc::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity};
+use crate::arc::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel};
 use crate::config::Config;
 use anyhow::Context;
 use std::path::{PathBuf, Path};
@@ -96,6 +96,10 @@ struct Record {
     output_is_noise_color: u8,
     input_is_most_popular_color: u8,
     output_is_most_popular_color: u8,
+    v0: u8,
+    v1: u8,
+    v2: u8,
+    v3: u8,
 
     // Future experiments
 
@@ -263,6 +267,31 @@ impl ExperimentWithLogisticRegression {
                     let input_is_most_popular_color: u8 = if most_popular_color == Some(center) { 1 } else { 0 };
                     let output_is_most_popular_color: u8 = if most_popular_color == Some(output_color) { 1 } else { 0 };
                 
+                    let mut v0: u8 = 0;
+                    let mut v1: u8 = 0;
+                    let v2: u8 = 0;
+                    let v3: u8 = 0;
+
+                    for label in &task.action_label_set_intersection {
+                        match label {
+                            ActionLabel::InputImageIsOutputImageWithNoChangesToPixelsWithColor { color } => {
+                                if center == *color {
+                                    v0 = 1;
+                                }
+                            },
+                            ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
+                                if center == *color {
+                                    v1 = 1;
+                                }
+                            },
+                            // ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
+                            //     if center == *color {
+                            //         v1 = 1;
+                            //     }
+                            // }
+                            _ => {}
+                        }
+                    }
 
                     let record = Record {
                         classification: output_color,
@@ -285,6 +314,10 @@ impl ExperimentWithLogisticRegression {
                         output_is_noise_color,
                         input_is_most_popular_color,
                         output_is_most_popular_color,
+                        v0,
+                        v1,
+                        v2,
+                        v3,
                         
                         // These are worsening the predictions.
                         // input_is_removal_color,
