@@ -92,6 +92,8 @@ struct Record {
     distance_bottom: u8,
     distance_left: u8,
     distance_right: u8,
+    input_is_noise_color: u8,
+    output_is_noise_color: u8,
 
     // Future experiments
     // mass connectivity4
@@ -211,6 +213,8 @@ impl ExperimentWithLogisticRegression {
             let input: Image = background.overlay_with_position(&original_input, 1, 1)?;
             let output: Image = background.overlay_with_position(&original_output, 1, 1)?;
 
+            let noise_color: Option<u8> = pair.input.single_pixel_noise_color;
+
             for y in 0..height {
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -232,6 +236,9 @@ impl ExperimentWithLogisticRegression {
                     let distance_left: u8 = x.min(3);
                     let distance_right: u8 = ((width as i32) - 1 - xx).min(3) as u8;
 
+                    let input_is_noise_color: u8 = if noise_color == Some(center) { 1 } else { 0 };
+                    let output_is_noise_color: u8 = if noise_color == Some(output_color) { 1 } else { 0 };
+
                     let record = Record {
                         classification: output_color,
                         is_test,
@@ -249,6 +256,8 @@ impl ExperimentWithLogisticRegression {
                         distance_bottom,
                         distance_left,
                         distance_right,
+                        input_is_noise_color,
+                        output_is_noise_color,
                     };
 
                     records.push(record);
