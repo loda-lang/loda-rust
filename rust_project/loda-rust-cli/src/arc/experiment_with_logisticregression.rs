@@ -2,56 +2,66 @@ use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
 use crate::config::Config;
 use std::path::{PathBuf, Path};
+use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 use csv::WriterBuilder;
 use std::error::Error;
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 struct PixelColor {
-    color0: u8,
-    color1: u8,
-    color2: u8,
-    color3: u8,
-    color4: u8,
-    color5: u8,
-    color6: u8,
-    color7: u8,
-    color8: u8,
-    color9: u8,
-    color_padding: u8,
+    value: u8,
 }
 
-impl PixelColor {
-    fn new() -> Self {
+impl From<u8> for PixelColor {
+    fn from(value: u8) -> Self {
         Self {
-            color0: 0,
-            color1: 0,
-            color2: 0,
-            color3: 0,
-            color4: 0,
-            color5: 0,
-            color6: 0,
-            color7: 0,
-            color8: 0,
-            color9: 0,
-            color_padding: 0,
+            value,
         }
     }
+}
 
-    fn set(&mut self, value: u8) {
-        match value {
-            0 => self.color0 = 1,
-            1 => self.color1 = 1,
-            2 => self.color2 = 1,
-            3 => self.color3 = 1,
-            4 => self.color4 = 1,
-            5 => self.color5 = 1,
-            6 => self.color6 = 1,
-            7 => self.color7 = 1,
-            8 => self.color8 = 1,
-            9 => self.color9 = 1,
-            _ => self.color_padding = 1,
-        }
+impl Serialize for PixelColor {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut color0: u8 = 0;
+        let mut color1: u8 = 0;
+        let mut color2: u8 = 0;
+        let mut color3: u8 = 0;
+        let mut color4: u8 = 0;
+        let mut color5: u8 = 0;
+        let mut color6: u8 = 0;
+        let mut color7: u8 = 0;
+        let mut color8: u8 = 0;
+        let mut color9: u8 = 0;
+        let mut color_other: u8 = 0;
+        match self.value {
+            0 => color0 = 1,
+            1 => color1 = 1,
+            2 => color2 = 1,
+            3 => color3 = 1,
+            4 => color4 = 1,
+            5 => color5 = 1,
+            6 => color6 = 1,
+            7 => color7 = 1,
+            8 => color8 = 1,
+            9 => color9 = 1,
+            _ => color_other = 1,
+        };
+        let mut s = serializer.serialize_struct("PixelColor", 11)?;
+        s.serialize_field("color0", &color0)?;
+        s.serialize_field("color1", &color1)?;
+        s.serialize_field("color2", &color2)?;
+        s.serialize_field("color3", &color3)?;
+        s.serialize_field("color4", &color4)?;
+        s.serialize_field("color5", &color5)?;
+        s.serialize_field("color6", &color6)?;
+        s.serialize_field("color7", &color7)?;
+        s.serialize_field("color8", &color8)?;
+        s.serialize_field("color9", &color9)?;
+        s.serialize_field("color_other", &color_other)?;
+        s.end()
     }
 }
 
@@ -62,6 +72,13 @@ struct Record {
     pair_id: u8,
     center: PixelColor,
     top: PixelColor,
+    bottom: PixelColor,
+    left: PixelColor,
+    right: PixelColor,
+    distance_top: u8,
+    distance_bottom: u8,
+    distance_left: u8,
+    distance_right: u8,
 }
 
 pub struct ExperimentWithLogisticRegression {
@@ -84,9 +101,11 @@ impl ExperimentWithLogisticRegression {
 
         println!("will process {} tasks", self.tasks.len());
 
+        let task_id: &str = "a79310a0";
+        // let task_id: &str = "6f8cd79b";
         let mut found_task: Option<&Task> = None;
         for task in &self.tasks {
-            if task.id != "a79310a0" {
+            if task.id != task_id {
                 continue;
             }
             found_task = Some(task);
@@ -127,22 +146,32 @@ impl ExperimentWithLogisticRegression {
                 for x in 0..width {
                     let xx: i32 = x as i32;
                     let yy: i32 = y as i32;
-                    let input_color: u8 = input.get(xx, yy).unwrap_or(255);
-                    let input_color_top: u8 = input.get(xx, yy - 1).unwrap_or(255);
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
-                    let mut center = PixelColor::new();
-                    center.set(input_color);
+                    let center: u8 = input.get(xx, yy).unwrap_or(255);
+                    let top: u8 = input.get(xx, yy - 1).unwrap_or(255);
+                    let bottom: u8 = input.get(xx, yy + 1).unwrap_or(255);
+                    let left: u8 = input.get(xx - 1, yy).unwrap_or(255);
+                    let right: u8 = input.get(xx + 1, yy).unwrap_or(255);
 
-                    let mut top = PixelColor::new();
-                    top.set(input_color_top);
+                    let distance_top: u8 = y.min(3);
+                    let distance_bottom: u8 = ((height as i32) - 1 - yy).min(3) as u8;
+                    let distance_left: u8 = x.min(3);
+                    let distance_right: u8 = ((width as i32) - 1 - xx).min(3) as u8;
 
                     let record = Record {
                         classification: output_color,
                         is_test,
                         pair_id,
-                        center,
-                        top,
+                        center: PixelColor::from(center),
+                        top: PixelColor::from(top),
+                        bottom: PixelColor::from(bottom),
+                        left: PixelColor::from(left),
+                        right: PixelColor::from(right),
+                        distance_top,
+                        distance_bottom,
+                        distance_left,
+                        distance_right,
                     };
 
                     records.push(record);
