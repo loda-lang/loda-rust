@@ -107,6 +107,22 @@ struct Record {
     // input_is_removal_color: u8,
     // mass_connectivity4: u8,
     // mass_connectivity8: u8,
+    // top0: PixelColor,
+    // top1: PixelColor,
+    // top2: PixelColor,
+    // top3: PixelColor,
+    // top4: PixelColor,
+    // left1: PixelColor,
+    // left2: PixelColor,
+    // left3: PixelColor,
+    // right1: PixelColor,
+    // right2: PixelColor,
+    // right3: PixelColor,
+    // bottom0: PixelColor,
+    // bottom1: PixelColor,
+    // bottom2: PixelColor,
+    // bottom3: PixelColor,
+    // bottom4: PixelColor,
 }
 
 pub struct ExperimentWithLogisticRegression {
@@ -252,6 +268,24 @@ impl ExperimentWithLogisticRegression {
                     let bottom: u8 = input.get(xx, yy + 1).unwrap_or(255);
                     let bottom_right: u8 = input.get(xx + 1, yy + 1).unwrap_or(255);
 
+                    // let t: i32 = 4;
+                    // let top0: u8 = input.get(xx - t, yy - t).unwrap_or(255);
+                    // let top1: u8 = input.get(xx - 1, yy - t).unwrap_or(255);
+                    // let top2: u8 = input.get(xx, yy - t).unwrap_or(255);
+                    // let top3: u8 = input.get(xx + 1, yy - t).unwrap_or(255);
+                    // let top4: u8 = input.get(xx + t, yy - t).unwrap_or(255);
+                    // let left1: u8 = input.get(xx - t, yy - 1).unwrap_or(255);
+                    // let left2: u8 = input.get(xx - t, yy).unwrap_or(255);
+                    // let left3: u8 = input.get(xx - t, yy + 1).unwrap_or(255);
+                    // let right1: u8 = input.get(xx + t, yy - 1).unwrap_or(255);
+                    // let right2: u8 = input.get(xx + t, yy).unwrap_or(255);
+                    // let right3: u8 = input.get(xx + t, yy + 1).unwrap_or(255);
+                    // let bottom0: u8 = input.get(xx - t, yy + t).unwrap_or(255);
+                    // let bottom1: u8 = input.get(xx - 1, yy + t).unwrap_or(255);
+                    // let bottom2: u8 = input.get(xx, yy + t).unwrap_or(255);
+                    // let bottom3: u8 = input.get(xx + 1, yy + t).unwrap_or(255);
+                    // let bottom4: u8 = input.get(xx + t, yy + t).unwrap_or(255);
+
                     let distance_top: u8 = y.min(3);
                     let distance_bottom: u8 = ((height as i32) - 1 - yy).min(3) as u8;
                     let distance_left: u8 = x.min(3);
@@ -323,6 +357,22 @@ impl ExperimentWithLogisticRegression {
                         // input_is_removal_color,
                         // mass_connectivity4,
                         // mass_connectivity8,
+                        // top0: PixelColor::from(top0),
+                        // top1: PixelColor::from(top1),
+                        // top2: PixelColor::from(top2),
+                        // top3: PixelColor::from(top3),
+                        // top4: PixelColor::from(top4),
+                        // left1: PixelColor::from(left1),
+                        // left2: PixelColor::from(left2),
+                        // left3: PixelColor::from(left3),
+                        // right1: PixelColor::from(right1),
+                        // right2: PixelColor::from(right2),
+                        // right3: PixelColor::from(right3),
+                        // bottom0: PixelColor::from(bottom0),
+                        // bottom1: PixelColor::from(bottom1),
+                        // bottom2: PixelColor::from(bottom2),
+                        // bottom3: PixelColor::from(bottom3),
+                        // bottom4: PixelColor::from(bottom4),
                     };
 
                     records.push(record);
