@@ -1,6 +1,6 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
-use crate::arc::{HtmlLog, ImageCrop, Rectangle};
+use crate::arc::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity};
 use crate::config::Config;
 use anyhow::Context;
 use std::path::{PathBuf, Path};
@@ -94,11 +94,15 @@ struct Record {
     distance_right: u8,
     input_is_noise_color: u8,
     output_is_noise_color: u8,
+    input_is_most_popular_color: u8,
+    output_is_most_popular_color: u8,
 
     // Future experiments
-    // mass connectivity4
-    // mass connectivity8
 
+    // These are worsening the predictions.
+    // input_is_removal_color: u8,
+    // mass_connectivity4: u8,
+    // mass_connectivity8: u8,
 }
 
 pub struct ExperimentWithLogisticRegression {
@@ -214,6 +218,19 @@ impl ExperimentWithLogisticRegression {
             let output: Image = background.overlay_with_position(&original_output, 1, 1)?;
 
             let noise_color: Option<u8> = pair.input.single_pixel_noise_color;
+            let most_popular_color: Option<u8> = pair.input.most_popular_intersection_color;
+            // let removal_color: Option<u8> = pair.input.removal_color;
+
+            // let mut image_mass_connectivity4: Image = Image::zero(width, height);
+            // let mut image_mass_connectivity8: Image = Image::zero(width, height);
+            // if let Some(sco) = &pair.input.single_color_objects {
+            //     if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity4) {
+            //         image_mass_connectivity4 = image_mass_connectivity4.overlay_with_position(&image, 1, 1)?;
+            //     }
+            //     if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity8) {
+            //         image_mass_connectivity8 = image_mass_connectivity8.overlay_with_position(&image, 1, 1)?;
+            //     }
+            // }
 
             for y in 0..height {
                 for x in 0..width {
@@ -238,6 +255,14 @@ impl ExperimentWithLogisticRegression {
 
                     let input_is_noise_color: u8 = if noise_color == Some(center) { 1 } else { 0 };
                     let output_is_noise_color: u8 = if noise_color == Some(output_color) { 1 } else { 0 };
+                    // let input_is_removal_color: u8 = if removal_color == Some(center) { 1 } else { 0 };
+
+                    // let mass_connectivity4: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
+                    // let mass_connectivity8: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
+
+                    let input_is_most_popular_color: u8 = if most_popular_color == Some(center) { 1 } else { 0 };
+                    let output_is_most_popular_color: u8 = if most_popular_color == Some(output_color) { 1 } else { 0 };
+                
 
                     let record = Record {
                         classification: output_color,
@@ -258,6 +283,13 @@ impl ExperimentWithLogisticRegression {
                         distance_right,
                         input_is_noise_color,
                         output_is_noise_color,
+                        input_is_most_popular_color,
+                        output_is_most_popular_color,
+                        
+                        // These are worsening the predictions.
+                        // input_is_removal_color,
+                        // mass_connectivity4,
+                        // mass_connectivity8,
                     };
 
                     records.push(record);
