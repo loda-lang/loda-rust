@@ -130,9 +130,11 @@ struct Record {
     v5: u8,
 
     // Future experiments
+    // object contains one or more holes
+    // object contains no holes
+    // object contains 2 holes
+    // object contains 3 holes
     // is insertion color
-    // distance from center x: i8,
-    // distance from center y: i8,
     // direction up color
     // direction down color
     // direction left color
@@ -140,7 +142,6 @@ struct Record {
     
     // These are worsening the predictions.
     // input_is_removal_color: u8,
-    // mass_connectivity8: u8,
     // distance_top: PixelColor,
     // distance_bottom: PixelColor,
     // distance_left: PixelColor,
@@ -148,6 +149,8 @@ struct Record {
     // y mod3: u8,
     // x mod3: u8,
     // preserve corner: u8,
+    // x_distance_from_center: i16,
+    // y_distance_from_center: i16,
 }
 
 pub struct ExperimentWithLogisticRegression {
@@ -382,6 +385,18 @@ impl ExperimentWithLogisticRegression {
                     // v3 = y_mod3;
                     // v4 = x_reverse_mod3;
                     // v5 = y_reverse_mod3;
+                    // if x == x_reverse && y == y_reverse {
+                    //     v5 = 1;
+                    // }
+                    // let x_distance: i16 = (width as i16) - ((x as i16) * 2);
+                    // let y_distance: i16 = (height as i16) - ((y as i16) * 2);
+
+                    // if x == x_reverse || y == y_reverse {
+                    //     v5 = 1;
+                    // }
+                    // if y == y_reverse {
+                    //     v5 = 1;
+                    // }
 
                     for label in &task.action_label_set_intersection {
                         match label {
@@ -652,6 +667,7 @@ impl ExperimentWithLogisticRegression {
             pair_id += 1;
         }
 
+        // TODO: don't serialize to filesystem, but to memory.
         println!("saving file: {:?}", path);
         match create_csv_file_without_header(&records, &path) {
             Ok(()) => {},
