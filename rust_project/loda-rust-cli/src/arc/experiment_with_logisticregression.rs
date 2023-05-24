@@ -803,6 +803,13 @@ impl ExperimentWithLogisticRegression {
                                 v3 = 1;
                             }
                         }
+                        if count >= 2 {
+                            if let Some(color) = noise_color {
+                                if histogram.get(color) > 0 {
+                                    v4 = 1;
+                                }
+                            }
+                        }
                         // if histogram.get(center) == 1 && v1 != v0 {
                         //     v2 = 1;
                         // }
@@ -836,6 +843,13 @@ impl ExperimentWithLogisticRegression {
                         if count == 2 {
                             if image_left == image_right {
                                 v3 = 1;
+                            }
+                        }
+                        if count >= 2 {
+                            if let Some(color) = noise_color {
+                                if histogram.get(color) > 0 {
+                                    v4 = 1;
+                                }
                             }
                         }
                         // if histogram.get(center) == 1 && v1 != v0 {
