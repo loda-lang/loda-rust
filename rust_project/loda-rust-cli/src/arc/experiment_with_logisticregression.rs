@@ -230,12 +230,12 @@ impl ExperimentWithLogisticRegression {
             }
             let original_input: Image = pair.input.image.clone();
 
-            let width: u8 = original_input.width().max(original_output.width()).min(253) + 2;
-            let height: u8 = original_input.height().max(original_output.height()).min(253) + 2;
+            let width: u8 = original_input.width().max(original_output.width()).min(253);
+            let height: u8 = original_input.height().max(original_output.height()).min(253);
 
             let background: Image = Image::color(width, height, 10);
-            let input: Image = background.overlay_with_position(&original_input, 1, 1)?;
-            let output: Image = background.overlay_with_position(&original_output, 1, 1)?;
+            let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
+            let output: Image = background.overlay_with_position(&original_output, 0, 0)?;
 
             let noise_color: Option<u8> = pair.input.single_pixel_noise_color;
             let most_popular_color: Option<u8> = pair.input.most_popular_intersection_color;
@@ -549,8 +549,8 @@ fn perform_logistic_regression(task: &Task, path: &Path) -> Result<(), Box<dyn E
         }
         let original_input: Image = pair.input.image.clone();
 
-        let width: u8 = original_input.width().max(expected_output.width()).min(253) + 2;
-        let height: u8 = original_input.height().max(expected_output.height()).min(253) + 2;
+        let width: u8 = original_input.width().max(expected_output.width()).min(253);
+        let height: u8 = original_input.height().max(expected_output.height()).min(253);
 
         let mut result_image: Image = Image::color(width, height, 10);
         for y in 0..height {
@@ -565,7 +565,7 @@ fn perform_logistic_regression(task: &Task, path: &Path) -> Result<(), Box<dyn E
                 _ = result_image.set(xx, yy, predicted_color);
             }
         }
-        result_image = result_image.crop(Rectangle::new(1, 1, expected_output.width(), expected_output.height()))?;
+        result_image = result_image.crop(Rectangle::new(0, 0, expected_output.width(), expected_output.height()))?;
 
         if result_image == expected_output {
             HtmlLog::text(format!("{} - correct", task.id));
