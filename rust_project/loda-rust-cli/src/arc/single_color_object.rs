@@ -84,11 +84,18 @@ pub struct SingleColorObjectSparse {
 
 impl SingleColorObjectSparse {
     fn create(color: u8, image: &Image, mask: Image, rect: Rectangle) -> anyhow::Result<Self> {
+        let verbose = false;
+        if verbose {
+            println!("SingleColorObjectSparse.create: color: {} mask: {:?} rect: {:?}", color, mask, rect);
+        }
         let cropped_object: Image = image.crop(rect)?;
         let mut histogram: Histogram = cropped_object.histogram_all();
         let mass_object: u16 = histogram.get(color).min(u16::MAX as u32) as u16;
         histogram.set_counter_to_zero(color);
         let mass_non_object: u16 = histogram.sum().min(u16::MAX as u32) as u16;
+        if verbose {
+            println!("mass_object: {} mass_non_object: {}", mass_object, mass_non_object);
+        }
         let mut instance = SingleColorObjectSparse {
             color,
             mask,
@@ -100,8 +107,22 @@ impl SingleColorObjectSparse {
             container8: None,
             connectivity48_identical: false,
         };
-        instance.analyze(PixelConnectivity::Connectivity4)?;
-        instance.analyze(PixelConnectivity::Connectivity8)?;
+        match instance.analyze(PixelConnectivity::Connectivity4) {
+            Ok(()) => {},
+            Err(error) => {
+                if verbose {
+                    println!("SingleColorObjectSparse.create: analyze with Connectivity4 error: {:?}", error);
+                }
+            }
+        }
+        match instance.analyze(PixelConnectivity::Connectivity8) {
+            Ok(()) => {},
+            Err(error) => {
+                if verbose {
+                    println!("SingleColorObjectSparse.create: analyze with Connectivity8 error: {:?}", error);
+                }
+            }
+        }
         instance.update_connectivity48_identical()?;
         Ok(instance)
     }
@@ -141,10 +162,11 @@ impl SingleColorObjectSparse {
         let blank = Image::zero(cropped_mask.width(), cropped_mask.height());
         let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &ignore_mask)?;
 
+        // println!("analyze: color: {} object_mask_vec.len(): {}", self.color, object_mask_vec.len());
+
         let mut objects_with_hole_vec = Vec::<Image>::new();
-        let mut cluster_mask_vec: Vec<Image> = vec!();
-        for object in &object_mask_vec {
-            // println!("object: {:?}", object);
+        let mut cluster_vec = Vec::<SingleColorObjectCluster>::new();
+        for (index, object) in object_mask_vec.iter().enumerate() {
             let rect: Rectangle = match object.bounding_box() {
                 Some(value) => value,
                 None => {
@@ -152,7 +174,6 @@ impl SingleColorObjectSparse {
                 }
             };
             let cropped_object: Image = object.crop(rect)?;
-            // println!("cropped_object: {:?}", cropped_object);
             let mut object_image: Image = cropped_object.clone();
 
             // flood fill at every border pixel around the object
@@ -160,63 +181,49 @@ impl SingleColorObjectSparse {
 
             // if there are unfilled areas, then it's because there is one or more holes
             let count: u16 = object_image.mask_count_zero();
-            if count > 0 {
+            let one_or_more_holes: bool = count > 0;
+            if one_or_more_holes {
                 // println!("found hole with count={}", count);
-                objects_with_hole_vec.push(object.clone());
+
+                let inverted_mask: Image = object_image.invert_mask();
+                let mut hole_mask = Image::zero(cropped_mask.width(), cropped_mask.height());
+                hole_mask = hole_mask.overlay_with_position(&inverted_mask, rect.min_x(), rect.min_y())?;
+                objects_with_hole_vec.push(hole_mask);
             }
 
-            // fill out the holes
-            cluster_mask_vec.push(object.clone());
-        }
-
-        // Find the holes
-        let mut enumerated_holes: Image = Image::zero(self.bounding_box.width(), self.bounding_box.height());
-        let mut enumerated_holes_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
-        enumerated_holes_uncropped = enumerated_holes_uncropped.overlay_with_position(&enumerated_holes, self.bounding_box.min_x(), self.bounding_box.min_y())?;
-
-        // Find the clusters
-        let enumerated_clusters: Image = Image::object_enumerate(&cluster_mask_vec)?;
-
-        let mut enumerated_clusters_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
-        enumerated_clusters_uncropped = enumerated_clusters_uncropped.overlay_with_position(&enumerated_clusters, self.bounding_box.min_x(), self.bounding_box.min_y())?;
-
-        // println!("number of clusters: {}", object_mask_vec2.len());
-        let mut cluster_vec = Vec::<SingleColorObjectCluster>::new();
-        for (index, cluster_mask) in cluster_mask_vec.iter().enumerate() {
-            let mass_cluster: u16 = cluster_mask.mask_count_one();
+            let mass_cluster: u16 = object.mask_count_one();
             let item = SingleColorObjectCluster {
                 cluster_id: index + 1,
-                mask: cluster_mask.clone(),
-                one_or_more_holes: false,
+                mask: object.clone(),
+                one_or_more_holes,
                 mass_cluster,
             };
             cluster_vec.push(item);
         }
 
-        // Compare what cluster an "object-with-hole" belongs to, by looking at the enumerated_cluster
-        // if there is overlap, then it belongs to that cluster.
-        // then flag that cluster as having one or more holes.
-        for object in &objects_with_hole_vec {
-            let h: Histogram = enumerated_clusters.histogram_with_mask(&object)?;
-            let cluster_id: u8 = match h.most_popular_color_disallow_ambiguous() {
-                Some(value) => value,
-                None => {
-                    // println!("color: {} ambiguous what cluster the object belong to", self.color);
-                    continue;
+        // Enumerate the holes
+        let mut enumerated_holes: Image = Image::zero(self.bounding_box.width(), self.bounding_box.height());
+        if objects_with_hole_vec.is_empty() {
+            enumerated_holes = Image::zero(self.bounding_box.width(), self.bounding_box.height());
+        } else 
+        {
+            match Image::object_enumerate(&objects_with_hole_vec) {
+                Ok(value) => {
+                    // println!("objects_with_hole_vec: {:?}", value);
+                    enumerated_holes = value;
+                },
+                Err(_error) => {
+                    // println!("objects_with_hole_vec: empty. error: {:?}", error);
                 }
-            };
-            // println!("color: {} connectivity: {:?} cluster_id: {}", self.color, connectivity, cluster_id);
-            if cluster_id == 0 {
-                // println!("cluster_id is not supposed to be 0. Ignoring this object.");
-                continue;
             }
-            let index = (cluster_id - 1) as usize;
-            if index >= cluster_vec.len() {
-                // println!("cluster_id is out of range. Ignoring this object.");
-                continue;
-            }
-            cluster_vec[index].one_or_more_holes = true;
         }
+        let mut enumerated_holes_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
+        enumerated_holes_uncropped = enumerated_holes_uncropped.overlay_with_position(&enumerated_holes, self.bounding_box.min_x(), self.bounding_box.min_y())?;
+
+        // Enumerate the clusters
+        let enumerated_clusters: Image = Image::object_enumerate(&object_mask_vec)?;
+        let mut enumerated_clusters_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
+        enumerated_clusters_uncropped = enumerated_clusters_uncropped.overlay_with_position(&enumerated_clusters, self.bounding_box.min_x(), self.bounding_box.min_y())?;
 
         let container = SingleColorObjectClusterContainer {
             cluster_vec,
@@ -276,6 +283,7 @@ impl SingleColorObjects {
         let mut sparse_vec = Vec::<SingleColorObjectSparse>::new();
         for (count, color) in image_histogram.pairs_ordered_by_color() {
             let mask: Image = image.to_mask_where_color_is(color);
+            // println!("find_objects color: {} mask: {:?}", color, mask);
             let rect: Rectangle = match mask.bounding_box() {
                 Some(value) => value,
                 None => {

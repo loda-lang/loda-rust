@@ -4873,7 +4873,6 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
                 let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
-                let foreground_mask: Image = input.to_mask_where_color_is_different(background_color);
 
                 let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
 
@@ -4888,17 +4887,15 @@ mod tests {
                             continue;
                         }
                     };
-                    result_image = container.enumerated_clusters_uncropped.to_mask_where_color_is_different(0);
+                    result_image = container.enumerated_holes_uncropped.clone();
                 }
 
-                result_image = result_image.mix(&foreground_mask, MixMode::Minus)?;
                 Ok(result_image)
             }
         }
     }
 
-    // TODO: make work
-    // #[test]
+    #[test]
     fn test_930000_puzzle_d5d6de2d() {
         let mut instance = solve_d5d6de2d::MySolution {};
         let result: String = run_analyze_and_solve("d5d6de2d", &mut instance).expect("String");
