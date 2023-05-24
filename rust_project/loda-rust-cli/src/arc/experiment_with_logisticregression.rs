@@ -99,6 +99,9 @@ struct Record {
     x_reverse_mod2: u8,
     y_reverse_mod2: u8,
     preserve_edge: u8,
+    full_row_and_column: u8,
+    full_row_xor_column: u8,
+    full_row_or_column: u8,
     v0: u8,
     v1: u8,
     v2: u8,
@@ -271,6 +274,10 @@ impl ExperimentWithLogisticRegression {
             //         image_mass_connectivity8 = image_mass_connectivity8.overlay_with_position(&image, 1, 1)?;
             //     }
             // }
+            let histogram_columns: Vec<Histogram> = input.histogram_columns();
+            let histogram_rows: Vec<Histogram> = input.histogram_rows();
+
+
 
             for y in 0..height {
                 for x in 0..width {
@@ -380,6 +387,23 @@ impl ExperimentWithLogisticRegression {
                             _ => {}
                         }
                     }
+                    let mut is_full_column: bool = false;
+                    let mut is_full_row: bool = false;
+                    if let Some(histogram) = &histogram_columns.get(x as usize) {
+                        if histogram.number_of_counters_greater_than_zero() == 1 {
+                            is_full_column = true;
+                        }
+                    }
+
+                    if let Some(histogram) = &histogram_rows.get(y as usize) {
+                        if histogram.number_of_counters_greater_than_zero() == 1 {
+                            is_full_row = true;
+                        }
+                    }
+
+                    let full_row_and_column: u8 = if is_full_row & is_full_column { 1 } else { 0 };
+                    let full_row_xor_column: u8 = if is_full_row ^ is_full_column { 1 } else { 0 };
+                    let full_row_or_column: u8 = if is_full_row | is_full_column { 1 } else { 0 };
 
                     let record = Record {
                         classification: output_color,
@@ -405,6 +429,9 @@ impl ExperimentWithLogisticRegression {
                         x_reverse_mod2,
                         y_reverse_mod2,
                         preserve_edge,
+                        full_row_and_column,
+                        full_row_xor_column,
+                        full_row_or_column,
                         v0,
                         v1,
                         v2,
