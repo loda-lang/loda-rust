@@ -20,6 +20,12 @@ pub struct SingleColorObjectClusterContainer {
 
     /// This image has the same size as the original image.
     pub enumerated_clusters_uncropped: Image,
+
+    /// This image has the same size as the `bounding_box`.
+    pub enumerated_holes_cropped: Image,
+
+    /// This image has the same size as the original image.
+    pub enumerated_holes_uncropped: Image,
 }
 
 /// A mask of pixels that have the same color, but isn't fully connected.
@@ -136,7 +142,7 @@ impl SingleColorObjectSparse {
         let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &ignore_mask)?;
 
         let mut objects_with_hole_vec = Vec::<Image>::new();
-        let mut cluster_mask = Image::zero(cropped_mask.width(), cropped_mask.height());
+        let mut cluster_mask_vec: Vec<Image> = vec!();
         for object in &object_mask_vec {
             // println!("object: {:?}", object);
             let rect: Rectangle = match object.bounding_box() {
@@ -160,17 +166,15 @@ impl SingleColorObjectSparse {
             }
 
             // fill out the holes
-            let inverted_mask: Image = object_image.invert_mask();
-            // println!("inverted_mask: {:?}", inverted_mask);
-            let combined: Image = cropped_object.mix(&inverted_mask, MixMode::BooleanOr)?;
-
-            cluster_mask = cluster_mask.overlay_with_mask_and_position(&combined, &combined, rect.x() as i32, rect.y() as i32)?;
+            cluster_mask_vec.push(object.clone());
         }
 
-        // Find the clusters
-        let ignore_mask: Image = cluster_mask.invert_mask();
-        let cluster_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &blank, &ignore_mask)?;
+        // Find the holes
+        let mut enumerated_holes: Image = Image::zero(self.bounding_box.width(), self.bounding_box.height());
+        let mut enumerated_holes_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
+        enumerated_holes_uncropped = enumerated_holes_uncropped.overlay_with_position(&enumerated_holes, self.bounding_box.min_x(), self.bounding_box.min_y())?;
 
+        // Find the clusters
         let enumerated_clusters: Image = Image::object_enumerate(&cluster_mask_vec)?;
 
         let mut enumerated_clusters_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
@@ -218,6 +222,8 @@ impl SingleColorObjectSparse {
             cluster_vec,
             enumerated_clusters_cropped: enumerated_clusters,
             enumerated_clusters_uncropped,
+            enumerated_holes_cropped: enumerated_holes,
+            enumerated_holes_uncropped,
         };
 
         match connectivity {
@@ -521,7 +527,7 @@ mod tests {
         {
             let expected_pixels: Vec<u8> = vec![
                 1, 1, 1, 1, 0,
-                1, 1, 1, 0, 0,
+                1, 0, 1, 0, 0,
                 1, 1, 1, 0, 2,
                 1, 0, 0, 0, 2,
                 0, 0, 0, 2, 2,
@@ -535,7 +541,7 @@ mod tests {
             let expected_pixels: Vec<u8> = vec![
                 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 1, 1, 1, 1, 0, 0, 0,
-                0, 0, 1, 1, 1, 0, 0, 0, 0,
+                0, 0, 1, 0, 1, 0, 0, 0, 0,
                 0, 0, 1, 1, 1, 0, 2, 0, 0,
                 0, 0, 1, 0, 0, 0, 2, 0, 0,
                 0, 0, 0, 0, 0, 2, 2, 0, 0,
@@ -646,8 +652,7 @@ mod tests {
         assert_eq!(actual, Some(3));
     }
 
-    // #[test]
-    #[allow(dead_code)]
+    #[test]
     fn test_50000_mass_as_image_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -670,17 +675,16 @@ mod tests {
              9,  9,  9,  6,  6,  3,
              9,  9,  9,  6,  6,  3,
              9,  9,  9,  6,  6,  3,
-            19, 19, 19, 19,  1, 19,
-            19, 19, 19,  1, 19, 19, // TODO: investigate why the 1 is missing from this row. Possible problem in ConnectedComponents.
-            19,  1, 19, 19, 19, 19,
-             1,  1,  1, 19, 19, 19,
+            18, 18, 18, 18,  1, 18,
+            18, 18, 18,  1, 18, 18,
+            18,  1, 18, 18, 18, 18,
+             1,  1,  1, 18, 18, 18,
         ];
         let expected: Image = Image::try_create(6, 7, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 
-    // #[test]
-    #[allow(dead_code)]
+    #[test]
     fn test_50001_mass_as_image_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -697,7 +701,7 @@ mod tests {
         // Assert
         let expected_pixels: Vec<u8> = vec![
             10, 10,  1, 10,
-            10,  1, 10, 10, // TODO: investigate why the 1 is missing from this row. Possible problem in ConnectedComponents.
+            10,  1, 10, 10,
             10, 10, 10, 10,
         ];
         let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
