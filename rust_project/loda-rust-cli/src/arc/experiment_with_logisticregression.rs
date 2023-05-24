@@ -1,6 +1,6 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
-use crate::arc::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge, ImageCorner};
+use crate::arc::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge, ImageCorner, ImageMask};
 use crate::config::Config;
 use anyhow::Context;
 use std::path::{PathBuf, Path};
@@ -120,6 +120,7 @@ struct Record {
     bottom4: PixelColor,
     center_x_reversed: PixelColor,
     center_y_reversed: PixelColor,
+    mass_connectivity4: PixelColor,
     v0: u8,
     v1: u8,
     v2: u8,
@@ -138,7 +139,6 @@ struct Record {
     
     // These are worsening the predictions.
     // input_is_removal_color: u8,
-    // mass_connectivity4: u8,
     // mass_connectivity8: u8,
     // distance_top: PixelColor,
     // distance_bottom: PixelColor,
@@ -280,20 +280,19 @@ impl ExperimentWithLogisticRegression {
             let most_popular_color: Option<u8> = pair.input.most_popular_intersection_color;
             // let removal_color: Option<u8> = pair.input.removal_color;
 
-            // let mut image_mass_connectivity4: Image = Image::zero(width, height);
+            let mut image_mass_connectivity4: Image = Image::zero(width, height);
             // let mut image_mass_connectivity8: Image = Image::zero(width, height);
-            // if let Some(sco) = &pair.input.single_color_objects {
-            //     if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity4) {
-            //         image_mass_connectivity4 = image_mass_connectivity4.overlay_with_position(&image, 1, 1)?;
-            //     }
-            //     if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity8) {
-            //         image_mass_connectivity8 = image_mass_connectivity8.overlay_with_position(&image, 1, 1)?;
-            //     }
-            // }
+            if let Some(sco) = &pair.input.single_color_objects {
+                if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity4) {
+                    image_mass_connectivity4 = image_mass_connectivity4.overlay_with_position(&image, 0, 0)?;
+                }
+                // if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity8) {
+                //     image_mass_connectivity8 = image_mass_connectivity8.overlay_with_position(&image, 0, 0)?;
+                // }
+            }
+
             let histogram_columns: Vec<Histogram> = input.histogram_columns();
             let histogram_rows: Vec<Histogram> = input.histogram_rows();
-
-
 
             for y in 0..height {
                 for x in 0..width {
@@ -353,7 +352,7 @@ impl ExperimentWithLogisticRegression {
                     let input_is_noise_color: u8 = if noise_color == Some(center) { 1 } else { 0 };
                     // let input_is_removal_color: u8 = if removal_color == Some(center) { 1 } else { 0 };
 
-                    // let mass_connectivity4: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
+                    let mass_connectivity4: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
                     // let mass_connectivity8: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
 
                     let input_is_most_popular_color: u8 = if most_popular_color == Some(center) { 1 } else { 0 };
@@ -443,17 +442,17 @@ impl ExperimentWithLogisticRegression {
                             //         },
                             //     }
                             // },
-                            // ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
-                            //     if center == *color {
-                            //         v2 = 1;
-                            //     }
-                            //     if noise_color == Some(*color) {
-                            //         v3 = 1;
-                            //     }
-                            //     if most_popular_color == Some(*color) {
-                            //         v4 = 1;
-                            //     }
-                            // }
+                            ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
+                                if center == *color {
+                                    v2 = 1;
+                                }
+                                if noise_color == Some(*color) {
+                                    v3 = 1;
+                                }
+                                if most_popular_color == Some(*color) {
+                                    v4 = 1;
+                                }
+                            },
                             _ => {}
                         }
                     }
@@ -635,6 +634,7 @@ impl ExperimentWithLogisticRegression {
                         bottom4: PixelColor::from(bottom4),
                         center_x_reversed: PixelColor::from(center_x_reversed),
                         center_y_reversed: PixelColor::from(center_y_reversed),
+                        mass_connectivity4: PixelColor::from(mass_connectivity4),
                         v0,
                         v1,
                         v2,
