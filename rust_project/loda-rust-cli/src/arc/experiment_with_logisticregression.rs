@@ -93,9 +93,7 @@ struct Record {
     distance_left: u8,
     distance_right: u8,
     input_is_noise_color: u8,
-    output_is_noise_color: u8,
     input_is_most_popular_color: u8,
-    output_is_most_popular_color: u8,
     v0: u8,
     v1: u8,
     v2: u8,
@@ -306,14 +304,12 @@ impl ExperimentWithLogisticRegression {
                     let distance_right: u8 = ((width as i32) - 1 - xx).min(max_distance as i32) as u8;
 
                     let input_is_noise_color: u8 = if noise_color == Some(center) { 1 } else { 0 };
-                    let output_is_noise_color: u8 = if noise_color == Some(output_color) { 1 } else { 0 };
                     // let input_is_removal_color: u8 = if removal_color == Some(center) { 1 } else { 0 };
 
                     // let mass_connectivity4: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
                     // let mass_connectivity8: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
 
                     let input_is_most_popular_color: u8 = if most_popular_color == Some(center) { 1 } else { 0 };
-                    let output_is_most_popular_color: u8 = if most_popular_color == Some(output_color) { 1 } else { 0 };
                 
                     let mut v0: u8 = 0;
                     let mut v1: u8 = 0;
@@ -359,9 +355,7 @@ impl ExperimentWithLogisticRegression {
                         distance_left,
                         distance_right,
                         input_is_noise_color,
-                        output_is_noise_color,
                         input_is_most_popular_color,
-                        output_is_most_popular_color,
                         v0,
                         v1,
                         v2,
