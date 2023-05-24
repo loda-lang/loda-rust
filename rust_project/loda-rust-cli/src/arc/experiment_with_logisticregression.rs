@@ -1,6 +1,6 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
-use crate::arc::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge};
+use crate::arc::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge, ImageCorner};
 use crate::config::Config;
 use anyhow::Context;
 use std::path::{PathBuf, Path};
@@ -102,6 +102,24 @@ struct Record {
     full_row_and_column: u8,
     full_row_xor_column: u8,
     full_row_or_column: u8,
+    top0: PixelColor,
+    top1: PixelColor,
+    top2: PixelColor,
+    top3: PixelColor,
+    top4: PixelColor,
+    left1: PixelColor,
+    left2: PixelColor,
+    left3: PixelColor,
+    right1: PixelColor,
+    right2: PixelColor,
+    right3: PixelColor,
+    bottom0: PixelColor,
+    bottom1: PixelColor,
+    bottom2: PixelColor,
+    bottom3: PixelColor,
+    bottom4: PixelColor,
+    center_x_reversed: PixelColor,
+    center_y_reversed: PixelColor,
     v0: u8,
     v1: u8,
     v2: u8,
@@ -113,39 +131,22 @@ struct Record {
     // is insertion color
     // distance from center x: i8,
     // distance from center y: i8,
-    // is column solid: u8,
-    // is row solid: u8,
-    // y mod3: u8,
-    // x mod3: u8,
     // direction up color
     // direction down color
     // direction left color
     // direction right color
-
+    
     // These are worsening the predictions.
     // input_is_removal_color: u8,
     // mass_connectivity4: u8,
     // mass_connectivity8: u8,
-    // top0: PixelColor,
-    // top1: PixelColor,
-    // top2: PixelColor,
-    // top3: PixelColor,
-    // top4: PixelColor,
-    // left1: PixelColor,
-    // left2: PixelColor,
-    // left3: PixelColor,
-    // right1: PixelColor,
-    // right2: PixelColor,
-    // right3: PixelColor,
-    // bottom0: PixelColor,
-    // bottom1: PixelColor,
-    // bottom2: PixelColor,
-    // bottom3: PixelColor,
-    // bottom4: PixelColor,
     // distance_top: PixelColor,
     // distance_bottom: PixelColor,
     // distance_left: PixelColor,
     // distance_right: PixelColor,
+    // y mod3: u8,
+    // x mod3: u8,
+    // preserve corner: u8,
 }
 
 pub struct ExperimentWithLogisticRegression {
@@ -260,6 +261,21 @@ impl ExperimentWithLogisticRegression {
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
             let output: Image = background.overlay_with_position(&original_output, 0, 0)?;
 
+            let mut enumerated_objects: Image = Image::zero(width, height);
+            if let Some(image) = &pair.input.enumerated_objects {
+                enumerated_objects = enumerated_objects.overlay_with_position(image, 0, 0)?;
+            }
+
+            // let mut grid_mask: Image = Image::zero(width, height);
+            // if let Some(grid_pattern) = &pair.input.grid_pattern {
+            //     grid_mask = grid_mask.overlay_with_position(&grid_pattern.line_mask, 0, 0)?;
+            // }
+
+            // let mut repair_mask: Image = Image::zero(width, height);
+            // if let Some(mask) = &pair.input.repair_mask {
+            //     repair_mask = repair_mask.overlay_with_position(mask, 0, 0)?;
+            // }
+
             let noise_color: Option<u8> = pair.input.single_pixel_noise_color;
             let most_popular_color: Option<u8> = pair.input.most_popular_intersection_color;
             // let removal_color: Option<u8> = pair.input.removal_color;
@@ -297,23 +313,36 @@ impl ExperimentWithLogisticRegression {
                     let bottom: u8 = input.get(xx, yy + 1).unwrap_or(255);
                     let bottom_right: u8 = input.get(xx + 1, yy + 1).unwrap_or(255);
 
-                    // let t: i32 = 4;
-                    // let top0: u8 = input.get(xx - t, yy - t).unwrap_or(255);
-                    // let top1: u8 = input.get(xx - 1, yy - t).unwrap_or(255);
-                    // let top2: u8 = input.get(xx, yy - t).unwrap_or(255);
-                    // let top3: u8 = input.get(xx + 1, yy - t).unwrap_or(255);
-                    // let top4: u8 = input.get(xx + t, yy - t).unwrap_or(255);
-                    // let left1: u8 = input.get(xx - t, yy - 1).unwrap_or(255);
-                    // let left2: u8 = input.get(xx - t, yy).unwrap_or(255);
-                    // let left3: u8 = input.get(xx - t, yy + 1).unwrap_or(255);
-                    // let right1: u8 = input.get(xx + t, yy - 1).unwrap_or(255);
-                    // let right2: u8 = input.get(xx + t, yy).unwrap_or(255);
-                    // let right3: u8 = input.get(xx + t, yy + 1).unwrap_or(255);
-                    // let bottom0: u8 = input.get(xx - t, yy + t).unwrap_or(255);
-                    // let bottom1: u8 = input.get(xx - 1, yy + t).unwrap_or(255);
-                    // let bottom2: u8 = input.get(xx, yy + t).unwrap_or(255);
-                    // let bottom3: u8 = input.get(xx + 1, yy + t).unwrap_or(255);
-                    // let bottom4: u8 = input.get(xx + t, yy + t).unwrap_or(255);
+                    let center_x_reversed: u8 = input.get(x_reverse as i32, yy).unwrap_or(255);
+                    let center_y_reversed: u8 = input.get(xx, y_reverse as i32).unwrap_or(255);
+                    
+                    let object_center: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
+                    let object_top: u8 = enumerated_objects.get(xx, yy - 1).unwrap_or(255);
+                    let object_bottom: u8 = enumerated_objects.get(xx, yy + 1).unwrap_or(255);
+                    let object_left: u8 = enumerated_objects.get(xx - 1, yy).unwrap_or(255);
+                    let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
+                    // let enumerated_object: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
+
+                    // let grid_center: u8 = grid_mask.get(xx, yy).unwrap_or(255);
+                    // let repair_center: u8 = repair_mask.get(xx, yy).unwrap_or(255);
+
+                    let t: i32 = 2;
+                    let top0: u8 = input.get(xx - t, yy - t).unwrap_or(255);
+                    let top1: u8 = input.get(xx - 1, yy - t).unwrap_or(255);
+                    let top2: u8 = input.get(xx, yy - t).unwrap_or(255);
+                    let top3: u8 = input.get(xx + 1, yy - t).unwrap_or(255);
+                    let top4: u8 = input.get(xx + t, yy - t).unwrap_or(255);
+                    let left1: u8 = input.get(xx - t, yy - 1).unwrap_or(255);
+                    let left2: u8 = input.get(xx - t, yy).unwrap_or(255);
+                    let left3: u8 = input.get(xx - t, yy + 1).unwrap_or(255);
+                    let right1: u8 = input.get(xx + t, yy - 1).unwrap_or(255);
+                    let right2: u8 = input.get(xx + t, yy).unwrap_or(255);
+                    let right3: u8 = input.get(xx + t, yy + 1).unwrap_or(255);
+                    let bottom0: u8 = input.get(xx - t, yy + t).unwrap_or(255);
+                    let bottom1: u8 = input.get(xx - 1, yy + t).unwrap_or(255);
+                    let bottom2: u8 = input.get(xx, yy + t).unwrap_or(255);
+                    let bottom3: u8 = input.get(xx + 1, yy + t).unwrap_or(255);
+                    let bottom4: u8 = input.get(xx + t, yy + t).unwrap_or(255);
 
                     let max_distance: u8 = 3;
                     let distance_top: u8 = y.min(max_distance);
@@ -334,6 +363,11 @@ impl ExperimentWithLogisticRegression {
                     let x_reverse_mod2: u8 = x_reverse % 2;
                     let y_reverse_mod2: u8 = y_reverse % 2;
 
+                    // let x_mod3: u8 = x % 3;
+                    // let y_mod3: u8 = y % 3;
+                    // let x_reverse_mod3: u8 = x_reverse % 3;
+                    // let y_reverse_mod3: u8 = y_reverse % 3;
+
                     let mut preserve_edge: u8 = 0;
 
                     let mut v0: u8 = 0;
@@ -342,6 +376,12 @@ impl ExperimentWithLogisticRegression {
                     let mut v3: u8 = 0;
                     let mut v4: u8 = 0;
                     let mut v5: u8 = 0;
+                    // v2 = grid_center;
+                    // v2 = repair_center;
+                    // v2 = x_mod3;
+                    // v3 = y_mod3;
+                    // v4 = x_reverse_mod3;
+                    // v5 = y_reverse_mod3;
 
                     for label in &task.action_label_set_intersection {
                         match label {
@@ -379,26 +419,171 @@ impl ExperimentWithLogisticRegression {
                                     },
                                 }
                             },
+                            // ActionLabel::OutputImagePreserveInputImageCorner { corner } => {
+                            //     match *corner {
+                            //         ImageCorner::TopLeft => {
+                            //             if x == 0 && y == 0 {
+                            //                 v2 = 1;
+                            //             }
+                            //         },
+                            //         ImageCorner::TopRight => {
+                            //             if x_reverse == 0 && y == 0 {
+                            //                 v2 = 1;
+                            //             }
+                            //         },
+                            //         ImageCorner::BottomLeft => {
+                            //             if x == 0 && y_reverse == 0 {
+                            //                 v2 = 1;
+                            //             }
+                            //         },
+                            //         ImageCorner::BottomRight => {
+                            //             if x_reverse == 0 && y_reverse == 0 {
+                            //                 v2 = 1;
+                            //             }
+                            //         },
+                            //     }
+                            // },
                             // ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
                             //     if center == *color {
-                            //         v1 = 1;
+                            //         v2 = 1;
+                            //     }
+                            //     if noise_color == Some(*color) {
+                            //         v3 = 1;
+                            //     }
+                            //     if most_popular_color == Some(*color) {
+                            //         v4 = 1;
                             //     }
                             // }
                             _ => {}
                         }
                     }
+                    // if object_center == 0 {
+                    //     v2 = 1;
+                    // }
+
+                    if object_center > 0 {
+                        // if object_center == object_left && object_center == object_right && object_center == object_top && object_center == object_bottom {
+                        //     v3 = 1;
+                        // }
+                        // if object_center == object_left && object_center == object_right {
+                        //     v2 = 1;
+                        // }
+                        // if object_center == object_top && object_center == object_bottom {
+                        //     v3 = 1;
+                        // }
+                    }
+
+                    // let center_same_as_diagonal: bool = center == top_left || center == top_right || center == bottom_left || center == bottom_right;
+                    // let center_same_as_neighbor: bool = center == top || center == bottom || center == left || center == right;
+                    // if center_same_as_diagonal {
+                    //     v2 = 1;
+                    // }
+                    // if center_same_as_neighbor {
+                    //     v3 = 1;
+                    // }
+                    // if center_same_as_neighbor && center_same_as_diagonal {
+                    //     v4 = 1;
+                    // }
+                    // if center_same_as_neighbor != center_same_as_diagonal {
+                    //     v5 = 1;
+                    // }
+                    // if center == top && center == bottom {
+                    //     v2 = 1;
+                    // }
+                    // if center == left && center == right {
+                    //     v3 = 1;
+                    // }
+
+                    // let xminus1: i32 = xx - 1;
+                    // let xplus1: i32 = xx + 1;
+                    // let yminus1: i32 = yy - 1;
+                    // let yplus1: i32 = yy + 1;
+                    // if xminus1 >= 0 {
+                    //     if let Some(histogram) = &histogram_columns.get(xminus1 as usize) {
+                    //         if histogram.get(center) == 0 {
+                    //             v2 += 1;
+                    //         }
+                    //     }
+                    // }
+                    // if xplus1 >= 255 {
+                    //     if let Some(histogram) = &histogram_columns.get(xplus1 as usize) {
+                    //         if histogram.get(center) == 0 {
+                    //             v2 += 1;
+                    //         }
+                    //     }
+                    // }
+                    // if yminus1 >= 0 {
+                    //     if let Some(histogram) = &histogram_rows.get(yminus1 as usize) {
+                    //         if histogram.get(center) == 0 {
+                    //             v3 += 1;
+                    //         }
+                    //     }
+                    // }
+                    // if yplus1 >= 255 {
+                    //     if let Some(histogram) = &histogram_rows.get(yplus1 as usize) {
+                    //         if histogram.get(center) == 0 {
+                    //             v3 += 1;
+                    //         }
+                    //     }
+                    // }
                     let mut is_full_column: bool = false;
                     let mut is_full_row: bool = false;
                     if let Some(histogram) = &histogram_columns.get(x as usize) {
                         if histogram.number_of_counters_greater_than_zero() == 1 {
                             is_full_column = true;
                         }
+                        // if histogram.get(center) == 1 && v1 != v0 {
+                        //     v2 = 1;
+                        // }
+                        // v2 = histogram.number_of_counters_greater_than_zero().min(255) as u8;
+                        // if let Some(color) = most_popular_color {
+                        //     if histogram.get(color) > 0 {
+                        //         v2 = 1;
+                        //     }
+                        // }
+                        // if let Some(color) = noise_color {
+                        //     if histogram.get(color) > 0 {
+                        //         v2 = 1;
+                        //     }
+                        // }
+                        // if histogram.number_of_counters_greater_than_zero() >= 2 {
+                        //     v2 = 1;
+                        // }
+                        // if histogram.number_of_counters_greater_than_zero() == 1 {
+                        //     // v2 = 1;
+                        //     if histogram.most_popular_color_disallow_ambiguous() == Some(center) {
+                        //         v2 = 1;
+                        //     }
+                        // }
                     }
 
                     if let Some(histogram) = &histogram_rows.get(y as usize) {
                         if histogram.number_of_counters_greater_than_zero() == 1 {
                             is_full_row = true;
                         }
+                        // if histogram.get(center) == 1 && v1 != v0 {
+                        //     v3 = 1;
+                        // }
+                        // v3 = histogram.number_of_counters_greater_than_zero().min(255) as u8;
+                        // if let Some(color) = most_popular_color {
+                        //     if histogram.get(color) > 0 {
+                        //         v3 = 1;
+                        //     }
+                        // }
+                        // if let Some(color) = noise_color {
+                        //     if histogram.get(color) > 0 {
+                        //         v3 = 1;
+                        //     }
+                        // }
+                        // if histogram.number_of_counters_greater_than_zero() >= 2 {
+                        //     v3 = 1;
+                        // }
+                        // if histogram.number_of_counters_greater_than_zero() == 1 {
+                        //     // v3 = 1;
+                        //     if histogram.most_popular_color_disallow_ambiguous() == Some(center) {
+                        //         v3 = 1;
+                        //     }
+                        // }
                     }
 
                     let full_row_and_column: u8 = if is_full_row & is_full_column { 1 } else { 0 };
@@ -432,6 +617,24 @@ impl ExperimentWithLogisticRegression {
                         full_row_and_column,
                         full_row_xor_column,
                         full_row_or_column,
+                        top0: PixelColor::from(top0),
+                        top1: PixelColor::from(top1),
+                        top2: PixelColor::from(top2),
+                        top3: PixelColor::from(top3),
+                        top4: PixelColor::from(top4),
+                        left1: PixelColor::from(left1),
+                        left2: PixelColor::from(left2),
+                        left3: PixelColor::from(left3),
+                        right1: PixelColor::from(right1),
+                        right2: PixelColor::from(right2),
+                        right3: PixelColor::from(right3),
+                        bottom0: PixelColor::from(bottom0),
+                        bottom1: PixelColor::from(bottom1),
+                        bottom2: PixelColor::from(bottom2),
+                        bottom3: PixelColor::from(bottom3),
+                        bottom4: PixelColor::from(bottom4),
+                        center_x_reversed: PixelColor::from(center_x_reversed),
+                        center_y_reversed: PixelColor::from(center_y_reversed),
                         v0,
                         v1,
                         v2,
