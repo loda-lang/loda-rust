@@ -4887,7 +4887,7 @@ mod tests {
                             continue;
                         }
                     };
-                    result_image = container.enumerated_holes_uncropped.clone();
+                    result_image = container.holes_mask_uncropped.clone();
                 }
 
                 Ok(result_image)
