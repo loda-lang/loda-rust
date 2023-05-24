@@ -1,6 +1,7 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
-use crate::arc::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge, ImageCorner, ImageMask};
+use super::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge, ImageCorner, ImageMask};
+use super::{ImageNeighbour, ImageNeighbourDirection};
 use crate::config::Config;
 use anyhow::Context;
 use std::path::{PathBuf, Path};
@@ -298,6 +299,38 @@ impl ExperimentWithLogisticRegression {
             let histogram_columns: Vec<Histogram> = input.histogram_columns();
             let histogram_rows: Vec<Histogram> = input.histogram_rows();
 
+            let mut image_neighbour_up: Image = Image::color(width, height, 255);
+            let mut image_neighbour_down: Image = Image::color(width, height, 255);
+            let mut image_neighbour_left: Image = Image::color(width, height, 255);
+            let mut image_neighbour_right: Image = Image::color(width, height, 255);
+            if let Some(color) = most_popular_color {
+                let ignore_mask: Image = input.to_mask_where_color_is(color);
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Up, 255) {
+                    Ok(image) => {
+                        image_neighbour_up = image;
+                    },
+                    Err(_) => {},
+                }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Down, 255) {
+                    Ok(image) => {
+                        image_neighbour_down = image;
+                    },
+                    Err(_) => {},
+                }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Left, 255) {
+                    Ok(image) => {
+                        image_neighbour_left = image;
+                    },
+                    Err(_) => {},
+                }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Right, 255) {
+                    Ok(image) => {
+                        image_neighbour_right = image;
+                    },
+                    Err(_) => {},
+                }
+            }
+
             for y in 0..height {
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -340,6 +373,29 @@ impl ExperimentWithLogisticRegression {
                     let left3: u8 = input.get(xx - t, yy + 1).unwrap_or(255);
                     let right1: u8 = input.get(xx + t, yy - 1).unwrap_or(255);
                     let right2: u8 = input.get(xx + t, yy).unwrap_or(255);
+
+                    let neighbour_up: u8 = image_neighbour_up.get(xx, yy).unwrap_or(255);
+                    let neighbour_down: u8 = image_neighbour_down.get(xx, yy).unwrap_or(255);
+                    let neighbour_left: u8 = image_neighbour_left.get(xx, yy).unwrap_or(255);
+                    let neighbour_right: u8 = image_neighbour_right.get(xx, yy).unwrap_or(255);
+                    
+                    // let column_above_center: Image = match input.crop(Rectangle::new(x, 0, 1, y)) {
+                    //     Ok(value) => value,
+                    //     Err(_) => Image::empty()
+                    // };
+                    // let column_below_center: Image = match input.crop(Rectangle::new(x, y + 1, 1, y_reverse)) {
+                    //     Ok(value) => value,
+                    //     Err(_) => Image::empty()
+                    // };
+                    // let area_above_center: Image = match input.crop(Rectangle::new(0, 0, width, y)) {
+                    //     Ok(value) => value,
+                    //     Err(_) => Image::empty()
+                    // };
+                    // let area_below_center: Image = match input.crop(Rectangle::new(0, y + 1, width, y_reverse)) {
+                    //     Ok(value) => value,
+                    //     Err(_) => Image::empty()
+                    // };
+                                    
                     let right3: u8 = input.get(xx + t, yy + 1).unwrap_or(255);
                     let bottom0: u8 = input.get(xx - t, yy + t).unwrap_or(255);
                     let bottom1: u8 = input.get(xx - 1, yy + t).unwrap_or(255);
@@ -397,6 +453,80 @@ impl ExperimentWithLogisticRegression {
                     // if y == y_reverse {
                     //     v5 = 1;
                     // }
+                    {
+                        // let h: Histogram = column_above_center.histogram_all();
+                        // if h.get(center) > 0 {
+                        //     v2 = 1;
+                        // }
+                        // if h.number_of_counters_greater_than_zero() >= 2 {
+                        //     v2 = 1;
+                        // }
+                    }
+                    {
+                        // let h: Histogram = column_below_center.histogram_all();
+                        // if h.get(center) > 0 {
+                        //     v3 = 1;
+                        // }
+                        // if h.number_of_counters_greater_than_zero() >= 2 {
+                        //     v3 = 1;
+                        // }
+                    }
+                    {
+                        // let h: Histogram = area_above_center.histogram_all();
+                        // if h.get(center) > 0 {
+                        //     v2 = 1;
+                        // }
+                        // if h.number_of_counters_greater_than_zero() >= 2 {
+                        //     v2 = 1;
+                        // }
+                    }
+                    {
+                        // let h: Histogram = area_below_center.histogram_all();
+                        // if h.get(center) > 0 {
+                        //     v3 = 1;
+                        // }
+                        // if h.number_of_counters_greater_than_zero() >= 2 {
+                        //     v2 = 1;
+                        // }
+                    }
+                    {
+                        // if neighbour_up == center {
+                        //     v2 = 1;
+                        // }
+                        // if neighbour_down == center {
+                        //     v3 = 1;
+                        // }
+                        // if neighbour_left == center {
+                        //     v4 = 1;
+                        // }
+                        // if neighbour_right == center {
+                        //     v5 = 1;
+                        // }
+                        // if Some(neighbour_up) == noise_color {
+                        //     v2 = 1;
+                        // }
+                        // if Some(neighbour_down) == noise_color {
+                        //     v3 = 1;
+                        // }
+                        // if Some(neighbour_left) == noise_color {
+                        //     v4 = 1;
+                        // }
+                        // if Some(neighbour_right) == noise_color {
+                        //     v5 = 1;
+                        // }
+                        if Some(neighbour_up) == noise_color {
+                            v2 += 1;
+                        }
+                        if Some(neighbour_down) == noise_color {
+                            v2 += 1;
+                        }
+                        if Some(neighbour_left) == noise_color {
+                            v2 += 1;
+                        }
+                        if Some(neighbour_right) == noise_color {
+                            v2 += 1;
+                        }
+                    }
 
                     for label in &task.action_label_set_intersection {
                         match label {
@@ -458,17 +588,17 @@ impl ExperimentWithLogisticRegression {
                             //         },
                             //     }
                             // },
-                            ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
-                                if center == *color {
-                                    v2 = 1;
-                                }
-                                if noise_color == Some(*color) {
-                                    v3 = 1;
-                                }
-                                if most_popular_color == Some(*color) {
-                                    v4 = 1;
-                                }
-                            },
+                            // ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
+                            //     if center == *color {
+                            //         v2 = 1;
+                            //     }
+                            //     if noise_color == Some(*color) {
+                            //         v3 = 1;
+                            //     }
+                            //     if most_popular_color == Some(*color) {
+                            //         v4 = 1;
+                            //     }
+                            // },
                             _ => {}
                         }
                     }
@@ -796,10 +926,10 @@ fn perform_logistic_regression(task: &Task, path: &Path) -> Result<(), Box<dyn E
     // let (train, valid) = dataset.split_with_ratio(0.9);
     let (train, valid) = dataset.split_with_ratio(ratio);
 
-    println!(
-        "Fit Multinomial Logistic Regression classifier with #{} training points",
-        train.nsamples()
-    );
+    // println!(
+    //     "Fit Multinomial Logistic Regression classifier with #{} training points",
+    //     train.nsamples()
+    // );
 
     // fit a Logistic regression model with 150 max iterations
     let model = MultiLogisticRegression::default()
