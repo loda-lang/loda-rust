@@ -57,6 +57,9 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     substitution_rule_applied: None,
                     single_color_objects: None,
                     predicted_single_color_image: None,
+                    removal_color: None,
+                    most_popular_intersection_color: None,
+                    single_pixel_noise_color: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},train", task_id, index),
@@ -98,6 +101,9 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     substitution_rule_applied: None,
                     single_color_objects: None,
                     predicted_single_color_image: None,
+                    removal_color: None,
+                    most_popular_intersection_color: None,
+                    single_pixel_noise_color: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},test", task_id, index),
@@ -119,6 +125,12 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             }
         }
     
+        // Copies over the counters from the histogram_union to the histogram_intersection
+        input_histogram_intersection.clamp01();
+        input_histogram_intersection.multiply_histogram(&input_histogram_union);
+        output_histogram_intersection.clamp01();
+        output_histogram_intersection.multiply_histogram(&output_histogram_union);
+
         let mut task = arc_work_model::Task {
             id: task_id,
             pairs: result_pairs,

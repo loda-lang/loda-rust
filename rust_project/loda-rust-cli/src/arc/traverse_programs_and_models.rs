@@ -2,7 +2,7 @@ use super::{arc_json_model, ActionLabel};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
-use super::{ImageHistogram, ImageSize, Histogram, ExperimentWithConvolution, ExportTasks};
+use super::{ImageHistogram, ImageSize, Histogram, ExportTasks};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -27,6 +27,9 @@ use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
+
+#[allow(unused_imports)]
+use super::{ExperimentWithConvolution, ExperimentWithLogisticRegression};
 
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
@@ -76,6 +79,7 @@ impl TraverseProgramsAndModels {
         let tpam = TraverseProgramsAndModels::new()?;
         let task_vec: Vec<Task> = tpam.to_task_vec();
         let mut instance = ExperimentWithConvolution::new(task_vec);
+        // let mut instance = ExperimentWithLogisticRegression::new(task_vec);
         instance.run()?;
         Ok(())
     }
@@ -396,6 +400,9 @@ impl TraverseProgramsAndModels {
             // }
             let mut found: bool = false;
             // found = true;
+            // if task.has_removal_color() {
+            //     found = true;
+            // }
             // for action_label in &task.action_label_set_intersection {
             //     match action_label {
             //         ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label } => {
@@ -421,6 +428,20 @@ impl TraverseProgramsAndModels {
             //         _ => {}
             //     }
             // }
+            // for action_label in &task.action_label_set_intersection {
+            //     match action_label {
+            //         ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsColor { color: _ } => {
+            //             found = true;
+            //         },
+            //         ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsTheMostPopularColorOfInputImage => {
+            //             found = true;
+            //         },
+            //         ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsTheLeastPopularColorOfInputImage => {
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
+            // }
             // if let Some(count) = task.input_properties_intersection.get(&PropertyInput::InputUniqueColorCount) {
             //     if *count == 2 {
             //         found = true;
@@ -429,11 +450,30 @@ impl TraverseProgramsAndModels {
             // if task.has_repaired_image() {
             //     found = true;
             // }
-            if task.has_predicted_single_color_image() {
-                found = true;
-            }
+            // if task.has_predicted_single_color_image() {
+            //     found = true;
+            // }
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
+            // }
+            for input_label in &task.input_label_set_intersection {
+                match input_label {
+                    InputLabel::InputUnambiguousConnectivityWithAllColors => {
+                        found = true;
+                    },
+                    _ => {}
+                }
+            }
+            // for input_label in &task.input_label_set_intersection {
+            //     match input_label {
+            //         InputLabel::InputNoiseWithColor { color: _ } => {
+            //             found = true;
+            //         },
+            //         InputLabel::InputNoiseWithSomeColor => {
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
             // }
             // for input_label in &task.input_label_set_intersection {
             //     let grid_label: GridLabel = match input_label {

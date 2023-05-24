@@ -1,8 +1,11 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor, ReverseColorPopularity, ObjectsAndMass};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere, ImageDrawRect};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
-use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean};
+use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity, GravityDirection, ImageCountUniqueColors};
 use super::{ImageGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
+use super::{ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue};
+use super::{ObjectWithDifferentColor, ReverseColorPopularity, ObjectsAndMass, ImageFill, ImageGravity, ImageSort, ImageSortMode};
+use super::{ImageCollect, ImageLayout, ImageSize, ImageLayoutMode};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -1243,6 +1246,52 @@ impl UnofficialFunction for ImageDenoiseType3Function {
     }
 }
 
+struct ImageDenoiseType4Function {
+    id: u32,
+}
+
+impl ImageDenoiseType4Function {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageDenoiseType4Function {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Denoise type4. denoise noisy pixels.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is noise_color
+        let noise_color: u8 = input[1].to_u8().context("u8 noise_color")?;
+
+        // input2 is background_color
+        let background_color: u8 = input[2].to_u8().context("u8 background_color")?;
+
+        let output_image: Image = image.denoise_type4(noise_color, background_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ImageNoiseColorFunction {
     id: u32,
     outputs: u8,
@@ -1701,6 +1750,64 @@ impl UnofficialFunction for ImageNumberOfUniqueColorsFunction {
         let color_count: u16 = histogram.number_of_counters_greater_than_zero();
 
         let output: BigInt = color_count.to_bigint().context("u16 to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+enum ImageCountUniqueColorsPerRowColumnFunctionMode {
+    Row,
+    Column,
+}
+
+struct ImageCountUniqueColorsPerRowColumnFunction {
+    id: u32,
+    mode: ImageCountUniqueColorsPerRowColumnFunctionMode,
+}
+
+impl ImageCountUniqueColorsPerRowColumnFunction {
+    fn new(id: u32, mode: ImageCountUniqueColorsPerRowColumnFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageCountUniqueColorsPerRowColumnFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImageCountUniqueColorsPerRowColumnFunctionMode::Row => "count unique colors per row".to_string(),
+            ImageCountUniqueColorsPerRowColumnFunctionMode::Column => "count unique colors per column".to_string(),
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let output_image: Image;
+        match self.mode {
+            ImageCountUniqueColorsPerRowColumnFunctionMode::Row => {
+                output_image = image.count_unique_colors_per_row()?;
+            },
+            ImageCountUniqueColorsPerRowColumnFunctionMode::Column => {
+                output_image = image.count_unique_colors_per_column()?;
+            },
+        }
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
     }
 }
@@ -2371,6 +2478,61 @@ impl UnofficialFunction for ImageMaskSelectFromImageAndColorFunction {
     }
 }
 
+struct ImageMaskSelectFromImagesFunction {
+    id: u32,
+}
+
+impl ImageMaskSelectFromImagesFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageMaskSelectFromImagesFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Pick pixels from two images. When the mask is 0 then pick `image_a`. When the mask is [1..255] then pick from `image_b`.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is mask
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let mask: Image = input0_uint.to_image()?;
+
+        // input1 is image_a
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image_a: Image = input1_uint.to_image()?;
+
+        // input2 is image_b
+        if input[2].is_negative() {
+            return Err(anyhow::anyhow!("Input[2] must be non-negative"));
+        }
+        let input2_uint: BigUint = input[2].to_biguint().context("BigInt to BigUint")?;
+        let image_b: Image = input2_uint.to_image()?;
+
+        let output_image: Image = mask.select_from_images(&image_a, &image_b)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 enum ImageCountDuplicatePixelsFunctionMode {
     All,
     Neighbors,
@@ -2649,6 +2811,437 @@ impl UnofficialFunction for ReverseColorPopularityApplyToObjectsFunction {
         let enumerated_objects: Image = input1_uint.to_image()?;
 
         let output_image: Image = ReverseColorPopularity::apply_to_objects(&input_image, &enumerated_objects)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct BorderFloodFillFunction {
+    id: u32,
+    connectivity: PixelConnectivity,
+}
+
+impl BorderFloodFillFunction {
+    fn new(id: u32, connectivity: PixelConnectivity) -> Self {
+        Self {
+            id,
+            connectivity,
+        }
+    }
+}
+
+impl UnofficialFunction for BorderFloodFillFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.connectivity {
+            PixelConnectivity::Connectivity4 => "Flood fill at every pixel along the border, connectivity-4.".to_string(),
+            PixelConnectivity::Connectivity8 => "Flood fill at every pixel along the border, connectivity-8.".to_string(),
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is from_color
+        let from_color: u8 = input[1].to_u8().context("u8 from_color")?;
+
+        // input2 is to_color
+        let to_color: u8 = input[2].to_u8().context("u8 to_color")?;
+
+        let mut output_image: Image = input_image;
+        output_image.border_flood_fill(from_color, to_color, self.connectivity);
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct GravityFunction {
+    id: u32,
+    direction: GravityDirection,
+}
+
+impl GravityFunction {
+    fn new(id: u32, direction: GravityDirection) -> Self {
+        Self {
+            id,
+            direction,
+        }
+    }
+}
+
+impl UnofficialFunction for GravityFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        let direction_name: &str = match self.direction {
+            GravityDirection::Up => "up",
+            GravityDirection::Down => "down",
+            GravityDirection::Left => "left",
+            GravityDirection::Right => "right",
+        };
+        format!("Gravity in the {} direction", direction_name)
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is background_color
+        let background_color: u8 = input[1].to_u8().context("u8 background_color")?;
+
+        let output_image: Image = input_image.gravity(background_color, self.direction)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct SortRowsColumnsByColorFunction {
+    id: u32,
+    mode: ImageSortMode,
+}
+
+impl SortRowsColumnsByColorFunction {
+    fn new(id: u32, mode: ImageSortMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for SortRowsColumnsByColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        let mode_name: &str = match self.mode {
+            ImageSortMode::RowsAscending => "rows-ascending",
+            ImageSortMode::RowsDescending => "rows-descending",
+            ImageSortMode::ColumnsAscending => "columns-ascending",
+            ImageSortMode::ColumnsDescending => "columns-descending",
+        };
+        format!("Sort {} by color", mode_name)
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is background_color
+        let background_color: u8 = input[1].to_u8().context("u8 background_color")?;
+
+        let output_image: Image = input_image.sort_by_color(background_color, self.mode)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct DrawLineConnectingTwoColorsFunction {
+    id: u32,
+}
+
+impl DrawLineConnectingTwoColorsFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for DrawLineConnectingTwoColorsFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 4, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Draw lines between the `color0` pixels and `color1` pixels when both occur in the same column/row.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 4 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is color0
+        let color0: u8 = input[1].to_u8().context("u8 color0")?;
+
+        // input2 is color1
+        let color1: u8 = input[2].to_u8().context("u8 color1")?;
+
+        // input3 is line_color
+        let line_color: u8 = input[3].to_u8().context("u8 line_color")?;
+
+        let mut output_image: Image = input_image;
+        let (_count_columns, _count_rows) = output_image.draw_line_connecting_two_colors(color0, color1, line_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+enum DrawLineWhereMaskIsNonZeroFunctionMode {
+    RowsAndColumns,
+    Rows,
+    Columns,
+}
+
+struct DrawLineWhereMaskIsNonZeroFunction {
+    id: u32,
+    mode: DrawLineWhereMaskIsNonZeroFunctionMode,
+}
+
+impl DrawLineWhereMaskIsNonZeroFunction {
+    fn new(id: u32, mode: DrawLineWhereMaskIsNonZeroFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for DrawLineWhereMaskIsNonZeroFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            DrawLineWhereMaskIsNonZeroFunctionMode::RowsAndColumns => "Shoot out lines in all directions where mask is non-zero".to_string(),
+            DrawLineWhereMaskIsNonZeroFunctionMode::Rows => "Draw a horizontal line if the `mask` contains one or more non-zero pixels.".to_string(),
+            DrawLineWhereMaskIsNonZeroFunctionMode::Columns => "Draw a vertical line if the `mask` contains one or more non-zero pixels.".to_string(),
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is mask
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let mask: Image = input1_uint.to_image()?;
+
+        // input2 is line_color
+        let line_color: u8 = input[2].to_u8().context("u8 line_color")?;
+
+        let mut output_image: Image = input_image;
+        match self.mode {
+            DrawLineWhereMaskIsNonZeroFunctionMode::RowsAndColumns => {
+                let (_count_columns, _count_rows) = output_image.draw_line_where_mask_is_nonzero(&mask, line_color)?;
+            },
+            DrawLineWhereMaskIsNonZeroFunctionMode::Rows => {
+                let _count_rows = output_image.draw_line_row_where_mask_is_nonzero(&mask, line_color)?;
+            },
+            DrawLineWhereMaskIsNonZeroFunctionMode::Columns => {
+                let _count_columns = output_image.draw_line_column_where_mask_is_nonzero(&mask, line_color)?;
+            },
+        }
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct CollectPixelsFunction {
+    id: u32,
+}
+
+impl CollectPixelsFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for CollectPixelsFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Extract pixels where the mask value is non-zero.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is enumerated objects
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let mask: Image = input1_uint.to_image()?;
+
+        let output_image: Image = input_image.collect_pixels_as_image(&mask)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+enum LayoutPixelsFunctionMode {
+    Normal,
+    ReverseOddRows,
+}
+
+struct LayoutPixelsFunction {
+    id: u32,
+    mode: LayoutPixelsFunctionMode,
+}
+
+impl LayoutPixelsFunction {
+    fn new(id: u32, mode: LayoutPixelsFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for LayoutPixelsFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 4, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            LayoutPixelsFunctionMode::Normal => "Transfer pixels from one layout to another layout, Normal.".to_string(),
+            LayoutPixelsFunctionMode::ReverseOddRows => "Transfer pixels from one layout to another layout, ReverseOddRows.".to_string(),
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 4 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is result_width
+        let result_width: u8 = input[1].to_u8().context("u8 result_width")?;
+
+        // input2 is result_height
+        let result_height: u8 = input[2].to_u8().context("u8 result_height")?;
+
+        // input3 is background_color
+        let background_color: u8 = input[3].to_u8().context("u8 background_color")?;
+
+        let size = ImageSize { width: result_width, height: result_height };
+        let layout_mode: ImageLayoutMode = match self.mode {
+            LayoutPixelsFunctionMode::Normal => ImageLayoutMode::Normal,
+            LayoutPixelsFunctionMode::ReverseOddRows => ImageLayoutMode::ReverseOddRows,
+        };
+        let output_image: Image = input_image.layout(size, background_color, layout_mode)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct DrawRectFilledForeachColorFunction {
+    id: u32,
+}
+
+impl DrawRectFilledForeachColorFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for DrawRectFilledForeachColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Draw non-overlapping filled rectangles over the bounding boxes of each color".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is background_color
+        let background_color: u8 = input[1].to_u8().context("u8 background_color")?;
+
+        let output_image: Image = input_image.draw_rect_filled_foreach_color(background_color)?;
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -3001,6 +3594,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageDenoiseType1Function::new(101090));
     register_function!(ImageDenoiseType2Function::new(101091));
     register_function!(ImageDenoiseType3Function::new(101092));
+    register_function!(ImageDenoiseType4Function::new(101093));
 
     // Extract noise colors from (noise image, denoised image)
     for n in 1..=9 {
@@ -3069,6 +3663,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Unique colors
     register_function!(ImageNumberOfUniqueColorsFunction::new(101240));
+    register_function!(ImageCountUniqueColorsPerRowColumnFunction::new(101241, ImageCountUniqueColorsPerRowColumnFunctionMode::Row));
+    register_function!(ImageCountUniqueColorsPerRowColumnFunction::new(101242, ImageCountUniqueColorsPerRowColumnFunctionMode::Column));
 
     // Mask
     register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionMode::WhereColorIs));
@@ -3106,6 +3702,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Mask - select from image
     register_function!(ImageMaskSelectFromColorAndImageFunction::new(102130));
     register_function!(ImageMaskSelectFromImageAndColorFunction::new(102131));
+    register_function!(ImageMaskSelectFromImagesFunction::new(102132));
     
     // Count duplicate pixels in 3x3 convolution
     register_function!(ImageCountDuplicatePixelsFunction::new(102140, ImageCountDuplicatePixelsFunctionMode::All));
@@ -3121,6 +3718,40 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Reverse color popularity
     register_function!(ReverseColorPopularityApplyToImageFunction::new(102170));
     register_function!(ReverseColorPopularityApplyToObjectsFunction::new(102171));
+    
+    // Flood fill
+    register_function!(BorderFloodFillFunction::new(102180, PixelConnectivity::Connectivity4));
+    register_function!(BorderFloodFillFunction::new(102181, PixelConnectivity::Connectivity8));
+
+    // Gravity
+    register_function!(GravityFunction::new(102190, GravityDirection::Up));
+    register_function!(GravityFunction::new(102191, GravityDirection::Down));
+    register_function!(GravityFunction::new(102192, GravityDirection::Left));
+    register_function!(GravityFunction::new(102193, GravityDirection::Right));
+
+    // Sort rows/cols by color mass
+    register_function!(SortRowsColumnsByColorFunction::new(102200, ImageSortMode::RowsAscending));
+    register_function!(SortRowsColumnsByColorFunction::new(102201, ImageSortMode::RowsDescending));
+    register_function!(SortRowsColumnsByColorFunction::new(102202, ImageSortMode::ColumnsAscending));
+    register_function!(SortRowsColumnsByColorFunction::new(102203, ImageSortMode::ColumnsDescending));
+
+    // Draw lines connecting two colors
+    register_function!(DrawLineConnectingTwoColorsFunction::new(102210));
+
+    // Draw lines where mask is non-zero
+    register_function!(DrawLineWhereMaskIsNonZeroFunction::new(102220, DrawLineWhereMaskIsNonZeroFunctionMode::RowsAndColumns));
+    register_function!(DrawLineWhereMaskIsNonZeroFunction::new(102221, DrawLineWhereMaskIsNonZeroFunctionMode::Rows));
+    register_function!(DrawLineWhereMaskIsNonZeroFunction::new(102222, DrawLineWhereMaskIsNonZeroFunctionMode::Columns));
+
+    // Collect pixels
+    register_function!(CollectPixelsFunction::new(102230));
+
+    // Layout pixels
+    register_function!(LayoutPixelsFunction::new(102240, LayoutPixelsFunctionMode::Normal));
+    register_function!(LayoutPixelsFunction::new(102241, LayoutPixelsFunctionMode::ReverseOddRows));
+
+    // Draw rect filled
+    register_function!(DrawRectFilledForeachColorFunction::new(102250));
 
     // Count unique colors in each object
     register_function!(ObjectsUniqueColorCountFunction::new(104000));

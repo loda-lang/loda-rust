@@ -1,39 +1,21 @@
-use super::Image;
+use super::{Image, ImageMix, MixMode};
 
 pub trait ImageOverlay {
     fn overlay_with_mask_color(&self, other: &Image, mask_color: u8) -> anyhow::Result<Image>;
 
     /// Copy rectangle of pixels
     fn overlay_with_position(&self, other: &Image, x: i32, y: i32) -> anyhow::Result<Image>;
+
+    /// Copy pixels where the mask is not zero.
+    /// 
+    /// Ignore the pixels where the mask is zero.
+    fn overlay_with_mask_and_position(&self, other: &Image, mask: &Image, x: i32, y: i32) -> anyhow::Result<Image>;
 }
 
 impl ImageOverlay for Image {
     fn overlay_with_mask_color(&self, other: &Image, mask_color: u8) -> anyhow::Result<Image> {
-        if self.is_empty() {
-            return Ok(Image::empty());
-        }
-        if self.width() != other.width() {
-            return Err(anyhow::anyhow!("overlay_with_mask_color: Both images must have same size. Width is different."));
-        }
-        if self.height() != other.height() {
-            return Err(anyhow::anyhow!("overlay_with_mask_color: Both images must have same size. Height is different."));
-        }
-        let mut result_image: Image = self.clone();
-        for y in 0..self.height() {
-            for x in 0..self.width() {
-                let pixel_value: u8 = other.get(x as i32, y as i32).unwrap_or(255); 
-                if pixel_value == mask_color {
-                    continue;
-                }
-                match result_image.set(x as i32, y as i32, pixel_value) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("overlay_with_mask_color: Unable to set pixel inside the result bitmap"));
-                    }
-                }
-            }
-        }
-        return Ok(result_image);
+        let mode = MixMode::PickColor1WhenColor0IsDifferent { color0_filter: mask_color };
+        other.mix(self, mode)
     }
 
     fn overlay_with_position(&self, other: &Image, x: i32, y: i32) -> anyhow::Result<Image> {
@@ -52,7 +34,33 @@ impl ImageOverlay for Image {
                 let _ = image.set(set_x, set_y, pixel_value);
             }
         }
-        return Ok(image);
+        Ok(image)
+    }
+
+    fn overlay_with_mask_and_position(&self, other: &Image, mask: &Image, x: i32, y: i32) -> anyhow::Result<Image> {
+        if other.size() != mask.size() {
+            return Err(anyhow::anyhow!("overlay_with_mask_and_position: Expected other.size to be the same as mask.size"));
+        }
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        if other.is_empty() {
+            return Ok(self.clone());
+        }
+        let mut image: Image = self.clone();
+        for yy in 0..(other.height() as i32) {
+            for xx in 0..(other.width() as i32) {
+                let mask_value: u8 = mask.get(xx, yy).unwrap_or(255); 
+                if mask_value == 0 {
+                    continue;
+                }
+                let pixel_value: u8 = other.get(xx, yy).unwrap_or(255); 
+                let set_x = x + xx;
+                let set_y = y + yy;
+                let _ = image.set(set_x, set_y, pixel_value);
+            }
+        }
+        Ok(image)
     }
 }
 
@@ -121,6 +129,51 @@ mod tests {
             1, 5, 5, 5, 1,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10002_overlay_with_mask_color_and_overlap() {
+        // Arrange
+        let pixels0: Vec<u8> = vec![
+            1, 2,
+            3, 4,
+            5, 6,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0,
+        ];
+        let input0: Image = Image::try_create(2, 8, pixels0).expect("image");
+
+        let pixels1: Vec<u8> = vec![
+            42, 0,
+            42, 0,
+            42, 0,
+            42, 0,
+            42, 0,
+            5, 6,
+            3, 4,
+            1, 2,
+        ];
+        let input1: Image = Image::try_create(2, 8, pixels1).expect("image");
+
+        // Act
+        let actual: Image = input0.overlay_with_mask_color(&input1, 0).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            42, 2,
+            42, 4,
+            42, 6,
+            42, 0,
+            42, 0,
+            5, 6,
+            3, 4,
+            1, 2,
+        ];
+        let expected: Image = Image::try_create(2, 8, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 
@@ -250,5 +303,44 @@ mod tests {
             let actual: Image = a.overlay_with_position(&b, 0, -2).expect("image");
             assert_eq!(actual, a);
         }
+    }
+
+    #[test]
+    fn test_30000_overlay_with_mask_and_position() {
+        // Arrange
+        let a_pixels: Vec<u8> = vec![
+            5, 5, 5, 5, 5,
+            5, 5, 5, 5, 5,
+            7, 7, 7, 7, 7,
+            6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6,
+        ];
+        let a: Image = Image::try_create(5, 5, a_pixels).expect("image");
+        let b_pixels: Vec<u8> = vec![
+            2, 3, 4,
+            5, 6, 7,
+            8, 9, 10,
+        ];
+        let b: Image = Image::try_create(3, 3, b_pixels).expect("image");
+        let mask_pixels: Vec<u8> = vec![
+            0, 1, 0,
+            1, 1, 1,
+            0, 1, 0,
+        ];
+        let mask: Image = Image::try_create(3, 3, mask_pixels).expect("image");
+
+        // Act
+        let actual: Image = a.overlay_with_mask_and_position(&b, &mask, 1, 1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 5, 5, 5, 5,
+            5, 5, 3, 5, 5,
+            7, 5, 6, 7, 7,
+            6, 6, 9, 6, 6,
+            6, 6, 6, 6, 6,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
     }
 }

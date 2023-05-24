@@ -96,17 +96,19 @@ pub enum GridLabel {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum SingleColorObjectLabel {
+pub enum SingleColorObjectRectangleLabel {
     RectangleWithColor { color: u8 },
     RectangleWithSomeColor,
     SquareWithColor { color: u8 },
     SquareWithSomeColor,
     NonSquareWithColor { color: u8 },
     NonSquareWithSomeColor,
+}
 
-    // Ideas for more
-    // RectangleWithColorDifferentThan { color: u8 },
-    // RectangleWithMass { mass: u16 },
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum SingleColorObjectSparseLabel {
+    SparseWithColor { color: u8 },
+    SparseWithSomeColor,
 }
 
 /// Properties about the input image.
@@ -114,9 +116,48 @@ pub enum SingleColorObjectLabel {
 pub enum InputLabel {
     InputSymmetry { label: SymmetryLabel },
     InputGrid { label: GridLabel },
-    InputSingleColorObject { label: SingleColorObjectLabel },
+    InputSingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },
+    InputSingleColorObjectSparse { label: SingleColorObjectSparseLabel },
+
+    /// Isolated noise pixels that each have `mass=1`.
+    /// 
+    /// A noise pixel may be connected diagonally with another noise pixel,
+    /// however bigger diagonal shapes are suppressed.
+    ///
+    /// When all the training pairs agree on the same noise color,
+    /// then that color may have some meaning.
+    InputNoiseWithColor { color: u8 },
+
+    /// Isolated noise pixels that each have `mass=1`.
+    /// 
+    /// A noise pixel may be connected diagonally with another noise pixel,
+    /// however bigger diagonal shapes are suppressed.
+    ///
+    /// Each of the training pair have its own noise color,
+    /// then that color may have some meaning.
+    InputNoiseWithSomeColor,
+
+    /// Both `PixelConnectivity4` and `PixelConnectivity8` yields the same child objects for a particular `color`.
+    /// 
+    /// When segmenting the input image into connected components, then the masks are the same
+    /// for the `4 connected` pixels as the `8 connected` pixels.
+    InputUnambiguousConnectivityWithColor { color: u8 },
+
+    /// Both `PixelConnectivity4` and `PixelConnectivity8` yields the same child objects for all the colors in the input image.
+    /// 
+    /// When segmenting the input image into connected components, then the masks are the same
+    /// for the `4 connected` pixels as the `8 connected` pixels.
+    InputUnambiguousConnectivityWithAllColors,
+
+    /// Doing flood fill along the border, and the mask of the color is still the same.
+    /// 
+    /// The color is touching the edges, and all pixels of this color is reachable.
+    /// 
+    /// There are no isolated pixels.
+    InputBorderFloodFillConnectivity4AllPixelsWithColor { color: u8 },
 
     // Ideas for more
+    // AmbiguousEnumeratedObjects, // Does `PixelConnectivity4` and `PixelConnectivity8` yield different results
     // SplitColor { color: u8 },
     // SplitRowColor { color: u8 },
     // SplitColumnColor { color: u8 },
@@ -186,7 +227,7 @@ pub enum ActionLabel {
     OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
-    OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObjectLabel },
+    OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObjectRectangleLabel },
     
     OutputImageIsSymmetricX,
     OutputImageIsSymmetricY,
@@ -198,8 +239,23 @@ pub enum ActionLabel {
     OutputImageIsPresentExactlyOnceInsideInputImage,
     InputImageIsPresentExactlyOnceInsideOutputImage,
 
+    /// The input image is repeated 1 or more times in the output image
+    /// the same number of times a particular color occur.
+    /// This happens in task `cce03e0d` and task `ad7e01d0`.
+    InputImageOccurInsideOutputImageSameNumberOfTimesAsColor { color: u8 },
+    
+    /// The input image is repeated 1 or more times in the output image
+    /// the same number of times as the most popular color.
+    /// This happens in task `27f8ce4f`.
+    InputImageOccurInsideOutputImageSameNumberOfTimesAsTheMostPopularColorOfInputImage,
+
+    /// The input image is repeated 1 or more times in the output image
+    /// the same number of times as the least popular color.
+    /// This happens in task `48f8583b`.
+    InputImageOccurInsideOutputImageSameNumberOfTimesAsTheLeastPopularColorOfInputImage,
+
     OutputImageHistogramEqualToInputImageHistogram,
-    RemovalColorIsThePrimaryColorOfInputImage,
+    RemovalColorIsTheMostPopularColorOfInputImage,
 
     OutputImageIsTheObjectWithObjectLabel { object_label: ObjectLabel },
 
@@ -210,6 +266,11 @@ pub enum ActionLabel {
     OutputImageUniqueColorCount { count: u8 },
     OutputImageColorsComesFromInputImage,
 
+    /// The output size is the same as the input size.
+    /// Each pixel have the same number of identical pixels as in the input.
+    /// Clusters of pixels are changing color between input and output.
+    /// The action is usually to recolor each cluster.
+    /// It does not detect if some of the clusters gets hidden.
     OutputImageHasSameStructureAsInputImage,
 
     OutputImageIsInputImageWithNoChangesToPixelsWithColor { color: u8 },
@@ -219,6 +280,10 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // InputImageBorderFloodFillOnlyHappensInTheNoChangeAreaWithColor { color: u8 },
+    // OutputImageContainSingleColorObject { color: u8 },
+    // OutputImageDoesNotContainSingleColorObject { color: u8 },
+    // OutputPropertyIsEqualToNumberOfClustersWithColor { output: PropertyOutput, color: u8 },
     // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
     // OutputSymmetry { label: SymmetryLabel },

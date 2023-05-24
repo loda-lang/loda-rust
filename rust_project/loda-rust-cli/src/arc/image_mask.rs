@@ -1,4 +1,4 @@
-use super::{Image, Rectangle};
+use super::{Image, ImageMix, MixMode, Rectangle};
 
 pub trait ImageMask {
     /// Convert to a mask image by converting `color` to 1 and converting anything else to to 0.
@@ -26,6 +26,14 @@ pub trait ImageMask {
     fn select_from_images(&self, image_a: &Image, image_b: &Image) -> anyhow::Result<Image>;
 
     /// The smallest box that can contain the mask.
+    /// 
+    /// Pixel values that are zero are ignored.
+    /// 
+    /// Pixel values that are non-zero are considered.
+    /// 
+    /// When no pixels are found, then `None` is returned.
+    /// 
+    /// The returned `Rectangle` is supposed to never be empty. The size is always 1x1 or bigger.
     fn bounding_box(&self) -> Option<Rectangle>;
 }
 
@@ -131,53 +139,11 @@ impl ImageMask for Image {
     }
 
     fn select_from_color_and_image(&self, color: u8, image: &Image) -> anyhow::Result<Image> {
-        let self_width: u8 = self.width();
-        let self_height: u8 = self.height();
-        if self_width != image.width() || self_height != image.height() {
-            return Err(anyhow::anyhow!("Both images must have same size. mask: {}x{} image: {}x{}", self_width, self_height, image.width(), image.height()));
-        }
-        if self.is_empty() {
-            return Ok(Image::empty());
-        }
-        let mut result_image = Image::zero(self_width, self_height);
-        for y in 0..(self_height as i32) {
-            for x in 0..(self_width as i32) {
-                let mask_value: u8 = self.get(x, y).unwrap_or(255);
-                let set_color: u8;
-                if mask_value > 0 {
-                    set_color = image.get(x, y).unwrap_or(255)
-                } else {
-                    set_color = color;
-                }
-                let _ = result_image.set(x, y, set_color);
-            }
-        }
-        Ok(result_image)
+        self.mix(image, MixMode::PickColor1WhenColor0IsNonZero { color })
     }
 
     fn select_from_image_and_color(&self, image: &Image, color: u8) -> anyhow::Result<Image> {
-        let self_width: u8 = self.width();
-        let self_height: u8 = self.height();
-        if self_width != image.width() || self_height != image.height() {
-            return Err(anyhow::anyhow!("Both images must have same size. mask: {}x{} image: {}x{}", self_width, self_height, image.width(), image.height()));
-        }
-        if self.is_empty() {
-            return Ok(Image::empty());
-        }
-        let mut result_image = Image::zero(self_width, self_height);
-        for y in 0..(self_height as i32) {
-            for x in 0..(self_width as i32) {
-                let mask_value: u8 = self.get(x, y).unwrap_or(255);
-                let set_color: u8;
-                if mask_value > 0 {
-                    set_color = color;
-                } else {
-                    set_color = image.get(x, y).unwrap_or(255)
-                }
-                let _ = result_image.set(x, y, set_color);
-            }
-        }
-        Ok(result_image)
+        self.mix(image, MixMode::PickColor1WhenColor0IsZero { color })
     }
 
     fn select_from_images(&self, image_a: &Image, image_b: &Image) -> anyhow::Result<Image> {

@@ -1,6 +1,6 @@
-use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectLabel, SingleColorObjects, SingleColorObject};
+use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObjects, SingleColorObjectRectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction};
-use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
+use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};
@@ -141,6 +141,16 @@ impl arc_work_model::Task {
     pub fn has_enumerated_objects(&self) -> bool {
         for pair in &self.pairs {
             if pair.input.enumerated_objects.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
+    #[allow(dead_code)]
+    pub fn has_removal_color(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.removal_color.is_none() {
                 return false;
             }
         }
@@ -356,7 +366,7 @@ impl arc_work_model::Task {
 
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
+            let result = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &image_mask, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -434,8 +444,7 @@ impl arc_work_model::Task {
 
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            // let result = image_mask.find_objects(ImageSegmentAlgorithm::All);
-            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
+            let result = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &image_mask, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -486,11 +495,11 @@ impl arc_work_model::Task {
     }
 
     /// Extract `Vec<SingleColorObjectLabel>` from `input_label_set_intersection`.
-    fn single_color_object_labels_from_input(&self) -> Vec<SingleColorObjectLabel> {
-        let mut single_color_object_labels = Vec::<SingleColorObjectLabel>::new();
+    fn single_color_object_labels_from_input(&self) -> Vec<SingleColorObjectRectangleLabel> {
+        let mut single_color_object_labels = Vec::<SingleColorObjectRectangleLabel>::new();
         for input_label in &self.input_label_set_intersection {
-            let single_color_object_label: SingleColorObjectLabel = match input_label {
-                InputLabel::InputSingleColorObject { label } => label.clone(),
+            let single_color_object_label: SingleColorObjectRectangleLabel = match input_label {
+                InputLabel::InputSingleColorObjectRectangle { label } => label.clone(),
                 _ => continue
             };
             single_color_object_labels.push(single_color_object_label);
@@ -499,47 +508,47 @@ impl arc_work_model::Task {
     }
 
     pub fn assign_action_labels_related_to_single_color_objects_and_output_size(&mut self) -> anyhow::Result<()> {
-        let single_color_object_labels: Vec<SingleColorObjectLabel> = self.single_color_object_labels_from_input();
+        let single_color_object_labels: Vec<SingleColorObjectRectangleLabel> = self.single_color_object_labels_from_input();
         if single_color_object_labels.is_empty() {
             return Ok(());
         }
 
         for query_id in 0..6u8 {
             let mut ambiguity_count: usize = 0;
-            let mut found_label: Option<&SingleColorObjectLabel> = None;
+            let mut found_label: Option<&SingleColorObjectRectangleLabel> = None;
             for single_color_object_label in &single_color_object_labels {
                 match single_color_object_label {
-                    SingleColorObjectLabel::SquareWithColor { color: _ } => {
+                    SingleColorObjectRectangleLabel::SquareWithColor { color: _ } => {
                         if query_id == 0 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
                         }
                     },
-                    SingleColorObjectLabel::NonSquareWithColor { color: _ } => {
+                    SingleColorObjectRectangleLabel::NonSquareWithColor { color: _ } => {
                         if query_id == 1 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
                         }
                     },
-                    SingleColorObjectLabel::RectangleWithColor { color: _ } => {
+                    SingleColorObjectRectangleLabel::RectangleWithColor { color: _ } => {
                         if query_id == 2 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
                         }
                     },
-                    SingleColorObjectLabel::SquareWithSomeColor => {
+                    SingleColorObjectRectangleLabel::SquareWithSomeColor => {
                         if query_id == 3 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
                         }
                     },
-                    SingleColorObjectLabel::NonSquareWithSomeColor => {
+                    SingleColorObjectRectangleLabel::NonSquareWithSomeColor => {
                         if query_id == 4 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
                         }
                     },
-                    SingleColorObjectLabel::RectangleWithSomeColor => {
+                    SingleColorObjectRectangleLabel::RectangleWithSomeColor => {
                         if query_id == 5 {
                             ambiguity_count += 1;
                             found_label = Some(single_color_object_label);
@@ -551,7 +560,7 @@ impl arc_work_model::Task {
                 // Reject ambiguous scenarios with 2 or more labels.
                 continue;
             }
-            let single_color_object_label: &SingleColorObjectLabel = match found_label {
+            let single_color_object_label: &SingleColorObjectRectangleLabel = match found_label {
                 Some(value) => value,
                 None => continue
             };
@@ -590,7 +599,7 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    fn assign_output_size_for_single_color_objects_with_label(&mut self, single_color_object_label: &SingleColorObjectLabel, execute: bool) -> anyhow::Result<()> {
+    fn assign_output_size_for_single_color_objects_with_label(&mut self, single_color_object_label: &SingleColorObjectRectangleLabel, execute: bool) -> anyhow::Result<()> {
         let mut predicted_sizes = HashMap::<usize, ImageSize>::new();
         for (pair_index, pair) in self.pairs.iter().enumerate() {
             let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
@@ -600,8 +609,8 @@ impl arc_work_model::Task {
                 }
             };
             let mut ambiguity_count: usize = 0;
-            let mut found_object: Option<&SingleColorObject> = None;
-            for object in &single_color_objects.single_color_object_vec {
+            let mut found_object: Option<&SingleColorObjectRectangle> = None;
+            for object in &single_color_objects.rectangle_vec {
                 if !object.satisfies_label(single_color_object_label) {
                     continue;
                 }
@@ -612,7 +621,7 @@ impl arc_work_model::Task {
                 // Reject ambiguous scenarios with 2 or more objects that satisfy the label.
                 return Err(anyhow::anyhow!("Multiple objects satisfy the label. Ambiguous which one to pick."));
             }
-            let object: &SingleColorObject = match found_object {
+            let object: &SingleColorObjectRectangle = match found_object {
                 Some(value) => value,
                 None => {
                     return Err(anyhow::anyhow!("Didn't find any object that satisfy the label."));
@@ -682,6 +691,9 @@ impl arc_work_model::Task {
         self.assign_predicted_output_palette();
         self.assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color();
         _ = self.assign_predicted_single_color_image();
+        _ = self.assign_removal_color();
+        _ = self.assign_most_popular_intersection_color();
+        _ = self.assign_single_pixel_noise_color();
         Ok(())
     }
 
@@ -1222,7 +1234,7 @@ impl arc_work_model::Task {
         histogram.subtract_histogram(&self.removal_histogram_intersection);
 
         if self.removal_histogram_intersection.number_of_counters_greater_than_zero() == 0 {
-            if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsThePrimaryColorOfInputImage) {
+            if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsTheMostPopularColorOfInputImage) {
                 if let Some(color) = histogram.most_popular_color() {
                     histogram.set_counter_to_zero(color);
                 }
@@ -1295,6 +1307,75 @@ impl arc_work_model::Task {
             }
         }
 
+        Ok(())
+    }
+
+    fn assign_removal_color(&mut self) -> anyhow::Result<()> {
+        // All the training pairs agree on the same color
+        if let Some(color) = self.removal_histogram_intersection.most_popular_color_disallow_ambiguous() {
+            for pair in self.pairs.iter_mut() {
+                pair.input.removal_color = Some(color);
+            }
+            return Ok(());
+        }
+
+        // In each pair, the color is the same as most popular color of the input
+        if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsTheMostPopularColorOfInputImage) {
+            for pair in self.pairs.iter_mut() {
+                let histogram: &Histogram = &pair.input.histogram;
+                if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
+                    pair.input.removal_color = Some(color);
+                }
+            }
+            return Ok(());
+        }
+        Ok(())
+    }
+
+    fn assign_most_popular_intersection_color(&mut self) -> anyhow::Result<()> {
+        // All the training pairs agree on the same color
+        if let Some(color) = self.input_histogram_intersection.most_popular_color_disallow_ambiguous() {
+            for pair in self.pairs.iter_mut() {
+                pair.input.most_popular_intersection_color = Some(color);
+            }
+            return Ok(());
+        }
+        Ok(())
+    }
+
+    fn assign_single_pixel_noise_color(&mut self) -> anyhow::Result<()> {
+        let mut found = false;
+        for input_label in &self.input_label_set_intersection {
+            match input_label {
+                InputLabel::InputNoiseWithColor { color: _ } => {
+                    found = true;
+                    break;
+                },
+                InputLabel::InputNoiseWithSomeColor => {
+                    found = true;
+                    break;
+                },
+                _ => {}
+            }
+        }
+        if !found {
+            return Ok(());
+        }
+        for pair in self.pairs.iter_mut() {
+            let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            let noise_color: u8 = match single_color_objects.single_pixel_noise_color() {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            pair.input.single_pixel_noise_color = Some(noise_color);
+        }
         Ok(())
     }
 
@@ -1686,7 +1767,7 @@ impl arc_work_model::Task {
             let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
+            let result = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &image_mask, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -1764,7 +1845,7 @@ impl arc_work_model::Task {
             let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
+            let result = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &image_mask, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -1924,7 +2005,7 @@ impl arc_work_model::Task {
 
             let mask: &Image = &grid.line_mask;
             let blank: Image = Image::zero(mask.width(), mask.height());
-            let cells: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, mask)?;
+            let cells: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity4, &blank, mask)?;
             if cells.is_empty() {
                 return Err(anyhow::anyhow!("Expected grid to have 1 or more cells"));
             }

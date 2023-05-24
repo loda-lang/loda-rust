@@ -2,17 +2,19 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{ActionLabel, convolution3x3};
+    use crate::arc::{ActionLabel, convolution3x3, ImageCollect, ImageSize, ImageLayout, ImageLayoutMode};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ConnectedComponent, PixelConnectivity, ConnectedComponentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
-    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
+    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern, ImageFill};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
     use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ReverseColorPopularity, ObjectsAndMass};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
+    use crate::arc::{ImageDrawRect, SingleColorObjects, SingleColorObjectClusterContainer};
+    use crate::arc::{MixMode, ImageMix, GravityDirection, ImageGravity, ImageSort, ImageSortMode};
     use std::collections::HashMap;
     use regex::Regex;
 
@@ -333,46 +335,72 @@ mod tests {
     fn test_70000_puzzle_cdecee7f() {
         let solution: SolutionSimple = |data| {
             let input = data.image;
-            let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
+            let background_color: u8 = input.most_popular_color().expect("pixel");
 
-            // Traverse columns
-            let mut stack: Vec<u8> = vec!();
-            for x in 0..input.width() {
-                // Take foreground pixels that is different than the background color, and append the foreground pixel to the stack
-                for y in 0..input.height() {
-                    let pixel_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
-                    if pixel_value != background_pixel_color {
-                        stack.push(pixel_value);
-                    }
-                }
-            }
-            // Padding to 9 items
-            while stack.len() < 9 {
-                stack.push(0);
-            }
-    
-            // Transfer values from the 9 element stack to the 3x3 bitmap
-            let mut result_bitmap: Image = Image::zero(3, 3);
-            for (index, pixel_value) in stack.iter().enumerate() {
-                let y: usize = index / 3;
-                let mut x: usize = index % 3;
-                if y == 1 {
-                    // The middle row is reversed
-                    x = 2 - x;
-                }
-                let set_x: i32 = x as i32;
-                let set_y: i32 = y as i32;
-                match result_bitmap.set(set_x, set_y, *pixel_value) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) in the result_bitmap", x, y));
-                    }
-                }
-            }
+            // Collect pixels by traversing columns
+            let rotated: Image = input.rotate_cw()?;
+            let mask: Image = rotated.to_mask_where_color_is_different(background_color);
+            let pixels: Image = rotated.collect_pixels_as_image(&mask)?;
 
-            Ok(result_bitmap)
+            // Layout the collected pixels in a 3x3 image
+            let size = ImageSize { width: 3, height: 3 };
+            let result_image: Image = pixels.layout(size, 0, ImageLayoutMode::ReverseOddRows).expect("ok");
+            Ok(result_image)
         };
         let result: String = solution.run("cdecee7f").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_CDECEE7F: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,103 ; address of vector[0].PredictedOutputWidth
+    mov $84,104 ; address of vector[0].PredictedOutputHeight
+    mov $85,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$85 ; most popular color across inputs
+
+        ; rotate input by 90 degrees clockwise
+        mov $3,$0
+        mov $4,1
+        f21 $3,101170 ; rotate cw
+        ; $3 is the rotated input image
+    
+        ; extract mask
+        mov $5,$3
+        mov $6,$1
+        f21 $5,101251 ; where color is different than background color
+        ; $5 is the mask
+
+        ; collect pixels
+        mov $7,$3 ; the rotated input image
+        mov $8,$5 ; mask
+        f21 $7,102230 ; collect pixels
+        ; $7 is a single row with the collected pixels
+
+        ; change layout of the pixels
+        mov $9,$7 ; pixels to be re-layouted
+        mov $10,$$83 ; width = predicted width
+        mov $11,$$84 ; height = predicted height
+        mov $12,$1 ; background = most popular color
+        f41 $9,102241 ; layout pixels with ReverseOddRows
+
+        mov $0,$9
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+        add $84,100
+        add $85,100
+    lpe
+    ";
+
+    #[test]
+    fn test_70001_puzzle_cdecee7f_loda() {
+        let result: String = run_advanced("cdecee7f", PROGRAM_CDECEE7F).expect("String");
         assert_eq!(result, "3 1");
     }
 
@@ -485,9 +513,6 @@ mod tests {
     mov $1,0
     mov $2,1
     f31 $0,101180 ; offset dx,dy
-    mov $1,8
-    mov $2,2
-    f31 $0,101050 ; replace color with color
     ";
 
     #[test]
@@ -1041,7 +1066,7 @@ mod tests {
             // println!("background_ignore_mask: {:?}", background_ignore_mask);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &background_ignore_mask)
+            let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &input, &background_ignore_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Count the number of pixels in each object
@@ -1088,10 +1113,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let enumerated_objects: &Image = match &pair.input.enumerated_objects {
@@ -1137,7 +1158,7 @@ mod tests {
             let object_mask: Image = input.to_mask_where_color_is(background_color);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &object_mask)
+            let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &object_mask, &object_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Traverse each object, and count holes in each object
@@ -1182,7 +1203,7 @@ mod tests {
             let object_mask: Image = input.to_mask_where_color_is(background_color);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &object_mask)
+            let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &object_mask, &object_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Adjust offsets for all objects
@@ -1249,7 +1270,7 @@ mod tests {
             let object_mask: Image = input.to_mask_where_color_is(background_color);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &object_mask)
+            let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &object_mask, &object_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Traverse each object, and measure object size
@@ -1289,6 +1310,62 @@ mod tests {
         assert_eq!(result, "2 1");
     }
 
+    mod solve_aabf363d {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
+                let mut result_image: Image = input.replace_color(noise_color, background_color)?;
+                result_image = result_image.replace_colors_other_than(background_color, noise_color)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_280001_puzzle_aabf363d() {
+        let mut instance = solve_aabf363d::MySolution {};
+        let result: String = run_analyze_and_solve("aabf363d", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    const PROGRAM_AABF363D: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    mov $84,115 ; address of vector[0].InputSinglePixelNoiseColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$84 ; noise color
+        mov $2,$$83 ; background color
+        f31 $0,101050 ; Replace noise pixels with background color
+
+        mov $3,$1
+        mov $1,$2 ; background color
+        mov $2,$3 ; noise color
+        f31 $0,101051 ; Replace non-background-pixels with noise color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+        add $84,100
+    lpe
+    ";
+
+    #[test]
+    fn test_280002_puzzle_aabf363d_loda() {
+        let result: String = run_advanced("aabf363d", PROGRAM_AABF363D).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
     #[test]
     fn test_290000_puzzle_00d62c1b() {
         let solution: SolutionSimple = |data| {
@@ -1298,7 +1375,7 @@ mod tests {
             let border_mask_image: Image = Image::border_inside(input.width(), input.height(), 0, 1, 1).expect("image");
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("find_objects");
+            let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity4, &input).expect("find_objects");
     
             // Traverse the interior objects. Replace color for the interior object.
             let mut result_image: Image = input.clone();
@@ -1338,6 +1415,29 @@ mod tests {
             Ok(result_image)
         };
         let result: String = solution.run("00d62c1b").expect("String");
+        assert_eq!(result, "5 1");
+    }
+
+    const PROGRAM_00D62C1B: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; from_color = most popular color
+        mov $2,255 ; to_color = auto assign color
+        f31 $0,102180 ; Flood fill at every pixel along the border, connectivity-4.
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_290001_puzzle_00d62c1b_loda() {
+        let result: String = run_advanced("00d62c1b", PROGRAM_00D62C1B).expect("String");
         assert_eq!(result, "5 1");
     }
 
@@ -1629,6 +1729,22 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    const PROGRAM_F8FF0B80: &'static str = "
+    f11 $0,101230 ; Histogram of image. The most popular to the left, least popular to the right. The top row is the counters. The bottom row is the colors.
+
+    mov $1,1
+    f21 $0,101224 ; remove top-most row
+
+    ; $1 is 1
+    f21 $0,101226 ; remove left-most column
+    ";
+
+    #[test]
+    fn test_340001_puzzle_f8ff0b80_loda() {
+        let result: String = run_simple("f8ff0b80", PROGRAM_F8FF0B80).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     #[test]
     fn test_350000_puzzle_a68b268e() {
         let solution: SolutionSimple = |data| {
@@ -1733,7 +1849,7 @@ mod tests {
             let background_color: u8 = histogram.most_popular_color().expect("color");
 
             let ignore_mask: Image = input.to_mask_where_color_is(background_color);
-            let mut objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("images");
+            let mut objects: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &input, &ignore_mask).expect("images");
 
             if objects.len() != 2 {
                 return Err(anyhow::anyhow!("Expected exactly 2 objects, but got a different count"));
@@ -2072,7 +2188,7 @@ mod tests {
             let input = data.image;
             let background_color: u8 = input.most_popular_color().expect("pixel");
             let ignore_mask: Image = input.to_mask_where_color_is(background_color);
-            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("images");
+            let objects: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &input, &ignore_mask).expect("images");
 
             // Identify the asymmetric objects
             let mut asymmetric_objects: Vec<Image> = vec!();
@@ -2118,7 +2234,7 @@ mod tests {
             let input = data.image;
             let background_color: u8 = input.most_popular_color().expect("pixel");
             let ignore_mask: Image = input.to_mask_where_color_is(background_color);
-            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("images");
+            let objects: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &input, &ignore_mask).expect("images");
 
             // Identify the symmetric objects
             let mut symmetric_objects: Vec<Image> = vec!();
@@ -2180,6 +2296,57 @@ mod tests {
             Ok(result_image)
         };
         let result: String = solution.run("dbc1a6ce").expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    mod solve_dbc1a6ce {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
+                let mut result_image: Image = input.clone();
+                _ = result_image.draw_line_connecting_two_colors(noise_color, noise_color, 255)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_460001_puzzle_dbc1a6ce() {
+        let mut instance = solve_dbc1a6ce::MySolution {};
+        let result: String = run_analyze_and_solve("dbc1a6ce", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    const PROGRAM_DBC1A6CE: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,115 ; address of vector[0].InputSinglePixelNoiseColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; noise color
+
+        ; $1 is color0 = noise color
+        mov $2,$1 ; color1 = noise color
+        mov $3,255 ; line color = 255 auto fill in
+        f41 $0,102210 ; Draw lines between the `color0` pixels and `color1` pixels when both occur in the same column/row.
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_460002_puzzle_dbc1a6ce_loda() {
+        let result: String = run_advanced("dbc1a6ce", PROGRAM_DBC1A6CE).expect("String");
         assert_eq!(result, "4 1");
     }
 
@@ -2313,7 +2480,7 @@ mod tests {
         let solution: SolutionSimple = |data| {
             let input: Image = data.image;
             let mask: Image = input.mask_for_gridcells(Some(0))?;
-            let objects: Vec<Image> = mask.find_objects(ImageSegmentAlgorithm::Neighbors)?;
+            let objects: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity4, &mask)?;
             let mut result_image = Image::zero(input.width(), input.height());
             for object in &objects {
                 let histogram: Histogram = input.histogram_with_mask(object)?;
@@ -2599,10 +2766,6 @@ mod tests {
             }
         }
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
 
@@ -2933,6 +3096,24 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
+    const PROGRAM_25D8A9C8: &'static str = "
+    mov $1,$0
+    f11 $1,101000 ; get width
+    ; $1 is the width of the input image
+
+    f11 $0,101241 ; count unique colors per row
+
+    ; $1 is the width of the input image
+    mov $2,1
+    f31 $0,102120 ; repeat image
+    ";
+
+    #[test]
+    fn test_580001_puzzle_25d8a9c8_loda() {
+        let result: String = run_simple("25d8a9c8", PROGRAM_25D8A9C8).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
     #[test]
     fn test_590000_puzzle_50cb2852() {
         let solution: SolutionSimple = |data| {
@@ -3101,7 +3282,7 @@ mod tests {
             // Objects from the grid
             let cell_mask: Image = input.mask_for_gridcells(Some(4))?;
             let ignore_mask: Image = cell_mask.invert_mask();
-            let objects: Vec<Image> = cell_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
+            let objects: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity4, &cell_mask, &ignore_mask)?;
 
             // Identify the single template image
             let mut image_to_insert: Option<Image> = None;
@@ -3225,10 +3406,10 @@ mod tests {
 
             let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
             let ignore_mask: Image = color_count.to_mask_where_color_is_equal_or_less_than(3);
-            let mut objects: Vec<ImageSegmentItem> = input.find_objects_with_ignore_mask_inner(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
-            objects.sort_unstable_by_key(|item| (item.mass(), item.x(), item.y()));
+            let mut objects: Vec<ConnectedComponentItem> = ConnectedComponent::find_objects_with_ignore_mask_inner(PixelConnectivity::Connectivity4, &input, &ignore_mask)?;
+            objects.sort_unstable_by_key(|item| (item.mass, item.x, item.y));
             objects.reverse();
-            let biggest_object: ImageSegmentItem = match objects.first() {
+            let biggest_object: ConnectedComponentItem = match objects.first() {
                 Some(value) => value.clone(),
                 None => {
                     return Err(anyhow::anyhow!("biggest object"));
@@ -3237,7 +3418,7 @@ mod tests {
             let color_to_be_trimmed: u8 = 0;
             
             // Idea, with the actionlabel, check the size of the masked area correspond to the output size
-            let rect: Rectangle = biggest_object.mask().inner_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
+            let rect: Rectangle = biggest_object.mask.inner_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
             if rect.is_empty() {
                 return Err(anyhow::anyhow!("bounding box is empty"));
             }
@@ -3264,8 +3445,8 @@ mod tests {
             let line_color: u8 = least_popular_color;
             let mut result_image: Image = cropped_input.clone();
 
-            // Shoot out lines in all directions
-            _ = result_image.draw_line_where_row_or_column_contains_color(&cropped_input, least_popular_color, line_color)?;
+            let mask: Image = cropped_input.to_mask_where_color_is(least_popular_color);
+            _ = result_image.draw_line_where_mask_is_nonzero(&mask, line_color)?;
 
             Ok(result_image)
         };
@@ -3284,10 +3465,6 @@ mod tests {
             }
         }
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
 
@@ -3325,10 +3502,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let repair_mask: Image = match &pair.input.repair_mask {
@@ -3427,10 +3600,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let repaired_image: Image = match &pair.input.repaired_image {
@@ -3503,10 +3672,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 println!("grid: {:?}", pair.input.grid);
@@ -3530,10 +3695,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3618,10 +3779,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3698,10 +3855,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3763,10 +3916,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3792,7 +3941,7 @@ mod tests {
 
                 // Segment the image into cells
                 let blank: Image = Image::zero(input.width(), input.height());
-                let cells: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, grid_mask)?;
+                let cells: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity4, &blank, grid_mask)?;
                 if cells.is_empty() {
                     return Err(anyhow::anyhow!("Expected 1 or more cells"));
                 }
@@ -3835,10 +3984,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3923,10 +4068,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -3946,7 +4087,7 @@ mod tests {
                 let non_background_mask: Image = input.to_mask_where_color_is(background_color);
 
                 let blank: Image = Image::zero(input.width(), input.height());
-                let objects: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, &non_background_mask)?;
+                let objects: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity4, &blank, &non_background_mask)?;
 
                 if objects.is_empty() {
                     return Err(anyhow::anyhow!("Expected 1 or more cells"));
@@ -4033,10 +4174,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
@@ -4089,10 +4226,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let enumerated_objects: &Image = match &pair.input.enumerated_objects {
@@ -4141,10 +4274,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let enumerated_objects: &Image = match &pair.input.enumerated_objects {
@@ -4194,10 +4323,6 @@ mod tests {
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
-                Ok(())   
-            }
-    
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let image: &Image = match &pair.input.predicted_single_color_image {
@@ -4217,5 +4342,801 @@ mod tests {
         let mut instance = solve_d631b094::MySolution {};
         let result: String = run_analyze_and_solve("d631b094", &mut instance).expect("String");
         assert_eq!(result, "4 1");
+    }
+
+    mod solve_810b9b61 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = input.most_popular_color().expect("color");
+                let background_ignore_mask: Image = input.to_mask_where_color_is(background_color);
+
+                // Objects that is not the background
+                let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity8, &input, &background_ignore_mask)?;
+                let mut result_image: Image = Image::zero(input.width(), input.height());
+                for object in &object_mask_vec {
+                    let rect: Rectangle = object.bounding_box().expect("some");
+                    
+                    // flood fill at every border pixel around the object
+                    let mut object_image: Image = object.crop(rect)?;
+                    object_image.border_flood_fill(0, 1, PixelConnectivity::Connectivity4);
+
+                    // if there are unfilled areas, then it's because there is one or more holes
+                    let count: u16 = object_image.mask_count_zero();
+                    if count > 0 {
+                        // object with one or more holes
+                        result_image = object.select_from_image_and_color(&result_image, 1)?;
+                    } else {
+                        // object without any holes
+                        result_image = object.select_from_image_and_color(&result_image, 2)?;
+                    }
+                }
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_830000_puzzle_810b9b61() {
+        let mut instance = solve_810b9b61::MySolution {};
+        let result: String = run_analyze_and_solve("810b9b61", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_56ff96f3 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let result_image: Image = input.draw_rect_filled_foreach_color(background_color)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_840000_puzzle_56ff96f3() {
+        let mut instance = solve_56ff96f3::MySolution {};
+        let result: String = run_analyze_and_solve("56ff96f3", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    const PROGRAM_56FF96F3: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; background color
+        f21 $0,102250 ; Draw non-overlapping filled rectangles over the bounding boxes of each color
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_840001_puzzle_56ff96f3_loda() {
+        let result: String = run_advanced("56ff96f3", PROGRAM_56FF96F3).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    mod solve_7e0986d6 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
+                let result_image = input.denoise_type4(noise_color, background_color)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_850000_puzzle_7e0986d6() {
+        let mut instance = solve_7e0986d6::MySolution {};
+        let result: String = run_analyze_and_solve("7e0986d6", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    const PROGRAM_7E0986D6: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    mov $84,115 ; address of vector[0].InputSinglePixelNoiseColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$84 ; noise color
+        mov $2,$$83 ; background color
+        f31 $0,101093 ; Denoise type4. denoise noisy pixels.
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+        add $84,100
+    lpe
+    ";
+
+    #[test]
+    fn test_850001_puzzle_7e0986d6_loda() {
+        let result: String = run_advanced("7e0986d6", PROGRAM_7E0986D6).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    mod solve_ded97339 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
+                let mut result_image: Image = input.clone();
+                _ = result_image.draw_line_connecting_two_colors(noise_color, noise_color, noise_color)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_860000_puzzle_ded97339() {
+        let mut instance = solve_ded97339::MySolution {};
+        let result: String = run_analyze_and_solve("ded97339", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_DED97339: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,115 ; address of vector[0].InputSinglePixelNoiseColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; color0 = noise color
+        mov $2,$1 ; color1 = noise color
+        mov $3,$1 ; line_color = noise color
+        f41 $0,102210 ; Draw lines between the `color0` pixels and `color1` pixels when both occur in the same column/row.
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_860001_puzzle_ded97339_loda() {
+        let result: String = run_advanced("ded97339", PROGRAM_DED97339).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_f5b8619d {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
+                let mask: Image = input.to_mask_where_color_is(noise_color);
+                let mut result_image: Image = input.clone();
+                _ = result_image.draw_line_column_where_mask_is_nonzero(&mask, 42)?;
+                result_image = mask.select_from_images(&result_image, input)?;
+                result_image = result_image.repeat_by_count(2, 2)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_870000_puzzle_f5b8619d() {
+        let mut instance = solve_f5b8619d::MySolution {};
+        let result: String = run_analyze_and_solve("f5b8619d", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_F5B8619D: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,115 ; address of vector[0].InputSinglePixelNoiseColor
+    lps $80
+        mov $0,$$81 ; input image
+
+        mov $8,$0
+        mov $9,$$83 ; noise color
+        f21 $8,101250 ; Convert to a mask image by converting `color` to 1 and converting anything else to to 0.
+        ; $8 is now the mask
+
+        mov $10,$0 ; image
+        mov $11,$8 ; mask
+        mov $12,42 ; line color
+        f31 $10,102222 ; Draw a vertical line if the `mask` contains one or more non-zero pixels.
+        ; $10 is now the columns image
+
+        mov $13,$8 ; mask
+        mov $14,$10 ; the columns image
+        mov $15,$0 ; input image
+        f31 $13,102132 ; Pick pixels from two images. When the mask is 0 then pick `image_a`. When the mask is [1..255] then pick from `image_b`.
+
+        mov $0,$13
+        mov $1,2
+        mov $2,2
+        f31 $0,102120 ; repeat image
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_870001_puzzle_f5b8619d_loda() {
+        let result: String = run_advanced("f5b8619d", PROGRAM_F5B8619D).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_af902bf9 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
+                let mut a: Image = input.to_mask_where_color_is(noise_color);
+                _ = a.draw_line_connecting_two_colors(1, 1, 2)?;
+                _ = a.draw_line_connecting_two_colors(2, 2, 3)?;
+                let b: Image = a.to_mask_where_color_is(3);
+                let c: Image = b.select_from_image_and_color(&input, 255)?;
+                Ok(c)
+            }
+        }
+    }
+
+    #[test]
+    fn test_880000_puzzle_af902bf9() {
+        let mut instance = solve_af902bf9::MySolution {};
+        let result: String = run_analyze_and_solve("af902bf9", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_AF902BF9: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,115 ; address of vector[0].InputSinglePixelNoiseColor
+    lps $80
+        mov $0,$$81 ; input image
+
+        mov $1,$0
+        mov $2,$$83 ; noise color
+        f21 $1,101250 ; mask where color is noise color
+
+        ; $1 = image
+        mov $2,1 ; color0 = 1
+        mov $3,1 ; color1 = 1
+        mov $4,2 ; line_color = 2
+        f41 $1,102210 ; Draw lines between the `color0` pixels and `color1` pixels when both occur in the same column/row.
+
+        ; $1 = image
+        mov $2,2 ; color0 = 2
+        mov $3,2 ; color1 = 2
+        mov $4,3 ; line_color = 3
+        f41 $1,102210 ; Draw lines between the `color0` pixels and `color1` pixels when both occur in the same column/row.
+
+        mov $2,3
+        f21 $1,101250 ; mask where color is 3
+
+        mov $2,$0
+        mov $3,255
+        f31 $1,102131 ; Pick pixels from image and color. When the mask is 0 then pick from the image. When the mask is [1..255] then use the `default_color`.
+
+        mov $0,$1
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_880001_puzzle_af902bf9_loda() {
+        let result: String = run_advanced("af902bf9", PROGRAM_AF902BF9).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_2c608aff {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let mut found = false;
+                for action_label in &task.action_label_set_intersection {
+                    match action_label {
+                        ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage => {
+                            found = true;
+                        },
+                        _ => {}
+                    }
+                }
+                if !found {
+                    return Err(anyhow::anyhow!("OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage not found"));
+                }
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+
+                let background_color: u8 = input.most_popular_color().expect("color");
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
+
+                let mut histogram: Histogram = pair.input.histogram.clone();
+                histogram.set_counter_to_zero(background_color);
+                histogram.set_counter_to_zero(noise_color);
+                if histogram.number_of_counters_greater_than_zero() != 1 {
+                    return Err(anyhow::anyhow!("Expected exactly 1 color that is not background_color or noise_color"));
+                }
+                let sticky_color: u8 = histogram.most_popular_color_disallow_ambiguous().expect("color");
+
+                let mut result_image: Image = input.clone();
+                result_image.draw_line_connecting_two_colors(sticky_color, noise_color, noise_color)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_890000_puzzle_2c608aff() {
+        let mut instance = solve_2c608aff::MySolution {};
+        let result: String = run_analyze_and_solve("2c608aff", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    mod solve_21f83797 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let mut found = false;
+                for action_label in &task.action_label_set_intersection {
+                    match action_label {
+                        ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage => {
+                            found = true;
+                        },
+                        _ => {}
+                    }
+                }
+                if !found {
+                    return Err(anyhow::anyhow!("OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage not found"));
+                }
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");                
+                let mask: Image = input.to_mask_where_color_is(noise_color);
+                
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let mut result_image: Image = input.clone();
+                for object in &single_color_objects.sparse_vec {
+                    if object.color != noise_color {
+                        continue;
+                    }
+                    result_image = result_image.draw_rect_filled(object.bounding_box, 42)?;
+                }
+
+                result_image.draw_line_where_mask_is_nonzero(&mask, noise_color)?;
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_900000_puzzle_21f83797() {
+        let mut instance = solve_21f83797::MySolution {};
+        let result: String = run_analyze_and_solve("21f83797", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    mod solve_1e0a9b12 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+                let result_image: Image = input.gravity(background_color, GravityDirection::Down)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_910000_puzzle_1e0a9b12() {
+        let mut instance = solve_1e0a9b12::MySolution {};
+        let result: String = run_analyze_and_solve("1e0a9b12", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_1E0A9B12: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; most popular color across inputs
+        f21 $0,102191 ; Gravity in the down direction
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_910001_puzzle_1e0a9b12_loda() {
+        let result: String = run_advanced("1e0a9b12", PROGRAM_1E0A9B12).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_beb8660c {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let image_with_gravity: Image = input.gravity(background_color, GravityDirection::Right)?;
+                let result_image: Image = image_with_gravity.sort_by_color(background_color, ImageSortMode::RowsAscending)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_920000_puzzle_beb8660c() {
+        let mut instance = solve_beb8660c::MySolution {};
+        let result: String = run_analyze_and_solve("beb8660c", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_BEB8660C: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; most popular color across inputs
+        f21 $0,102193 ; Gravity in the right direction
+
+        ; $1 holds the most popular color across inputs
+        f21 $0,102200 ; Sort rows-ascending by color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_920001_puzzle_beb8660c_loda() {
+        let result: String = run_advanced("beb8660c", PROGRAM_BEB8660C).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_d5d6de2d {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+                let foreground_mask: Image = input.to_mask_where_color_is_different(background_color);
+
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+
+                let mut result_image: Image = Image::zero(input.width(), input.height());
+                for object in &single_color_objects.sparse_vec {
+                    if object.color == background_color {
+                        continue;
+                    }
+                    let container: &SingleColorObjectClusterContainer = match &object.container4 {
+                        Some(value) => value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    result_image = container.enumerated_clusters_uncropped.to_mask_where_color_is_different(0);
+                }
+
+                result_image = result_image.mix(&foreground_mask, MixMode::Minus)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_930000_puzzle_d5d6de2d() {
+        let mut instance = solve_d5d6de2d::MySolution {};
+        let result: String = run_analyze_and_solve("d5d6de2d", &mut instance).expect("String");
+        assert_eq!(result, "3 2");
+    }
+
+    mod solve_84db8fc4 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let color: u8 = pair.input.removal_color.expect("color");
+                let mut result_image: Image = input.clone();
+                result_image.border_flood_fill(color, 255, PixelConnectivity::Connectivity4);
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_940000_puzzle_84db8fc4() {
+        let mut instance = solve_84db8fc4::MySolution {};
+        let result: String = run_analyze_and_solve("84db8fc4", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    const PROGRAM_84DB8FC4: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,113 ; address of vector[0].RemovalColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; set source color = removal color
+        mov $2,42 ; set destination color to 42
+        f31 $0,102180 ; Flood fill at every pixel along the border, connectivity-4.
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_940001_puzzle_84db8fc4_loda() {
+        let result: String = run_advanced("84db8fc4", PROGRAM_84DB8FC4).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    mod solve_e7639916 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let mut found = false;
+                for action_label in &task.action_label_set_intersection {
+                    match action_label {
+                        ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage => {
+                            found = true;
+                        },
+                        _ => {}
+                    }
+                }
+                if !found {
+                    return Err(anyhow::anyhow!("OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage not found"));
+                }
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
+
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let mut result_image: Image = input.clone();
+                for object in &single_color_objects.sparse_vec {
+                    if object.color != noise_color {
+                        continue;
+                    }
+                    let rect: Rectangle = object.bounding_box;
+                    result_image = result_image.draw_rect_border(rect.min_x(), rect.min_y(), rect.max_x(), rect.max_y(), 42)?;
+                    result_image = object.mask.select_from_image_and_color(&result_image, object.color)?;
+                }
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_960000_puzzle_e7639916() {
+        let mut instance = solve_e7639916::MySolution {};
+        let result: String = run_analyze_and_solve("e7639916", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_e0fb7511 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let mut found = false;
+                for action_label in &task.action_label_set_intersection {
+                    match action_label {
+                        ActionLabel::OutputImageHasSameStructureAsInputImage => {
+                            found = true;
+                        },
+                        _ => {}
+                    }
+                }
+                if !found {
+                    return Err(anyhow::anyhow!("OutputImageHasSameStructureAsInputImage not found"));
+                }
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+
+                // Histogram of the isolated pixels
+                let mut isolated_pixels: Image = input.count_duplicate_pixels_in_neighbours()?;
+                isolated_pixels = isolated_pixels.to_mask_where_color_is(1);
+                let histogram: Histogram = input.histogram_with_mask(&isolated_pixels)?;
+                // println!("histogram: {:?}", histogram.pairs_descending());
+                let noise_color: u8 = histogram.most_popular_color_disallow_ambiguous().expect("color");
+
+                let mut result_image: Image = input.clone();
+                for object in &single_color_objects.sparse_vec {
+                    if object.color != noise_color {
+                        continue;
+                    }
+                    let container: &SingleColorObjectClusterContainer = match &object.container4 {
+                        Some(value) => value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    let mut enumerated_objects: Image = container.enumerated_clusters_uncropped.clone();
+                    for cluster in &container.cluster_vec {
+                        if cluster.mass_cluster <= 1 {
+                            continue;
+                        }
+                        if cluster.cluster_id > (u8::MAX as usize) {
+                            continue;
+                        }
+                        let source_color: u8 = cluster.cluster_id as u8;
+                        enumerated_objects = enumerated_objects.replace_color(source_color, 0)?;
+                    }
+                    let mask: Image = enumerated_objects.to_mask_where_color_is_different(0);
+                    result_image = mask.select_from_image_and_color(&result_image, 42)?;
+                }
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_970000_puzzle_e0fb7511() {
+        let mut instance = solve_e0fb7511::MySolution {};
+        let result: String = run_analyze_and_solve("e0fb7511", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_62ab2642 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let mut found = false;
+                for action_label in &task.action_label_set_intersection {
+                    match action_label {
+                        ActionLabel::OutputImageHasSameStructureAsInputImage => {
+                            found = true;
+                        },
+                        _ => {}
+                    }
+                }
+                if !found {
+                    return Err(anyhow::anyhow!("OutputImageHasSameStructureAsInputImage not found"));
+                }
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+
+                let mut result_image: Image = input.clone();
+                for object in &single_color_objects.sparse_vec {
+                    if object.color != background_color {
+                        continue;
+                    }
+                    let container: &SingleColorObjectClusterContainer = match &object.container4 {
+                        Some(value) => value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    let oam: ObjectsAndMass = ObjectsAndMass::new(&container.enumerated_clusters_uncropped)?;
+                    let enumerated_by_mass: Image = oam.group3_small_medium_big(false)?;
+                    result_image = result_image.mix(&enumerated_by_mass, MixMode::Plus)?;
+                }
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_980000_puzzle_62ab2642() {
+        let mut instance = solve_62ab2642::MySolution {};
+        let result: String = run_analyze_and_solve("62ab2642", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_3906DE3D: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$$83 ; most popular color across inputs
+        f21 $0,102190 ; Gravity in the up direction
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_990000_puzzle_3906de3d_loda() {
+        let result: String = run_advanced("3906de3d", PROGRAM_3906DE3D).expect("String");
+        assert_eq!(result, "3 1");
     }
 }

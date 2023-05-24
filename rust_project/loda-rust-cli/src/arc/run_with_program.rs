@@ -106,6 +106,26 @@ enum MemoryLayoutItem {
     /// When it's not available then the value is `-1`.
     PredictedSingleColorImage = 12,
 
+    /// The training pairs agree on removing a single color,
+    /// or each training pair has its own color that is being removed.
+    ///
+    /// When it's not available then the value is `-1`.
+    RemovalColor = 13,
+
+    /// The input image's most popular color across all the training pairs.
+    ///
+    /// When there are multiple colors with same popularity, then the value is `-1`.
+    /// 
+    /// When the training pairs doesn't agree on a single color, then the value is `-1`.
+    InputMostPopularColor = 14,
+
+    /// The input image's has isolated pixels with the same color.
+    ///
+    /// It's the most popular color of the isolated pixels.
+    /// 
+    /// When it's not available then the value is `-1`.
+    InputSinglePixelNoiseColor = 15,
+
     // Ideas for more
     // Number of cells horizontal
     // Number of cells vertical
@@ -186,7 +206,10 @@ pub struct SolutionSimpleData {
 pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
 
 pub trait AnalyzeAndSolve {
-    fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()>;
+    fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image>;
 }
 
@@ -513,6 +536,45 @@ impl RunWithProgram {
                 }
             }
             
+            // memory[x*100+113] = train[x].removal_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.removal_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::RemovalColor as u64, value).context("pair.RemovalColor, set_u64")?;
+                }
+            }
+            
+            // memory[x*100+114] = train[x].most_popular_intersection_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.most_popular_intersection_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::InputMostPopularColor as u64, value).context("pair.RemovalColor, set_u64")?;
+                }
+            }
+
+            // memory[x*100+115] = train[x].single_pixel_noise_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.single_pixel_noise_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::InputSinglePixelNoiseColor as u64, value).context("pair.RemovalColor, set_u64")?;
+                }
+            }
+
             // Ideas for data to make available to the program.
             // output_palette
             // substitutions, replace this color with that color
@@ -675,6 +737,45 @@ impl RunWithProgram {
                     if let Some(value) = (-1i16).to_bigint() {
                         state.set_u64(address + MemoryLayoutItem::PredictedSingleColorImage as u64, value).context("predicted_single_color_image, set_u64 with -1")?;
                     }
+                }
+            }
+            
+            // memory[x*100+113] = test[x].removal_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.removal_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::RemovalColor as u64, value).context("pair.RemovalColor, set_u64")?;
+                }
+            }
+            
+            // memory[x*100+114] = test[x].most_popular_intersection_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.most_popular_intersection_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::InputMostPopularColor as u64, value).context("pair.RemovalColor, set_u64")?;
+                }
+            }
+
+            // memory[x*100+115] = test[x].single_pixel_noise_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.input.single_pixel_noise_color {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::InputSinglePixelNoiseColor as u64, value).context("pair.RemovalColor, set_u64")?;
                 }
             }
 

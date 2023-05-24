@@ -1,4 +1,4 @@
-use super::{Image, ImageSegment, ImageSegmentAlgorithm, ImageColorProfile, ImageMask, ImageTrim};
+use super::{Image, ConnectedComponent, PixelConnectivity, ImageColorProfile, ImageMask, ImageTrim};
 use anyhow::Context;
 use std::collections::HashMap;
 
@@ -34,7 +34,7 @@ impl PopularObjects {
     }
 
     fn find_objects(input: &Image) -> anyhow::Result<Vec<Record>> {
-        let object_mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::All)
+        let object_mask_vec: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity8, input)
             .with_context(|| "find_objects find_objects")?;
 
         // Problem: `most_popular_color` has a dangerous assumption, that there is just 1 popular color.

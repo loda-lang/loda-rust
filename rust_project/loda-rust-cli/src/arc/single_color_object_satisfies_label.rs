@@ -1,28 +1,28 @@
-use super::{SingleColorObject, SingleColorObjectLabel};
+use super::{SingleColorObjectRectangle, SingleColorObjectRectangleLabel};
 
 pub trait SingleColorObjectSatisfiesLabel {
-    fn satisfies_label(&self, label: &SingleColorObjectLabel) -> bool;
+    fn satisfies_label(&self, label: &SingleColorObjectRectangleLabel) -> bool;
 }
 
-impl SingleColorObjectSatisfiesLabel for SingleColorObject {
-    fn satisfies_label(&self, label: &SingleColorObjectLabel) -> bool {
+impl SingleColorObjectSatisfiesLabel for SingleColorObjectRectangle {
+    fn satisfies_label(&self, label: &SingleColorObjectRectangleLabel) -> bool {
         match label {
-            SingleColorObjectLabel::SquareWithColor { color } => {
+            SingleColorObjectRectangleLabel::SquareWithColor { color } => {
                 self.color == *color && self.is_square == true
             },
-            SingleColorObjectLabel::NonSquareWithColor { color } => {
+            SingleColorObjectRectangleLabel::NonSquareWithColor { color } => {
                 self.color == *color && self.is_square == false
             },
-            SingleColorObjectLabel::RectangleWithColor { color } => {
+            SingleColorObjectRectangleLabel::RectangleWithColor { color } => {
                 self.color == *color
             },
-            SingleColorObjectLabel::SquareWithSomeColor => {
+            SingleColorObjectRectangleLabel::SquareWithSomeColor => {
                 self.is_square == true
             },
-            SingleColorObjectLabel::NonSquareWithSomeColor => {
+            SingleColorObjectRectangleLabel::NonSquareWithSomeColor => {
                 self.is_square == false
             },
-            SingleColorObjectLabel::RectangleWithSomeColor => {
+            SingleColorObjectRectangleLabel::RectangleWithSomeColor => {
                 true
             },
         }
@@ -44,7 +44,7 @@ mod tests {
         ];
         let mask: Image = Image::try_create(4, 3, pixels).expect("image");
 
-        let object = SingleColorObject {
+        let object = SingleColorObjectRectangle {
             color: 7,
             mask,
             bounding_box: Rectangle::new(1, 0, 2, 2),
@@ -52,17 +52,17 @@ mod tests {
             is_square: true,
         };
         
-        let mut pairs = Vec::<(bool, SingleColorObjectLabel)>::new();
-        pairs.push((true, SingleColorObjectLabel::SquareWithColor { color: 7 }));
-        pairs.push((true, SingleColorObjectLabel::SquareWithSomeColor));
-        pairs.push((true, SingleColorObjectLabel::RectangleWithColor { color: 7 }));
-        pairs.push((true, SingleColorObjectLabel::RectangleWithSomeColor));
-        pairs.push((false, SingleColorObjectLabel::SquareWithColor { color: 42 }));
-        pairs.push((false, SingleColorObjectLabel::NonSquareWithColor { color: 7 }));
-        pairs.push((false, SingleColorObjectLabel::NonSquareWithSomeColor));
-        pairs.push((false, SingleColorObjectLabel::RectangleWithColor { color: 42 }));
+        let mut pairs = Vec::<(bool, SingleColorObjectRectangleLabel)>::new();
+        pairs.push((true, SingleColorObjectRectangleLabel::SquareWithColor { color: 7 }));
+        pairs.push((true, SingleColorObjectRectangleLabel::SquareWithSomeColor));
+        pairs.push((true, SingleColorObjectRectangleLabel::RectangleWithColor { color: 7 }));
+        pairs.push((true, SingleColorObjectRectangleLabel::RectangleWithSomeColor));
+        pairs.push((false, SingleColorObjectRectangleLabel::SquareWithColor { color: 42 }));
+        pairs.push((false, SingleColorObjectRectangleLabel::NonSquareWithColor { color: 7 }));
+        pairs.push((false, SingleColorObjectRectangleLabel::NonSquareWithSomeColor));
+        pairs.push((false, SingleColorObjectRectangleLabel::RectangleWithColor { color: 42 }));
 
-        let labels: Vec<SingleColorObjectLabel> = pairs.iter().map(|(_expected,label)| label.clone()).collect();
+        let labels: Vec<SingleColorObjectRectangleLabel> = pairs.iter().map(|(_expected,label)| label.clone()).collect();
         let expected: Vec<bool> = pairs.iter().map(|(expected,_label)| *expected).collect();
 
         // Act
@@ -82,7 +82,7 @@ mod tests {
         ];
         let mask: Image = Image::try_create(4, 3, pixels).expect("image");
 
-        let object = SingleColorObject {
+        let object = SingleColorObjectRectangle {
             color: 7,
             mask,
             bounding_box: Rectangle::new(1, 0, 2, 3),
@@ -90,17 +90,17 @@ mod tests {
             is_square: false,
         };
         
-        let mut pairs = Vec::<(bool, SingleColorObjectLabel)>::new();
-        pairs.push((true, SingleColorObjectLabel::NonSquareWithColor { color: 7 }));
-        pairs.push((true, SingleColorObjectLabel::NonSquareWithSomeColor));
-        pairs.push((true, SingleColorObjectLabel::RectangleWithColor { color: 7 }));
-        pairs.push((true, SingleColorObjectLabel::RectangleWithSomeColor));
-        pairs.push((false, SingleColorObjectLabel::SquareWithColor { color: 7 }));
-        pairs.push((false, SingleColorObjectLabel::SquareWithColor { color: 42 }));
-        pairs.push((false, SingleColorObjectLabel::SquareWithSomeColor));
-        pairs.push((false, SingleColorObjectLabel::RectangleWithColor { color: 42 }));
+        let mut pairs = Vec::<(bool, SingleColorObjectRectangleLabel)>::new();
+        pairs.push((true, SingleColorObjectRectangleLabel::NonSquareWithColor { color: 7 }));
+        pairs.push((true, SingleColorObjectRectangleLabel::NonSquareWithSomeColor));
+        pairs.push((true, SingleColorObjectRectangleLabel::RectangleWithColor { color: 7 }));
+        pairs.push((true, SingleColorObjectRectangleLabel::RectangleWithSomeColor));
+        pairs.push((false, SingleColorObjectRectangleLabel::SquareWithColor { color: 7 }));
+        pairs.push((false, SingleColorObjectRectangleLabel::SquareWithColor { color: 42 }));
+        pairs.push((false, SingleColorObjectRectangleLabel::SquareWithSomeColor));
+        pairs.push((false, SingleColorObjectRectangleLabel::RectangleWithColor { color: 42 }));
 
-        let labels: Vec<SingleColorObjectLabel> = pairs.iter().map(|(_expected,label)| label.clone()).collect();
+        let labels: Vec<SingleColorObjectRectangleLabel> = pairs.iter().map(|(_expected,label)| label.clone()).collect();
         let expected: Vec<bool> = pairs.iter().map(|(expected,_label)| *expected).collect();
 
         // Act

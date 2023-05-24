@@ -57,6 +57,12 @@ pub struct Input {
 
     pub predicted_single_color_image: Option<Image>,
 
+    pub removal_color: Option<u8>,
+
+    pub most_popular_intersection_color: Option<u8>,
+
+    pub single_pixel_noise_color: Option<u8>,
+
     // Future experiments to do.
     // Resolving these properties is similar to a package manager, a DAG (directed acyclic graph).
     // One property may depend on another property that depends on a third property.
@@ -79,6 +85,7 @@ pub enum Prediction {
     OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color: u8 },
 
     // Ideas for more
+    // background color, the most popular intersection color in input and output, across all training pairs
     // substitution, replace this image with that image
     // replace this color with that color
     // weak prediction: the color is a subset of this palette.
