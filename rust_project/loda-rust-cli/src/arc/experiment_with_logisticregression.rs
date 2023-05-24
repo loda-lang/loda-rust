@@ -142,6 +142,8 @@ struct Record {
     // direction down color
     // direction left color
     // direction right color
+    // single pixel with this color, the mass of this color is 1.
+    // nesting depth, how many flood fills are needed to clear the image.
     
     // These are worsening the predictions.
     // input_is_removal_color: u8,

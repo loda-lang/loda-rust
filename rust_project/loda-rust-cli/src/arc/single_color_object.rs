@@ -390,7 +390,11 @@ impl SingleColorObjects {
         histogram.most_popular_color_disallow_ambiguous()
     }
 
-    #[allow(dead_code)]
+    /// Extracts the `mass` from all objects. Clamp the `mass` to a maximum of 255.
+    /// 
+    /// In every pixel of the image, go through all the objects and save the mass as the pixel color.
+    /// 
+    /// Returns an image with the same size as the input image.
     pub fn mass_as_image(&self, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
         for object in &self.rectangle_vec {
