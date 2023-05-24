@@ -94,10 +94,12 @@ struct Record {
     distance_right: u8,
     input_is_noise_color: u8,
     input_is_most_popular_color: u8,
+    x_mod2: u8,
+    y_mod2: u8,
+    x_reverse_mod2: u8,
+    y_reverse_mod2: u8,
     v0: u8,
     v1: u8,
-    v2: u8,
-    v3: u8,
 
     // Future experiments
     // is insertion color
@@ -105,10 +107,12 @@ struct Record {
     // distance from center y: i8,
     // is column solid: u8,
     // is row solid: u8,
-    // y mod2: u8,
-    // x mod2: u8,
     // y mod3: u8,
     // x mod3: u8,
+    // direction up color
+    // direction down color
+    // direction left color
+    // direction right color
 
     // These are worsening the predictions.
     // input_is_removal_color: u8,
@@ -267,6 +271,8 @@ impl ExperimentWithLogisticRegression {
                 for x in 0..width {
                     let xx: i32 = x as i32;
                     let yy: i32 = y as i32;
+                    let x_reverse: u8 = ((width as i32) - 1 - xx).max(0) as u8;
+                    let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
                     let top_left: u8 = input.get(xx -1, yy - 1).unwrap_or(255);
@@ -299,9 +305,9 @@ impl ExperimentWithLogisticRegression {
 
                     let max_distance: u8 = 3;
                     let distance_top: u8 = y.min(max_distance);
-                    let distance_bottom: u8 = ((height as i32) - 1 - yy).min(max_distance as i32) as u8;
+                    let distance_bottom: u8 = y_reverse.min(max_distance);
                     let distance_left: u8 = x.min(max_distance);
-                    let distance_right: u8 = ((width as i32) - 1 - xx).min(max_distance as i32) as u8;
+                    let distance_right: u8 = x_reverse.min(max_distance);
 
                     let input_is_noise_color: u8 = if noise_color == Some(center) { 1 } else { 0 };
                     // let input_is_removal_color: u8 = if removal_color == Some(center) { 1 } else { 0 };
@@ -313,8 +319,11 @@ impl ExperimentWithLogisticRegression {
                 
                     let mut v0: u8 = 0;
                     let mut v1: u8 = 0;
-                    let v2: u8 = 0;
-                    let v3: u8 = 0;
+
+                    let x_mod2: u8 = x % 2;
+                    let y_mod2: u8 = y % 2;
+                    let x_reverse_mod2: u8 = x_reverse % 2;
+                    let y_reverse_mod2: u8 = y_reverse % 2;
 
                     for label in &task.action_label_set_intersection {
                         match label {
@@ -356,10 +365,12 @@ impl ExperimentWithLogisticRegression {
                         distance_right,
                         input_is_noise_color,
                         input_is_most_popular_color,
+                        x_mod2,
+                        y_mod2,
+                        x_reverse_mod2,
+                        y_reverse_mod2,
                         v0,
                         v1,
-                        v2,
-                        v3,
                     };
 
                     records.push(record);
