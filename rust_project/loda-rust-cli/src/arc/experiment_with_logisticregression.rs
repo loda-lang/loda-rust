@@ -1,6 +1,6 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
-use crate::arc::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel};
+use crate::arc::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge};
 use crate::config::Config;
 use anyhow::Context;
 use std::path::{PathBuf, Path};
@@ -98,8 +98,13 @@ struct Record {
     y_mod2: u8,
     x_reverse_mod2: u8,
     y_reverse_mod2: u8,
+    preserve_edge: u8,
     v0: u8,
     v1: u8,
+    v2: u8,
+    v3: u8,
+    v4: u8,
+    v5: u8,
 
     // Future experiments
     // is insertion color
@@ -317,13 +322,19 @@ impl ExperimentWithLogisticRegression {
 
                     let input_is_most_popular_color: u8 = if most_popular_color == Some(center) { 1 } else { 0 };
                 
-                    let mut v0: u8 = 0;
-                    let mut v1: u8 = 0;
-
                     let x_mod2: u8 = x % 2;
                     let y_mod2: u8 = y % 2;
                     let x_reverse_mod2: u8 = x_reverse % 2;
                     let y_reverse_mod2: u8 = y_reverse % 2;
+
+                    let mut preserve_edge: u8 = 0;
+
+                    let mut v0: u8 = 0;
+                    let mut v1: u8 = 0;
+                    let mut v2: u8 = 0;
+                    let mut v3: u8 = 0;
+                    let mut v4: u8 = 0;
+                    let mut v5: u8 = 0;
 
                     for label in &task.action_label_set_intersection {
                         match label {
@@ -335,6 +346,30 @@ impl ExperimentWithLogisticRegression {
                             ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
                                 if center == *color {
                                     v1 = 1;
+                                }
+                            },
+                            ActionLabel::OutputImagePreserveInputImageEdge { edge } => {
+                                match *edge {
+                                    ImageEdge::Top => {
+                                        if y == 0 {
+                                            preserve_edge = 1;
+                                        }
+                                    },
+                                    ImageEdge::Bottom => {
+                                        if y_reverse == 0 {
+                                            preserve_edge = 1;
+                                        }
+                                    },
+                                    ImageEdge::Left => {
+                                        if x == 0 {
+                                            preserve_edge = 1;
+                                        }
+                                    },
+                                    ImageEdge::Right => {
+                                        if x_reverse == 0 {
+                                            preserve_edge = 1;
+                                        }
+                                    },
                                 }
                             },
                             // ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
@@ -369,8 +404,13 @@ impl ExperimentWithLogisticRegression {
                         y_mod2,
                         x_reverse_mod2,
                         y_reverse_mod2,
+                        preserve_edge,
                         v0,
                         v1,
+                        v2,
+                        v3,
+                        v4,
+                        v5,
                     };
 
                     records.push(record);
