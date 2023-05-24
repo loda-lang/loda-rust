@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PixelConnectivity {
     /// Considers only the 4 neighbors around the center pixel, the top/bottom/left/right pixels.
     /// 
