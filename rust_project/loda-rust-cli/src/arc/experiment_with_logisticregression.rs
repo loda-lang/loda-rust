@@ -121,6 +121,7 @@ struct Record {
     center_x_reversed: PixelColor,
     center_y_reversed: PixelColor,
     mass_connectivity4: PixelColor,
+    mass_connectivity8: PixelColor,
     v0: u8,
     v1: u8,
     v2: u8,
@@ -281,14 +282,14 @@ impl ExperimentWithLogisticRegression {
             // let removal_color: Option<u8> = pair.input.removal_color;
 
             let mut image_mass_connectivity4: Image = Image::zero(width, height);
-            // let mut image_mass_connectivity8: Image = Image::zero(width, height);
+            let mut image_mass_connectivity8: Image = Image::zero(width, height);
             if let Some(sco) = &pair.input.single_color_objects {
                 if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity4) {
                     image_mass_connectivity4 = image_mass_connectivity4.overlay_with_position(&image, 0, 0)?;
                 }
-                // if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity8) {
-                //     image_mass_connectivity8 = image_mass_connectivity8.overlay_with_position(&image, 0, 0)?;
-                // }
+                if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity8) {
+                    image_mass_connectivity8 = image_mass_connectivity8.overlay_with_position(&image, 0, 0)?;
+                }
             }
 
             let histogram_columns: Vec<Histogram> = input.histogram_columns();
@@ -353,7 +354,7 @@ impl ExperimentWithLogisticRegression {
                     // let input_is_removal_color: u8 = if removal_color == Some(center) { 1 } else { 0 };
 
                     let mass_connectivity4: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
-                    // let mass_connectivity8: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
+                    let mass_connectivity8: u8 = image_mass_connectivity8.get(xx, yy).unwrap_or(0);
 
                     let input_is_most_popular_color: u8 = if most_popular_color == Some(center) { 1 } else { 0 };
                 
@@ -635,6 +636,7 @@ impl ExperimentWithLogisticRegression {
                         center_x_reversed: PixelColor::from(center_x_reversed),
                         center_y_reversed: PixelColor::from(center_y_reversed),
                         mass_connectivity4: PixelColor::from(mass_connectivity4),
+                        mass_connectivity8: PixelColor::from(mass_connectivity8),
                         v0,
                         v1,
                         v2,
