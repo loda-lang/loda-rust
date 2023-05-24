@@ -678,4 +678,29 @@ mod tests {
         let expected: Image = Image::try_create(6, 7, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
+
+    // #[test]
+    #[allow(dead_code)]
+    fn test_50001_mass_as_image_connectivity4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 8, 5, 8,
+            8, 5, 8, 8,
+            8, 8, 8, 8,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.mass_as_image(PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            10, 10,  1, 10,
+            10,  1, 10, 10, // TODO: investigate why the 1 is missing from this row. Possible problem in ConnectedComponents.
+            10, 10, 10, 10,
+        ];
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
 }
