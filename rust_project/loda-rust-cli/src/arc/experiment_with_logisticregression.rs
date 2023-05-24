@@ -102,6 +102,15 @@ struct Record {
     v3: u8,
 
     // Future experiments
+    // is insertion color
+    // distance from center x: i8,
+    // distance from center y: i8,
+    // is column solid: u8,
+    // is row solid: u8,
+    // y mod2: u8,
+    // x mod2: u8,
+    // y mod3: u8,
+    // x mod3: u8,
 
     // These are worsening the predictions.
     // input_is_removal_color: u8,
@@ -123,6 +132,10 @@ struct Record {
     // bottom2: PixelColor,
     // bottom3: PixelColor,
     // bottom4: PixelColor,
+    // distance_top: PixelColor,
+    // distance_bottom: PixelColor,
+    // distance_left: PixelColor,
+    // distance_right: PixelColor,
 }
 
 pub struct ExperimentWithLogisticRegression {
@@ -286,10 +299,11 @@ impl ExperimentWithLogisticRegression {
                     // let bottom3: u8 = input.get(xx + 1, yy + t).unwrap_or(255);
                     // let bottom4: u8 = input.get(xx + t, yy + t).unwrap_or(255);
 
-                    let distance_top: u8 = y.min(3);
-                    let distance_bottom: u8 = ((height as i32) - 1 - yy).min(3) as u8;
-                    let distance_left: u8 = x.min(3);
-                    let distance_right: u8 = ((width as i32) - 1 - xx).min(3) as u8;
+                    let max_distance: u8 = 3;
+                    let distance_top: u8 = y.min(max_distance);
+                    let distance_bottom: u8 = ((height as i32) - 1 - yy).min(max_distance as i32) as u8;
+                    let distance_left: u8 = x.min(max_distance);
+                    let distance_right: u8 = ((width as i32) - 1 - xx).min(max_distance as i32) as u8;
 
                     let input_is_noise_color: u8 = if noise_color == Some(center) { 1 } else { 0 };
                     let output_is_noise_color: u8 = if noise_color == Some(output_color) { 1 } else { 0 };
@@ -352,27 +366,6 @@ impl ExperimentWithLogisticRegression {
                         v1,
                         v2,
                         v3,
-                        
-                        // These are worsening the predictions.
-                        // input_is_removal_color,
-                        // mass_connectivity4,
-                        // mass_connectivity8,
-                        // top0: PixelColor::from(top0),
-                        // top1: PixelColor::from(top1),
-                        // top2: PixelColor::from(top2),
-                        // top3: PixelColor::from(top3),
-                        // top4: PixelColor::from(top4),
-                        // left1: PixelColor::from(left1),
-                        // left2: PixelColor::from(left2),
-                        // left3: PixelColor::from(left3),
-                        // right1: PixelColor::from(right1),
-                        // right2: PixelColor::from(right2),
-                        // right3: PixelColor::from(right3),
-                        // bottom0: PixelColor::from(bottom0),
-                        // bottom1: PixelColor::from(bottom1),
-                        // bottom2: PixelColor::from(bottom2),
-                        // bottom3: PixelColor::from(bottom3),
-                        // bottom4: PixelColor::from(bottom4),
                     };
 
                     records.push(record);
