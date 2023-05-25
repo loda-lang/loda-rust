@@ -361,7 +361,13 @@ impl ExperimentWithLogisticRegression {
                     let left2: u8 = input.get(xx - t, yy).unwrap_or(255);
                     let left3: u8 = input.get(xx - t, yy + 1).unwrap_or(255);
                     let right1: u8 = input.get(xx + t, yy - 1).unwrap_or(255);
-                    let right2: u8 = input.get(xx + t, yy).unwrap_or(255);
+                    let right2: u8 = input.get(xx + t, yy).unwrap_or(255);                                    
+                    let right3: u8 = input.get(xx + t, yy + 1).unwrap_or(255);
+                    let bottom0: u8 = input.get(xx - t, yy + t).unwrap_or(255);
+                    let bottom1: u8 = input.get(xx - 1, yy + t).unwrap_or(255);
+                    let bottom2: u8 = input.get(xx, yy + t).unwrap_or(255);
+                    let bottom3: u8 = input.get(xx + 1, yy + t).unwrap_or(255);
+                    let bottom4: u8 = input.get(xx + t, yy + t).unwrap_or(255);
 
                     let neighbour_up: u8 = image_neighbour_up.get(xx, yy).unwrap_or(255);
                     let neighbour_down: u8 = image_neighbour_down.get(xx, yy).unwrap_or(255);
@@ -394,13 +400,6 @@ impl ExperimentWithLogisticRegression {
                     //     Ok(value) => value,
                     //     Err(_) => Image::empty()
                     // };
-                                    
-                    let right3: u8 = input.get(xx + t, yy + 1).unwrap_or(255);
-                    let bottom0: u8 = input.get(xx - t, yy + t).unwrap_or(255);
-                    let bottom1: u8 = input.get(xx - 1, yy + t).unwrap_or(255);
-                    let bottom2: u8 = input.get(xx, yy + t).unwrap_or(255);
-                    let bottom3: u8 = input.get(xx + 1, yy + t).unwrap_or(255);
-                    let bottom4: u8 = input.get(xx + t, yy + t).unwrap_or(255);
 
                     let max_distance: u8 = 3;
                     let distance_top: u8 = y.min(max_distance);
@@ -608,6 +607,7 @@ impl ExperimentWithLogisticRegression {
                         // }
                     }
 
+                    let mut preserve_color: u8 = 255;
                     for label in &task.action_label_set_intersection {
                         match label {
                             ActionLabel::InputImageIsOutputImageWithNoChangesToPixelsWithColor { color } => {
@@ -668,17 +668,18 @@ impl ExperimentWithLogisticRegression {
                             //         },
                             //     }
                             // },
-                            // ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
-                            //     if center == *color {
-                            //         v2 = 1;
-                            //     }
-                            //     if noise_color == Some(*color) {
-                            //         v3 = 1;
-                            //     }
-                            //     if most_popular_color == Some(*color) {
-                            //         v4 = 1;
-                            //     }
-                            // },
+                            ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
+                                preserve_color = *color;
+                                if center == *color {
+                                    v5 = 1;
+                                }
+                                if noise_color == Some(*color) {
+                                    v6 = 1;
+                                }
+                                if most_popular_color == Some(*color) {
+                                    v7 = 1;
+                                }
+                            },
                             _ => {}
                         }
                     }
@@ -956,6 +957,7 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_raw(corners_center2);
                     record.serialize_raw(corners_center3);
                     record.serialize_raw(corners_center4);
+                    record.serialize_color(preserve_color);
                     // record.serialize_raw(is_corner);
                     // record.serialize_raw(corner_top_left);
                     // record.serialize_raw(corner_top_right);
