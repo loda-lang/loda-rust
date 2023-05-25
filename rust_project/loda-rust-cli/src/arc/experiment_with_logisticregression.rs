@@ -144,6 +144,25 @@ impl ExperimentWithLogisticRegression {
     fn export_task(&self, task: &Task) -> anyhow::Result<()> {
         println!("exporting task: {}", task.id);
 
+        let mut input_histogram_intersection: [bool; 10] = [false; 10];
+        for color in 0..=9u8 {
+            if task.input_histogram_intersection.get(color) > 0 {
+                input_histogram_intersection[color as usize] = true;
+            }
+        }
+
+        let mut no_change_to_color: [bool; 10] = [false; 10];
+        for label in &task.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
+                    if *color < 10 {
+                        no_change_to_color[*color as usize] = true;
+                    }
+                },
+                _ => {}
+            }
+        }
+
         let mut records = Vec::<Record>::new();
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             let pair_id: u8 = pair_index.min(255) as u8;
@@ -607,7 +626,6 @@ impl ExperimentWithLogisticRegression {
                         // }
                     }
 
-                    let mut no_change_to_color: [bool; 10] = [false; 10];
                     for label in &task.action_label_set_intersection {
                         match label {
                             ActionLabel::InputImageIsOutputImageWithNoChangesToPixelsWithColor { color } => {
@@ -669,9 +687,6 @@ impl ExperimentWithLogisticRegression {
                             //     }
                             // },
                             ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
-                                if *color < 10 {
-                                    no_change_to_color[*color as usize] = true;
-                                }
                                 if center == *color {
                                     v5 = 1;
                                 }
@@ -961,6 +976,10 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_raw(corners_center4);
                     for i in 0..10 {
                         let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
+                        record.serialize_raw(value);
+                    }
+                    for i in 0..10 {
+                        let value: u8 = if input_histogram_intersection[i] { 1 } else { 0 };
                         record.serialize_raw(value);
                     }
                     // record.serialize_raw(is_corner);
