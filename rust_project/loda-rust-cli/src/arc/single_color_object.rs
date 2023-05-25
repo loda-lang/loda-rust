@@ -454,6 +454,23 @@ impl SingleColorObjects {
         }
         Err(anyhow::anyhow!("Color not found"))
     }
+
+    /// Check if the coordinate is on the corner of the bounding box.
+    pub fn corner_classification(&self, color: u8, x: i32, y: i32) -> u8 {
+        for object in &self.rectangle_vec {
+            if object.color != color {
+                continue;
+            }
+            return object.bounding_box.corner_classification(x, y);
+        }
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            return object.bounding_box.corner_classification(x, y);
+        }
+        0
+    }
 }
 
 #[cfg(test)]
@@ -768,5 +785,30 @@ mod tests {
         ];
         let expected: Image = Image::try_create(6, 7, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70000_corner_classification() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 7, 0, 7,
+            0, 6, 0, 0, 7, 0,
+            0, 0, 0, 7, 0, 7,
+        ];
+        let input: Image = Image::try_create(6, 3, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act + Assert
+        {
+            assert_eq!(objects.corner_classification(0, 0, 0), 1);
+            assert_eq!(objects.corner_classification(0, 5, 0), 2);
+            assert_eq!(objects.corner_classification(0, 0, 2), 4);
+            assert_eq!(objects.corner_classification(0, 5, 2), 8);
+            assert_eq!(objects.corner_classification(6, 1, 1), 15);
+            assert_eq!(objects.corner_classification(7, 3, 0), 1);
+            assert_eq!(objects.corner_classification(7, 5, 0), 2);
+            assert_eq!(objects.corner_classification(7, 3, 2), 4);
+            assert_eq!(objects.corner_classification(7, 5, 2), 8);
+        }
     }
 }
