@@ -46,7 +46,10 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 /// Three days later. yes. The score is the same. The solutions gets found within the 10 hour time frame.
 ///
 /// Can I lower the time limit even more? Let's try 4 hours.
-static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = (4 * 60) * 60;
+/// The score is the same. The solutions gets found within the 4 hour time frame.
+/// 
+/// Can it be lowered even more? Let's try 2 hours.
+static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = (2 * 60) * 60;
 
 static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 4;
 
