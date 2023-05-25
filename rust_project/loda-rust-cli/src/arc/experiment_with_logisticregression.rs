@@ -13,6 +13,7 @@ use ndarray::prelude::*;
 struct Record {
     classification: u8,
     is_test: u8,
+    pair_id: u8,
     values: Vec<u8>,
 }
 
@@ -856,9 +857,9 @@ impl ExperimentWithLogisticRegression {
                     let mut record = Record {
                         classification: output_color,
                         is_test,
+                        pair_id,
                         values: vec!(),
                     };
-                    record.serialize_raw(pair_id);
                     record.serialize_color(top_left);
                     record.serialize_color(top);
                     record.serialize_color(top_right);
@@ -975,22 +976,23 @@ struct MyDataset {
 
 fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
     let mut data: Vec<f64> = Vec::new();
-    let mut columns_max: usize = 0;
-    let mut columns_min: usize = usize::MAX;
+    let mut values_max: usize = 0;
+    let mut values_min: usize = usize::MAX;
     for record in records {
         data.push(record.classification as f64);
         data.push(record.is_test as f64);
+        data.push(record.pair_id as f64);
         for value in &record.values {
             data.push(*value as f64);
         }
-        let columns: usize = record.values.len() + 2;
-        columns_max = columns_max.max(columns);
-        columns_min = columns_min.min(columns);
+        let value_count: usize = record.values.len();
+        values_max = values_max.max(value_count);
+        values_min = values_min.min(value_count);
     }
-    if columns_max != columns_min {
-        return Err(anyhow::anyhow!("columns_max != columns_min"));
+    if values_max != values_min {
+        return Err(anyhow::anyhow!("values_max != values_min"));
     }
-    let columns: usize = columns_max;
+    let columns: usize = values_max + 3;
 
     let array1: Array1<f64> = Array1::<f64>::from(data);
     let array: Array2<f64> = array1.into_shape((records.len(), columns))?;
