@@ -1,6 +1,7 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
-use super::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge, ImageMask};
+use super::{ActionLabel, InputLabel};
+use super::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze};
 use anyhow::Context;
 use serde::Serialize;
@@ -158,6 +159,16 @@ impl ExperimentWithLogisticRegression {
                     if *color < 10 {
                         no_change_to_color[*color as usize] = true;
                     }
+                },
+                _ => {}
+            }
+        }
+
+        let mut input_unambiguous_connectivity_histogram: Histogram = Histogram::new();
+        for label in &task.input_label_set_intersection {
+            match label {
+                InputLabel::InputUnambiguousConnectivityWithColor { color } => {
+                    input_unambiguous_connectivity_histogram.increment(*color);
                 },
                 _ => {}
             }
@@ -917,6 +928,8 @@ impl ExperimentWithLogisticRegression {
                     let half_top: u8 = if yy * 2 < height as i32 { 1 } else { 0 };
                     let half_bottom: u8 = if yy * 2 > height as i32 { 1 } else { 0 };
 
+                    let input_has_unambiguous_connectivity: u8 = if input_unambiguous_connectivity_histogram.get(center) > 0 { 1 } else { 0 };
+
                     let mut record = Record {
                         classification: output_color,
                         is_test,
@@ -982,6 +995,7 @@ impl ExperimentWithLogisticRegression {
                         let value: u8 = if input_histogram_intersection[i] { 1 } else { 0 };
                         record.serialize_raw(value);
                     }
+                    record.serialize_raw(input_has_unambiguous_connectivity);
                     // record.serialize_raw(is_corner);
                     // record.serialize_raw(corner_top_left);
                     // record.serialize_raw(corner_top_right);
