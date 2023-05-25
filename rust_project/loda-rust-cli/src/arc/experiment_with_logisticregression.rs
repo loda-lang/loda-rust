@@ -607,7 +607,7 @@ impl ExperimentWithLogisticRegression {
                         // }
                     }
 
-                    let mut preserve_color: u8 = 255;
+                    let mut no_change_to_color: [bool; 10] = [false; 10];
                     for label in &task.action_label_set_intersection {
                         match label {
                             ActionLabel::InputImageIsOutputImageWithNoChangesToPixelsWithColor { color } => {
@@ -669,7 +669,9 @@ impl ExperimentWithLogisticRegression {
                             //     }
                             // },
                             ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
-                                preserve_color = *color;
+                                if *color < 10 {
+                                    no_change_to_color[*color as usize] = true;
+                                }
                                 if center == *color {
                                     v5 = 1;
                                 }
@@ -957,7 +959,10 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_raw(corners_center2);
                     record.serialize_raw(corners_center3);
                     record.serialize_raw(corners_center4);
-                    record.serialize_color(preserve_color);
+                    for i in 0..9 {
+                        let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
+                        record.serialize_raw(value);
+                    }
                     // record.serialize_raw(is_corner);
                     // record.serialize_raw(corner_top_left);
                     // record.serialize_raw(corner_top_right);
