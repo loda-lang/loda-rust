@@ -289,6 +289,29 @@ impl ExperimentWithLogisticRegression {
 
             let corners: Image = input.corners()?;
 
+            let mut holecount_connectivity4 = HashMap::<u8, Image>::new();
+            let mut holecount_connectivity8 = HashMap::<u8, Image>::new();
+            if let Some(sco) = &pair.input.single_color_objects {
+                for color in 0..=9 {
+                    let image: Image = match sco.holecount_image(color, PixelConnectivity::Connectivity4) {
+                        Ok(value) => value,
+                        Err(_) => {
+                            continue;
+                        }
+                    };
+                    holecount_connectivity4.insert(color, image);
+                }
+                for color in 0..=9 {
+                    let image: Image = match sco.holecount_image(color, PixelConnectivity::Connectivity8) {
+                        Ok(value) => value,
+                        Err(_) => {
+                            continue;
+                        }
+                    };
+                    holecount_connectivity8.insert(color, image);
+                }
+            }
+
             for y in 0..height {
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -831,6 +854,15 @@ impl ExperimentWithLogisticRegression {
                         }
                     }
 
+                    let mut the_holecount_connectivity4: u8 = 0;
+                    if let Some(holecount_image) = holecount_connectivity4.get(&center) {
+                        the_holecount_connectivity4 = holecount_image.get(xx, yy).unwrap_or(0);
+                    }
+                    let mut the_holecount_connectivity8: u8 = 0;
+                    if let Some(holecount_image) = holecount_connectivity8.get(&center) {
+                        the_holecount_connectivity8 = holecount_image.get(xx, yy).unwrap_or(0);
+                    }
+
                     let mut is_corner: u8 = 0;
                     let mut corner_top_left: u8 = 0;
                     let mut corner_top_right: u8 = 0;
@@ -861,6 +893,11 @@ impl ExperimentWithLogisticRegression {
                             inside_bounding_box = 1;
                         }
                     }
+
+                    let half_left: u8 = if xx * 2 < width as i32 { 1 } else { 0 };
+                    let half_right: u8 = if xx * 2 > width as i32 { 1 } else { 0 };
+                    let half_top: u8 = if yy * 2 < height as i32 { 1 } else { 0 };
+                    let half_bottom: u8 = if yy * 2 > height as i32 { 1 } else { 0 };
 
                     let mut record = Record {
                         classification: output_color,
@@ -913,6 +950,8 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_raw(full_row_or_column);
                     record.serialize_raw(one_or_more_holes_connectivity4);
                     record.serialize_raw(one_or_more_holes_connectivity8);
+                    record.serialize_color(the_holecount_connectivity4);
+                    record.serialize_color(the_holecount_connectivity8);
                     record.serialize_raw(corners_center1);
                     record.serialize_raw(corners_center2);
                     record.serialize_raw(corners_center3);
@@ -926,6 +965,10 @@ impl ExperimentWithLogisticRegression {
                     // record.serialize_raw(is_grid);
                     // record.serialize_color(grid_center);
                     // record.serialize_color(grid_color);
+                    // record.serialize_raw(half_left);
+                    // record.serialize_raw(half_right);
+                    // record.serialize_raw(half_top);
+                    // record.serialize_raw(half_bottom);
                     record.serialize_raw(v0);
                     record.serialize_raw(v1);
                     record.serialize_raw(v2);
@@ -939,10 +982,7 @@ impl ExperimentWithLogisticRegression {
                     // push all the training pairs that have been rotated by 90 degrees.
                     // push all the training pairs that have been flipped.
                     //
-                    // object contains one or more holes
-                    // object contains no holes
-                    // object contains 2 holes
-                    // object contains 3 holes
+                    // is solid object without holes
                     // hole is square/rectangle/sparse
                     // object size, is biggest
                     // object size, is smallest
@@ -957,6 +997,8 @@ impl ExperimentWithLogisticRegression {
                     // direction right color
                     // single pixel with this color, the mass of this color is 1.
                     // nesting depth, how many flood fills are needed to clear the image.
+                    // distance inside object, how many pixels from the edge of the object.
+                    // distance to nearest object, how many pixels from the edge of the nearest object.
                     
                     // These are worsening the predictions.
                     // input_is_removal_color: u8,
