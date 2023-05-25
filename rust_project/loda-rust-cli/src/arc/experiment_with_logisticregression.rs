@@ -4,7 +4,7 @@ use super::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, Image
 use super::{ImageNeighbour, ImageNeighbourDirection};
 use anyhow::Context;
 use serde::Serialize;
-use std::error::Error;
+use std::collections::HashMap;
 use linfa::prelude::*;
 use linfa_logistic::MultiLogisticRegression;
 use ndarray::prelude::*;
@@ -258,6 +258,29 @@ impl ExperimentWithLogisticRegression {
                         image_neighbour_downright = image;
                     },
                     Err(_) => {},
+                }
+            }
+
+            let mut holes_connectivity4 = HashMap::<u8, Image>::new();
+            let mut holes_connectivity8 = HashMap::<u8, Image>::new();
+            if let Some(sco) = &pair.input.single_color_objects {
+                for color in 0..=9 {
+                    let image: Image = match sco.holes_mask(color, PixelConnectivity::Connectivity4) {
+                        Ok(value) => value,
+                        Err(_) => {
+                            continue;
+                        }
+                    };
+                    holes_connectivity4.insert(color, image);
+                }
+                for color in 0..=9 {
+                    let image: Image = match sco.holes_mask(color, PixelConnectivity::Connectivity8) {
+                        Ok(value) => value,
+                        Err(_) => {
+                            continue;
+                        }
+                    };
+                    holes_connectivity8.insert(color, image);
                 }
             }
 
@@ -781,6 +804,19 @@ impl ExperimentWithLogisticRegression {
                     let full_row_xor_column: u8 = if is_full_row ^ is_full_column { 1 } else { 0 };
                     let full_row_or_column: u8 = if is_full_row | is_full_column { 1 } else { 0 };
 
+                    let mut one_or_more_holes_connectivity4: u8 = 0;
+                    if let Some(hole_mask) = holes_connectivity4.get(&center) {
+                        if hole_mask.get(xx, yy).unwrap_or(0) > 0 {
+                            one_or_more_holes_connectivity4 = 1;
+                        }
+                    }
+                    let mut one_or_more_holes_connectivity8: u8 = 0;
+                    if let Some(hole_mask) = holes_connectivity8.get(&center) {
+                        if hole_mask.get(xx, yy).unwrap_or(0) > 0 {
+                            one_or_more_holes_connectivity8 = 1;
+                        }
+                    }
+
                     let mut record = Record {
                         classification: output_color,
                         is_test,
@@ -830,6 +866,8 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_raw(full_row_and_column);
                     record.serialize_raw(full_row_xor_column);
                     record.serialize_raw(full_row_or_column);
+                    record.serialize_raw(one_or_more_holes_connectivity4);
+                    record.serialize_raw(one_or_more_holes_connectivity8);
                     record.serialize_raw(v0);
                     record.serialize_raw(v1);
                     record.serialize_raw(v2);
