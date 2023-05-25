@@ -4,17 +4,11 @@ use super::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, Image
 use super::{ImageNeighbour, ImageNeighbourDirection};
 use crate::config::Config;
 use anyhow::Context;
-use std::path::{PathBuf, Path};
 use serde::Serialize;
-use csv::WriterBuilder;
 use std::error::Error;
 use linfa::prelude::*;
 use linfa_logistic::MultiLogisticRegression;
 use ndarray::prelude::*;
-use std::fs::File;
-use std::io::Read;
-use csv::ReaderBuilder;
-use ndarray_csv::{Array2Reader, ReadError};
 
 #[derive(Clone, Debug, Serialize)]
 struct Record {
@@ -153,7 +147,6 @@ impl ExperimentWithLogisticRegression {
 
     fn export_task(&self, task: &Task) -> anyhow::Result<()> {
         println!("exporting task: {}", task.id);
-        let path: PathBuf = self.config.analytics_arc_dir().join(format!("{}.csv", task.id));
 
         let mut records = Vec::<Record>::new();
         let mut pair_id: u8 = 0;
@@ -882,16 +875,7 @@ impl ExperimentWithLogisticRegression {
             pair_id += 1;
         }
 
-        // TODO: don't serialize to filesystem, but to memory.
-        println!("saving file: {:?}", path);
-        match create_csv_file_without_header(&records, &path) {
-            Ok(()) => {},
-            Err(error) => {
-                return Err(anyhow::anyhow!("could not save: {:?}", error));
-            }
-        }
-
-        match perform_logistic_regression(task, &path) {
+        match perform_logistic_regression(task, &records) {
             Ok(()) => {},
             Err(error) => {
                 return Err(anyhow::anyhow!("perform_logistic_regression: {:?}", error));
@@ -902,42 +886,32 @@ impl ExperimentWithLogisticRegression {
     }
 }
 
-fn create_csv_file_without_header<S: Serialize>(records: &Vec<S>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-    let mut wtr = WriterBuilder::new()
-        .has_headers(false)
-        .delimiter(b';')
-        .from_path(output_path)?;
-    for record in records {
-        wtr.serialize(record)?;
-    }
-    wtr.flush()?;
-    Ok(())
-}
-
-fn array_from_csv<R: Read>(
-    csv: R,
-    has_headers: bool,
-    separator: u8,
-) -> Result<Array2<f64>, ReadError> {
-    // parse CSV
-    let mut reader = ReaderBuilder::new()
-        .has_headers(has_headers)
-        .delimiter(separator)
-        .from_reader(csv);
-
-    // extract ndarray
-    reader.deserialize_array2_dynamic()
-}
-
 struct MyDataset {
     dataset: Dataset<f64, usize, Ix1>,
     split_ratio: f32,
 }
 
-fn load_dataset(path: &Path) -> Result<MyDataset, Box<dyn Error>> {
-    let file = File::open(path)?;
-    let array: Array2<f64> = array_from_csv(file, false, b';')?;
-    // println!("{:?}", array);
+fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
+    let mut data: Vec<f64> = Vec::new();
+    let mut columns_max: usize = 0;
+    let mut columns_min: usize = usize::MAX;
+    for record in records {
+        data.push(record.classification as f64);
+        data.push(record.is_test as f64);
+        for value in &record.values {
+            data.push(*value as f64);
+        }
+        let columns: usize = record.values.len() + 2;
+        columns_max = columns_max.max(columns);
+        columns_min = columns_min.min(columns);
+    }
+    if columns_max != columns_min {
+        return Err(anyhow::anyhow!("columns_max != columns_min"));
+    }
+    let columns: usize = columns_max;
+
+    let array1: Array1<f64> = Array1::<f64>::from(data);
+    let array: Array2<f64> = array1.into_shape((records.len(), columns))?;
 
     // split using the "is_test" column
     // the "is_test" column, determine where the split point is
@@ -959,35 +933,8 @@ fn load_dataset(path: &Path) -> Result<MyDataset, Box<dyn Error>> {
         array.column(0).to_owned(),
     );
 
-    let feature_names = vec![
-        "pair_id",
-        "center_color0",
-        "center_color1",
-        "center_color2",
-        "center_color3",
-        "center_color4",
-        "center_color5",
-        "center_color6",
-        "center_color7",
-        "center_color8",
-        "center_color9",
-        "center_color_padding",
-        "top_color0",
-        "top_color1",
-        "top_color2",
-        "top_color3",
-        "top_color4",
-        "top_color5",
-        "top_color6",
-        "top_color7",
-        "top_color8",
-        "top_color9",
-        "top_color_padding",
-    ];
-
     let dataset = Dataset::new(data, targets)
-        .map_targets(|x| *x as usize)
-        .with_feature_names(feature_names);
+        .map_targets(|x| *x as usize);
 
     let instance = MyDataset {
         dataset,
@@ -996,13 +943,13 @@ fn load_dataset(path: &Path) -> Result<MyDataset, Box<dyn Error>> {
     Ok(instance)
 }
 
-fn perform_logistic_regression(task: &Task, path: &Path) -> Result<(), Box<dyn Error>> {
+fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> Result<(), Box<dyn Error>> {
     println!("task_id: {}", task.id);
 
     let dataset: Dataset<f64, usize, Ix1>;
     let ratio: f32;
     {
-        let my_dataset: MyDataset = load_dataset(&path)?;
+        let my_dataset: MyDataset = dataset_from_records(records)?;
         ratio = my_dataset.split_ratio;
         dataset = my_dataset.dataset;
     }
