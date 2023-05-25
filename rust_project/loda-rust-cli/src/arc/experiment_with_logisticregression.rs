@@ -959,7 +959,7 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_raw(corners_center2);
                     record.serialize_raw(corners_center3);
                     record.serialize_raw(corners_center4);
-                    for i in 0..9 {
+                    for i in 0..10 {
                         let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
                         record.serialize_raw(value);
                     }
