@@ -186,8 +186,8 @@ impl SingleColorObjectSparse {
             if one_or_more_holes {
                 // println!("found hole with count={}", count);
 
-                let hole_mask_vec: Vec<Image> = ConnectedComponent::find_objects(connectivity, &object_image)?;
-                // println!("number of holes: {}", hole_mask_vec.len());
+                let hole_mask_vec: Vec<Image> = ConnectedComponent::find_objects_with_ignore_mask(connectivity, &object_image, &object_image)?;
+                // println!("color: {} connectivity: {:?} number of holes: {}", self.color, connectivity, hole_mask_vec.len());
                 number_of_holes = hole_mask_vec.len().min(u16::MAX as usize) as u16;
 
                 // Draw the hole into the accumulated holes mask
@@ -450,6 +450,33 @@ impl SingleColorObjects {
                 }
             };
             let result_image: Image = container.holes_mask_uncropped.clone();
+            return Ok(result_image);
+        }
+        Err(anyhow::anyhow!("Color not found"))
+    }
+
+    pub fn holecount_image(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            let optional_container: Option<&SingleColorObjectClusterContainer> = match connectivity {
+                PixelConnectivity::Connectivity4 => object.container4.as_ref(),
+                PixelConnectivity::Connectivity8 => object.container8.as_ref(),
+            };
+            let container: &SingleColorObjectClusterContainer = match optional_container {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing container"));
+                }
+            };
+            let mut accumulated_holes: Image = Image::zero(object.bounding_box.width(), object.bounding_box.height());
+            for cluster in &container.cluster_vec {
+                let number_of_holes: u8 = cluster.number_of_holes.min(255) as u8;
+                accumulated_holes = cluster.mask.select_from_image_and_color(&accumulated_holes, number_of_holes)?;
+            }
+            let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
+            result_image = result_image.overlay_with_position(&accumulated_holes, object.bounding_box.min_x(), object.bounding_box.min_y())?;
             return Ok(result_image);
         }
         Err(anyhow::anyhow!("Color not found"))
@@ -805,7 +832,69 @@ mod tests {
     }
 
     #[test]
-    fn test_70000_corner_classification() {
+    fn test_70000_holecount_image_connectivity4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5, 5, 0, 0,
+            5, 7, 7, 5, 3, 3,
+            5, 5, 5, 5, 0, 0,
+            5, 5, 2, 5, 0, 8,
+            5, 5, 5, 5, 0, 0,
+            5, 9, 9, 5, 0, 8,
+            5, 5, 5, 5, 8, 8,
+        ];
+        let input: Image = Image::try_create(6, 7, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.holecount_image(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, 3, 3, 3, 0, 0,
+            3, 0, 0, 3, 0, 0,
+            3, 3, 3, 3, 0, 0,
+            3, 3, 0, 3, 0, 0,
+            3, 3, 3, 3, 0, 0,
+            3, 0, 0, 3, 0, 0,
+            3, 3, 3, 3, 0, 0,
+        ];
+        let expected: Image = Image::try_create(6, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70001_holecount_image_connectivity4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 0, 7, 0,
+            0, 0, 3, 3, 3, 0,
+            0, 0, 3, 0, 3, 0,
+            0, 3, 3, 3, 3, 0,
+            0, 3, 3, 0, 7, 0,
+            7, 7, 7, 0, 7, 0,
+        ];
+        let input: Image = Image::try_create(6, 6, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.holecount_image(3, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0,
+            0, 0, 1, 1, 1, 0,
+            0, 0, 1, 0, 1, 0,
+            0, 1, 1, 1, 1, 0,
+            0, 1, 1, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(6, 6, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_80000_corner_classification() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 7, 0, 7,
@@ -830,7 +919,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80000_is_inside_bounding_box() {
+    fn test_90000_is_inside_bounding_box() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 7, 0, 7,
