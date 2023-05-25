@@ -1,7 +1,7 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
 use super::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge, ImageMask};
-use super::{ImageNeighbour, ImageNeighbourDirection};
+use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze};
 use anyhow::Context;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -287,6 +287,8 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            let corners: Image = input.corners()?;
+
             for y in 0..height {
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -346,7 +348,13 @@ impl ExperimentWithLogisticRegression {
                     let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
                     let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
                     let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
-                    
+
+                    let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
+                    let corners_center1: u8 = if corners_center == 1 { 1 } else { 0 };
+                    let corners_center2: u8 = if corners_center == 2 { 1 } else { 0 };
+                    let corners_center3: u8 = if corners_center == 3 { 1 } else { 0 };
+                    let corners_center4: u8 = if corners_center == 4 { 1 } else { 0 };
+
                     // let column_above_center: Image = match input.crop(Rectangle::new(x, 0, 1, y)) {
                     //     Ok(value) => value,
                     //     Err(_) => Image::empty()
@@ -727,7 +735,7 @@ impl ExperimentWithLogisticRegression {
                         if count == 1 {
                             is_full_column = true;
                         }
-                        if count == 2 {
+                        if count >= 2 {
                             if image_top == image_bottom {
                                 v3 = 1;
                             }
@@ -769,7 +777,7 @@ impl ExperimentWithLogisticRegression {
                         if count == 1 {
                             is_full_row = true;
                         }
-                        if count == 2 {
+                        if count >= 2 {
                             if image_left == image_right {
                                 v3 = 1;
                             }
@@ -905,6 +913,10 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_raw(full_row_or_column);
                     record.serialize_raw(one_or_more_holes_connectivity4);
                     record.serialize_raw(one_or_more_holes_connectivity8);
+                    record.serialize_raw(corners_center1);
+                    record.serialize_raw(corners_center2);
+                    record.serialize_raw(corners_center3);
+                    record.serialize_raw(corners_center4);
                     // record.serialize_raw(is_corner);
                     // record.serialize_raw(corner_top_left);
                     // record.serialize_raw(corner_top_right);
