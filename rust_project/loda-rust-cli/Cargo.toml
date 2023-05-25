@@ -45,16 +45,10 @@ bastion = { version = "0.4.5", features = ["tokio-runtime"] }
 reqwest = { version = "0.11.12", features = ["blocking", "json"] }
 unicode-width = "0.1.7"
 html-escape = "0.2.13"
-ndarray = { version = "0.15", features = ["approx"] }
-ndarray-csv = "0.5.2"
-ndarray-stats = "0.5.0"
-argmin = { version = "0.4.7" }
-thiserror = "1.0"
-linfa = { version = "0.6.1", features=["serde"] }
+ndarray = { version = "0.15" }
+linfa = { version = "0.6.1" }
 linfa-logistic = "*"
 linfa-preprocessing = "*"
-approx = "0.5.1"
-rmp-serde = "1"
 
 [dev-dependencies]
 tempfile = "3.3.0"

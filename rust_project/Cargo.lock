@@ -1815,8 +1815,6 @@ name = "loda-rust-cli"
 version = "2023.5.22"
 dependencies = [
  "anyhow",
- "approx 0.5.1",
- "argmin",
  "bastion",
  "bit-set",
  "bloomfilter",
@@ -1836,8 +1834,6 @@ dependencies = [
  "loda-rust-core",
  "log",
  "ndarray",
- "ndarray-csv",
- "ndarray-stats",
  "num-bigint",
  "num-integer",
  "num-traits",
@@ -1846,13 +1842,11 @@ dependencies = [
  "rand 0.8.5",
  "regex",
  "reqwest",
- "rmp-serde",
  "serde",
  "serde_json",
  "simple-pagerank",
  "subprocess",
  "tempfile",
- "thiserror",
  "tide",
  "tokio",
  "toml",
@@ -1979,18 +1973,6 @@ dependencies = [
  "num-integer",
  "num-traits",
  "rawpointer",
- "serde",
-]
-
-[[package]]
-name = "ndarray-csv"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2956dbaf15d46593bfddfdb88901cb35299f3a58390c7328ac4f58932800b8f8"
-dependencies = [
- "csv",
- "either",
- "ndarray",
  "serde",
 ]
 
@@ -2583,28 +2565,6 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg",
-]
-
-[[package]]
-name = "rmp"
-version = "0.8.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44519172358fd6d58656c86ab8e7fbc9e1490c3e8f14d35ed78ca0dd07403c9f"
-dependencies = [
- "byteorder",
- "num-traits",
- "paste",
-]
-
-[[package]]
-name = "rmp-serde"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5b13be192e0220b8afb7222aa5813cb62cc269ebb5cac346ca6487681d2913e"
-dependencies = [
- "byteorder",
- "rmp",
- "serde",
 ]
 
 [[package]]
