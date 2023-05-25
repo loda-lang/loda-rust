@@ -2,7 +2,6 @@ use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
 use super::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection};
-use crate::config::Config;
 use anyhow::Context;
 use serde::Serialize;
 use std::error::Error;
@@ -64,18 +63,14 @@ impl Record {
 pub struct ExperimentWithLogisticRegression {
     #[allow(dead_code)]
     tasks: Vec<Task>,
-
-    config: Config,
 }
 
 impl ExperimentWithLogisticRegression {
     #[allow(dead_code)]
     pub fn new(tasks: Vec<Task>) -> Self {
         println!("loaded {} tasks", tasks.len());
-        let config = Config::load();
         Self {
             tasks,
-            config,
         }
     }
 
@@ -943,7 +938,7 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
     Ok(instance)
 }
 
-fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> Result<(), Box<dyn Error>> {
+fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Result<()> {
     println!("task_id: {}", task.id);
 
     let dataset: Dataset<f64, usize, Ix1>;
