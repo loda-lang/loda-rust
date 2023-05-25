@@ -455,6 +455,9 @@ impl SingleColorObjects {
         Err(anyhow::anyhow!("Color not found"))
     }
 
+    /// Extracts the number of holes for each objects with the specified `color`.
+    /// 
+    /// Returns an image with the same size as the input image.
     pub fn holecount_image(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         for object in &self.sparse_vec {
             if object.color != color {

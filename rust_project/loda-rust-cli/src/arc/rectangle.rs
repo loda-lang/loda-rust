@@ -147,10 +147,6 @@ impl Rectangle {
     /// Check if the coordinate is inside the rectangle.
     #[allow(dead_code)]
     pub fn is_inside(&self, x: i32, y: i32) -> bool {
-        // if x < self.min_x() || x > self.max_x() || y < self.min_y() || y > self.max_y() {
-        //     return false;
-        // }
-        // true
         x >= self.min_x() && x <= self.max_x() && y >= self.min_y() && y <= self.max_y()
     }
 }
