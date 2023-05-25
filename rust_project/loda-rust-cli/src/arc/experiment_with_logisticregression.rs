@@ -144,8 +144,9 @@ impl ExperimentWithLogisticRegression {
         println!("exporting task: {}", task.id);
 
         let mut records = Vec::<Record>::new();
-        let mut pair_id: u8 = 0;
-        for pair in &task.pairs {
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            let pair_id: u8 = pair_index.min(255) as u8;
+
             let is_test: u8;
             let original_output: Image;
             match pair.pair_type {
@@ -839,10 +840,20 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_raw(v7);
 
                     // Future experiments
+                    // push all the training pairs that have been rotated by 90 degrees.
+                    // push all the training pairs that have been flipped.
+                    //
                     // object contains one or more holes
                     // object contains no holes
                     // object contains 2 holes
                     // object contains 3 holes
+                    // hole is square/rectangle/sparse
+                    // object size, is biggest
+                    // object size, is smallest
+                    // object size, is neither biggest nor smallest
+                    // object is symmetric
+                    // object is asymmetric
+                    // object is square/rectangle
                     // is insertion color
                     // direction up color
                     // direction down color
@@ -866,16 +877,9 @@ impl ExperimentWithLogisticRegression {
                     records.push(record);
                 }
             }
-
-            pair_id += 1;
         }
 
-        match perform_logistic_regression(task, &records) {
-            Ok(()) => {},
-            Err(error) => {
-                return Err(anyhow::anyhow!("perform_logistic_regression: {:?}", error));
-            }
-        }
+        perform_logistic_regression(task, &records)?;
 
         Ok(())
     }
