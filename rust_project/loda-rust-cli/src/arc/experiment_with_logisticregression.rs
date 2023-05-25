@@ -1,11 +1,10 @@
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay};
-use super::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge, ImageCorner, ImageMask};
+use super::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ActionLabel, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection};
 use crate::config::Config;
 use anyhow::Context;
 use std::path::{PathBuf, Path};
-use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 use csv::WriterBuilder;
 use std::error::Error;
@@ -17,24 +16,19 @@ use std::io::Read;
 use csv::ReaderBuilder;
 use ndarray_csv::{Array2Reader, ReadError};
 
-#[derive(Clone, Debug)]
-struct PixelColor {
-    value: u8,
+#[derive(Clone, Debug, Serialize)]
+struct Record {
+    classification: u8,
+    is_test: u8,
+    values: Vec<u8>,
 }
 
-impl From<u8> for PixelColor {
-    fn from(value: u8) -> Self {
-        Self {
-            value,
-        }
+impl Record {
+    fn serialize_raw(&mut self, value: u8) {
+        self.values.push(value);
     }
-}
 
-impl Serialize for PixelColor {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+    fn serialize_color(&mut self, color: u8) {
         let mut color0: u8 = 0;
         let mut color1: u8 = 0;
         let mut color2: u8 = 0;
@@ -46,7 +40,7 @@ impl Serialize for PixelColor {
         let mut color8: u8 = 0;
         let mut color9: u8 = 0;
         let mut color_other: u8 = 0;
-        match self.value {
+        match color {
             0 => color0 = 1,
             1 => color1 = 1,
             2 => color2 = 1,
@@ -59,103 +53,18 @@ impl Serialize for PixelColor {
             9 => color9 = 1,
             _ => color_other = 1,
         };
-        let mut s = serializer.serialize_struct("PixelColor", 11)?;
-        s.serialize_field("color0", &color0)?;
-        s.serialize_field("color1", &color1)?;
-        s.serialize_field("color2", &color2)?;
-        s.serialize_field("color3", &color3)?;
-        s.serialize_field("color4", &color4)?;
-        s.serialize_field("color5", &color5)?;
-        s.serialize_field("color6", &color6)?;
-        s.serialize_field("color7", &color7)?;
-        s.serialize_field("color8", &color8)?;
-        s.serialize_field("color9", &color9)?;
-        s.serialize_field("color_other", &color_other)?;
-        s.end()
+        self.values.push(color0);
+        self.values.push(color1);
+        self.values.push(color2);
+        self.values.push(color3);
+        self.values.push(color4);
+        self.values.push(color5);
+        self.values.push(color6);
+        self.values.push(color7);
+        self.values.push(color8);
+        self.values.push(color9);
+        self.values.push(color_other);
     }
-}
-
-#[derive(Clone, Debug, Serialize)]
-struct Record {
-    classification: u8,
-    is_test: u8,
-    pair_id: u8,
-    top_left: PixelColor,
-    top: PixelColor,
-    top_right: PixelColor,
-    left: PixelColor,
-    center: PixelColor,
-    right: PixelColor,
-    bottom_left: PixelColor,
-    bottom: PixelColor,
-    bottom_right: PixelColor,
-    distance_top: u8,
-    distance_bottom: u8,
-    distance_left: u8,
-    distance_right: u8,
-    input_is_noise_color: u8,
-    input_is_most_popular_color: u8,
-    x_mod2: u8,
-    y_mod2: u8,
-    x_reverse_mod2: u8,
-    y_reverse_mod2: u8,
-    preserve_edge: u8,
-    full_row_and_column: u8,
-    full_row_xor_column: u8,
-    full_row_or_column: u8,
-    top0: PixelColor,
-    top1: PixelColor,
-    top2: PixelColor,
-    top3: PixelColor,
-    top4: PixelColor,
-    left1: PixelColor,
-    left2: PixelColor,
-    left3: PixelColor,
-    right1: PixelColor,
-    right2: PixelColor,
-    right3: PixelColor,
-    bottom0: PixelColor,
-    bottom1: PixelColor,
-    bottom2: PixelColor,
-    bottom3: PixelColor,
-    bottom4: PixelColor,
-    center_x_reversed: PixelColor,
-    center_y_reversed: PixelColor,
-    mass_connectivity4: PixelColor,
-    mass_connectivity8: PixelColor,
-    v0: u8,
-    v1: u8,
-    v2: u8,
-    v3: u8,
-    v4: u8,
-    v5: u8,
-    v6: u8,
-    v7: u8,
-
-    // Future experiments
-    // object contains one or more holes
-    // object contains no holes
-    // object contains 2 holes
-    // object contains 3 holes
-    // is insertion color
-    // direction up color
-    // direction down color
-    // direction left color
-    // direction right color
-    // single pixel with this color, the mass of this color is 1.
-    // nesting depth, how many flood fills are needed to clear the image.
-    
-    // These are worsening the predictions.
-    // input_is_removal_color: u8,
-    // distance_top: PixelColor,
-    // distance_bottom: PixelColor,
-    // distance_left: PixelColor,
-    // distance_right: PixelColor,
-    // y mod3: u8,
-    // x mod3: u8,
-    // preserve corner: u8,
-    // x_distance_from_center: i16,
-    // y_distance_from_center: i16,
 }
 
 pub struct ExperimentWithLogisticRegression {
@@ -883,62 +792,88 @@ impl ExperimentWithLogisticRegression {
                     let full_row_xor_column: u8 = if is_full_row ^ is_full_column { 1 } else { 0 };
                     let full_row_or_column: u8 = if is_full_row | is_full_column { 1 } else { 0 };
 
-                    let record = Record {
+                    let mut record = Record {
                         classification: output_color,
                         is_test,
-                        pair_id,
-                        top_left: PixelColor::from(top_left),
-                        top: PixelColor::from(top),
-                        top_right: PixelColor::from(top_right),
-                        left: PixelColor::from(left),
-                        center: PixelColor::from(center),
-                        right: PixelColor::from(right),
-                        bottom_left: PixelColor::from(bottom_left),
-                        bottom: PixelColor::from(bottom),
-                        bottom_right: PixelColor::from(bottom_right),
-                        distance_top,
-                        distance_bottom,
-                        distance_left,
-                        distance_right,
-                        input_is_noise_color,
-                        input_is_most_popular_color,
-                        x_mod2,
-                        y_mod2,
-                        x_reverse_mod2,
-                        y_reverse_mod2,
-                        preserve_edge,
-                        full_row_and_column,
-                        full_row_xor_column,
-                        full_row_or_column,
-                        top0: PixelColor::from(top0),
-                        top1: PixelColor::from(top1),
-                        top2: PixelColor::from(top2),
-                        top3: PixelColor::from(top3),
-                        top4: PixelColor::from(top4),
-                        left1: PixelColor::from(left1),
-                        left2: PixelColor::from(left2),
-                        left3: PixelColor::from(left3),
-                        right1: PixelColor::from(right1),
-                        right2: PixelColor::from(right2),
-                        right3: PixelColor::from(right3),
-                        bottom0: PixelColor::from(bottom0),
-                        bottom1: PixelColor::from(bottom1),
-                        bottom2: PixelColor::from(bottom2),
-                        bottom3: PixelColor::from(bottom3),
-                        bottom4: PixelColor::from(bottom4),
-                        center_x_reversed: PixelColor::from(center_x_reversed),
-                        center_y_reversed: PixelColor::from(center_y_reversed),
-                        mass_connectivity4: PixelColor::from(mass_connectivity4),
-                        mass_connectivity8: PixelColor::from(mass_connectivity8),
-                        v0,
-                        v1,
-                        v2,
-                        v3,
-                        v4,
-                        v5,
-                        v6,
-                        v7,
+                        values: vec!(),
                     };
+                    record.serialize_raw(pair_id);
+                    record.serialize_color(top_left);
+                    record.serialize_color(top);
+                    record.serialize_color(top_right);
+                    record.serialize_color(left);
+                    record.serialize_color(center);
+                    record.serialize_color(right);
+                    record.serialize_color(bottom_left);
+                    record.serialize_color(bottom);
+                    record.serialize_color(bottom_right);
+                    record.serialize_color(top0);
+                    record.serialize_color(top1);
+                    record.serialize_color(top2);
+                    record.serialize_color(top3);
+                    record.serialize_color(top4);
+                    record.serialize_color(left1);
+                    record.serialize_color(left2);
+                    record.serialize_color(left3);
+                    record.serialize_color(right1);
+                    record.serialize_color(right2);
+                    record.serialize_color(right3);
+                    record.serialize_color(bottom0);
+                    record.serialize_color(bottom1);
+                    record.serialize_color(bottom2);
+                    record.serialize_color(bottom3);
+                    record.serialize_color(bottom4);
+                    record.serialize_color(center_x_reversed);
+                    record.serialize_color(center_y_reversed);
+                    record.serialize_color(mass_connectivity4);
+                    record.serialize_color(mass_connectivity8);
+                    record.serialize_raw(distance_top);
+                    record.serialize_raw(distance_bottom);
+                    record.serialize_raw(distance_left);
+                    record.serialize_raw(distance_right);
+                    record.serialize_raw(input_is_noise_color);
+                    record.serialize_raw(input_is_most_popular_color);
+                    record.serialize_raw(x_mod2);
+                    record.serialize_raw(y_mod2);
+                    record.serialize_raw(x_reverse_mod2);
+                    record.serialize_raw(y_reverse_mod2);
+                    record.serialize_raw(preserve_edge);
+                    record.serialize_raw(full_row_and_column);
+                    record.serialize_raw(full_row_xor_column);
+                    record.serialize_raw(full_row_or_column);
+                    record.serialize_raw(v0);
+                    record.serialize_raw(v1);
+                    record.serialize_raw(v2);
+                    record.serialize_raw(v3);
+                    record.serialize_raw(v4);
+                    record.serialize_raw(v5);
+                    record.serialize_raw(v6);
+                    record.serialize_raw(v7);
+
+                    // Future experiments
+                    // object contains one or more holes
+                    // object contains no holes
+                    // object contains 2 holes
+                    // object contains 3 holes
+                    // is insertion color
+                    // direction up color
+                    // direction down color
+                    // direction left color
+                    // direction right color
+                    // single pixel with this color, the mass of this color is 1.
+                    // nesting depth, how many flood fills are needed to clear the image.
+                    
+                    // These are worsening the predictions.
+                    // input_is_removal_color: u8,
+                    // distance_top: PixelColor,
+                    // distance_bottom: PixelColor,
+                    // distance_left: PixelColor,
+                    // distance_right: PixelColor,
+                    // y mod3: u8,
+                    // x mod3: u8,
+                    // preserve corner: u8,
+                    // x_distance_from_center: i16,
+                    // y_distance_from_center: i16,
 
                     records.push(record);
                 }
