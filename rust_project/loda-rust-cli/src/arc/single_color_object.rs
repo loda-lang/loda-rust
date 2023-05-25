@@ -471,6 +471,23 @@ impl SingleColorObjects {
         }
         0
     }
+
+    /// Check if the coordinate is inside the bounding box.
+    pub fn is_inside_bounding_box(&self, color: u8, x: i32, y: i32) -> bool {
+        for object in &self.rectangle_vec {
+            if object.color != color {
+                continue;
+            }
+            return object.bounding_box.is_inside(x, y);
+        }
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            return object.bounding_box.is_inside(x, y);
+        }
+        false
+    }
 }
 
 #[cfg(test)]
@@ -809,6 +826,43 @@ mod tests {
             assert_eq!(objects.corner_classification(7, 5, 0), 2);
             assert_eq!(objects.corner_classification(7, 3, 2), 4);
             assert_eq!(objects.corner_classification(7, 5, 2), 8);
+        }
+    }
+
+    #[test]
+    fn test_80000_is_inside_bounding_box() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 7, 0, 7,
+            0, 6, 0, 0, 7, 0,
+            0, 0, 0, 7, 0, 7,
+        ];
+        let input: Image = Image::try_create(6, 3, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act + Assert
+        {
+            // color 0
+            assert_eq!(objects.is_inside_bounding_box(0, 0, 0), true);
+            assert_eq!(objects.is_inside_bounding_box(0, 5, 0), true);
+            assert_eq!(objects.is_inside_bounding_box(0, 0, 2), true);
+            assert_eq!(objects.is_inside_bounding_box(0, 5, 2), true);
+        }
+
+        {
+            // color 6
+            assert_eq!(objects.is_inside_bounding_box(6, 0, 1), false);
+            assert_eq!(objects.is_inside_bounding_box(6, 1, 1), true);
+            assert_eq!(objects.is_inside_bounding_box(6, 2, 1), false);
+        }
+
+        {
+            // color 7
+            assert_eq!(objects.is_inside_bounding_box(7, 2, 0), false);
+            assert_eq!(objects.is_inside_bounding_box(7, 3, 0), true);
+            assert_eq!(objects.is_inside_bounding_box(7, 5, 0), true);
+            assert_eq!(objects.is_inside_bounding_box(7, 3, 2), true);
+            assert_eq!(objects.is_inside_bounding_box(7, 5, 2), true);
         }
     }
 }

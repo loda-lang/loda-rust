@@ -143,6 +143,16 @@ impl Rectangle {
         }
         result
     }
+
+    /// Check if the coordinate is inside the rectangle.
+    #[allow(dead_code)]
+    pub fn is_inside(&self, x: i32, y: i32) -> bool {
+        // if x < self.min_x() || x > self.max_x() || y < self.min_y() || y > self.max_y() {
+        //     return false;
+        // }
+        // true
+        x >= self.min_x() && x <= self.max_x() && y >= self.min_y() && y <= self.max_y()
+    }
 }
 
 #[cfg(test)]
@@ -332,6 +342,30 @@ mod tests {
             assert_eq!(rect.corner_classification(19, 10), 2);
             assert_eq!(rect.corner_classification(10, 19), 4);
             assert_eq!(rect.corner_classification(19, 19), 8);
+        }
+    }
+
+    #[test]
+    fn test_80000_is_inside() {
+        {
+            let rect = Rectangle::new(5, 5, 1, 1);
+            assert_eq!(rect.is_inside(5, 4), false);
+            assert_eq!(rect.is_inside(4, 5), false);
+            assert_eq!(rect.is_inside(5, 5), true);
+            assert_eq!(rect.is_inside(6, 5), false);
+            assert_eq!(rect.is_inside(5, 6), false);
+        }
+        {
+            let rect = Rectangle::new(10, 10, 10, 10);
+            assert_eq!(rect.is_inside(15, 15), true);
+            assert_eq!(rect.is_inside(10, 10), true);
+            assert_eq!(rect.is_inside(19, 10), true);
+            assert_eq!(rect.is_inside(10, 19), true);
+            assert_eq!(rect.is_inside(19, 19), true);
+            assert_eq!(rect.is_inside(15, 5), false);
+            assert_eq!(rect.is_inside(5, 15), false);
+            assert_eq!(rect.is_inside(25, 15), false);
+            assert_eq!(rect.is_inside(15, 25), false);
         }
     }
 }
