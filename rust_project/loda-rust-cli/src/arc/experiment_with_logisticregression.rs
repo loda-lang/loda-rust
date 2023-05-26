@@ -85,12 +85,8 @@ impl ExperimentWithLogisticRegression {
 
     #[allow(dead_code)]
     fn run_all(&mut self) -> anyhow::Result<()> {
-        let mut count: usize = 0;
         for task in &self.tasks {
-            if count >= 0 && count <= 800 {
-                self.export_task_debug(task);
-            }
-            count += 1;
+            Self::process_task_debug(task);
         }
         Ok(())
     }
@@ -109,12 +105,12 @@ impl ExperimentWithLogisticRegression {
             "d364b489",
         ];
         for task_id in task_ids {
-            self.export_task_id(task_id)?;
+            self.process_task_id(task_id)?;
         }
         Ok(())
     }
 
-    fn export_task_id(&self, task_id: &str) -> anyhow::Result<()> {
+    fn process_task_id(&self, task_id: &str) -> anyhow::Result<()> {
         // println!("exporting task: {}", task_id);
 
         let mut found_task: Option<&Task> = None;
@@ -130,19 +126,19 @@ impl ExperimentWithLogisticRegression {
                 return Err(anyhow::anyhow!("didn't find a task_id: {}", task_id));
             }
         };
-        self.export_task(task)
+        Self::process_task(task)
     }
 
-    fn export_task_debug(&self, task: &Task) {
-        match self.export_task(task) {
+    pub fn process_task_debug(task: &Task) {
+        match Self::process_task(task) {
             Ok(()) => {},
             Err(error) => {
-                println!("export_task: {:?}", error);
+                println!("process_task_debug: {:?}", error);
             }
         }
     }
 
-    fn export_task(&self, task: &Task) -> anyhow::Result<()> {
+    fn process_task(task: &Task) -> anyhow::Result<()> {
         // println!("exporting task: {}", task.id);
 
         if !task.is_output_size_same_as_input_size() {
