@@ -1716,6 +1716,7 @@ impl TraverseProgramsAndModels {
                     task_name: task_name,
                     test_vec: vec![test_item],
                 };
+                // TODO: don't add if already exists
                 state.current_tasks.push(task_item);        
                 pb.inc(1);
             }
