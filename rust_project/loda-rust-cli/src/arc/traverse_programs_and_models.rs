@@ -1676,6 +1676,9 @@ impl TraverseProgramsAndModels {
         }
 
         if try_logistic_regression {
+            println!("{} - Run logistic regression", Self::human_readable_utc_timestamp());
+            let number_of_tasks: u64 = self.model_item_vec.len() as u64;
+            let pb = ProgressBar::new(number_of_tasks as u64);
             let verbose_logistic_regression = false;
             for model_item in &self.model_item_vec {
                 let task: Task = model_item.borrow().task.clone();
@@ -1683,6 +1686,7 @@ impl TraverseProgramsAndModels {
                     if verbose_logistic_regression {
                         println!("task: {} - already solved", task.id);
                     }
+                    pb.inc(1);
                     continue;
                 }
                 
@@ -1692,6 +1696,7 @@ impl TraverseProgramsAndModels {
                         if verbose_logistic_regression {
                             println!("task: {} - could not make predictions. error: {:?}", task.id, error);
                         }
+                        pb.inc(1);
                         continue;
                     }
                 };
@@ -1712,7 +1717,9 @@ impl TraverseProgramsAndModels {
                     test_vec: vec![test_item],
                 };
                 state.current_tasks.push(task_item);        
+                pb.inc(1);
             }
+            pb.finish_and_clear();
             save_solutions_json(
                 &self.arc_config.path_solution_dir,
                 &self.arc_config.path_solution_teamid_json,
