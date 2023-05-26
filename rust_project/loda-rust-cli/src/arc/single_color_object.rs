@@ -491,6 +491,7 @@ impl SingleColorObjects {
     /// 
     /// Future experiment:
     /// Blur mask, grow it by 1 px in all directions, then subtract the original mask, to get the outline.
+    #[allow(dead_code)]
     pub fn filled_holes_mask(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         for object in &self.rectangle_vec {
             if object.color != color {
