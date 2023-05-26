@@ -523,6 +523,7 @@ impl SingleColorObjects {
     }
 
     /// Check if the coordinate is on the corner of the bounding box.
+    #[allow(dead_code)]
     pub fn corner_classification(&self, color: u8, x: i32, y: i32) -> u8 {
         for object in &self.rectangle_vec {
             if object.color != color {
@@ -540,6 +541,7 @@ impl SingleColorObjects {
     }
 
     /// Check if the coordinate is inside the bounding box.
+    #[allow(dead_code)]
     pub fn is_inside_bounding_box(&self, color: u8, x: i32, y: i32) -> bool {
         for object in &self.rectangle_vec {
             if object.color != color {
