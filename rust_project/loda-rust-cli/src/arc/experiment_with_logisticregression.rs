@@ -10,6 +10,8 @@ use linfa::prelude::*;
 use linfa_logistic::MultiLogisticRegression;
 use ndarray::prelude::*;
 
+static WRITE_TO_HTMLLOG: bool = true;
+
 #[derive(Clone, Debug, Serialize)]
 struct Record {
     classification: u8,
@@ -142,7 +144,9 @@ impl ExperimentWithLogisticRegression {
         // println!("exporting task: {}", task.id);
 
         if !task.is_output_size_same_as_input_size() {
-            HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
+            if WRITE_TO_HTMLLOG {
+                HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
+            }
             return Ok(());
         }
 
@@ -1194,21 +1198,23 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
         }
         result_image = result_image.crop(Rectangle::new(0, 0, expected_output.width(), expected_output.height()))?;
 
-        if result_image == expected_output {
-            if task.occur_in_solutions_csv {
-                HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
+        if WRITE_TO_HTMLLOG {
+            if result_image == expected_output {
+                if task.occur_in_solutions_csv {
+                    HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
+                } else {
+                    HtmlLog::text(format!("{} - correct - no previous solution", task.id));
+                }
+                HtmlLog::image(&result_image);
             } else {
-                HtmlLog::text(format!("{} - correct - no previous solution", task.id));
+                HtmlLog::text(format!("{} - incorrect", task.id));
+                // let images: Vec<Image> = vec![
+                //     original_input,
+                //     expected_output,
+                //     result_image,
+                // ];
+                // HtmlLog::compare_images(images);
             }
-            HtmlLog::image(&result_image);
-        } else {
-            HtmlLog::text(format!("{} - incorrect", task.id));
-            // let images: Vec<Image> = vec![
-            //     original_input,
-            //     expected_output,
-            //     result_image,
-            // ];
-            // HtmlLog::compare_images(images);
         }
     }
 
