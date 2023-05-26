@@ -6,12 +6,12 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 #[allow(dead_code)]
-pub trait GridToImage {
-    fn to_image(&self) -> anyhow::Result<Image>;
-}
+pub type Grid = Vec<Vec<u8>>;
 
 #[allow(dead_code)]
-pub type Grid = Vec<Vec<u8>>;
+pub trait GridToImage {
+    fn to_image(&self) -> anyhow::Result<Image>;
+}    
 
 impl GridToImage for Grid {
     fn to_image(&self) -> anyhow::Result<Image> {
@@ -45,6 +45,26 @@ impl GridToImage for Grid {
 
         let instance = Image::try_create(width, height, pixels)?;
         Ok(instance)
+    }
+}
+
+#[allow(dead_code)]
+pub trait GridFromImage {
+    fn from_image(image: &Image) -> Grid;
+}    
+
+impl GridFromImage for Grid {
+    fn from_image(image: &Image) -> Grid {
+        let mut grid = Grid::new();
+        for y in 0..image.height() {
+            let mut row = Vec::<u8>::new();
+            for x in 0..image.width() {
+                let pixel_value: u8 = image.get(x as i32, y as i32).unwrap_or(255);
+                row.push(pixel_value);
+            }
+            grid.push(row);
+        }
+        grid
     }
 }
 
@@ -247,7 +267,26 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_task_loda_testdata() -> anyhow::Result<()> {
+    fn test_30000_grid_from_image() -> anyhow::Result<()> {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3,
+            4, 5, 6,
+        ];
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
+        
+        // Act
+        let grid: Grid = Grid::from_image(&input);
+
+        // Assert
+        assert_eq!(grid.len(), 2);
+        assert_eq!(grid[0], vec![1,2,3]);
+        assert_eq!(grid[1], vec![4,5,6]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_40000_task_loda_testdata() -> anyhow::Result<()> {
         let task: Task = Task::load_testdata("6150a2bd")?;
         assert_eq!(task.train.len(), 2);
         assert_eq!(task.test.len(), 1);
@@ -256,7 +295,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30001_task_load_with_json_file() -> anyhow::Result<()> {
+    fn test_40001_task_load_with_json_file() -> anyhow::Result<()> {
         // Arrange
         let json: String = read_testdata("4258a5f9")?;
         let tempdir = tempfile::tempdir().unwrap();
