@@ -145,6 +145,11 @@ impl ExperimentWithLogisticRegression {
     fn export_task(&self, task: &Task) -> anyhow::Result<()> {
         println!("exporting task: {}", task.id);
 
+        if !task.is_output_size_same_as_input_size() {
+            HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
+            return Ok(());
+        }
+
         let mut input_histogram_intersection: [bool; 10] = [false; 10];
         for color in 0..=9u8 {
             if task.input_histogram_intersection.get(color) > 0 {
@@ -1194,7 +1199,11 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
         result_image = result_image.crop(Rectangle::new(0, 0, expected_output.width(), expected_output.height()))?;
 
         if result_image == expected_output {
-            HtmlLog::text(format!("{} - correct", task.id));
+            if task.occur_in_solutions_csv {
+                HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
+            } else {
+                HtmlLog::text(format!("{} - correct - no previous solution", task.id));
+            }
             HtmlLog::image(&result_image);
         } else {
             HtmlLog::text(format!("{} - incorrect", task.id));
