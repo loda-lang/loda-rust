@@ -70,7 +70,7 @@ pub struct ExperimentWithLogisticRegression {
 impl ExperimentWithLogisticRegression {
     #[allow(dead_code)]
     pub fn new(tasks: Vec<Task>) -> Self {
-        println!("loaded {} tasks", tasks.len());
+        // println!("loaded {} tasks", tasks.len());
         Self {
             tasks,
         }
@@ -143,7 +143,7 @@ impl ExperimentWithLogisticRegression {
     }
 
     fn export_task(&self, task: &Task) -> anyhow::Result<()> {
-        println!("exporting task: {}", task.id);
+        // println!("exporting task: {}", task.id);
 
         if !task.is_output_size_same_as_input_size() {
             HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
@@ -1109,7 +1109,7 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
         }
     }
     let split_ratio: f32 = (n_below as f32) / ((n_above + n_below) as f32);
-    println!("train: {} test: {} split_ratio: {}", n_below, n_above, split_ratio);
+    // println!("train: {} test: {} split_ratio: {}", n_below, n_above, split_ratio);
 
     let (data, targets) = (
         array.slice(s![.., 2..]).to_owned(),
@@ -1127,7 +1127,7 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
 }
 
 fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Result<()> {
-    println!("task_id: {}", task.id);
+    // println!("task_id: {}", task.id);
 
     let dataset: Dataset<f64, usize, Ix1>;
     let ratio: f32;
@@ -1156,13 +1156,13 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
     let pred = model.predict(&valid);
 
     // create a confusion matrix
-    let cm = pred.confusion_matrix(&valid)
-        .context("confusion_matrix")?;
+    // let cm = pred.confusion_matrix(&valid)
+    //     .context("confusion_matrix")?;
 
     // Print the confusion matrix, this will print a table with four entries. On the diagonal are
     // the number of true-positive and true-negative predictions, off the diagonal are
     // false-positive and false-negative
-    println!("{:?}", cm);
+    // println!("{:?}", cm);
 
     // print out the predicted output pixel values
     // println!("{:?}", pred);
@@ -1219,6 +1219,7 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
 
     // Calculate the accuracy and Matthew Correlation Coefficient (cross-correlation between
     // predicted and targets)
-    println!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc());
+    // println!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc());
+    // HtmlLog::text(format!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc()));
     Ok(())
 }
