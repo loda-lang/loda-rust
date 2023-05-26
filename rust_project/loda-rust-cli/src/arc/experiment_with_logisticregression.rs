@@ -187,7 +187,7 @@ impl ExperimentWithLogisticRegression {
                 },
                 PairType::Test => {
                     is_test = 1;
-                    original_output = pair.output.test_image.clone();
+                    original_output = Image::empty();
                 },
             }
             let original_input: Image = pair.input.image.clone();
