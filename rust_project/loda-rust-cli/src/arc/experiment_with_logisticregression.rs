@@ -1,7 +1,8 @@
+use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model};
 use super::{ActionLabel, InputLabel};
-use super::{HtmlLog, ImageCrop, Rectangle, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
+use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze};
 use anyhow::Context;
 use serde::Serialize;
@@ -128,26 +129,27 @@ impl ExperimentWithLogisticRegression {
                 return Err(anyhow::anyhow!("didn't find a task_id: {}", task_id));
             }
         };
-        Self::process_task(task)
+        let _predictions: Vec::<arcathon_solution_json::Prediction> = Self::process_task(task)?;
+        Ok(())
     }
 
     pub fn process_task_debug(task: &Task) {
         match Self::process_task(task) {
-            Ok(()) => {},
+            Ok(_predictions) => {},
             Err(error) => {
                 println!("process_task_debug: {:?}", error);
             }
         }
     }
 
-    fn process_task(task: &Task) -> anyhow::Result<()> {
+    fn process_task(task: &Task) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
         // println!("exporting task: {}", task.id);
 
         if !task.is_output_size_same_as_input_size() {
             if WRITE_TO_HTMLLOG {
                 HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
             }
-            return Ok(());
+            return Err(anyhow::anyhow!("skipping task: {} because output size is not the same as input size", task.id));
         }
 
         let mut input_histogram_intersection: [bool; 10] = [false; 10];
@@ -1062,9 +1064,9 @@ impl ExperimentWithLogisticRegression {
             }
         }
 
-        perform_logistic_regression(task, &records)?;
+        let predictions: Vec::<arcathon_solution_json::Prediction> = perform_logistic_regression(task, &records)?;
 
-        Ok(())
+        Ok(predictions)
     }
 }
 
@@ -1126,7 +1128,7 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
     Ok(instance)
 }
 
-fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Result<()> {
+fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
     // println!("task_id: {}", task.id);
 
     let dataset: Dataset<f64, usize, Ix1>;
@@ -1167,23 +1169,22 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
     // print out the predicted output pixel values
     // println!("{:?}", pred);
 
+    let mut predictions = Vec::<arcathon_solution_json::Prediction>::new();
+    let mut count_test: usize = 0;
     for pair in &task.pairs {
-
-        let expected_output: Image;
-        match pair.pair_type {
-            PairType::Train => {
-                continue;
-            },
-            PairType::Test => {
-                expected_output = pair.output.test_image.clone();
-            },
+        if pair.pair_type != PairType::Test {
+            continue;
         }
+
+        let index: usize = count_test;
+        count_test += 1;
+        
         let original_input: Image = pair.input.image.clone();
 
-        let width: u8 = original_input.width().max(expected_output.width()).min(253);
-        let height: u8 = original_input.height().max(expected_output.height()).min(253);
+        let width: u8 = original_input.width();
+        let height: u8 = original_input.height();
 
-        let mut result_image: Image = Image::color(width, height, 10);
+        let mut computed_image: Image = Image::color(width, height, 10);
         for y in 0..height {
             for x in 0..width {
                 let xx: i32 = x as i32;
@@ -1193,19 +1194,28 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
                     Some(value) => (*value).min(u8::MAX as usize) as u8,
                     None => 255
                 };
-                _ = result_image.set(xx, yy, predicted_color);
+                _ = computed_image.set(xx, yy, predicted_color);
             }
         }
-        result_image = result_image.crop(Rectangle::new(0, 0, expected_output.width(), expected_output.height()))?;
+
+        {
+            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&computed_image);
+            let prediction = arcathon_solution_json::Prediction {
+                prediction_id: index as u8,
+                output: grid,
+            };
+            predictions.push(prediction);
+        }
 
         if WRITE_TO_HTMLLOG {
-            if result_image == expected_output {
+            let expected_output: Image = pair.output.test_image.clone();
+            if computed_image == expected_output {
                 if task.occur_in_solutions_csv {
                     HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
                 } else {
                     HtmlLog::text(format!("{} - correct - no previous solution", task.id));
                 }
-                HtmlLog::image(&result_image);
+                HtmlLog::image(&computed_image);
             } else {
                 HtmlLog::text(format!("{} - incorrect", task.id));
                 // let images: Vec<Image> = vec![
@@ -1223,5 +1233,5 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
     // predicted and targets)
     // println!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc());
     // HtmlLog::text(format!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc()));
-    Ok(())
+    Ok(predictions)
 }
