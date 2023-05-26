@@ -211,12 +211,12 @@ impl ExperimentWithLogisticRegression {
                 enumerated_objects = enumerated_objects.overlay_with_position(image, 0, 0)?;
             }
 
-            let mut grid_color: u8 = 255;
-            let mut grid_mask: Image = Image::empty();
-            if let Some(grid_pattern) = &pair.input.grid_pattern {
-                grid_mask = grid_pattern.line_mask.clone();
-                grid_color = grid_pattern.color;
-            }
+            // let mut grid_color: u8 = 255;
+            // let mut grid_mask: Image = Image::empty();
+            // if let Some(grid_pattern) = &pair.input.grid_pattern {
+            //     grid_mask = grid_pattern.line_mask.clone();
+            //     grid_color = grid_pattern.color;
+            // }
 
             // let mut repair_mask: Image = Image::zero(width, height);
             // if let Some(mask) = &pair.input.repair_mask {
@@ -245,10 +245,10 @@ impl ExperimentWithLogisticRegression {
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
             let mut image_neighbour_right: Image = Image::color(width, height, 255);
-            let mut image_neighbour_upleft: Image = Image::color(width, height, 255);
-            let mut image_neighbour_upright: Image = Image::color(width, height, 255);
-            let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
-            let mut image_neighbour_downright: Image = Image::color(width, height, 255);
+            // let mut image_neighbour_upleft: Image = Image::color(width, height, 255);
+            // let mut image_neighbour_upright: Image = Image::color(width, height, 255);
+            // let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
+            // let mut image_neighbour_downright: Image = Image::color(width, height, 255);
             if let Some(color) = most_popular_color {
                 let ignore_mask: Image = input.to_mask_where_color_is(color);
                 match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Up, 255) {
@@ -275,30 +275,30 @@ impl ExperimentWithLogisticRegression {
                     },
                     Err(_) => {},
                 }
-                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, 255) {
-                    Ok(image) => {
-                        image_neighbour_upleft = image;
-                    },
-                    Err(_) => {},
-                }
-                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, 255) {
-                    Ok(image) => {
-                        image_neighbour_upright = image;
-                    },
-                    Err(_) => {},
-                }
-                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, 255) {
-                    Ok(image) => {
-                        image_neighbour_downleft = image;
-                    },
-                    Err(_) => {},
-                }
-                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, 255) {
-                    Ok(image) => {
-                        image_neighbour_downright = image;
-                    },
-                    Err(_) => {},
-                }
+                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, 255) {
+                //     Ok(image) => {
+                //         image_neighbour_upleft = image;
+                //     },
+                //     Err(_) => {},
+                // }
+                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, 255) {
+                //     Ok(image) => {
+                //         image_neighbour_upright = image;
+                //     },
+                //     Err(_) => {},
+                // }
+                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, 255) {
+                //     Ok(image) => {
+                //         image_neighbour_downleft = image;
+                //     },
+                //     Err(_) => {},
+                // }
+                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, 255) {
+                //     Ok(image) => {
+                //         image_neighbour_downright = image;
+                //     },
+                //     Err(_) => {},
+                // }
             }
 
             let mut holes_connectivity4 = HashMap::<u8, Image>::new();
@@ -376,15 +376,15 @@ impl ExperimentWithLogisticRegression {
                     let center_y_reversed: u8 = input.get(xx, y_reverse as i32).unwrap_or(255);
                     
                     let object_center: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
-                    let object_top: u8 = enumerated_objects.get(xx, yy - 1).unwrap_or(255);
-                    let object_bottom: u8 = enumerated_objects.get(xx, yy + 1).unwrap_or(255);
-                    let object_left: u8 = enumerated_objects.get(xx - 1, yy).unwrap_or(255);
-                    let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
+                    // let object_top: u8 = enumerated_objects.get(xx, yy - 1).unwrap_or(255);
+                    // let object_bottom: u8 = enumerated_objects.get(xx, yy + 1).unwrap_or(255);
+                    // let object_left: u8 = enumerated_objects.get(xx - 1, yy).unwrap_or(255);
+                    // let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
                     // let enumerated_object: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
 
-                    let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
-                    let grid_center: u8 = if grid_mask_center > 0 { grid_color } else { 255 };
-                    let is_grid: u8 = if grid_mask_center > 0 { 1 } else { 0 };
+                    // let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
+                    // let grid_center: u8 = if grid_mask_center > 0 { grid_color } else { 255 };
+                    // let is_grid: u8 = if grid_mask_center > 0 { 1 } else { 0 };
 
                     // let repair_center: u8 = repair_mask.get(xx, yy).unwrap_or(255);
 
@@ -410,10 +410,10 @@ impl ExperimentWithLogisticRegression {
                     let neighbour_down: u8 = image_neighbour_down.get(xx, yy).unwrap_or(255);
                     let neighbour_left: u8 = image_neighbour_left.get(xx, yy).unwrap_or(255);
                     let neighbour_right: u8 = image_neighbour_right.get(xx, yy).unwrap_or(255);
-                    let neighbour_upleft: u8 = image_neighbour_upleft.get(xx, yy).unwrap_or(255);
-                    let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
-                    let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
-                    let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
+                    // let neighbour_upleft: u8 = image_neighbour_upleft.get(xx, yy).unwrap_or(255);
+                    // let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
+                    // let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
+                    // let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
 
                     let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
                     let corners_center1: u8 = if corners_center == 1 { 1 } else { 0 };
@@ -899,41 +899,41 @@ impl ExperimentWithLogisticRegression {
                         the_holecount_connectivity8 = holecount_image.get(xx, yy).unwrap_or(0);
                     }
 
-                    let mut is_corner: u8 = 0;
-                    let mut corner_top_left: u8 = 0;
-                    let mut corner_top_right: u8 = 0;
-                    let mut corner_bottom_left: u8 = 0;
-                    let mut corner_bottom_right: u8 = 0;
-                    if let Some(sco) = &pair.input.single_color_objects {
-                        let corner_classification: u8 = sco.corner_classification(center, xx, yy);
-                        if corner_classification > 0 {
-                            is_corner = 1;
-                        }
-                        if corner_classification & 1 > 0 {
-                            corner_top_left = 1;
-                        }
-                        if corner_classification & 2 > 0 {
-                            corner_top_right = 1;
-                        }
-                        if corner_classification & 4 > 0 {
-                            corner_bottom_left = 1;
-                        }
-                        if corner_classification & 8 > 0 {
-                            corner_bottom_right = 1;
-                        }
-                    }
+                    // let mut is_corner: u8 = 0;
+                    // let mut corner_top_left: u8 = 0;
+                    // let mut corner_top_right: u8 = 0;
+                    // let mut corner_bottom_left: u8 = 0;
+                    // let mut corner_bottom_right: u8 = 0;
+                    // if let Some(sco) = &pair.input.single_color_objects {
+                    //     let corner_classification: u8 = sco.corner_classification(center, xx, yy);
+                    //     if corner_classification > 0 {
+                    //         is_corner = 1;
+                    //     }
+                    //     if corner_classification & 1 > 0 {
+                    //         corner_top_left = 1;
+                    //     }
+                    //     if corner_classification & 2 > 0 {
+                    //         corner_top_right = 1;
+                    //     }
+                    //     if corner_classification & 4 > 0 {
+                    //         corner_bottom_left = 1;
+                    //     }
+                    //     if corner_classification & 8 > 0 {
+                    //         corner_bottom_right = 1;
+                    //     }
+                    // }
 
-                    let mut inside_bounding_box: u8 = 0;
-                    if let Some(sco) = &pair.input.single_color_objects {
-                        if sco.is_inside_bounding_box(center, xx, yy) {
-                            inside_bounding_box = 1;
-                        }
-                    }
+                    // let mut inside_bounding_box: u8 = 0;
+                    // if let Some(sco) = &pair.input.single_color_objects {
+                    //     if sco.is_inside_bounding_box(center, xx, yy) {
+                    //         inside_bounding_box = 1;
+                    //     }
+                    // }
 
-                    let half_left: u8 = if xx * 2 < width as i32 { 1 } else { 0 };
-                    let half_right: u8 = if xx * 2 > width as i32 { 1 } else { 0 };
-                    let half_top: u8 = if yy * 2 < height as i32 { 1 } else { 0 };
-                    let half_bottom: u8 = if yy * 2 > height as i32 { 1 } else { 0 };
+                    // let half_left: u8 = if xx * 2 < width as i32 { 1 } else { 0 };
+                    // let half_right: u8 = if xx * 2 > width as i32 { 1 } else { 0 };
+                    // let half_top: u8 = if yy * 2 < height as i32 { 1 } else { 0 };
+                    // let half_bottom: u8 = if yy * 2 > height as i32 { 1 } else { 0 };
 
                     let input_has_unambiguous_connectivity: u8 = if input_unambiguous_connectivity_histogram.get(center) > 0 { 1 } else { 0 };
 
