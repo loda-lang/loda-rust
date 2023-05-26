@@ -11,7 +11,7 @@ use linfa::prelude::*;
 use linfa_logistic::MultiLogisticRegression;
 use ndarray::prelude::*;
 
-static WRITE_TO_HTMLLOG: bool = true;
+static WRITE_TO_HTMLLOG: bool = false;
 
 #[derive(Clone, Debug, Serialize)]
 struct Record {
@@ -142,7 +142,7 @@ impl ExperimentWithLogisticRegression {
         }
     }
 
-    fn process_task(task: &Task) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
+    pub fn process_task(task: &Task) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
         // println!("exporting task: {}", task.id);
 
         if !task.is_output_size_same_as_input_size() {
