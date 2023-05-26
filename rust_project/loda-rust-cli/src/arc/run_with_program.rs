@@ -1,4 +1,5 @@
 use super::arc_json_model;
+use super::arc_json_model::GridFromImage;
 use super::arc_work_model;
 use super::{Image, ImageSize, ImageToNumber, NumberToImage, register_arc_functions, Prediction, HtmlLog, ImageToHTML};
 use super::{ImageRotate, ImageSymmetry, Color};
@@ -1256,7 +1257,7 @@ impl RunWithProgram {
                 }
             }
 
-            let grid: arc_json_model::Grid = Self::image_to_grid(&computed_image);
+            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&computed_image);
             let prediction = Prediction {
                 prediction_id: index as u8,
                 output: grid,
@@ -1283,19 +1284,6 @@ impl RunWithProgram {
         };
 
         Ok(result)
-    }
-
-    fn image_to_grid(image: &Image) -> arc_json_model::Grid {
-        let mut grid = arc_json_model::Grid::new();
-        for y in 0..image.height() {
-            let mut row = Vec::<u8>::new();
-            for x in 0..image.width() {
-                let pixel_value: u8 = image.get(x as i32, y as i32).unwrap_or(255);
-                row.push(pixel_value);
-            }
-            grid.push(row);
-        }
-        grid
     }
 
     fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<&str>) {
