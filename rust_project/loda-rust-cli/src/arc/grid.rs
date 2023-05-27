@@ -39,6 +39,7 @@ pub struct GridPattern {
     // enumerated cell objects
     // corner mask
     // detect dots that makes up a grid
+    // convert pixel x,y coordinate to cell x,y coordinate
 }
 
 #[derive(Clone, Debug, PartialEq)]

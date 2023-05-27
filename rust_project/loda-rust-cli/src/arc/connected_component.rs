@@ -106,7 +106,7 @@ impl ConnectedComponent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::{ImageStack, ImageTryCreate};
+    use crate::arc::{ImageStack, ImageTryCreate, ImageObjectEnumerate};
 
     #[test]
     fn test_10000_find_objects_neighbors() {
@@ -283,6 +283,39 @@ mod tests {
         ];
         let expected = Image::create_raw(3, 3*2, expected_pixels);
         assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_100005_find_objects_connectivity4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 0, 0, 5,
+            7, 7, 7, 0, 0, 5,
+            7, 7, 7, 0, 0, 5,
+            8, 8, 8, 8, 5, 8,
+            8, 8, 8, 5, 8, 8,
+            8, 7, 8, 8, 8, 8,
+            7, 8, 7, 8, 8, 8,
+        ];
+        let input: Image = Image::try_create(6, 7, pixels).expect("image");
+        
+        // Act
+        let actual: Vec<Image> = ConnectedComponent::find_objects(PixelConnectivity::Connectivity4, &input).expect("vec");
+
+        // Assert
+        assert_eq!(actual.len(), 10);
+        let enumerated_objects: Image = Image::object_enumerate(&actual).expect("ok");
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 2, 2, 3,
+            1, 1, 1, 2, 2, 3,
+            1, 1, 1, 2, 2, 3,
+            4, 4, 4, 4, 5, 4,
+            4, 4, 4, 6, 4, 4,
+            4, 7, 4, 4, 4, 4,
+            8, 9, 10, 4, 4, 4,
+        ];
+        let expected: Image = Image::try_create(6, 7, expected_pixels).expect("image");
+        assert_eq!(enumerated_objects, expected);
     }
 
     #[test]

@@ -8,6 +8,7 @@ use rand::distributions::{Distribution, Uniform};
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML};
 
+#[allow(dead_code)]
 #[derive(Clone, Copy, Debug)]
 enum InputOutputType {
     Input,
@@ -25,6 +26,7 @@ struct Sample {
     input_output_type: InputOutputType,
 }
 
+#[allow(dead_code)]
 pub struct ExperimentWithConvolution {
     tasks: Vec<Task>,
     global_weights: Vec::<f32>,
@@ -41,6 +43,7 @@ impl ExperimentWithConvolution {
         }
     }
 
+    #[allow(dead_code)]
     pub fn run(&mut self) -> anyhow::Result<()> {
         println!("will process {} tasks", self.tasks.len());
 

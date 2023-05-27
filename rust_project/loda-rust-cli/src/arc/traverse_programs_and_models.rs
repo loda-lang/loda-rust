@@ -46,7 +46,10 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 /// Three days later. yes. The score is the same. The solutions gets found within the 10 hour time frame.
 ///
 /// Can I lower the time limit even more? Let's try 4 hours.
-static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = (4 * 60) * 60;
+/// The score is the same. The solutions gets found within the 4 hour time frame.
+/// 
+/// Can it be lowered even more? Let's try 2 hours.
+static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = (2 * 60) * 60;
 
 static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 4;
 
@@ -78,8 +81,8 @@ impl TraverseProgramsAndModels {
     pub fn experiment_with_convolution() -> anyhow::Result<()> {
         let tpam = TraverseProgramsAndModels::new()?;
         let task_vec: Vec<Task> = tpam.to_task_vec();
-        let mut instance = ExperimentWithConvolution::new(task_vec);
-        // let mut instance = ExperimentWithLogisticRegression::new(task_vec);
+        // let mut instance = ExperimentWithConvolution::new(task_vec);
+        let mut instance = ExperimentWithLogisticRegression::new(task_vec);
         instance.run()?;
         Ok(())
     }
@@ -1543,6 +1546,7 @@ impl TraverseProgramsAndModels {
         // This may be a solution to one of the hidden puzzles.
         // However it's slow, so it's disabled while developing, where we only want to explore mutations.
         let try_existing_solutions = true;
+        let try_logistic_regression = true;
 
         let number_of_programs_to_generate: usize = 3;
 
@@ -1669,6 +1673,63 @@ impl TraverseProgramsAndModels {
             println!("{} - Run existing solutions without mutations", Self::human_readable_utc_timestamp());
             runner.run_one_batch(&mut state)?;
             self.transfer_discovered_programs(&mut state)?;
+        }
+
+        if try_logistic_regression {
+            println!("{} - Run logistic regression", Self::human_readable_utc_timestamp());
+            let number_of_tasks: u64 = self.model_item_vec.len() as u64;
+            let pb = ProgressBar::new(number_of_tasks as u64);
+            let verbose_logistic_regression = false;
+            for model_item in &self.model_item_vec {
+                let task: Task = model_item.borrow().task.clone();
+                if task.occur_in_solutions_csv {
+                    if verbose_logistic_regression {
+                        println!("task: {} - already solved", task.id);
+                    }
+                    pb.inc(1);
+                    continue;
+                }
+                
+                let predictions: Vec<Prediction> = match ExperimentWithLogisticRegression::process_task(&task) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        if verbose_logistic_regression {
+                            println!("task: {} - could not make predictions. error: {:?}", task.id, error);
+                        }
+                        pb.inc(1);
+                        continue;
+                    }
+                };
+                if verbose_logistic_regression {
+                    println!("task: {} - predictions.len(): {}", task.id, predictions.len());
+                }
+
+                let model_id: ModelItemId = model_item.borrow().id.clone(); 
+
+                let test_item = TestItem { 
+                    output_id: 0,
+                    number_of_predictions: predictions.len() as u8,
+                    predictions: predictions,
+                };
+                let task_name: String = model_id.file_stem();
+                let task_item = TaskItem {
+                    task_name: task_name,
+                    test_vec: vec![test_item],
+                };
+                // TODO: don't add if already exists
+                state.current_tasks.push(task_item);        
+                pb.inc(1);
+            }
+            pb.finish_and_clear();
+            save_solutions_json(
+                &self.arc_config.path_solution_dir,
+                &self.arc_config.path_solution_teamid_json,
+                &state.current_tasks
+            );
+            println!("{} - Executable elapsed: {}.", Self::human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
+
+            println!("Done!");
+            return Ok(());
         }
 
         // loop until all puzzles have been solved

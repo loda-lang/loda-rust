@@ -64,6 +64,8 @@ pub struct Input {
     pub single_pixel_noise_color: Option<u8>,
 
     // Future experiments to do.
+    // least_popular_intersection_color
+    //
     // Resolving these properties is similar to a package manager, a DAG (directed acyclic graph).
     // One property may depend on another property that depends on a third property.
     // As of 2023-04-25 the code is not a DAG, and gets initialized in a kludgy way. I want to migrate to a DAG.
