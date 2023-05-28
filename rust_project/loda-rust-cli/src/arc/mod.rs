@@ -110,6 +110,7 @@ mod substitution_rule;
 mod symmetry;
 mod symmetry_to_label;
 mod test_convert;
+mod time_util;
 mod traverse_programs_and_models;
 
 pub use action_label_util::ActionLabelUtil;
@@ -211,4 +212,5 @@ pub use stack_strings::StackStrings;
 pub use substitution_rule::SubstitutionRule;
 pub use symmetry::Symmetry;
 pub use symmetry_to_label::SymmetryToLabel;
+pub use time_util::*;
 pub use traverse_programs_and_models::TraverseProgramsAndModels;

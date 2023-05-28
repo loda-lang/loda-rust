@@ -3,6 +3,7 @@ use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
 use super::{ImageHistogram, ImageSize, Histogram, ExportTasks};
+use super::human_readable_utc_timestamp;
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -13,7 +14,6 @@ use anyhow::Context;
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
-use chrono::prelude::*;
 use std::fmt;
 use std::time::{Duration, Instant};
 use std::cell::RefCell;
@@ -1410,24 +1410,24 @@ impl TraverseProgramsAndModels {
                     let expected = format!("({},{})", count_train, count_test);
                     let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
                     if result.all_train_pairs_are_correct() && !result.all_test_pairs_are_correct() {
-                        pb.println(format!("{} - {} - Dangerous false positive. Expected {} but got {}. Solution {:?}", Self::human_readable_utc_timestamp(), print_prefix_task_id, expected, actual, program_id.file_name()));
+                        pb.println(format!("{} - {} - Dangerous false positive. Expected {} but got {}. Solution {:?}", human_readable_utc_timestamp(), print_prefix_task_id, expected, actual, program_id.file_name()));
                         count_dangerous_false_positive += 1;
                         continue;
                     }
                     let count_correct = result.count_train_correct() + result.count_test_correct();
                     if count_correct > 0 {
                         count_partial_match += 1;
-                        pb.println(format!("{} - {} - Partial solution. Expected {} but got {}. Solution {:?}", Self::human_readable_utc_timestamp(), print_prefix_task_id, expected, actual, program_id.file_name()));
+                        pb.println(format!("{} - {} - Partial solution. Expected {} but got {}. Solution {:?}", human_readable_utc_timestamp(), print_prefix_task_id, expected, actual, program_id.file_name()));
                         continue;
                     }
                     if verbose {
-                        pb.println(format!("{} - ERROR: in row {}. program: {:?}. Expected {}, but got {}", Self::human_readable_utc_timestamp(), program_index, program_item, expected, actual));
+                        pb.println(format!("{} - ERROR: in row {}. program: {:?}. Expected {}, but got {}", human_readable_utc_timestamp(), program_index, program_item, expected, actual));
                     }
                     count_incorrect += 1;
                     continue;
                 }
     
-                pb.println(format!("{} - {} - Solution: {:?}", Self::human_readable_utc_timestamp(), print_prefix_task_id, program_id.file_name()));
+                pb.println(format!("{} - {} - Solution: {:?}", human_readable_utc_timestamp(), print_prefix_task_id, program_id.file_name()));
                 count_ok += 1;
                 match program_id {
                     ProgramItemId::Path { path } => {
@@ -1550,7 +1550,7 @@ impl TraverseProgramsAndModels {
 
         let number_of_programs_to_generate: usize = 3;
 
-        println!("{} - Start of program", Self::human_readable_utc_timestamp());
+        println!("{} - Start of program", human_readable_utc_timestamp());
         Self::print_system_info();
 
         println!("initial random seed: {}", ARC_COMPETITION_INITIAL_RANDOM_SEED);
@@ -1670,14 +1670,14 @@ impl TraverseProgramsAndModels {
         };
 
         if try_existing_solutions {
-            println!("{} - Run existing solutions without mutations", Self::human_readable_utc_timestamp());
+            println!("{} - Run existing solutions without mutations", human_readable_utc_timestamp());
             runner.run_one_batch(&mut state)?;
             self.transfer_discovered_programs(&mut state)?;
         }
 
         if try_logistic_regression {
             let number_of_tasks: u64 = runner.plan.scheduled_model_item_vec.len() as u64;
-            println!("{} - Run logistic regression with {} tasks", Self::human_readable_utc_timestamp(), number_of_tasks);
+            println!("{} - Run logistic regression with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
             let pb = ProgressBar::new(number_of_tasks as u64);
             let verbose_logistic_regression = false;
             for model_item in &runner.plan.scheduled_model_item_vec {
@@ -1719,7 +1719,7 @@ impl TraverseProgramsAndModels {
                 &self.arc_config.path_solution_teamid_json,
                 &state.current_tasks
             );
-            println!("{} - Executable elapsed: {}.", Self::human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
+            println!("{} - Executable elapsed: {}.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
 
             println!("Done!");
             return Ok(());
@@ -1729,14 +1729,14 @@ impl TraverseProgramsAndModels {
         let mut mutation_index: u64 = 0;
         loop {
             if runner.plan.scheduled_model_item_vec.is_empty() {
-                println!("{} - It seems all the puzzles have been solved.", Self::human_readable_utc_timestamp());
+                println!("{} - It seems all the puzzles have been solved.", human_readable_utc_timestamp());
                 break;
             }
             if state.terminate_due_to_timeout {
-                println!("{} - Terminating due to timeout.", Self::human_readable_utc_timestamp());
+                println!("{} - Terminating due to timeout.", human_readable_utc_timestamp());
                 break;
             }
-            println!("{} - Mutation: {}", Self::human_readable_utc_timestamp(), mutation_index);
+            println!("{} - Mutation: {}", human_readable_utc_timestamp(), mutation_index);
 
             // Create new mutated programs in every iteration
             runner.plan.scheduled_program_item_vec = self.create_mutations_of_all_programs(
@@ -1751,15 +1751,10 @@ impl TraverseProgramsAndModels {
             
             mutation_index += 1;
         }
-        println!("{} - Executable elapsed: {}.", Self::human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
+        println!("{} - Executable elapsed: {}.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
 
         println!("Done!");
         Ok(())
-    }
-
-    fn human_readable_utc_timestamp() -> String {
-        let datetime: DateTime<Utc> = Utc::now();
-        datetime.to_rfc3339_opts(SecondsFormat::Secs, true).to_string()
     }
 
     /// Move discovered programs to the original programs vector
@@ -1871,7 +1866,7 @@ impl BatchPlan {
                     state.terminate_due_to_timeout = true;
                     let message = format!(
                         "{} - Exceeded time limit for executable", 
-                        TraverseProgramsAndModels::human_readable_utc_timestamp(), 
+                        human_readable_utc_timestamp(), 
                     );
                     pb.println(message);
                     pb2.finish_and_clear();
@@ -1884,7 +1879,7 @@ impl BatchPlan {
                     let total_number_of_solutions: usize = state.current_tasks.len();
                     let message = format!(
                         "{} - Status.  Total number of solutions: {}  Slowest program: {:?} {}", 
-                        TraverseProgramsAndModels::human_readable_utc_timestamp(), 
+                        human_readable_utc_timestamp(), 
                         total_number_of_solutions,
                         slowest_program_name,
                         HumanDuration(slowest_program_elapsed)
@@ -1956,14 +1951,14 @@ impl BatchPlan {
                     // No task in ARC outputs an empty image.
                     // Thus all the "test" output images must be non-empty. 
                     // This is not a solution. Proceed to the next candidate solution.
-                    pb.println(format!("{} - Task {:?}, ignoring test images that are empty.", TraverseProgramsAndModels::human_readable_utc_timestamp(), model_item.borrow().id));
+                    pb.println(format!("{} - Task {:?}, ignoring test images that are empty.", human_readable_utc_timestamp(), model_item.borrow().id));
                     continue;
                 }
 
                 // All the train pairs are correct.
                 // The test pairs are unverified, and have a size of 1x1 or bigger.
                 // This may be a solution.
-                pb.println(format!("{} - Task {:?}, possible solution", TraverseProgramsAndModels::human_readable_utc_timestamp(), model_item.borrow().id));
+                pb.println(format!("{} - Task {:?}, possible solution", human_readable_utc_timestamp(), model_item.borrow().id));
 
                 let save_result = state.save_solution(
                     config, 
