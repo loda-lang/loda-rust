@@ -1676,19 +1676,12 @@ impl TraverseProgramsAndModels {
         }
 
         if try_logistic_regression {
-            println!("{} - Run logistic regression", Self::human_readable_utc_timestamp());
-            let number_of_tasks: u64 = self.model_item_vec.len() as u64;
+            let number_of_tasks: u64 = runner.plan.scheduled_model_item_vec.len() as u64;
+            println!("{} - Run logistic regression with {} tasks", Self::human_readable_utc_timestamp(), number_of_tasks);
             let pb = ProgressBar::new(number_of_tasks as u64);
             let verbose_logistic_regression = false;
-            for model_item in &self.model_item_vec {
+            for model_item in &runner.plan.scheduled_model_item_vec {
                 let task: Task = model_item.borrow().task.clone();
-                if task.occur_in_solutions_csv {
-                    if verbose_logistic_regression {
-                        println!("task: {} - already solved", task.id);
-                    }
-                    pb.inc(1);
-                    continue;
-                }
                 
                 let predictions: Vec<Prediction> = match ExperimentWithLogisticRegression::process_task(&task) {
                     Ok(value) => value,
