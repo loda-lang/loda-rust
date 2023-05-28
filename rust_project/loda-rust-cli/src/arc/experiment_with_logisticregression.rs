@@ -320,6 +320,52 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            // let mut horizontal_symmetry_connectivity4 = HashMap::<u8, Image>::new();
+            // let mut horizontal_symmetry_connectivity8 = HashMap::<u8, Image>::new();
+            // if let Some(sco) = &pair.input.single_color_objects {
+            //     for color in 0..=9 {
+            //         let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity4) {
+            //             Ok(value) => value,
+            //             Err(_) => {
+            //                 continue;
+            //             }
+            //         };
+            //         horizontal_symmetry_connectivity4.insert(color, image);
+            //     }
+            //     for color in 0..=9 {
+            //         let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity8) {
+            //             Ok(value) => value,
+            //             Err(_) => {
+            //                 continue;
+            //             }
+            //         };
+            //         horizontal_symmetry_connectivity8.insert(color, image);
+            //     }
+            // }
+
+            // let mut vertical_symmetry_connectivity4 = HashMap::<u8, Image>::new();
+            // let mut vertical_symmetry_connectivity8 = HashMap::<u8, Image>::new();
+            // if let Some(sco) = &pair.input.single_color_objects {
+            //     for color in 0..=9 {
+            //         let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity4) {
+            //             Ok(value) => value,
+            //             Err(_) => {
+            //                 continue;
+            //             }
+            //         };
+            //         vertical_symmetry_connectivity4.insert(color, image);
+            //     }
+            //     for color in 0..=9 {
+            //         let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity8) {
+            //             Ok(value) => value,
+            //             Err(_) => {
+            //                 continue;
+            //             }
+            //         };
+            //         vertical_symmetry_connectivity8.insert(color, image);
+            //     }
+            // }
+
             for y in 0..height {
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -870,6 +916,23 @@ impl ExperimentWithLogisticRegression {
                         the_holecount_connectivity8 = holecount_image.get(xx, yy).unwrap_or(0);
                     }
 
+                    // let mut the_horizontal_symmetry_connectivity4: u8 = 0;
+                    // if let Some(mask) = horizontal_symmetry_connectivity4.get(&center) {
+                    //     the_horizontal_symmetry_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                    // }
+                    // let mut the_horizontal_symmetry_connectivity8: u8 = 0;
+                    // if let Some(mask) = horizontal_symmetry_connectivity8.get(&center) {
+                    //     the_horizontal_symmetry_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                    // }
+                    // let mut the_vertical_symmetry_connectivity4: u8 = 0;
+                    // if let Some(mask) = vertical_symmetry_connectivity4.get(&center) {
+                    //     the_vertical_symmetry_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                    // }
+                    // let mut the_vertical_symmetry_connectivity8: u8 = 0;
+                    // if let Some(mask) = vertical_symmetry_connectivity8.get(&center) {
+                    //     the_vertical_symmetry_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                    // }
+
                     // let mut is_corner: u8 = 0;
                     // let mut corner_top_left: u8 = 0;
                     // let mut corner_top_right: u8 = 0;
@@ -974,19 +1037,6 @@ impl ExperimentWithLogisticRegression {
                         record.serialize_raw(value);
                     }
                     record.serialize_raw(input_has_unambiguous_connectivity);
-                    // record.serialize_raw(is_corner);
-                    // record.serialize_raw(corner_top_left);
-                    // record.serialize_raw(corner_top_right);
-                    // record.serialize_raw(corner_bottom_left);
-                    // record.serialize_raw(corner_bottom_right);
-                    // record.serialize_raw(inside_bounding_box);
-                    // record.serialize_raw(is_grid);
-                    // record.serialize_color(grid_center);
-                    // record.serialize_color(grid_color);
-                    // record.serialize_raw(half_left);
-                    // record.serialize_raw(half_right);
-                    // record.serialize_raw(half_top);
-                    // record.serialize_raw(half_bottom);
                     record.serialize_raw(v0);
                     record.serialize_raw(v1);
                     record.serialize_raw(v2);
@@ -1029,6 +1079,23 @@ impl ExperimentWithLogisticRegression {
                     // preserve corner: u8,
                     // x_distance_from_center: i16,
                     // y_distance_from_center: i16,
+                    // record.serialize_raw(the_horizontal_symmetry_connectivity4);
+                    // record.serialize_raw(the_horizontal_symmetry_connectivity8);
+                    // record.serialize_raw(the_vertical_symmetry_connectivity4);
+                    // record.serialize_raw(the_vertical_symmetry_connectivity8);
+                    // record.serialize_raw(is_corner);
+                    // record.serialize_raw(corner_top_left);
+                    // record.serialize_raw(corner_top_right);
+                    // record.serialize_raw(corner_bottom_left);
+                    // record.serialize_raw(corner_bottom_right);
+                    // record.serialize_raw(inside_bounding_box);
+                    // record.serialize_raw(is_grid);
+                    // record.serialize_color(grid_center);
+                    // record.serialize_color(grid_color);
+                    // record.serialize_raw(half_left);
+                    // record.serialize_raw(half_right);
+                    // record.serialize_raw(half_top);
+                    // record.serialize_raw(half_bottom);
 
                     records.push(record);
                 }
