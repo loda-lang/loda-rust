@@ -291,6 +291,10 @@ pub enum ActionLabel {
     // OutputGridIsTheSameAsInputGrid,
     // OutputImageIsPresentInInputImageWithTwoColorWildcards, for solving "8731374e"
     // OutputImageWithSlightlyDifferentColorsIsPresentInTheInputImage,
+    // OutputImagePreservesRowOfInputImageFromTop { row: u8 },
+    // OutputImagePreservesRowOfInputImageFromBottom { row: u8 },
+    // OutputImagePreservesColumnOfInputImageFromLeft { row: u8 },
+    // OutputImagePreservesColumnOfInputImageFromRight { row: u8 },
     // OutputImageIsSingleColor,
     // OutputMaskIsTheSameAsInputMask,
     // OutputMaskIsASubsetOfInputMask,
