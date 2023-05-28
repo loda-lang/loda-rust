@@ -19,6 +19,10 @@ struct Record {
     classification: u8,
     is_test: u8,
     pair_id: u8,
+
+    // Future experiment
+    // make a `secondary_values` vector that use a lower weight in the logistic regression.
+    // examples of secondary values: is the x position a mod2==0, is x position a mod3==0.
     values: Vec<u8>,
 }
 
