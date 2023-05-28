@@ -1067,6 +1067,10 @@ impl ExperimentWithLogisticRegression {
                     // nesting depth, how many flood fills are needed to clear the image.
                     // distance inside object, how many pixels from the edge of the object.
                     // distance to nearest object, how many pixels from the edge of the nearest object.
+                    // cell x
+                    // cell y
+                    // cell distance from top/bottom/left/right
+                    // cell is top/bottom/left/right/center
                     
                     // These are worsening the predictions.
                     // input_is_removal_color: u8,
