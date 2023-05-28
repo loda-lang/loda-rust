@@ -1680,10 +1680,11 @@ impl TraverseProgramsAndModels {
             println!("{} - Run logistic regression with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
             let pb = ProgressBar::new(number_of_tasks as u64);
             let verbose_logistic_regression = false;
+            let verify_test_output = false;
             for model_item in &runner.plan.scheduled_model_item_vec {
                 let task: Task = model_item.borrow().task.clone();
                 
-                let predictions: Vec<Prediction> = match ExperimentWithLogisticRegression::process_task(&task) {
+                let predictions: Vec<Prediction> = match ExperimentWithLogisticRegression::process_task(&task, verify_test_output) {
                     Ok(value) => value,
                     Err(error) => {
                         if verbose_logistic_regression {

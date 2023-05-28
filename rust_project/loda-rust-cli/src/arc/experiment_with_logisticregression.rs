@@ -4,7 +4,9 @@ use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model};
 use super::{ActionLabel, InputLabel};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze};
+use super::human_readable_utc_timestamp;
 use anyhow::Context;
+use indicatif::ProgressBar;
 use serde::Serialize;
 use std::collections::HashMap;
 use linfa::prelude::*;
@@ -12,7 +14,6 @@ use linfa_logistic::MultiLogisticRegression;
 use ndarray::prelude::*;
 
 static WRITE_TO_HTMLLOG: bool = false;
-static PRINT_IF_CORRECT: bool = false;
 
 #[derive(Clone, Debug, Serialize)]
 struct Record {
@@ -86,68 +87,33 @@ impl ExperimentWithLogisticRegression {
 
     #[allow(dead_code)]
     pub fn run(&mut self) -> anyhow::Result<()> {
-        self.run_all()?;
-        // self.run_specific()?;
-        Ok(())
-    }
-
-    #[allow(dead_code)]
-    fn run_all(&mut self) -> anyhow::Result<()> {
+        let verbose = false;
+        let verify_test_output = true;
+        let number_of_tasks: u64 = self.tasks.len() as u64;
+        println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
+        let mut count_solved: usize = 0;
+        let pb = ProgressBar::new(number_of_tasks as u64);
         for task in &self.tasks {
-            Self::process_task_debug(task);
+            match Self::process_task(task, verify_test_output) {
+                Ok(_predictions) => {
+                    count_solved += 1;
+                    pb.println(format!("task {} - solved", task.id));
+                },
+                Err(error) => {
+                    if verbose {
+                        pb.println(format!("task {} - error: {:?}", task.id, error));
+                    }
+                }
+            }
+            pb.inc(1);
         }
+        pb.finish_and_clear();
+        println!("{} - run - end", human_readable_utc_timestamp());
+        println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
         Ok(())
     }
 
-    #[allow(dead_code)]
-    fn run_specific(&mut self) -> anyhow::Result<()> {
-        let task_ids = [
-            "3618c87e",
-            "3aa6fb7a",
-            "6f8cd79b",
-            "95990924",
-            "a699fb00",
-            "a79310a0",
-            "b6afb2da",
-            "bb43febb",
-            "d364b489",
-        ];
-        for task_id in task_ids {
-            self.process_task_id(task_id)?;
-        }
-        Ok(())
-    }
-
-    fn process_task_id(&self, task_id: &str) -> anyhow::Result<()> {
-        // println!("exporting task: {}", task_id);
-
-        let mut found_task: Option<&Task> = None;
-        for task in &self.tasks {
-            if task.id != task_id {
-                continue;
-            }
-            found_task = Some(task);
-        }
-        let task: &Task = match found_task {
-            Some(value) => value,
-            None => {
-                return Err(anyhow::anyhow!("didn't find a task_id: {}", task_id));
-            }
-        };
-        let _predictions: Vec::<arcathon_solution_json::Prediction> = Self::process_task(task)?;
-        Ok(())
-    }
-
-    pub fn process_task_debug(task: &Task) {
-        match Self::process_task(task) {
-            Ok(_predictions) => {},
-            Err(error) => {
-                println!("process_task_debug: {:?}", error);
-            }
-        }
-    }
-
-    pub fn process_task(task: &Task) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
+    pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
         // println!("exporting task: {}", task.id);
 
         if !task.is_output_size_same_as_input_size() {
@@ -1069,7 +1035,11 @@ impl ExperimentWithLogisticRegression {
             }
         }
 
-        let predictions: Vec::<arcathon_solution_json::Prediction> = perform_logistic_regression(task, &records)?;
+        let predictions: Vec::<arcathon_solution_json::Prediction> = perform_logistic_regression(
+            task, 
+            &records, 
+            verify_test_output,
+        )?;
 
         Ok(predictions)
     }
@@ -1133,7 +1103,7 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
     Ok(instance)
 }
 
-fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
+fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
     // println!("task_id: {}", task.id);
 
     let dataset: Dataset<f64, usize, Ix1>;
@@ -1212,13 +1182,6 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
             predictions.push(prediction);
         }
 
-        if PRINT_IF_CORRECT {
-            let expected_output: Image = pair.output.test_image.clone();
-            if computed_image == expected_output {
-                println!("logistic regression. task {} - correct", task.id);
-            }
-        }
-
         if WRITE_TO_HTMLLOG {
             let expected_output: Image = pair.output.test_image.clone();
             if computed_image == expected_output {
@@ -1229,7 +1192,7 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
                 }
                 HtmlLog::image(&computed_image);
             } else {
-                HtmlLog::text(format!("{} - incorrect", task.id));
+                // HtmlLog::text(format!("{} - incorrect", task.id));
                 // let images: Vec<Image> = vec![
                 //     original_input,
                 //     expected_output,
@@ -1238,8 +1201,14 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
                 // HtmlLog::compare_images(images);
             }
         }
-    }
 
+        if verify_test_output {
+            let expected_output: Image = pair.output.test_image.clone();
+            if computed_image != expected_output {
+                return Err(anyhow::anyhow!("The predicted output doesn't match with the expected output"));
+            }
+        }
+    }
 
     // Calculate the accuracy and Matthew Correlation Coefficient (cross-correlation between
     // predicted and targets)
