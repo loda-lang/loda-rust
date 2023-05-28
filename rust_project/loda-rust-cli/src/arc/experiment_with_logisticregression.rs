@@ -12,6 +12,7 @@ use linfa_logistic::MultiLogisticRegression;
 use ndarray::prelude::*;
 
 static WRITE_TO_HTMLLOG: bool = false;
+static PRINT_IF_CORRECT: bool = false;
 
 #[derive(Clone, Debug, Serialize)]
 struct Record {
@@ -1205,6 +1206,13 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
                 output: grid,
             };
             predictions.push(prediction);
+        }
+
+        if PRINT_IF_CORRECT {
+            let expected_output: Image = pair.output.test_image.clone();
+            if computed_image == expected_output {
+                println!("logistic regression. task {} - correct", task.id);
+            }
         }
 
         if WRITE_TO_HTMLLOG {
