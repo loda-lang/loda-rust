@@ -1546,7 +1546,7 @@ impl TraverseProgramsAndModels {
         // This may be a solution to one of the hidden puzzles.
         // However it's slow, so it's disabled while developing, where we only want to explore mutations.
         let try_existing_solutions = true;
-        let try_logistic_regression = true;
+        let try_logistic_regression = false;
 
         let number_of_programs_to_generate: usize = 3;
 
