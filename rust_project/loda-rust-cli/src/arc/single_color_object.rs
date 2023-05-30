@@ -1,4 +1,4 @@
-use super::{ImageFill, ConnectedComponent, PixelConnectivity, ImageOverlay, ImageObjectEnumerate};
+use super::{ImageFill, ConnectedComponent, PixelConnectivity, ImageOverlay, ImageObjectEnumerate, ImageTrim, ImageSymmetry};
 use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle, ImageMix, ImageSize, MixMode, ImageMaskCount, ImageCrop};
 
 /// A rectangle filled with a single solid color and no other colors are present inside the object.
@@ -557,6 +557,96 @@ impl SingleColorObjects {
         }
         false
     }
+
+    /// Mask of the objects with the specified `color`, where the object is horizontal symmetric.
+    /// 
+    /// The `value=1` where the object is symmetric, and `value=0` where it is not.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn horizontal_symmetry_mask(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        for object in &self.rectangle_vec {
+            if object.color != color {
+                continue;
+            }
+            // A rectangle is always horizontally symmetric.
+            let mask: Image = object.mask.clone();
+            return Ok(mask);
+        }
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            let optional_container: Option<&SingleColorObjectClusterContainer> = match connectivity {
+                PixelConnectivity::Connectivity4 => object.container4.as_ref(),
+                PixelConnectivity::Connectivity8 => object.container8.as_ref(),
+            };
+            let container: &SingleColorObjectClusterContainer = match optional_container {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing container"));
+                }
+            };
+            let mut accumulated_mask: Image = Image::zero(object.bounding_box.width(), object.bounding_box.height());
+            for cluster in &container.cluster_vec {
+                let trimmed_mask: Image = cluster.mask.trim_color(0)?;
+                let is_symmetric: bool = trimmed_mask.is_symmetric_x().unwrap_or(false);
+                if !is_symmetric {
+                    continue;
+                }
+                accumulated_mask = accumulated_mask.mix(&cluster.mask, MixMode::BooleanOr)?;
+            }
+            let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
+            result_image = result_image.overlay_with_position(&accumulated_mask, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+            return Ok(result_image);
+        }
+        Err(anyhow::anyhow!("Color not found"))
+    }
+
+    /// Mask of the objects with the specified `color`, where the object is vertical symmetric.
+    /// 
+    /// The `value=1` where the object is symmetric, and `value=0` where it is not.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn vertical_symmetry_mask(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        for object in &self.rectangle_vec {
+            if object.color != color {
+                continue;
+            }
+            // A rectangle is always vertically symmetric.
+            let mask: Image = object.mask.clone();
+            return Ok(mask);
+        }
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            let optional_container: Option<&SingleColorObjectClusterContainer> = match connectivity {
+                PixelConnectivity::Connectivity4 => object.container4.as_ref(),
+                PixelConnectivity::Connectivity8 => object.container8.as_ref(),
+            };
+            let container: &SingleColorObjectClusterContainer = match optional_container {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing container"));
+                }
+            };
+            let mut accumulated_mask: Image = Image::zero(object.bounding_box.width(), object.bounding_box.height());
+            for cluster in &container.cluster_vec {
+                let trimmed_mask: Image = cluster.mask.trim_color(0)?;
+                let is_symmetric: bool = trimmed_mask.is_symmetric_y().unwrap_or(false);
+                if !is_symmetric {
+                    continue;
+                }
+                accumulated_mask = accumulated_mask.mix(&cluster.mask, MixMode::BooleanOr)?;
+            }
+            let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
+            result_image = result_image.overlay_with_position(&accumulated_mask, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+            return Ok(result_image);
+        }
+        Err(anyhow::anyhow!("Color not found"))
+    }
 }
 
 #[cfg(test)]
@@ -1088,4 +1178,181 @@ mod tests {
             assert_eq!(objects.is_inside_bounding_box(7, 5, 2), true);
         }
     }
+
+    #[test]
+    fn test_110000_horizontal_symmetry_mask1() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 7, 7, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 3, 3, 3,
+            3, 3, 3, 0, 0, 3, 0, 3,
+            3, 0, 3, 0, 0, 3, 3, 3,
+            3, 3, 3, 0, 0, 0, 0, 0,
+            0, 3, 0, 0, 3, 0, 0, 0,
+            0, 0, 0, 0, 3, 3, 3, 0,
+        ];
+        let input: Image = Image::try_create(8, 7, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.horizontal_symmetry_mask(3, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 1, 1, 1,
+            1, 1, 1, 0, 0, 1, 0, 1,
+            1, 0, 1, 0, 0, 1, 1, 1,
+            1, 1, 1, 0, 0, 0, 0, 0,
+            0, 1, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_110001_horizontal_symmetry_mask2() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 7, 7, 0, 0,
+            0, 7, 7, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.horizontal_symmetry_mask(7, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 1, 0, 0,
+            0, 1, 1, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_110002_horizontal_symmetry_mask3() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 5, 0, 0, 0, 0,
+            0, 0, 5, 0, 5, 0, 0, 0,
+            5, 5, 0, 0, 0, 5, 5, 0,
+            0, 5, 0, 0, 0, 5, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 5, 5, 0, 0, 5, 0,
+            0, 5, 5, 5, 5, 0, 0, 5,
+        ];
+        let input: Image = Image::try_create(8, 7, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.horizontal_symmetry_mask(5, PixelConnectivity::Connectivity8).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 1, 0, 0, 0, 0,
+            0, 0, 1, 0, 1, 0, 0, 0,
+            1, 1, 0, 0, 0, 1, 1, 0,
+            0, 1, 0, 0, 0, 1, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1, 1, 0, 0, 0, 0,
+            0, 1, 1, 1, 1, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_120000_vertical_symmetry_mask1() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 7, 7, 0, 0, 0, 0, 3,
+            0, 0, 0, 0, 0, 3, 3, 3,
+            3, 3, 3, 0, 0, 3, 0, 3,
+            3, 0, 3, 3, 0, 3, 3, 3,
+            3, 3, 3, 0, 0, 0, 0, 3,
+            0, 0, 0, 0, 3, 0, 0, 0,
+            0, 0, 0, 0, 3, 3, 3, 0,
+        ];
+        let input: Image = Image::try_create(8, 7, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.vertical_symmetry_mask(3, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 1, 1, 1,
+            1, 1, 1, 0, 0, 1, 0, 1,
+            1, 0, 1, 1, 0, 1, 1, 1,
+            1, 1, 1, 0, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_120001_vertical_symmetry_mask2() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 7, 7, 0, 0,
+            0, 7, 7, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.vertical_symmetry_mask(7, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 1, 0, 0,
+            0, 1, 1, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_120002_vertical_symmetry_mask3() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 5, 5, 0, 0, 7,
+            0, 0, 5, 0, 5, 5, 0, 7,
+            0, 5, 0, 0, 0, 0, 0, 7,
+            0, 5, 0, 0, 0, 0, 0, 0,
+            0, 0, 5, 0, 5, 5, 0, 0,
+            5, 0, 0, 5, 5, 0, 0, 5,
+            5, 0, 0, 0, 0, 0, 5, 5,
+        ];
+        let input: Image = Image::try_create(8, 7, pixels).expect("image");
+        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.vertical_symmetry_mask(5, PixelConnectivity::Connectivity8).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 1, 1, 0, 0, 0,
+            0, 0, 1, 0, 1, 1, 0, 0,
+            0, 1, 0, 0, 0, 0, 0, 0,
+            0, 1, 0, 0, 0, 0, 0, 0,
+            0, 0, 1, 0, 1, 1, 0, 0,
+            1, 0, 0, 1, 1, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
 }

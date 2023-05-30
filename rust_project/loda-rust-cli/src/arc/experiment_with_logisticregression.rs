@@ -4,7 +4,9 @@ use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model};
 use super::{ActionLabel, InputLabel};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze};
+use super::human_readable_utc_timestamp;
 use anyhow::Context;
+use indicatif::ProgressBar;
 use serde::Serialize;
 use std::collections::HashMap;
 use linfa::prelude::*;
@@ -18,6 +20,10 @@ struct Record {
     classification: u8,
     is_test: u8,
     pair_id: u8,
+
+    // Future experiment
+    // make a `secondary_values` vector that use a lower weight in the logistic regression.
+    // examples of secondary values: is the x position a mod2==0, is x position a mod3==0.
     values: Vec<u8>,
 }
 
@@ -81,68 +87,33 @@ impl ExperimentWithLogisticRegression {
 
     #[allow(dead_code)]
     pub fn run(&mut self) -> anyhow::Result<()> {
-        self.run_all()?;
-        // self.run_specific()?;
-        Ok(())
-    }
-
-    #[allow(dead_code)]
-    fn run_all(&mut self) -> anyhow::Result<()> {
+        let verbose = false;
+        let verify_test_output = true;
+        let number_of_tasks: u64 = self.tasks.len() as u64;
+        println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
+        let mut count_solved: usize = 0;
+        let pb = ProgressBar::new(number_of_tasks as u64);
         for task in &self.tasks {
-            Self::process_task_debug(task);
+            match Self::process_task(task, verify_test_output) {
+                Ok(_predictions) => {
+                    count_solved += 1;
+                    pb.println(format!("task {} - solved", task.id));
+                },
+                Err(error) => {
+                    if verbose {
+                        pb.println(format!("task {} - error: {:?}", task.id, error));
+                    }
+                }
+            }
+            pb.inc(1);
         }
+        pb.finish_and_clear();
+        println!("{} - run - end", human_readable_utc_timestamp());
+        println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
         Ok(())
     }
 
-    #[allow(dead_code)]
-    fn run_specific(&mut self) -> anyhow::Result<()> {
-        let task_ids = [
-            "3618c87e",
-            "3aa6fb7a",
-            "6f8cd79b",
-            "95990924",
-            "a699fb00",
-            "a79310a0",
-            "b6afb2da",
-            "bb43febb",
-            "d364b489",
-        ];
-        for task_id in task_ids {
-            self.process_task_id(task_id)?;
-        }
-        Ok(())
-    }
-
-    fn process_task_id(&self, task_id: &str) -> anyhow::Result<()> {
-        // println!("exporting task: {}", task_id);
-
-        let mut found_task: Option<&Task> = None;
-        for task in &self.tasks {
-            if task.id != task_id {
-                continue;
-            }
-            found_task = Some(task);
-        }
-        let task: &Task = match found_task {
-            Some(value) => value,
-            None => {
-                return Err(anyhow::anyhow!("didn't find a task_id: {}", task_id));
-            }
-        };
-        let _predictions: Vec::<arcathon_solution_json::Prediction> = Self::process_task(task)?;
-        Ok(())
-    }
-
-    pub fn process_task_debug(task: &Task) {
-        match Self::process_task(task) {
-            Ok(_predictions) => {},
-            Err(error) => {
-                println!("process_task_debug: {:?}", error);
-            }
-        }
-    }
-
-    pub fn process_task(task: &Task) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
+    pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
         // println!("exporting task: {}", task.id);
 
         if !task.is_output_size_same_as_input_size() {
@@ -348,6 +319,52 @@ impl ExperimentWithLogisticRegression {
                     holecount_connectivity8.insert(color, image);
                 }
             }
+
+            // let mut horizontal_symmetry_connectivity4 = HashMap::<u8, Image>::new();
+            // let mut horizontal_symmetry_connectivity8 = HashMap::<u8, Image>::new();
+            // if let Some(sco) = &pair.input.single_color_objects {
+            //     for color in 0..=9 {
+            //         let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity4) {
+            //             Ok(value) => value,
+            //             Err(_) => {
+            //                 continue;
+            //             }
+            //         };
+            //         horizontal_symmetry_connectivity4.insert(color, image);
+            //     }
+            //     for color in 0..=9 {
+            //         let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity8) {
+            //             Ok(value) => value,
+            //             Err(_) => {
+            //                 continue;
+            //             }
+            //         };
+            //         horizontal_symmetry_connectivity8.insert(color, image);
+            //     }
+            // }
+
+            // let mut vertical_symmetry_connectivity4 = HashMap::<u8, Image>::new();
+            // let mut vertical_symmetry_connectivity8 = HashMap::<u8, Image>::new();
+            // if let Some(sco) = &pair.input.single_color_objects {
+            //     for color in 0..=9 {
+            //         let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity4) {
+            //             Ok(value) => value,
+            //             Err(_) => {
+            //                 continue;
+            //             }
+            //         };
+            //         vertical_symmetry_connectivity4.insert(color, image);
+            //     }
+            //     for color in 0..=9 {
+            //         let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity8) {
+            //             Ok(value) => value,
+            //             Err(_) => {
+            //                 continue;
+            //             }
+            //         };
+            //         vertical_symmetry_connectivity8.insert(color, image);
+            //     }
+            // }
 
             for y in 0..height {
                 for x in 0..width {
@@ -899,6 +916,23 @@ impl ExperimentWithLogisticRegression {
                         the_holecount_connectivity8 = holecount_image.get(xx, yy).unwrap_or(0);
                     }
 
+                    // let mut the_horizontal_symmetry_connectivity4: u8 = 0;
+                    // if let Some(mask) = horizontal_symmetry_connectivity4.get(&center) {
+                    //     the_horizontal_symmetry_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                    // }
+                    // let mut the_horizontal_symmetry_connectivity8: u8 = 0;
+                    // if let Some(mask) = horizontal_symmetry_connectivity8.get(&center) {
+                    //     the_horizontal_symmetry_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                    // }
+                    // let mut the_vertical_symmetry_connectivity4: u8 = 0;
+                    // if let Some(mask) = vertical_symmetry_connectivity4.get(&center) {
+                    //     the_vertical_symmetry_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                    // }
+                    // let mut the_vertical_symmetry_connectivity8: u8 = 0;
+                    // if let Some(mask) = vertical_symmetry_connectivity8.get(&center) {
+                    //     the_vertical_symmetry_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                    // }
+
                     // let mut is_corner: u8 = 0;
                     // let mut corner_top_left: u8 = 0;
                     // let mut corner_top_right: u8 = 0;
@@ -1003,19 +1037,6 @@ impl ExperimentWithLogisticRegression {
                         record.serialize_raw(value);
                     }
                     record.serialize_raw(input_has_unambiguous_connectivity);
-                    // record.serialize_raw(is_corner);
-                    // record.serialize_raw(corner_top_left);
-                    // record.serialize_raw(corner_top_right);
-                    // record.serialize_raw(corner_bottom_left);
-                    // record.serialize_raw(corner_bottom_right);
-                    // record.serialize_raw(inside_bounding_box);
-                    // record.serialize_raw(is_grid);
-                    // record.serialize_color(grid_center);
-                    // record.serialize_color(grid_color);
-                    // record.serialize_raw(half_left);
-                    // record.serialize_raw(half_right);
-                    // record.serialize_raw(half_top);
-                    // record.serialize_raw(half_bottom);
                     record.serialize_raw(v0);
                     record.serialize_raw(v1);
                     record.serialize_raw(v2);
@@ -1046,6 +1067,10 @@ impl ExperimentWithLogisticRegression {
                     // nesting depth, how many flood fills are needed to clear the image.
                     // distance inside object, how many pixels from the edge of the object.
                     // distance to nearest object, how many pixels from the edge of the nearest object.
+                    // cell x
+                    // cell y
+                    // cell distance from top/bottom/left/right
+                    // cell is top/bottom/left/right/center
                     
                     // These are worsening the predictions.
                     // input_is_removal_color: u8,
@@ -1058,13 +1083,34 @@ impl ExperimentWithLogisticRegression {
                     // preserve corner: u8,
                     // x_distance_from_center: i16,
                     // y_distance_from_center: i16,
+                    // record.serialize_raw(the_horizontal_symmetry_connectivity4);
+                    // record.serialize_raw(the_horizontal_symmetry_connectivity8);
+                    // record.serialize_raw(the_vertical_symmetry_connectivity4);
+                    // record.serialize_raw(the_vertical_symmetry_connectivity8);
+                    // record.serialize_raw(is_corner);
+                    // record.serialize_raw(corner_top_left);
+                    // record.serialize_raw(corner_top_right);
+                    // record.serialize_raw(corner_bottom_left);
+                    // record.serialize_raw(corner_bottom_right);
+                    // record.serialize_raw(inside_bounding_box);
+                    // record.serialize_raw(is_grid);
+                    // record.serialize_color(grid_center);
+                    // record.serialize_color(grid_color);
+                    // record.serialize_raw(half_left);
+                    // record.serialize_raw(half_right);
+                    // record.serialize_raw(half_top);
+                    // record.serialize_raw(half_bottom);
 
                     records.push(record);
                 }
             }
         }
 
-        let predictions: Vec::<arcathon_solution_json::Prediction> = perform_logistic_regression(task, &records)?;
+        let predictions: Vec::<arcathon_solution_json::Prediction> = perform_logistic_regression(
+            task, 
+            &records, 
+            verify_test_output,
+        )?;
 
         Ok(predictions)
     }
@@ -1128,7 +1174,7 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
     Ok(instance)
 }
 
-fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
+fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
     // println!("task_id: {}", task.id);
 
     let dataset: Dataset<f64, usize, Ix1>;
@@ -1217,7 +1263,7 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
                 }
                 HtmlLog::image(&computed_image);
             } else {
-                HtmlLog::text(format!("{} - incorrect", task.id));
+                // HtmlLog::text(format!("{} - incorrect", task.id));
                 // let images: Vec<Image> = vec![
                 //     original_input,
                 //     expected_output,
@@ -1226,8 +1272,14 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
                 // HtmlLog::compare_images(images);
             }
         }
-    }
 
+        if verify_test_output {
+            let expected_output: Image = pair.output.test_image.clone();
+            if computed_image != expected_output {
+                return Err(anyhow::anyhow!("The predicted output doesn't match with the expected output"));
+            }
+        }
+    }
 
     // Calculate the accuracy and Matthew Correlation Coefficient (cross-correlation between
     // predicted and targets)
