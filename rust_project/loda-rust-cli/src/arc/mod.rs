@@ -105,6 +105,7 @@ mod reverse_color_popularity;
 mod run_with_program;
 mod single_color_object;
 mod single_color_object_satisfies_label;
+mod specification;
 mod stack_strings;
 mod substitution_rule;
 mod symmetry;
