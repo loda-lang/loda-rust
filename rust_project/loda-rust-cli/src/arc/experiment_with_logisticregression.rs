@@ -36,6 +36,11 @@ impl Record {
         self.serialize_onehot(color, 10);
     }
 
+    /// Set the counter to 1 that are equal to the value.
+    /// 
+    /// Otherwise the counters are zero.
+    /// 
+    /// When the value overflows the capacity then set the `other` counter to 1.
     fn serialize_onehot(&mut self, value: u8, count: u8) {
         let mut found: u8 = 0;
         for i in 0..count {
