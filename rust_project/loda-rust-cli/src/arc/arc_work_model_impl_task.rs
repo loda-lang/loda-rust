@@ -1779,7 +1779,7 @@ impl arc_work_model::Task {
             pair.input.enumerated_objects = Some(enumerated_objects);
         }
 
-        return Ok(());
+        Ok(())
     }
 
     fn compute_input_enumerated_objects_based_on_size_of_primary_object_after_single_intersection_color(&mut self) -> anyhow::Result<()> {
