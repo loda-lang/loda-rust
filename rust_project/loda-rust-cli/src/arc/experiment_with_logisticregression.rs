@@ -33,41 +33,18 @@ impl Record {
     }
 
     fn serialize_color(&mut self, color: u8) {
-        let mut color0: u8 = 0;
-        let mut color1: u8 = 0;
-        let mut color2: u8 = 0;
-        let mut color3: u8 = 0;
-        let mut color4: u8 = 0;
-        let mut color5: u8 = 0;
-        let mut color6: u8 = 0;
-        let mut color7: u8 = 0;
-        let mut color8: u8 = 0;
-        let mut color9: u8 = 0;
-        let mut color_other: u8 = 0;
-        match color {
-            0 => color0 = 1,
-            1 => color1 = 1,
-            2 => color2 = 1,
-            3 => color3 = 1,
-            4 => color4 = 1,
-            5 => color5 = 1,
-            6 => color6 = 1,
-            7 => color7 = 1,
-            8 => color8 = 1,
-            9 => color9 = 1,
-            _ => color_other = 1,
-        };
-        self.values.push(color0);
-        self.values.push(color1);
-        self.values.push(color2);
-        self.values.push(color3);
-        self.values.push(color4);
-        self.values.push(color5);
-        self.values.push(color6);
-        self.values.push(color7);
-        self.values.push(color8);
-        self.values.push(color9);
-        self.values.push(color_other);
+        self.serialize_onehot(color, 10);
+    }
+
+    fn serialize_onehot(&mut self, value: u8, count: u8) {
+        let mut found: u8 = 0;
+        for i in 0..count {
+            let v: u8 = if i == value { 1 } else { 0 };
+            found |= v;
+            self.values.push(v);
+        }
+        let other: u8 = if found > 0 { 0 } else { 1 };
+        self.values.push(other);
     }
 }
 
