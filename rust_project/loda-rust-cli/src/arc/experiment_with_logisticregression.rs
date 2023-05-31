@@ -1,9 +1,9 @@
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode};
 use super::{ActionLabel, InputLabel};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
-use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze};
+use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
 use super::human_readable_utc_timestamp;
 use anyhow::Context;
 use indicatif::ProgressBar;
@@ -342,6 +342,32 @@ impl ExperimentWithLogisticRegression {
             //         vertical_symmetry_connectivity8.insert(color, image);
             //     }
             // }
+
+            // The outline of each color mask
+            let mut outline1_connectivity4 = HashMap::<u8, Image>::new();
+            let mut outline1_connectivity8 = HashMap::<u8, Image>::new();
+            // let mut outline2_connectivity4 = HashMap::<u8, Image>::new();
+            // let mut outline2_connectivity8 = HashMap::<u8, Image>::new();
+            {
+                for color in 0..=9 {
+                    let mask: Image = pair.input.image.to_mask_where_color_is(color);
+                    let maskgrow1: Image = mask.mask_grow(PixelConnectivity::Connectivity4)?;
+                    // let maskgrow2: Image = maskgrow1.mask_grow(PixelConnectivity::Connectivity4)?;
+                    let outline1: Image = maskgrow1.mix(&mask, MixMode::IsDifferent)?;
+                    // let outline2: Image = maskgrow2.mix(&maskgrow1, MixMode::IsDifferent)?;
+                    outline1_connectivity4.insert(color, outline1);
+                    // outline2_connectivity4.insert(color, outline2);
+                }
+                for color in 0..=9 {
+                    let mask: Image = pair.input.image.to_mask_where_color_is(color);
+                    let maskgrow1: Image = mask.mask_grow(PixelConnectivity::Connectivity8)?;
+                    // let maskgrow2: Image = maskgrow1.mask_grow(PixelConnectivity::Connectivity8)?;
+                    let outline1: Image = maskgrow1.mix(&mask, MixMode::IsDifferent)?;
+                    // let outline2: Image = maskgrow2.mix(&maskgrow1, MixMode::IsDifferent)?;
+                    outline1_connectivity8.insert(color, outline1);
+                    // outline2_connectivity8.insert(color, outline2);
+                }
+            }
 
             for y in 0..height {
                 for x in 0..width {
@@ -893,6 +919,26 @@ impl ExperimentWithLogisticRegression {
                         the_holecount_connectivity8 = holecount_image.get(xx, yy).unwrap_or(0);
                     }
 
+                    let mut noise_color_in_outline1_connectivity4: u8 = 0;
+                    let mut noise_color_in_outline1_connectivity8: u8 = 0;
+                    // let mut noise_color_in_outline2_connectivity4: u8 = 0;
+                    // let mut noise_color_in_outline2_connectivity8: u8 = 0;
+                    if let Some(color) = noise_color {
+                        if let Some(mask) = outline1_connectivity4.get(&color) {
+                            noise_color_in_outline1_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                        }
+                        if let Some(mask) = outline1_connectivity8.get(&color) {
+                            noise_color_in_outline1_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                        }
+                        // if let Some(mask) = outline2_connectivity4.get(&color) {
+                        //     noise_color_in_outline2_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                        // }
+                        // if let Some(mask) = outline2_connectivity8.get(&color) {
+                        //     noise_color_in_outline2_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                        // }
+                    }
+
+
                     // let mut the_horizontal_symmetry_connectivity4: u8 = 0;
                     // if let Some(mask) = horizontal_symmetry_connectivity4.get(&center) {
                     //     the_horizontal_symmetry_connectivity4 = mask.get(xx, yy).unwrap_or(0);
@@ -1022,6 +1068,10 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_raw(v5);
                     record.serialize_raw(v6);
                     record.serialize_raw(v7);
+                    record.serialize_raw(noise_color_in_outline1_connectivity4);
+                    record.serialize_raw(noise_color_in_outline1_connectivity8);
+                    // record.serialize_raw(noise_color_in_outline2_connectivity4); // worsens the prediction
+                    // record.serialize_raw(noise_color_in_outline2_connectivity8); // worsens the prediction
 
                     // Future experiments
                     // push all the training pairs that have been rotated by 90 degrees.
