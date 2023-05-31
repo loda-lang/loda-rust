@@ -76,6 +76,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     insert_histogram: histogram_insert,
                     action_label_set: ActionLabelSet::new(),
                     prediction_set: arc_work_model::PredictionSet::new(),
+                    output_specification_vec: vec!(),
                 };
                 result_pairs.push(result_pair);
             }
@@ -120,6 +121,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     insert_histogram: Histogram::new(),
                     action_label_set: ActionLabelSet::new(),
                     prediction_set: arc_work_model::PredictionSet::new(),
+                    output_specification_vec: vec!(),
                 };
                 result_pairs.push(result_pair);
             }

@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry, Grid, GridPattern, SingleColorObjects};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry, Grid, GridPattern, SingleColorObjects, OutputSpecification};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -111,6 +111,7 @@ pub struct Pair {
     pub insert_histogram: Histogram,
     pub action_label_set: ActionLabelSet,
     pub prediction_set: PredictionSet,
+    pub output_specification_vec: Vec<OutputSpecification>,
 }
 
 #[derive(Clone, Debug)]
