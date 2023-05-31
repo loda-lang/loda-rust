@@ -51,6 +51,36 @@ impl Record {
         let other: u8 = if found > 0 { 0 } else { 1 };
         self.values.push(other);
     }
+
+    /// Set the counter to 1 that are equal to the value.
+    /// 
+    /// Otherwise the counters are zero.
+    /// 
+    /// When the value overflows then all the counters are set to zero.
+    #[allow(dead_code)]
+    fn serialize_onehot_discard_overflow(&mut self, value: u8, count: u8) {
+        for i in 0..count {
+            let v: u8 = if i == value { 1 } else { 0 };
+            self.values.push(v);
+        }
+    }
+
+    /// Set the counters to 1 that are equal or higher than the value.
+    /// 
+    /// Set the counters that are lower than the value to 0.
+    /// 
+    /// When the value overflows the capacity then set the `other` counter to 1.
+    #[allow(dead_code)]
+    fn serialize_split_zeros_ones(&mut self, value: u8, count: u8) {
+        let mut found: u8 = 0;
+        for i in 0..count {
+            let v: u8 = if i >= value { 1 } else { 0 };
+            found |= v;
+            self.values.push(v);
+        }
+        let other: u8 = if found > 0 { 0 } else { 1 };
+        self.values.push(other);
+    }
 }
 
 pub struct ExperimentWithLogisticRegression {
