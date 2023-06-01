@@ -49,6 +49,7 @@ ndarray = { version = "0.15" }
 linfa = { version = "0.6.1" }
 linfa-logistic = "*"
 linfa-preprocessing = "*"
+petgraph = { version = "0.6.3", features = ["graphmap"] }
 
 [dev-dependencies]
 tempfile = "3.3.0"

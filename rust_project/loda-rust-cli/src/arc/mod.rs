@@ -20,6 +20,7 @@ mod convolution5x5_special;
 mod convolution_with_program;
 mod experiment_with_convolution;
 mod experiment_with_logisticregression;
+mod experiment_with_petgraph;
 mod export_tasks;
 mod grid;
 mod grid_to_label;
