@@ -49,7 +49,7 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 /// The score is the same. The solutions gets found within the 4 hour time frame.
 /// 
 /// Can it be lowered even more? Let's try 2 hours.
-static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = (2 * 60) * 60;
+static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = (4 * 60) * 60;
 
 static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 4;
 
@@ -1546,7 +1546,7 @@ impl TraverseProgramsAndModels {
         // This may be a solution to one of the hidden puzzles.
         // However it's slow, so it's disabled while developing, where we only want to explore mutations.
         let try_existing_solutions = true;
-        let try_logistic_regression = true;
+        let try_logistic_regression = false;
 
         let number_of_programs_to_generate: usize = 3;
 

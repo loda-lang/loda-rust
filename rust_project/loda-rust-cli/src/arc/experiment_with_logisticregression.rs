@@ -1267,7 +1267,7 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
                 // let images: Vec<Image> = vec![
                 //     original_input,
                 //     expected_output,
-                //     result_image,
+                //     computed_image.clone(),
                 // ];
                 // HtmlLog::compare_images(images);
             }
