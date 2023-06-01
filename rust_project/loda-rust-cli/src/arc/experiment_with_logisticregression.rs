@@ -1,3 +1,16 @@
+//! Performs logistic regression of each input pixel with the corresponding classification for the output pixel.
+//! 
+//! This doesn't solve any of the tasks from the hidden dataset.
+//!
+//! This solves 41 of the 800 tasks in the public ARC dataset.
+//! 009d5c81, 00d62c1b, 0a2355a6, 2281f1f4, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 
+//! 4258a5f9, 50cb2852, 543a7ed5, 67385a82, 67a3c6ac, 69889d6e, 6c434453, 6d75e8bb, 6e82a1ae, 
+//! 6f8cd79b, 810b9b61, 84f2aca1, 903d1b4a, 95990924, a699fb00, a9f96cdd, ae58858e, aedd82e4, 
+//! b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, 
+//! d2abd087, d364b489, d406998b, e0fb7511, e8593010
+//! 
+//! Weakness: The tasks that it solves doesn't involve object manipulation. 
+//! It cannot move an object by a few pixels, the object must stay steady in the same position.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode};
