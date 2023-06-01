@@ -3,6 +3,7 @@ use super::arc_work_model::{Input, PairType, Object, Prediction};
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
+use super::{OutputSpecification};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -694,6 +695,7 @@ impl arc_work_model::Task {
         _ = self.assign_removal_color();
         _ = self.assign_most_popular_intersection_color();
         _ = self.assign_single_pixel_noise_color();
+        _ = self.assign_output_specification_vec();
         Ok(())
     }
 
@@ -1379,6 +1381,17 @@ impl arc_work_model::Task {
         Ok(())
     }
 
+    fn assign_output_specification_vec(&mut self) -> anyhow::Result<()> {
+        let is_output_size_same_as_input_size: bool = self.is_output_size_same_as_input_size();
+        for pair in self.pairs.iter_mut() {
+            if is_output_size_same_as_input_size {
+                let size: ImageSize = pair.input.image.size();
+                pair.output_specification_vec.push(OutputSpecification::ImageSize { size });
+            }
+        }
+        Ok(())
+    }
+
     fn assign_predicted_output_palette(&mut self) {
         let mut predicted_histogram_dict = HashMap::<usize, Histogram>::new();
         for (index, pair) in self.pairs.iter().enumerate() {
@@ -1779,7 +1792,7 @@ impl arc_work_model::Task {
             pair.input.enumerated_objects = Some(enumerated_objects);
         }
 
-        return Ok(());
+        Ok(())
     }
 
     fn compute_input_enumerated_objects_based_on_size_of_primary_object_after_single_intersection_color(&mut self) -> anyhow::Result<()> {

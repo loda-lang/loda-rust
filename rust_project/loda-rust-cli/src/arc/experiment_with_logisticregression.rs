@@ -1,9 +1,9 @@
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode};
 use super::{ActionLabel, InputLabel};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
-use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze};
+use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
 use super::human_readable_utc_timestamp;
 use anyhow::Context;
 use indicatif::ProgressBar;
@@ -33,41 +33,53 @@ impl Record {
     }
 
     fn serialize_color(&mut self, color: u8) {
-        let mut color0: u8 = 0;
-        let mut color1: u8 = 0;
-        let mut color2: u8 = 0;
-        let mut color3: u8 = 0;
-        let mut color4: u8 = 0;
-        let mut color5: u8 = 0;
-        let mut color6: u8 = 0;
-        let mut color7: u8 = 0;
-        let mut color8: u8 = 0;
-        let mut color9: u8 = 0;
-        let mut color_other: u8 = 0;
-        match color {
-            0 => color0 = 1,
-            1 => color1 = 1,
-            2 => color2 = 1,
-            3 => color3 = 1,
-            4 => color4 = 1,
-            5 => color5 = 1,
-            6 => color6 = 1,
-            7 => color7 = 1,
-            8 => color8 = 1,
-            9 => color9 = 1,
-            _ => color_other = 1,
-        };
-        self.values.push(color0);
-        self.values.push(color1);
-        self.values.push(color2);
-        self.values.push(color3);
-        self.values.push(color4);
-        self.values.push(color5);
-        self.values.push(color6);
-        self.values.push(color7);
-        self.values.push(color8);
-        self.values.push(color9);
-        self.values.push(color_other);
+        self.serialize_onehot(color, 10);
+    }
+
+    /// Set the counter to 1 that are equal to the value.
+    /// 
+    /// Otherwise the counters are zero.
+    /// 
+    /// When the value overflows the capacity then set the `other` counter to 1.
+    fn serialize_onehot(&mut self, value: u8, count: u8) {
+        let mut found: u8 = 0;
+        for i in 0..count {
+            let v: u8 = if i == value { 1 } else { 0 };
+            found |= v;
+            self.values.push(v);
+        }
+        let other: u8 = if found > 0 { 0 } else { 1 };
+        self.values.push(other);
+    }
+
+    /// Set the counter to 1 that are equal to the value.
+    /// 
+    /// Otherwise the counters are zero.
+    /// 
+    /// When the value overflows then all the counters are set to zero.
+    #[allow(dead_code)]
+    fn serialize_onehot_discard_overflow(&mut self, value: u8, count: u8) {
+        for i in 0..count {
+            let v: u8 = if i == value { 1 } else { 0 };
+            self.values.push(v);
+        }
+    }
+
+    /// Set the counters to 1 that are equal or higher than the value.
+    /// 
+    /// Set the counters that are lower than the value to 0.
+    /// 
+    /// When the value overflows the capacity then set the `other` counter to 1.
+    #[allow(dead_code)]
+    fn serialize_split_zeros_ones(&mut self, value: u8, count: u8) {
+        let mut found: u8 = 0;
+        for i in 0..count {
+            let v: u8 = if i >= value { 1 } else { 0 };
+            found |= v;
+            self.values.push(v);
+        }
+        let other: u8 = if found > 0 { 0 } else { 1 };
+        self.values.push(other);
     }
 }
 
@@ -365,6 +377,32 @@ impl ExperimentWithLogisticRegression {
             //         vertical_symmetry_connectivity8.insert(color, image);
             //     }
             // }
+
+            // The outline of each color mask
+            let mut outline1_connectivity4 = HashMap::<u8, Image>::new();
+            let mut outline1_connectivity8 = HashMap::<u8, Image>::new();
+            // let mut outline2_connectivity4 = HashMap::<u8, Image>::new();
+            // let mut outline2_connectivity8 = HashMap::<u8, Image>::new();
+            {
+                for color in 0..=9 {
+                    let mask: Image = pair.input.image.to_mask_where_color_is(color);
+                    let maskgrow1: Image = mask.mask_grow(PixelConnectivity::Connectivity4)?;
+                    // let maskgrow2: Image = maskgrow1.mask_grow(PixelConnectivity::Connectivity4)?;
+                    let outline1: Image = maskgrow1.mix(&mask, MixMode::IsDifferent)?;
+                    // let outline2: Image = maskgrow2.mix(&maskgrow1, MixMode::IsDifferent)?;
+                    outline1_connectivity4.insert(color, outline1);
+                    // outline2_connectivity4.insert(color, outline2);
+                }
+                for color in 0..=9 {
+                    let mask: Image = pair.input.image.to_mask_where_color_is(color);
+                    let maskgrow1: Image = mask.mask_grow(PixelConnectivity::Connectivity8)?;
+                    // let maskgrow2: Image = maskgrow1.mask_grow(PixelConnectivity::Connectivity8)?;
+                    let outline1: Image = maskgrow1.mix(&mask, MixMode::IsDifferent)?;
+                    // let outline2: Image = maskgrow2.mix(&maskgrow1, MixMode::IsDifferent)?;
+                    outline1_connectivity8.insert(color, outline1);
+                    // outline2_connectivity8.insert(color, outline2);
+                }
+            }
 
             for y in 0..height {
                 for x in 0..width {
@@ -916,6 +954,26 @@ impl ExperimentWithLogisticRegression {
                         the_holecount_connectivity8 = holecount_image.get(xx, yy).unwrap_or(0);
                     }
 
+                    let mut noise_color_in_outline1_connectivity4: u8 = 0;
+                    let mut noise_color_in_outline1_connectivity8: u8 = 0;
+                    // let mut noise_color_in_outline2_connectivity4: u8 = 0;
+                    // let mut noise_color_in_outline2_connectivity8: u8 = 0;
+                    if let Some(color) = noise_color {
+                        if let Some(mask) = outline1_connectivity4.get(&color) {
+                            noise_color_in_outline1_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                        }
+                        if let Some(mask) = outline1_connectivity8.get(&color) {
+                            noise_color_in_outline1_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                        }
+                        // if let Some(mask) = outline2_connectivity4.get(&color) {
+                        //     noise_color_in_outline2_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                        // }
+                        // if let Some(mask) = outline2_connectivity8.get(&color) {
+                        //     noise_color_in_outline2_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                        // }
+                    }
+
+
                     // let mut the_horizontal_symmetry_connectivity4: u8 = 0;
                     // if let Some(mask) = horizontal_symmetry_connectivity4.get(&center) {
                     //     the_horizontal_symmetry_connectivity4 = mask.get(xx, yy).unwrap_or(0);
@@ -1045,6 +1103,10 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_raw(v5);
                     record.serialize_raw(v6);
                     record.serialize_raw(v7);
+                    record.serialize_raw(noise_color_in_outline1_connectivity4);
+                    record.serialize_raw(noise_color_in_outline1_connectivity8);
+                    // record.serialize_raw(noise_color_in_outline2_connectivity4); // worsens the prediction
+                    // record.serialize_raw(noise_color_in_outline2_connectivity8); // worsens the prediction
 
                     // Future experiments
                     // push all the training pairs that have been rotated by 90 degrees.
