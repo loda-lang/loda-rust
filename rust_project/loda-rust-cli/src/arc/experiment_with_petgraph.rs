@@ -197,4 +197,43 @@ mod tests {
         let expected: Image = Image::try_create(4, 4, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
+
+    #[test]
+    fn test_20000_compare_input_output() {
+        // Arrange
+        let pixels0: Vec<u8> = vec![
+            1, 0, 1, 0,
+            1, 1, 0, 1,
+            1, 0, 1, 1,
+            1, 0, 0, 0,
+        ];
+        let image0: Image = Image::try_create(4, 4, pixels0).expect("image");
+        let pixels1: Vec<u8> = vec![
+            1, 0, 0, 0,
+            1, 0, 0, 0,
+            1, 0, 1, 1,
+            1, 1, 1, 1,
+        ];
+        let image1: Image = Image::try_create(4, 4, pixels1).expect("image");
+        let mut instance = ExperimentWithPetgraph::new();
+
+        // Act
+        let image_index0: NodeIndex = instance.add_image(&image0).expect("NodeIndex");
+        let image_index1: NodeIndex = instance.add_image(&image1).expect("NodeIndex");
+
+        // Future experiment
+        // compare both images, update metadata
+
+        let actual: Image = instance.to_image(image_index0).expect("Image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 0, 1, 0,
+            1, 1, 0, 1,
+            1, 0, 1, 1,
+            1, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(4, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
 }
