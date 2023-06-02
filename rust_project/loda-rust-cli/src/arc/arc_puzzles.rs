@@ -5737,8 +5737,32 @@ mod tests {
     ";
 
     #[test]
-    fn test_1200000_puzzle_0692e18c_loda() {
+    fn test_1120000_puzzle_0692e18c_loda() {
         let result: String = run_advanced("0692e18c", PROGRAM_0692E18C).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_48131B3C: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; input image
+        f11 $0,102170 ; Reorder the color palette, so that the `most popular color` changes place with the `least popular color`
+
+        mov $1,2
+        mov $2,2
+        f31 $0,102120 ; Repeat image
+    
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1130000_puzzle_48131b3c_loda() {
+        let result: String = run_advanced("48131b3c", PROGRAM_48131B3C).expect("String");
         assert_eq!(result, "3 1");
     }
 }
