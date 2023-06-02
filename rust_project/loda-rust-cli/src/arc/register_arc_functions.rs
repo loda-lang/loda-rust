@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere, ImageDrawRect};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere, ImageDrawRect, ImageMaskCount};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity, GravityDirection, ImageCountUniqueColors};
@@ -1808,6 +1808,60 @@ impl UnofficialFunction for ImageCountUniqueColorsPerRowColumnFunction {
         }
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+#[derive(Debug)]
+enum ImageNumberOfColorFunctionMode {
+    Zero,
+    One,
+}
+
+struct ImageNumberOfColorFunction {
+    id: u32,
+    mode: ImageNumberOfColorFunctionMode,
+}
+
+impl ImageNumberOfColorFunction {
+    fn new(id: u32, mode: ImageNumberOfColorFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageNumberOfColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImageNumberOfColorFunctionMode::Zero => "Number of zeroes in image.".to_string(),
+            ImageNumberOfColorFunctionMode::One => "Number of ones in image.".to_string(),
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let color_count: u16 = match self.mode {
+            ImageNumberOfColorFunctionMode::Zero => image.mask_count_zero(),
+            ImageNumberOfColorFunctionMode::One => image.mask_count_one(),
+        };
+
+        let output: BigInt = color_count.to_bigint().context("u16 to BigInt")?;
         Ok(vec![output])
     }
 }
@@ -3665,6 +3719,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageNumberOfUniqueColorsFunction::new(101240));
     register_function!(ImageCountUniqueColorsPerRowColumnFunction::new(101241, ImageCountUniqueColorsPerRowColumnFunctionMode::Row));
     register_function!(ImageCountUniqueColorsPerRowColumnFunction::new(101242, ImageCountUniqueColorsPerRowColumnFunctionMode::Column));
+    register_function!(ImageNumberOfColorFunction::new(101243, ImageNumberOfColorFunctionMode::Zero));
+    register_function!(ImageNumberOfColorFunction::new(101244, ImageNumberOfColorFunctionMode::One));
 
     // Mask
     register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionMode::WhereColorIs));
