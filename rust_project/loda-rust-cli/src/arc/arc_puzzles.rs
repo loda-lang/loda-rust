@@ -5534,4 +5534,63 @@ mod tests {
         let result: String = run_advanced("3d31c5b3", PROGRAM_3D31C5B3).expect("String");
         assert_eq!(result, "6 1");
     }
+
+    const PROGRAM_E99362F0: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $20,$$83 ; most popular color across inputs
+
+        mov $10,$$81 ; input image
+        mov $11,1 ; 1 pixel spacing
+        f22 $10,102261 ; split into 2 rows
+        ; $10..$11 are the 2 rows
+
+        mov $15,$10
+        mov $16,1 ; 1 pixel spacing
+        f22 $15,102260 ; split into 2 columns
+        ; $15..$16 are the 2 columns
+
+        mov $17,$11
+        mov $18,1 ; 1 pixel spacing
+        f22 $17,102260 ; split into 2 columns
+        ; $17..$18 are the 2 columns
+
+        ; $15 = cell top left
+        ; $16 = cell top right
+        ; $17 = cell bottom left
+        ; $18 = cell bottom right
+
+        ; layer 0
+        mov $0,$17
+
+        ; layer 1
+        mov $1,$16
+        mov $2,$20 ; most popular color
+        f31 $0,101150 ; Image: Overlay another image by using a color as mask
+
+        ; layer 2
+        mov $1,$15
+        mov $2,$20 ; most popular color
+        f31 $0,101150 ; Image: Overlay another image by using a color as mask
+
+        ; layer 3
+        mov $1,$18
+        mov $2,$20 ; most popular color
+        f31 $0,101150 ; Image: Overlay another image by using a color as mask
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1080000_puzzle_e99362f0_loda() {
+        let result: String = run_advanced("e99362f0", PROGRAM_E99362F0).expect("String");
+        assert_eq!(result, "6 1");
+    }
 }
