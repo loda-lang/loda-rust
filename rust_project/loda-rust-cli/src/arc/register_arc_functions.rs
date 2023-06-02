@@ -3988,13 +3988,13 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Split evenly
     register_function!(SplitFunction::new(102260, SplitFunctionMode::IntoColumns, 2));
+    register_function!(SplitFunction::new(102260, SplitFunctionMode::IntoColumns, 3));
+    register_function!(SplitFunction::new(102260, SplitFunctionMode::IntoColumns, 4));
+    register_function!(SplitFunction::new(102260, SplitFunctionMode::IntoColumns, 5));
     register_function!(SplitFunction::new(102261, SplitFunctionMode::IntoRows, 2));
-    register_function!(SplitFunction::new(102262, SplitFunctionMode::IntoColumns, 3));
-    register_function!(SplitFunction::new(102263, SplitFunctionMode::IntoRows, 3));
-    register_function!(SplitFunction::new(102264, SplitFunctionMode::IntoColumns, 4));
-    register_function!(SplitFunction::new(102265, SplitFunctionMode::IntoRows, 4));
-    register_function!(SplitFunction::new(102266, SplitFunctionMode::IntoColumns, 5));
-    register_function!(SplitFunction::new(102267, SplitFunctionMode::IntoRows, 5));
+    register_function!(SplitFunction::new(102261, SplitFunctionMode::IntoRows, 3));
+    register_function!(SplitFunction::new(102261, SplitFunctionMode::IntoRows, 4));
+    register_function!(SplitFunction::new(102261, SplitFunctionMode::IntoRows, 5));
 
     // Count unique colors in each object
     register_function!(ObjectsUniqueColorCountFunction::new(104000));

@@ -3409,7 +3409,7 @@ mod tests {
 
         mov $10,$$81 ; input image
         mov $11,1 ; 1 pixel spacing
-        f23 $10,102262 ; split into 3 columns
+        f23 $10,102260 ; split into 3 columns
         ; $10..$12 are the 3 columns
 
         ; layer 0
@@ -5342,7 +5342,7 @@ mod tests {
 
         mov $10,$$81 ; input image
         mov $11,0 ; no spacing
-        f23 $10,102263 ; split into 3 rows
+        f23 $10,102261 ; split into 3 rows
         ; $10..$12 are the 3 columns
 
         ; layer 0
@@ -5455,7 +5455,7 @@ mod tests {
         mov $20,$$83 ; most popular color across inputs
 
         mov $1,1 ; spacing is 1 pixel
-        f24 $0,102264 ; split into 4 columns
+        f24 $0,102260 ; split into 4 columns
         ; $0..$3 are the 4 columns
 
         ; layer 0
@@ -5501,7 +5501,7 @@ mod tests {
 
         mov $10,$$81 ; input image
         mov $11,0 ; no spacing
-        f24 $10,102265 ; split into 4 rows
+        f24 $10,102261 ; split into 4 rows
         ; $10..$13 are the 4 rows
 
         ; layer 0
