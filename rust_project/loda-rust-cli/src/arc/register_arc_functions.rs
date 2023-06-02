@@ -5,7 +5,7 @@ use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConne
 use super::{ImageGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
 use super::{ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue};
 use super::{ObjectWithDifferentColor, ReverseColorPopularity, ObjectsAndMass, ImageFill, ImageGravity, ImageSort, ImageSortMode};
-use super::{ImageCollect, ImageLayout, ImageSize, ImageLayoutMode};
+use super::{ImageCollect, ImageLayout, ImageSize, ImageLayoutMode, ImageSplit, ImageSplitDirection};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -3408,6 +3408,75 @@ impl UnofficialFunction for DrawRectFilledForeachColorFunction {
     }
 }
 
+enum SplitFunctionMode {
+    IntoColumns,
+    IntoRows,
+}
+
+struct SplitFunction {
+    id: u32,
+    mode: SplitFunctionMode,
+    number_of_parts: u8,
+}
+
+impl SplitFunction {
+    fn new(id: u32, mode: SplitFunctionMode, number_of_parts: u8) -> Self {
+        Self {
+            id,
+            mode,
+            number_of_parts,
+        }
+    }
+}
+
+impl UnofficialFunction for SplitFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: self.number_of_parts }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            SplitFunctionMode::IntoColumns => format!("Split image into {} columns with same size", self.number_of_parts),
+            SplitFunctionMode::IntoRows => format!("Split image into {} rows with same size", self.number_of_parts),
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is spacing
+        let spacing: u8 = input[1].to_u8().context("u8 spacing")?;
+
+        let direction: ImageSplitDirection = match self.mode {
+            SplitFunctionMode::IntoColumns => ImageSplitDirection::IntoColumns,
+            SplitFunctionMode::IntoRows => ImageSplitDirection::IntoRows,
+        };
+
+        let images: Vec<Image> = input_image.split(self.number_of_parts, spacing, direction)?;
+        if images.len() != self.number_of_parts as usize {
+            return Err(anyhow::anyhow!("Split returned wrong number of images"));
+        }
+
+        // Convert to BigInt's
+        let mut output_vec = Vec::<BigInt>::with_capacity(images.len());
+        for image in images {
+            let output_uint: BigUint = image.to_number()?;
+            let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+            output_vec.push(output);
+        }
+        Ok(output_vec)
+    }
+}
+
 struct ObjectsUniqueColorCountFunction {
     id: u32,
 }
@@ -3916,6 +3985,16 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Draw rect filled
     register_function!(DrawRectFilledForeachColorFunction::new(102250));
+
+    // Split evenly
+    register_function!(SplitFunction::new(102260, SplitFunctionMode::IntoColumns, 2));
+    register_function!(SplitFunction::new(102261, SplitFunctionMode::IntoRows, 2));
+    register_function!(SplitFunction::new(102262, SplitFunctionMode::IntoColumns, 3));
+    register_function!(SplitFunction::new(102263, SplitFunctionMode::IntoRows, 3));
+    register_function!(SplitFunction::new(102264, SplitFunctionMode::IntoColumns, 4));
+    register_function!(SplitFunction::new(102265, SplitFunctionMode::IntoRows, 4));
+    register_function!(SplitFunction::new(102266, SplitFunctionMode::IntoColumns, 5));
+    register_function!(SplitFunction::new(102267, SplitFunctionMode::IntoRows, 5));
 
     // Count unique colors in each object
     register_function!(ObjectsUniqueColorCountFunction::new(104000));
