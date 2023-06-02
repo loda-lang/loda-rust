@@ -5455,4 +5455,29 @@ mod tests {
         let result: String = run_advanced("6f473927", PROGRAM_6F473927).expect("String");
         assert_eq!(result, "4 1");
     }
+
+    const PROGRAM_C48954C1: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; input image
+
+        mov $1,1
+        mov $2,1
+        mov $3,1
+        mov $4,1
+        f51 $0,102122 ; Make a big image by repeating the current image and doing flip x, flip y, flip xy.
+        
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1050000_puzzle_c48954c1_loda() {
+        let result: String = run_advanced("c48954c1", PROGRAM_C48954C1).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
