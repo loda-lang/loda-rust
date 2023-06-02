@@ -1,4 +1,4 @@
-use super::{Image, ImageOverlay, ImageRotate};
+use super::{Image, ImageOverlay, ImageRotate, ImageSymmetry};
 
 pub trait ImageRepeat {
     /// Make a big image by repeating the current image.
@@ -8,6 +8,9 @@ pub trait ImageRepeat {
     /// 
     /// The image must be a square, otherwise an error is returned.
     fn repeat_rotated(&self, top: u8, bottom: u8, left: u8, right: u8) -> anyhow::Result<Image>;
+
+    /// Make a big image by repeating the current image, alternating symmetry.
+    fn repeat_symmetry(&self, top: u8, bottom: u8, left: u8, right: u8) -> anyhow::Result<Image>;
 }
 
 impl ImageRepeat for Image {
@@ -69,6 +72,45 @@ impl ImageRepeat for Image {
                     1 => &self90,
                     2 => &self270,
                     3 => &self180,
+                    _ => unreachable!(),
+                };
+                result_image = result_image.overlay_with_position(&image, x * width_i32, y * height_i32)?;
+            }
+        }
+        Ok(result_image)
+    }
+
+    fn repeat_symmetry(&self, top: u8, bottom: u8, left: u8, right: u8) -> anyhow::Result<Image> {
+        if top == 0 && bottom == 0 && left == 0 && right == 0 {
+            return Err(anyhow::anyhow!("One or more counters must be 1 or greater."));
+        }
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        let count_x: u16 = (left as u16) + (right as u16) + 1;
+        let count_y: u16 = (top as u16) + (bottom as u16) + 1;
+        let output_width: u16 = (self.width() as u16) * count_x;
+        let output_height: u16 = (self.height() as u16) * count_y;
+        if output_width > (u8::MAX as u16) {
+            return Err(anyhow::anyhow!("Output image.width {} is too big. self.width: {} left: {} right: {}", output_width, self.width(), left, right));
+        }
+        if output_height > (u8::MAX as u16) {
+            return Err(anyhow::anyhow!("Output image.height {} is too big. self.height: {} top: {} bottom: {}", output_height, self.height(), top, bottom));
+        }
+        let selfx: Image = self.flip_x()?;
+        let selfy: Image = self.flip_y()?;
+        let selfxy: Image = self.flip_xy()?;
+        let width_i32 = self.width() as i32;
+        let height_i32 = self.height() as i32;
+        let mut result_image: Image = Image::zero(output_width as u8, output_height as u8);
+        for y in 0..(count_y as i32) {
+            for x in 0..(count_x as i32) {
+                let variant: i32 = ((y + (top as i32)) & 1) * 2 + ((x + (left as i32)) & 1);
+                let image: &Image = match variant {
+                    0 => &self,
+                    1 => &selfx,
+                    2 => &selfy,
+                    3 => &selfxy,
                     _ => unreachable!(),
                 };
                 result_image = result_image.overlay_with_position(&image, x * width_i32, y * height_i32)?;
@@ -287,6 +329,56 @@ mod tests {
             2, 1, 1, 3, 2, 1,
         ];
         let expected = Image::create_raw(6, 6, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_30000_repeat_symmetry() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2,
+            3, 4,
+        ];
+        let input: Image = Image::try_create(2, 2, pixels).expect("image");
+
+        // Act
+        let output: Image = input.repeat_symmetry(1, 1, 1, 1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            4, 3, 3, 4, 4, 3,
+            2, 1, 1, 2, 2, 1,
+            2, 1, 1, 2, 2, 1,
+            4, 3, 3, 4, 4, 3,
+            4, 3, 3, 4, 4, 3,
+            2, 1, 1, 2, 2, 1,
+        ];
+        let expected = Image::create_raw(6, 6, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_30001_repeat_symmetry() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3,
+            4, 5, 6,
+        ];
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
+
+        // Act
+        let output: Image = input.repeat_symmetry(1, 1, 1, 1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            6, 5, 4, 4, 5, 6, 6, 5, 4,
+            3, 2, 1, 1, 2, 3, 3, 2, 1,
+            3, 2, 1, 1, 2, 3, 3, 2, 1,
+            6, 5, 4, 4, 5, 6, 6, 5, 4,
+            6, 5, 4, 4, 5, 6, 6, 5, 4,
+            3, 2, 1, 1, 2, 3, 3, 2, 1,
+        ];
+        let expected = Image::create_raw(9, 6, expected_pixels);
         assert_eq!(output, expected);
     }
 }
