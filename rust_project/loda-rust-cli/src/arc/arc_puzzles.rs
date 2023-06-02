@@ -3427,8 +3427,8 @@ mod tests {
         mov $13,$0
         mov $14,$8
         add $14,1
-        f21 $13,101226 ; left N left columns
-        f21 $13,101227 ; left N right columns
+        f21 $13,101226 ; remove N left columns
+        f21 $13,101227 ; remove N right columns
         ; $13 is middle 1/3 of the image
 
         ; layer 0
@@ -5349,5 +5349,61 @@ mod tests {
     fn test_1020000_puzzle_8d5021e8_loda() {
         let result: String = run_advanced("8d5021e8", PROGRAM_8D5021E8).expect("String");
         assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_6A11F6DA: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+
+        mov $8,$0
+        f11 $8,101001 ; Get height of image
+        div $8,3
+        ; $8 is 1/3 height
+      
+        mov $11,$0
+        mov $12,$8
+        f21 $11,101220 ; get N top rows
+        ; $11 is top 1/3 of the image
+
+        mov $12,$0
+        mov $13,$8
+        f21 $12,101221 ; get N bottom rows
+        ; $12 is bottom 1/3 of the image
+
+        mov $13,$0
+        mov $14,$8
+        f21 $13,101224 ; remove N top rows
+        f21 $13,101225 ; remove N bottom rows
+        ; $13 is middle 1/3 of the image
+
+        ; layer 0
+        mov $0,$13 ; middle of image
+
+        ; layer 1
+        mov $1,$11 ; top of image
+        mov $2,$20 ; most popular color
+        f31 $0,101150 ; Image: Overlay another image by using a color as mask
+
+        ; layer 2
+        mov $1,$12 ; bottom of image
+        mov $2,$20 ; most popular color
+        f31 $0,101150 ; Image: Overlay another image by using a color as mask
+        
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1030000_puzzle_6a11f6da_loda() {
+        let result: String = run_advanced("6a11f6da", PROGRAM_6A11F6DA).expect("String");
+        assert_eq!(result, "5 1");
     }
 }

@@ -128,6 +128,7 @@ enum MemoryLayoutItem {
     InputSinglePixelNoiseColor = 15,
 
     // Ideas for more
+    // Input image single period tile, where repeating rows/columns have been removed
     // Number of cells horizontal
     // Number of cells vertical
     // Cell width
