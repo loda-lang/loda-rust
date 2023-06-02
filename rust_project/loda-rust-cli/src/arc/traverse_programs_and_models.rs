@@ -395,6 +395,9 @@ impl TraverseProgramsAndModels {
             if task.occur_in_solutions_csv {
                 continue;
             }
+            if task.is_output_size_same_as_input_size() {
+                continue;
+            }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
             // }
@@ -402,7 +405,7 @@ impl TraverseProgramsAndModels {
             //     continue;
             // }
             let mut found: bool = false;
-            // found = true;
+            found = true;
             // if task.has_removal_color() {
             //     found = true;
             // }
@@ -459,14 +462,14 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            for input_label in &task.input_label_set_intersection {
-                match input_label {
-                    InputLabel::InputUnambiguousConnectivityWithAllColors => {
-                        found = true;
-                    },
-                    _ => {}
-                }
-            }
+            // for input_label in &task.input_label_set_intersection {
+            //     match input_label {
+            //         InputLabel::InputUnambiguousConnectivityWithAllColors => {
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
+            // }
             // for input_label in &task.input_label_set_intersection {
             //     match input_label {
             //         InputLabel::InputNoiseWithColor { color: _ } => {
