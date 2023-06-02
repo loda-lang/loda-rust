@@ -27,31 +27,35 @@ enum NodeData {
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 enum PixelNeighborEdgeType {
-    UpDown,
-    LeftRight,
-    // UpLeftDownRight,
-    // UpRightDownLeft,
+    Up,
+    Down,
+    Left,
+    Right,
+    // UpLeft,
+    // UpRight,
+    // DownLeft,
+    // DownRight,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 enum EdgeData {
     Link,
     PixelNeighbor { edge_type: PixelNeighborEdgeType },
-    // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType },
-    // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType },
+    // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
+    // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
 }
 
 #[allow(dead_code)]
 struct ExperimentWithPetgraph {
-    graph: petgraph::Graph<NodeData, EdgeData, petgraph::Undirected>,
+    graph: petgraph::Graph<NodeData, EdgeData>,
 }
 
 impl ExperimentWithPetgraph {
     #[allow(dead_code)]
     fn new() -> Self {
         Self {
-            graph: petgraph::Graph::new_undirected(),
+            graph: petgraph::Graph::new(),
         }
     }
 
@@ -88,7 +92,7 @@ impl ExperimentWithPetgraph {
             }
         }
 
-        // Establish `LeftRight` edges between neighbor pixels.
+        // Establish `Left` and `Right` edges between neighbor pixels.
         for y in 0..image.height() {
             for x in 1..image.width() {
                 let x0: u8 = x - 1;
@@ -97,11 +101,12 @@ impl ExperimentWithPetgraph {
                 let address1: usize = (y as usize) * (image.width() as usize) + (x1 as usize);
                 let index0: NodeIndex = indexes_pixels[address0];
                 let index1: NodeIndex = indexes_pixels[address1];
-                self.graph.add_edge(index0, index1, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::LeftRight });
+                self.graph.add_edge(index1, index0, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::Left });
+                self.graph.add_edge(index0, index1, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::Right });
             }
         }
 
-        // Establish `UpDown` edges between neighbor pixels.
+        // Establish `Up` and `Down` edges between neighbor pixels.
         for x in 0..image.width() {
             for y in 1..image.height() {
                 let y0: u8 = y - 1;
@@ -110,7 +115,8 @@ impl ExperimentWithPetgraph {
                 let address1: usize = (y1 as usize) * (image.width() as usize) + (x as usize);
                 let index0: NodeIndex = indexes_pixels[address0];
                 let index1: NodeIndex = indexes_pixels[address1];
-                self.graph.add_edge(index0, index1, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::UpDown });
+                self.graph.add_edge(index1, index0, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::Up });
+                self.graph.add_edge(index0, index1, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::Down });
             }
         }
 
