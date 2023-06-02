@@ -2430,6 +2430,112 @@ impl UnofficialFunction for ImageRepeatFunction {
     }
 }
 
+struct ImageRepeatRotatedFunction {
+    id: u32,
+}
+
+impl ImageRepeatRotatedFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageRepeatRotatedFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 5, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Make a big image by repeating the current image and doing 0,90,180,270 rotations.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 5 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is top, the number of times the image is to be repeated upwards
+        let top: u8 = input[1].to_u8().context("Input[1] u8 top")?;
+
+        // input2 is bottom, the number of times the image is to be repeated downwards
+        let bottom: u8 = input[2].to_u8().context("Input[2] u8 bottom")?;
+
+        // input3 is left, the number of times the image is to be repeated to the left side
+        let left: u8 = input[3].to_u8().context("Input[3] u8 left")?;
+
+        // input4 is right, the number of times the image is to be repeated to the right side
+        let right: u8 = input[4].to_u8().context("Input[4] u8 right")?;
+
+        let output_image: Image = image0.repeat_rotated(top, bottom, left, right)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageRepeatSymmetryFunction {
+    id: u32,
+}
+
+impl ImageRepeatSymmetryFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageRepeatSymmetryFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 5, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Make a big image by repeating the current image and doing flip x, flip y, flip xy.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 5 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is top, the number of times the image is to be repeated upwards
+        let top: u8 = input[1].to_u8().context("Input[1] u8 top")?;
+
+        // input2 is bottom, the number of times the image is to be repeated downwards
+        let bottom: u8 = input[2].to_u8().context("Input[2] u8 bottom")?;
+
+        // input3 is left, the number of times the image is to be repeated to the left side
+        let left: u8 = input[3].to_u8().context("Input[3] u8 left")?;
+
+        // input4 is right, the number of times the image is to be repeated to the right side
+        let right: u8 = input[4].to_u8().context("Input[4] u8 right")?;
+
+        let output_image: Image = image0.repeat_symmetry(top, bottom, left, right)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ImageMaskSelectFromColorAndImageFunction {
     id: u32,
 }
@@ -3754,6 +3860,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Create a big image by repeating the image
     register_function!(ImageRepeatFunction::new(102120));
+    register_function!(ImageRepeatRotatedFunction::new(102121));
+    register_function!(ImageRepeatSymmetryFunction::new(102122));
 
     // Mask - select from image
     register_function!(ImageMaskSelectFromColorAndImageFunction::new(102130));
