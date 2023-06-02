@@ -5322,4 +5322,32 @@ mod tests {
         let result: String = run_advanced("cce03e0d", PROGRAM_CCE03E0D).expect("String");
         assert_eq!(result, "3 1");
     }
+
+    const PROGRAM_8D5021E8: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$0
+
+        f11 $0,101190 ; flip x
+        f21 $0,101030 ; hstack
+
+        mov $1,$0
+        f11 $0,101191 ; flip y
+        mov $2,$0
+        f31 $0,101040 ; vstack
+    
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1020000_puzzle_8d5021e8_loda() {
+        let result: String = run_advanced("8d5021e8", PROGRAM_8D5021E8).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
