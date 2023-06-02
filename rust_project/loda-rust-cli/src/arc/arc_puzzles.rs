@@ -5666,4 +5666,29 @@ mod tests {
         let result: String = run_advanced("8e2edd66", PROGRAM_8E2EDD66).expect("String");
         assert_eq!(result, "3 1");
     }
+
+    const PROGRAM_A59B95C0: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; input image
+
+        mov $1,$0
+        f11 $1,101240 ; Number of unique colors in image.
+
+        mov $2,$1
+        f31 $0,102120 ; Repeat image by the number of unique colors in image.
+    
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1110000_puzzle_a59b95c0_loda() {
+        let result: String = run_advanced("a59b95c0", PROGRAM_A59B95C0).expect("String");
+        assert_eq!(result, "5 1");
+    }
 }
