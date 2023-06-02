@@ -5593,4 +5593,27 @@ mod tests {
         let result: String = run_advanced("e99362f0", PROGRAM_E99362F0).expect("String");
         assert_eq!(result, "6 1");
     }
+
+    const PROGRAM_BC4146BD: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,0
+        mov $2,0
+        mov $3,0
+        mov $4,4 ; grow right 4 times
+        f51 $0,102122 ; repeat symmetry
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1090000_puzzle_bc4146bd_loda() {
+        let result: String = run_advanced("bc4146bd", PROGRAM_BC4146BD).expect("String");
+        assert_eq!(result, "4 1");
+    }
 }
