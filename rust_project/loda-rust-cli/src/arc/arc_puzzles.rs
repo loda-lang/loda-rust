@@ -5542,19 +5542,20 @@ mod tests {
     mov $83,114 ; address of vector[0].InputMostPopularColor
     lps $80
         mov $20,$$83 ; most popular color across inputs
+        mov $21,1 ; pixel spacing = 1
 
         mov $10,$$81 ; input image
-        mov $11,1 ; 1 pixel spacing
+        mov $11,$21 ; spacing
         f22 $10,102261 ; split into 2 rows
         ; $10..$11 are the 2 rows
 
         mov $15,$10
-        mov $16,1 ; 1 pixel spacing
+        mov $16,$21 ; spacing
         f22 $15,102260 ; split into 2 columns
         ; $15..$16 are the 2 columns
 
         mov $17,$11
-        mov $18,1 ; 1 pixel spacing
+        mov $18,$21 ; spacing
         f22 $17,102260 ; split into 2 columns
         ; $17..$18 are the 2 columns
 
