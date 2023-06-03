@@ -3139,6 +3139,19 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    const PROGRAM_C1D99E64: &'static str = "
+    mov $2,$0
+    f11 $0,102270 ; Mask, where the cells are the value is 1 and where the grid lines are the value is 0. Don't care about the color of the grid lines.
+    mov $1,42
+    f31 $0,102130 ; Pick pixels from color and image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.
+    ";
+
+    #[test]
+    fn test_600001_puzzle_c1d99e64_loda() {
+        let result: String = run_simple("c1d99e64", PROGRAM_C1D99E64).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     #[test]
     fn test_610000_puzzle_f2829549() {
         let solution: SolutionSimple = |data| {

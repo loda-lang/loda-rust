@@ -3529,6 +3529,46 @@ impl UnofficialFunction for SplitFunction {
     }
 }
 
+struct MaskForGridCellsDontCareAboutGridColorFunction {
+    id: u32,
+}
+
+impl MaskForGridCellsDontCareAboutGridColorFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for MaskForGridCellsDontCareAboutGridColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Mask, where the cells are the value is 1 and where the grid lines are the value is 0. Don't care about the color of the grid lines.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        let output_image: Image = input_image.mask_for_gridcells(None)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ObjectsUniqueColorCountFunction {
     id: u32,
 }
@@ -4052,6 +4092,9 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(SplitFunction::new(102261, SplitFunctionMode::IntoRows, 3));
     register_function!(SplitFunction::new(102261, SplitFunctionMode::IntoRows, 4));
     register_function!(SplitFunction::new(102261, SplitFunctionMode::IntoRows, 5));
+
+    // Grid cells
+    register_function!(MaskForGridCellsDontCareAboutGridColorFunction::new(102270));
 
     // Count unique colors in each object
     register_function!(ObjectsUniqueColorCountFunction::new(104000));
