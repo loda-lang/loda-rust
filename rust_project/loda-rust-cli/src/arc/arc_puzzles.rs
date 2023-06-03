@@ -5451,24 +5451,13 @@ mod tests {
         f24 $0,102260 ; split into 4 columns
         ; $0..$3 are the 4 columns
 
-        ; layer 0
-        mov $10,$1
-
-        ; layer 1
-        mov $11,$0
-        mov $12,$20 ; most popular color
-        f31 $10,101150 ; Image: Overlay another image by using a color as mask
-
-        ; layer 2
-        mov $11,$3
-        mov $12,$20 ; most popular color
-        f31 $10,101150 ; Image: Overlay another image by using a color as mask
-
-        ; layer 3
-        mov $11,$2
-        mov $12,$20 ; most popular color
-        f31 $10,101150 ; Image: Overlay another image by using a color as mask
-
+        mov $10,$20 ; transparent color
+        mov $11,$1 ; layer 0 lowest layer
+        mov $12,$0 ; layer 1
+        mov $13,$3 ; layer 2
+        mov $14,$2 ; layer 3 top
+        f51 $10,101152 ; Z-stack images: Overlay multiple images using a transparency color
+      
         mov $0,$10
         
         mov $$82,$0
