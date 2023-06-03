@@ -5781,7 +5781,7 @@ mod tests {
 
         mov $1,$15
         f21 $0,101255 ; boolean AND
-        ; $0 = intersection of the most polar color pixels with the alternating columns
+        ; $0 = intersection of the most popular color pixels with the alternating columns
 
         mov $1,$10
         mov $2,255
