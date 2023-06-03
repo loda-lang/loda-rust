@@ -3040,17 +3040,13 @@ mod tests {
     }
 
     const PROGRAM_3428A4F5: &'static str = "
-    mov $5,$0
-    f11 $5,101001 ; get height
-    div $5,2
-
-    mov $4,$0
-    f21 $4,101221 ; get N bottom rows
+    mov $1,$0
+    f11 $1,101001 ; get height
+    mod $1,2 ; spacing between the columns
     
-    mov $1,$5
-    f21 $0,101220 ; get N top rows
-
-    mov $1,$4
+    f22 $0,102261 ; split into 2 rows
+    ; $0..$1 are the 2 rows
+    
     f21 $0,101254 ; xor
     ";
 
