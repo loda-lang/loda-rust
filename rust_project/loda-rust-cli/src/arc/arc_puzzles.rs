@@ -1770,74 +1770,51 @@ mod tests {
     }
 
     const PROGRAM_A68B268E: &'static str = "
-    mov $1,$0
-    f11 $1,101060 ; most popular color
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $20,$$83 ; most popular color across inputs
+        mov $21,1 ; pixel spacing = 1
 
-    ; W = compute (width-1) / 2
-    mov $2,$0
-    f11 $2,101000 ; Get width of image
-    sub $2,1
-    div $2,2
+        mov $10,$$81 ; input image
+        mov $11,$21 ; spacing
+        f22 $10,102261 ; split into 2 rows
+        ; $10..$11 are the 2 rows
 
-    ; H = compute (height-1) / 2
-    mov $3,$0
-    f11 $3,101001 ; Get height of image
-    sub $3,1
-    div $3,2
+        mov $15,$10
+        mov $16,$21 ; spacing
+        f22 $15,102260 ; split into 2 columns
+        ; $15..$16 are the 2 columns
 
-    ; top left corner of size WxH
-    mov $10,$0
-    mov $11,$3
-    f21 $10,101220 ; get N top rows
-    mov $11,$2
-    f21 $10,101222 ; get N left columns
-  
-    ; top right corner of size WxH
-    mov $15,$0
-    mov $16,$3
-    f21 $15,101220 ; get N top rows
-    mov $16,$2
-    f21 $15,101223 ; get N right columns
-  
-    ; bottom left corner of size WxH
-    mov $20,$0
-    mov $21,$3
-    f21 $20,101221 ; get N bottom rows
-    mov $21,$2
-    f21 $20,101222 ; get N left columns
+        mov $17,$11
+        mov $18,$21 ; spacing
+        f22 $17,102260 ; split into 2 columns
+        ; $17..$18 are the 2 columns
 
-    ; bottom right corner of size WxH
-    mov $25,$0
-    mov $26,$3
-    f21 $25,101221 ; get N bottom rows
-    mov $26,$2
-    f21 $25,101223 ; get N right columns
+        ; $15 = cell top left
+        ; $16 = cell top right
+        ; $17 = cell bottom left
+        ; $18 = cell bottom right
 
-    ; zstack where the images are placed on top of each other
-    ; zindex 0 - the bottom
-    mov $30,$25 ; bottom right
+        mov $0,$20 ; transparent color
+        mov $1,$18 ; layer 0 lowest layer
+        mov $2,$17 ; layer 1
+        mov $3,$16 ; layer 2
+        mov $4,$15 ; layer 3 top
+        f51 $0,101152 ; Z-stack images: Overlay multiple images using a transparency color
 
-    ; zindex 1
-    mov $31,$20 ; bottom left
-    mov $32,$1 ; most popular color
-    f31 $30,101150 ; overlay image
-
-    ; zindex 2
-    mov $31,$15 ; top right
-    mov $32,$1 ; most popular color
-    f31 $30,101150 ; overlay image
-
-    ; zindex 3 - the top
-    mov $31,$10 ; top left
-    mov $32,$1 ; most popular color
-    f31 $30,101150 ; overlay image
-
-    mov $0,$30
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
     ";
 
     #[test]
     fn test_350001_puzzle_a68b268e_loda() {
-        let result: String = run_simple("a68b268e", PROGRAM_A68B268E).expect("String");
+        let result: String = run_advanced("a68b268e", PROGRAM_A68B268E).expect("String");
         assert_eq!(result, "6 1");
     }
 
