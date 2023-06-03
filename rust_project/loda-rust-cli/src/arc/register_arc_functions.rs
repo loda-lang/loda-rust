@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere, ImageDrawRect, ImageMaskCount};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere, ImageDrawRect, ImageMaskCount, GeneratePattern};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity, GravityDirection, ImageCountUniqueColors};
@@ -2068,6 +2068,80 @@ impl UnofficialFunction for ImageToMaskBooleanOperation {
     }
 }
 
+#[derive(Debug)]
+enum GeneratePatternStripeFunctionMode {
+    StripedColumns,
+    StripedRows,
+}
+
+struct GeneratePatternStripeFunction {
+    id: u32,
+    mode: GeneratePatternStripeFunctionMode,
+}
+
+impl GeneratePatternStripeFunction {
+    fn new(id: u32, mode: GeneratePatternStripeFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for GeneratePatternStripeFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 6, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            GeneratePatternStripeFunctionMode::StripedColumns => {
+                "Alternating columns with two colors".to_string()
+            },
+            GeneratePatternStripeFunctionMode::StripedRows => {
+                "Alternating rows with two colors".to_string()
+            },
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 6 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0
+        let output_width: u8 = input[0].to_u8().context("Input[0] u8 output_width")?;
+
+        // input1
+        let output_height: u8 = input[1].to_u8().context("Input[1] u8 output_height")?;
+
+        // input2
+        let color0: u8 = input[2].to_u8().context("Input[2] u8 color0")?;
+
+        // input3
+        let count0: u8 = input[3].to_u8().context("Input[3] u8 count0")?;
+
+        // input4
+        let color1: u8 = input[4].to_u8().context("Input[4] u8 color1")?;
+
+        // input5
+        let count1: u8 = input[5].to_u8().context("Input[5] u8 count1")?;
+
+        let pattern = match self.mode {
+            GeneratePatternStripeFunctionMode::StripedColumns => {
+                GeneratePattern::StripedColumns { count0, color0, count1, color1 }
+            },
+            GeneratePatternStripeFunctionMode::StripedRows => {
+                GeneratePattern::StripedColumns { count0, color0, count1, color1 }
+            },
+        };
+        let output_image: Image = pattern.draw(ImageSize::new(output_width, output_height))?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ImageInvertMaskFunction {
     id: u32,
 }
@@ -4053,6 +4127,10 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageToMaskBooleanOperation::new(101254, ImageToMaskBooleanOperationFunctionMode::OperationXor));
     register_function!(ImageToMaskBooleanOperation::new(101255, ImageToMaskBooleanOperationFunctionMode::OperationAnd));
     register_function!(ImageToMaskBooleanOperation::new(101256, ImageToMaskBooleanOperationFunctionMode::OperationOr));
+
+    // Generate patterns
+    register_function!(GeneratePatternStripeFunction::new(101260, GeneratePatternStripeFunctionMode::StripedColumns));
+    register_function!(GeneratePatternStripeFunction::new(101261, GeneratePatternStripeFunctionMode::StripedRows));
 
     // Objects
     register_function!(ImagePopularObjectFunction::new(102000, ImagePopularObjectFunctionMode::MostPopular));
