@@ -5839,23 +5839,12 @@ mod tests {
         ; $17 = cell bottom left
         ; $18 = cell bottom right
 
-        ; layer 0
-        mov $0,$15
-
-        ; layer 1
-        mov $1,$18
-        mov $2,$20 ; most popular color
-        f31 $0,101150 ; Image: Overlay another image by using a color as mask
-
-        ; layer 2
-        mov $1,$17
-        mov $2,$20 ; most popular color
-        f31 $0,101150 ; Image: Overlay another image by using a color as mask
-
-        ; layer 3
-        mov $1,$16
-        mov $2,$20 ; most popular color
-        f31 $0,101150 ; Image: Overlay another image by using a color as mask
+        mov $0,$20 ; transparent color
+        mov $1,$15 ; layer 0 lowest layer
+        mov $2,$18 ; layer 1
+        mov $3,$17 ; layer 2
+        mov $4,$16 ; layer 3 top
+        f51 $0,101152 ; Z-stack images: Overlay multiple images using a transparency color
 
         mov $$82,$0
         add $81,100

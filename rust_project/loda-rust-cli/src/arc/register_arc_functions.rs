@@ -1071,6 +1071,58 @@ impl UnofficialFunction for ImageOverlayAnotherImageAtPositionFunction {
     }
 }
 
+struct ImageOverlayMultipleImagesFunction {
+    id: u32,
+    number_of_images: u8,
+    inputs: u8,
+}
+
+impl ImageOverlayMultipleImagesFunction {
+    fn new(id: u32, number_of_images: u8) -> Self {
+        Self {
+            id,
+            number_of_images,
+            inputs: number_of_images + 1,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageOverlayMultipleImagesFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: self.inputs, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Z-stack images: Overlay multiple images using a transparency color".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != self.inputs as usize {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is transparency_color
+        let transparency_color: u8 = input[0].to_u8().context("u8 transparency_color")?;
+
+        // input1..x are images
+        let mut images: Vec<Image> = Vec::new();
+        for i in 0..self.number_of_images {
+            let input_index = (i as usize) + 1;
+            if input[input_index].is_negative() {
+                return Err(anyhow::anyhow!("Input[{}] must be non-negative", input_index));
+            }
+            let input_uint: BigUint = input[input_index].to_biguint().context("BigInt to BigUint")?;
+            let image: Image = input_uint.to_image()?;
+            images.push(image);
+        }
+
+        let output_image: Image = Image::overlay_images(transparency_color, &images)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ImageOutlineFunction {
     id: u32,
 }
@@ -3850,6 +3902,11 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Overlay by color
     register_function!(ImageOverlayAnotherImageByColorMaskFunction::new(101150));
     register_function!(ImageOverlayAnotherImageAtPositionFunction::new(101151));
+    register_function!(ImageOverlayMultipleImagesFunction::new(101152, 2));
+    register_function!(ImageOverlayMultipleImagesFunction::new(101152, 3));
+    register_function!(ImageOverlayMultipleImagesFunction::new(101152, 4));
+    register_function!(ImageOverlayMultipleImagesFunction::new(101152, 5));
+    register_function!(ImageOverlayMultipleImagesFunction::new(101152, 6));
 
     // Trim
     register_function!(ImageTrimFunction::new(101160));
