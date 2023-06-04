@@ -1,4 +1,3 @@
-; ARC:a68b268e
 ; Submitted by Simon Strandgaard
 ; Program Type: advanced
 
@@ -31,10 +30,10 @@ lps $80
   ; $18 = cell bottom right
 
   mov $0,$20 ; transparent color
-  mov $1,$18 ; layer 0 lowest layer
-  mov $2,$17 ; layer 1
-  mov $3,$16 ; layer 2
-  mov $4,$15 ; layer 3 top
+  mov $1,$17 ; layer 0 lowest layer
+  mov $2,$16 ; layer 1
+  mov $3,$15 ; layer 2
+  mov $4,$18 ; layer 3 top
   f51 $0,101152 ; Z-stack images: Overlay multiple images using a transparency color
 
   mov $$82,$0

@@ -1,4 +1,3 @@
-; ARC:a68b268e
 ; Submitted by Simon Strandgaard
 ; Program Type: advanced
 
@@ -7,8 +6,9 @@ mov $81,100 ; address of vector[0].InputImage
 mov $82,102 ; address of vector[0].ComputedOutputImage
 mov $83,114 ; address of vector[0].InputMostPopularColor
 lps $80
+  mov $0,$$81 ; input image
   mov $20,$$83 ; most popular color across inputs
-  mov $21,1 ; pixel spacing = 1
+  mov $21,0 ; pixel spacing = 0
 
   mov $10,$$81 ; input image
   mov $11,$21 ; spacing
@@ -31,10 +31,10 @@ lps $80
   ; $18 = cell bottom right
 
   mov $0,$20 ; transparent color
-  mov $1,$18 ; layer 0 lowest layer
-  mov $2,$17 ; layer 1
-  mov $3,$16 ; layer 2
-  mov $4,$15 ; layer 3 top
+  mov $1,$15 ; layer 0 lowest layer
+  mov $2,$18 ; layer 1
+  mov $3,$17 ; layer 2
+  mov $4,$16 ; layer 3 top
   f51 $0,101152 ; Z-stack images: Overlay multiple images using a transparency color
 
   mov $$82,$0
