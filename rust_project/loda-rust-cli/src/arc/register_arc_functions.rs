@@ -3257,6 +3257,54 @@ impl UnofficialFunction for SortRowsColumnsByMassFunction {
     }
 }
 
+struct SortRowsColumnsByPixelValueFunction {
+    id: u32,
+    mode: ImageSortMode,
+}
+
+impl SortRowsColumnsByPixelValueFunction {
+    fn new(id: u32, mode: ImageSortMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for SortRowsColumnsByPixelValueFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        let mode_name: &str = match self.mode {
+            ImageSortMode::RowsAscending => "rows-ascending",
+            ImageSortMode::RowsDescending => "rows-descending",
+            ImageSortMode::ColumnsAscending => "columns-ascending",
+            ImageSortMode::ColumnsDescending => "columns-descending",
+        };
+        format!("Sort {} by pixel value", mode_name)
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        let output_image: Image = input_image.sort_by_pixel_value(self.mode)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct DrawLineConnectingTwoColorsFunction {
     id: u32,
 }
@@ -4193,6 +4241,10 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(SortRowsColumnsByMassFunction::new(102201, ImageSortMode::RowsDescending));
     register_function!(SortRowsColumnsByMassFunction::new(102202, ImageSortMode::ColumnsAscending));
     register_function!(SortRowsColumnsByMassFunction::new(102203, ImageSortMode::ColumnsDescending));
+    register_function!(SortRowsColumnsByPixelValueFunction::new(102204, ImageSortMode::RowsAscending));
+    register_function!(SortRowsColumnsByPixelValueFunction::new(102205, ImageSortMode::RowsDescending));
+    register_function!(SortRowsColumnsByPixelValueFunction::new(102206, ImageSortMode::ColumnsAscending));
+    register_function!(SortRowsColumnsByPixelValueFunction::new(102207, ImageSortMode::ColumnsDescending));
 
     // Draw lines connecting two colors
     register_function!(DrawLineConnectingTwoColorsFunction::new(102210));
