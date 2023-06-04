@@ -4838,7 +4838,7 @@ mod tests {
                 let input: &Image = &pair.input.image;
                 let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
                 let image_with_gravity: Image = input.gravity(background_color, GravityDirection::Right)?;
-                let result_image: Image = image_with_gravity.sort_by_color(background_color, ImageSortMode::RowsAscending)?;
+                let result_image: Image = image_with_gravity.sort_by_mass(background_color, ImageSortMode::RowsAscending)?;
                 Ok(result_image)
             }
         }

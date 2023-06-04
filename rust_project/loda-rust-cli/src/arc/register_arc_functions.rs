@@ -3206,12 +3206,12 @@ impl UnofficialFunction for GravityFunction {
     }
 }
 
-struct SortRowsColumnsByColorFunction {
+struct SortRowsColumnsByMassFunction {
     id: u32,
     mode: ImageSortMode,
 }
 
-impl SortRowsColumnsByColorFunction {
+impl SortRowsColumnsByMassFunction {
     fn new(id: u32, mode: ImageSortMode) -> Self {
         Self {
             id,
@@ -3220,7 +3220,7 @@ impl SortRowsColumnsByColorFunction {
     }
 }
 
-impl UnofficialFunction for SortRowsColumnsByColorFunction {
+impl UnofficialFunction for SortRowsColumnsByMassFunction {
     fn id(&self) -> UnofficialFunctionId {
         UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
     }
@@ -3232,7 +3232,7 @@ impl UnofficialFunction for SortRowsColumnsByColorFunction {
             ImageSortMode::ColumnsAscending => "columns-ascending",
             ImageSortMode::ColumnsDescending => "columns-descending",
         };
-        format!("Sort {} by color", mode_name)
+        format!("Sort {} by mass", mode_name)
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -3250,7 +3250,7 @@ impl UnofficialFunction for SortRowsColumnsByColorFunction {
         // input1 is background_color
         let background_color: u8 = input[1].to_u8().context("u8 background_color")?;
 
-        let output_image: Image = input_image.sort_by_color(background_color, self.mode)?;
+        let output_image: Image = input_image.sort_by_mass(background_color, self.mode)?;
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -4189,10 +4189,10 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(GravityFunction::new(102193, GravityDirection::Right));
 
     // Sort rows/cols by color mass
-    register_function!(SortRowsColumnsByColorFunction::new(102200, ImageSortMode::RowsAscending));
-    register_function!(SortRowsColumnsByColorFunction::new(102201, ImageSortMode::RowsDescending));
-    register_function!(SortRowsColumnsByColorFunction::new(102202, ImageSortMode::ColumnsAscending));
-    register_function!(SortRowsColumnsByColorFunction::new(102203, ImageSortMode::ColumnsDescending));
+    register_function!(SortRowsColumnsByMassFunction::new(102200, ImageSortMode::RowsAscending));
+    register_function!(SortRowsColumnsByMassFunction::new(102201, ImageSortMode::RowsDescending));
+    register_function!(SortRowsColumnsByMassFunction::new(102202, ImageSortMode::ColumnsAscending));
+    register_function!(SortRowsColumnsByMassFunction::new(102203, ImageSortMode::ColumnsDescending));
 
     // Draw lines connecting two colors
     register_function!(DrawLineConnectingTwoColorsFunction::new(102210));

@@ -10,23 +10,23 @@ pub enum ImageSortMode {
 
 #[allow(dead_code)]
 pub trait ImageSort {
-    fn sort_by_color(&self, background_color: u8, mode: ImageSortMode) -> anyhow::Result<Image>;
+    fn sort_by_mass(&self, background_color: u8, mode: ImageSortMode) -> anyhow::Result<Image>;
 }
 
 impl ImageSort for Image {
-    fn sort_by_color(&self, background_color: u8, mode: ImageSortMode) -> anyhow::Result<Image> {
+    fn sort_by_mass(&self, background_color: u8, mode: ImageSortMode) -> anyhow::Result<Image> {
         match mode {
-            ImageSortMode::RowsAscending => Sorter::sort_rows(&self, background_color),
-            ImageSortMode::RowsDescending => Sorter::sort_rows_reverse(&self, background_color),
-            ImageSortMode::ColumnsAscending => Sorter::sort_columns(&self, background_color),
-            ImageSortMode::ColumnsDescending => Sorter::sort_columns_reverse(&self, background_color),
+            ImageSortMode::RowsAscending => SortByMass::sort_rows(&self, background_color),
+            ImageSortMode::RowsDescending => SortByMass::sort_rows_reverse(&self, background_color),
+            ImageSortMode::ColumnsAscending => SortByMass::sort_columns(&self, background_color),
+            ImageSortMode::ColumnsDescending => SortByMass::sort_columns_reverse(&self, background_color),
         }
     }
 }
 
-struct Sorter;
+struct SortByMass;
 
-impl Sorter {
+impl SortByMass {
     fn sort_rows(image: &Image, background_color: u8) -> anyhow::Result<Image> {
         if image.height() <= 1 {
             return Ok(image.clone());
@@ -84,7 +84,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_sort_rows() {
+    fn test_10000_sort_by_mass_rows() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 7, 7,
@@ -98,7 +98,7 @@ mod tests {
         let input: Image = Image::try_create(5, 7, pixels).expect("image");
 
         // Act
-        let actual: Image = input.sort_by_color(5, ImageSortMode::RowsAscending).expect("ok");
+        let actual: Image = input.sort_by_mass(5, ImageSortMode::RowsAscending).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -115,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_sort_rows_reversed() {
+    fn test_10001_sort_by_mass_rows_reversed() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 7, 7,
@@ -129,7 +129,7 @@ mod tests {
         let input: Image = Image::try_create(5, 7, pixels).expect("image");
 
         // Act
-        let actual: Image = input.sort_by_color(5, ImageSortMode::RowsDescending).expect("ok");
+        let actual: Image = input.sort_by_mass(5, ImageSortMode::RowsDescending).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -146,7 +146,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_sort_columns() {
+    fn test_10002_sort_by_mass_columns() {
         // Arrange
         let pixels: Vec<u8> = vec![
             3, 3, 3, 3, 3, 3,
@@ -157,7 +157,7 @@ mod tests {
         let input: Image = Image::try_create(6, 4, pixels).expect("image");
 
         // Act
-        let actual: Image = input.sort_by_color(3, ImageSortMode::ColumnsAscending).expect("ok");
+        let actual: Image = input.sort_by_mass(3, ImageSortMode::ColumnsAscending).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_sort_columns_reverse() {
+    fn test_10003_sort_by_mass_columns_reverse() {
         // Arrange
         let pixels: Vec<u8> = vec![
             3, 3, 3, 3, 3, 3,
@@ -182,7 +182,7 @@ mod tests {
         let input: Image = Image::try_create(6, 4, pixels).expect("image");
 
         // Act
-        let actual: Image = input.sort_by_color(3, ImageSortMode::ColumnsDescending).expect("ok");
+        let actual: Image = input.sort_by_mass(3, ImageSortMode::ColumnsDescending).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
