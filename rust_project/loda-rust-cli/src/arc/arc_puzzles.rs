@@ -1770,74 +1770,51 @@ mod tests {
     }
 
     const PROGRAM_A68B268E: &'static str = "
-    mov $1,$0
-    f11 $1,101060 ; most popular color
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $20,$$83 ; most popular color across inputs
+        mov $21,1 ; pixel spacing = 1
 
-    ; W = compute (width-1) / 2
-    mov $2,$0
-    f11 $2,101000 ; Get width of image
-    sub $2,1
-    div $2,2
+        mov $10,$$81 ; input image
+        mov $11,$21 ; spacing
+        f22 $10,102261 ; split into 2 rows
+        ; $10..$11 are the 2 rows
 
-    ; H = compute (height-1) / 2
-    mov $3,$0
-    f11 $3,101001 ; Get height of image
-    sub $3,1
-    div $3,2
+        mov $15,$10
+        mov $16,$21 ; spacing
+        f22 $15,102260 ; split into 2 columns
+        ; $15..$16 are the 2 columns
 
-    ; top left corner of size WxH
-    mov $10,$0
-    mov $11,$3
-    f21 $10,101220 ; get N top rows
-    mov $11,$2
-    f21 $10,101222 ; get N left columns
-  
-    ; top right corner of size WxH
-    mov $15,$0
-    mov $16,$3
-    f21 $15,101220 ; get N top rows
-    mov $16,$2
-    f21 $15,101223 ; get N right columns
-  
-    ; bottom left corner of size WxH
-    mov $20,$0
-    mov $21,$3
-    f21 $20,101221 ; get N bottom rows
-    mov $21,$2
-    f21 $20,101222 ; get N left columns
+        mov $17,$11
+        mov $18,$21 ; spacing
+        f22 $17,102260 ; split into 2 columns
+        ; $17..$18 are the 2 columns
 
-    ; bottom right corner of size WxH
-    mov $25,$0
-    mov $26,$3
-    f21 $25,101221 ; get N bottom rows
-    mov $26,$2
-    f21 $25,101223 ; get N right columns
+        ; $15 = cell top left
+        ; $16 = cell top right
+        ; $17 = cell bottom left
+        ; $18 = cell bottom right
 
-    ; zstack where the images are placed on top of each other
-    ; zindex 0 - the bottom
-    mov $30,$25 ; bottom right
+        mov $0,$20 ; transparent color
+        mov $1,$18 ; layer 0 lowest layer
+        mov $2,$17 ; layer 1
+        mov $3,$16 ; layer 2
+        mov $4,$15 ; layer 3 top
+        f51 $0,101152 ; Z-stack images: Overlay multiple images using a transparency color
 
-    ; zindex 1
-    mov $31,$20 ; bottom left
-    mov $32,$1 ; most popular color
-    f31 $30,101150 ; overlay image
-
-    ; zindex 2
-    mov $31,$15 ; top right
-    mov $32,$1 ; most popular color
-    f31 $30,101150 ; overlay image
-
-    ; zindex 3 - the top
-    mov $31,$10 ; top left
-    mov $32,$1 ; most popular color
-    f31 $30,101150 ; overlay image
-
-    mov $0,$30
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
     ";
 
     #[test]
     fn test_350001_puzzle_a68b268e_loda() {
-        let result: String = run_simple("a68b268e", PROGRAM_A68B268E).expect("String");
+        let result: String = run_advanced("a68b268e", PROGRAM_A68B268E).expect("String");
         assert_eq!(result, "6 1");
     }
 
@@ -3063,17 +3040,13 @@ mod tests {
     }
 
     const PROGRAM_3428A4F5: &'static str = "
-    mov $5,$0
-    f11 $5,101001 ; get height
-    div $5,2
-
-    mov $4,$0
-    f21 $4,101221 ; get N bottom rows
+    mov $1,$0
+    f11 $1,101001 ; get height
+    mod $1,2 ; spacing between the columns
     
-    mov $1,$5
-    f21 $0,101220 ; get N top rows
-
-    mov $1,$4
+    f22 $0,102261 ; split into 2 rows
+    ; $0..$1 are the 2 rows
+    
     f21 $0,101254 ; xor
     ";
 
@@ -3166,6 +3139,19 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    const PROGRAM_C1D99E64: &'static str = "
+    mov $2,$0
+    f11 $0,102270 ; Mask, where the cells are the value is 1 and where the grid lines are the value is 0. Don't care about the color of the grid lines.
+    mov $1,42
+    f31 $0,102130 ; Pick pixels from color and image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.
+    ";
+
+    #[test]
+    fn test_600001_puzzle_c1d99e64_loda() {
+        let result: String = run_simple("c1d99e64", PROGRAM_C1D99E64).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     #[test]
     fn test_610000_puzzle_f2829549() {
         let solution: SolutionSimple = |data| {
@@ -3181,17 +3167,13 @@ mod tests {
     }
 
     const PROGRAM_F2829549: &'static str = "
-    mov $5,$0
-    f11 $5,101000 ; get width
-    div $5,2
+    mov $1,$0
+    f11 $1,101000 ; get width
+    mod $1,2 ; spacing between the columns
 
-    mov $4,$0
-    f21 $4,101222 ; get N left columns
-    
-    mov $1,$5
-    f21 $0,101223 ; get N right columns
+    f22 $0,102260 ; split into 2 columns
+    ; $0..$1 are the 2 columns
 
-    mov $1,$4
     f21 $0,101256 ; or
     ";
 
@@ -3396,6 +3378,38 @@ mod tests {
             Ok(result_image)
         };
         let result: String = solution.run("cf98881b").expect("String");
+        assert_eq!(result, "5 1");
+    }
+
+    const PROGRAM_CF98881B: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $20,$$83 ; most popular color across inputs
+
+        mov $10,$$81 ; input image
+        mov $11,1 ; 1 pixel spacing
+        f23 $10,102260 ; split into 3 columns
+        ; $10..$12 are the 3 columns
+
+        mov $0,$20 ; transparent color
+        mov $1,$12 ; layer 0 lowest layer
+        mov $2,$11 ; layer 1
+        mov $3,$10 ; layer 2 top
+        f41 $0,101152 ; Z-stack images: Overlay multiple images using a transparency color
+      
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_670001_puzzle_cf98881b_loda() {
+        let result: String = run_advanced("cf98881b", PROGRAM_CF98881B).expect("String");
         assert_eq!(result, "5 1");
     }
 
@@ -4824,7 +4838,7 @@ mod tests {
                 let input: &Image = &pair.input.image;
                 let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
                 let image_with_gravity: Image = input.gravity(background_color, GravityDirection::Right)?;
-                let result_image: Image = image_with_gravity.sort_by_color(background_color, ImageSortMode::RowsAscending)?;
+                let result_image: Image = image_with_gravity.sort_by_mass(background_color, ImageSortMode::RowsAscending)?;
                 Ok(result_image)
             }
         }
@@ -5136,5 +5150,748 @@ mod tests {
     fn test_990000_puzzle_3906de3d_loda() {
         let result: String = run_advanced("3906de3d", PROGRAM_3906DE3D).expect("String");
         assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_1000000_puzzle_75b8110e_loda() {
+        let result: String = run_advanced("75b8110e", PROGRAM_EA9794B1).expect("String");
+        assert_eq!(result, "5 1");
+    }
+
+    const PROGRAM_CCE03E0D: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+
+        ; tile_width
+        mov $2,$0
+        f11 $2,101000 ; Get width of image
+    
+        ; tile_height
+        mov $3,$0
+        f11 $3,101001 ; Get height of image
+    
+        ; tile
+        mov $7,$20 ; color
+        mov $6,$3 ; height
+        mov $5,$2 ; width
+        f31 $5,101010 ; Create new image with size (x, y) and filled with color z
+    
+        ; mask
+        mov $10,$0 ; image
+        mov $11,2 ; color
+        f21 $10,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
+    
+        mov $11,$0 ; tile0
+        mov $12,$5 ; tile1
+        f31 $10,102110 ; Create a big composition of tiles.
+    
+        mov $0,$10
+    
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1010000_puzzle_cce03e0d_loda() {
+        let result: String = run_advanced("cce03e0d", PROGRAM_CCE03E0D).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_8D5021E8: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,$0
+
+        f11 $0,101190 ; flip x
+        f21 $0,101030 ; hstack
+
+        mov $1,$0
+        f11 $0,101191 ; flip y
+        mov $2,$0
+        f31 $0,101040 ; vstack
+    
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1020000_puzzle_8d5021e8_loda() {
+        let result: String = run_advanced("8d5021e8", PROGRAM_8D5021E8).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_6A11F6DA: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $20,$$83 ; most popular color across inputs
+
+        mov $10,$$81 ; input image
+        mov $11,0 ; no spacing
+        f23 $10,102261 ; split into 3 rows
+        ; $10..$12 are the 3 columns
+
+        mov $0,$20 ; transparent color
+        mov $1,$11 ; layer 0 lowest layer
+        mov $2,$10 ; layer 1
+        mov $3,$12 ; layer 2 top
+        f41 $0,101152 ; Z-stack images: Overlay multiple images using a transparency color
+              
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1030000_puzzle_6a11f6da_loda() {
+        let result: String = run_advanced("6a11f6da", PROGRAM_6A11F6DA).expect("String");
+        assert_eq!(result, "5 1");
+    }
+
+    const PROGRAM_6F473927: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+
+        ; determine if the image needs to be flipped
+        mov $8,$0
+        mov $9,1
+        f21 $8,101222 ; get N left columns
+        mov $9,$20 ; most popular color
+        f21 $8,101250 ; Convert to a mask image by converting `color` to 1 and converting anything else to to 0.
+        f11 $8,101243 ; number of zeroes in image
+        mod $8,2
+        ; $8 is 1 when the input image has its content on the right side, and needs flipping. Otherwise it's 0.
+
+        mov $9,$8
+
+        ; flip the input image so it's content is on the right side
+        lps $8
+            f11 $0,101190 ; flip x
+        lpe
+
+        mov $1,$0
+        f11 $1,101190 ; flip x
+        f21 $1,101250 ; Convert to a mask image by converting `color` to 1 and converting anything else to to 0.
+        f21 $0,101030 ; hstack
+
+        ; restore the x axis
+        lps $9
+            f11 $0,101190 ; flip x
+        lpe
+        
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1040000_puzzle_6f473927_loda() {
+        let result: String = run_advanced("6f473927", PROGRAM_6F473927).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    const PROGRAM_C48954C1: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; input image
+
+        mov $1,1
+        mov $2,1
+        mov $3,1
+        mov $4,1
+        f51 $0,102122 ; Make a big image by repeating the current image and doing flip x, flip y, flip xy.
+        
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1050000_puzzle_c48954c1_loda() {
+        let result: String = run_advanced("c48954c1", PROGRAM_C48954C1).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_281123B4: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+
+        mov $1,1 ; spacing is 1 pixel
+        f24 $0,102260 ; split into 4 columns
+        ; $0..$3 are the 4 columns
+
+        mov $10,$20 ; transparent color
+        mov $11,$1 ; layer 0 lowest layer
+        mov $12,$0 ; layer 1
+        mov $13,$3 ; layer 2
+        mov $14,$2 ; layer 3 top
+        f51 $10,101152 ; Z-stack images: Overlay multiple images using a transparency color
+      
+        mov $0,$10
+        
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1060000_puzzle_281123b4_loda() {
+        let result: String = run_advanced("281123b4", PROGRAM_281123B4).expect("String");
+        assert_eq!(result, "6 1");
+    }
+
+    const PROGRAM_3D31C5B3: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $20,$$83 ; most popular color across inputs
+
+        mov $10,$$81 ; input image
+        mov $11,0 ; no spacing
+        f24 $10,102261 ; split into 4 rows
+        ; $10..$13 are the 4 rows
+
+        mov $0,$20 ; transparent color
+        mov $1,$12 ; layer 0 lowest layer
+        mov $2,$13 ; layer 1
+        mov $3,$11 ; layer 2
+        mov $4,$10 ; layer 3 top
+        f51 $0,101152 ; Z-stack images: Overlay multiple images using a transparency color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1070000_puzzle_3d31c5b3_loda() {
+        let result: String = run_advanced("3d31c5b3", PROGRAM_3D31C5B3).expect("String");
+        assert_eq!(result, "6 1");
+    }
+
+    const PROGRAM_E99362F0: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $20,$$83 ; most popular color across inputs
+        mov $21,1 ; pixel spacing = 1
+
+        mov $10,$$81 ; input image
+        mov $11,$21 ; spacing
+        f22 $10,102261 ; split into 2 rows
+        ; $10..$11 are the 2 rows
+
+        mov $15,$10
+        mov $16,$21 ; spacing
+        f22 $15,102260 ; split into 2 columns
+        ; $15..$16 are the 2 columns
+
+        mov $17,$11
+        mov $18,$21 ; spacing
+        f22 $17,102260 ; split into 2 columns
+        ; $17..$18 are the 2 columns
+
+        ; $15 = cell top left
+        ; $16 = cell top right
+        ; $17 = cell bottom left
+        ; $18 = cell bottom right
+
+        mov $0,$20 ; transparent color
+        mov $1,$17 ; layer 0 lowest layer
+        mov $2,$16 ; layer 1
+        mov $3,$15 ; layer 2
+        mov $4,$18 ; layer 3 top
+        f51 $0,101152 ; Z-stack images: Overlay multiple images using a transparency color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1080000_puzzle_e99362f0_loda() {
+        let result: String = run_advanced("e99362f0", PROGRAM_E99362F0).expect("String");
+        assert_eq!(result, "6 1");
+    }
+
+    const PROGRAM_BC4146BD: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; input image
+        mov $1,0
+        mov $2,0
+        mov $3,0
+        mov $4,4 ; grow right 4 times
+        f51 $0,102122 ; repeat symmetry
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1090000_puzzle_bc4146bd_loda() {
+        let result: String = run_advanced("bc4146bd", PROGRAM_BC4146BD).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    const PROGRAM_8E2EDD66: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+
+        ; tile_width
+        mov $2,$0
+        f11 $2,101000 ; Get width of image
+    
+        ; tile_height
+        mov $3,$0
+        f11 $3,101001 ; Get height of image
+    
+        ; tile0
+        mov $7,$20 ; color
+        mov $6,$3 ; height
+        mov $5,$2 ; width
+        f31 $5,101010 ; Create new image with size (x, y) and filled with color z
+    
+        ; mask
+        mov $10,$0 ; image
+        mov $11,$20 ; color
+        f21 $10,101250 ; Convert to a mask image by converting `color` to 1 and converting anything else to to 0.
+    
+        ; tile1
+        f11 $0,102170 ; Reorder the color palette, so that the `most popular color` changes place with the `least popular color`
+
+        mov $11,$5 ; tile0
+        mov $12,$0 ; tile1
+        f31 $10,102110 ; Create a big composition of tiles.
+    
+        mov $0,$10
+    
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1100000_puzzle_8e2edd66_loda() {
+        let result: String = run_advanced("8e2edd66", PROGRAM_8E2EDD66).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_A59B95C0: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; input image
+
+        mov $1,$0
+        f11 $1,101240 ; Number of unique colors in image.
+
+        mov $2,$1
+        f31 $0,102120 ; Repeat image by the number of unique colors in image.
+    
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1110000_puzzle_a59b95c0_loda() {
+        let result: String = run_advanced("a59b95c0", PROGRAM_A59B95C0).expect("String");
+        assert_eq!(result, "5 1");
+    }
+
+    const PROGRAM_0692E18C: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+
+        ; tile_width
+        mov $2,$0
+        f11 $2,101000 ; Get width of image
+    
+        ; tile_height
+        mov $3,$0
+        f11 $3,101001 ; Get height of image
+    
+        ; tile0
+        mov $7,$20 ; color
+        mov $6,$3 ; height
+        mov $5,$2 ; width
+        f31 $5,101010 ; Create new image with size (x, y) and filled with color z
+    
+        ; mask
+        mov $10,$0 ; image
+        mov $11,$20 ; color
+        f21 $10,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
+    
+        ; tile1
+        f11 $0,102170 ; Reorder the color palette, so that the `most popular color` changes place with the `least popular color`
+
+        mov $11,$5 ; tile0
+        mov $12,$0 ; tile1
+        f31 $10,102110 ; Create a big composition of tiles.
+    
+        mov $0,$10
+    
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1120000_puzzle_0692e18c_loda() {
+        let result: String = run_advanced("0692e18c", PROGRAM_0692E18C).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_48131B3C: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; input image
+        f11 $0,102170 ; Reorder the color palette, so that the `most popular color` changes place with the `least popular color`
+
+        mov $1,2
+        mov $2,2
+        f31 $0,102120 ; Repeat image
+    
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1130000_puzzle_48131b3c_loda() {
+        let result: String = run_advanced("48131b3c", PROGRAM_48131B3C).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_D037B0A7: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+
+        ; Construct ignore_mask based on the most popular color
+        mov $1,$0
+        mov $2,$20
+        f21 $1,101250 ; Convert to a mask image by converting `color` to 1 and converting anything else to to 0.
+        ; $1 is the pixels to be ignored
+
+        ; determine the nearest color in the direction 'up'
+        mov $3,$0
+        mov $4,$1 ; ignore mask
+        mov $5,$20 ; color_when_there_is_no_neighbour
+        f31 $3,102060 ; color of nearest neighbour pixel 'up'
+        ; $3 is an image of the nearest color in the direction 'up'
+    
+        ; combine images based on the ignore mask
+        mov $6,$1
+        mov $7,$0
+        mov $8,$3
+        f31 $6,102132 ; Pick pixels from two images. When the mask is 0 then pick `image_a`. When the mask is [1..255] then pick from `image_b`.
+        ; $6 is a combination of the original image and the nearest color in the direction 'up'
+        mov $0,$6
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1140000_puzzle_d037b0a7_loda() {
+        let result: String = run_advanced("d037b0a7", PROGRAM_D037B0A7).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_EA9794B1: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+        mov $21,0 ; pixel spacing = 0
+
+        mov $10,$$81 ; input image
+        mov $11,$21 ; spacing
+        f22 $10,102261 ; split into 2 rows
+        ; $10..$11 are the 2 rows
+
+        mov $15,$10
+        mov $16,$21 ; spacing
+        f22 $15,102260 ; split into 2 columns
+        ; $15..$16 are the 2 columns
+
+        mov $17,$11
+        mov $18,$21 ; spacing
+        f22 $17,102260 ; split into 2 columns
+        ; $17..$18 are the 2 columns
+
+        ; $15 = cell top left
+        ; $16 = cell top right
+        ; $17 = cell bottom left
+        ; $18 = cell bottom right
+
+        mov $0,$20 ; transparent color
+        mov $1,$15 ; layer 0 lowest layer
+        mov $2,$18 ; layer 1
+        mov $3,$17 ; layer 2
+        mov $4,$16 ; layer 3 top
+        f51 $0,101152 ; Z-stack images: Overlay multiple images using a transparency color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1150000_puzzle_ea9794b1_loda() {
+        let result: String = run_advanced("ea9794b1", PROGRAM_EA9794B1).expect("String");
+        assert_eq!(result, "6 1");
+    }
+
+    const PROGRAM_23581191: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $0,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+
+        mov $1,$0
+        mov $2,$20
+        f21 $1,101251 ; where color is different than the most popular color
+
+        mov $1,$1 ; mask
+        mov $2,255 ; overlap color
+        f31 $0,102223 ; Shoot out lines in all directions where mask is non-zero. Preserving the color.
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1160000_puzzle_23581191_loda() {
+        let result: String = run_advanced("23581191", PROGRAM_23581191).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    const PROGRAM_BA26E723: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $10,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+
+        mov $15,$10
+        mov $16,$20
+        f21 $15,101250 ; where color is the most popular color
+        ; $15 = mask where the pixels have the same value as the most popular color
+
+        mov $0,$10
+        f11 $0,101000 ; width of image
+        
+        mov $1,$10
+        f11 $1,101001 ; height of image
+
+        ; $0 = width
+        ; $1 = height
+        mov $2,1 ; color0
+        mov $3,1 ; count0
+        mov $4,0 ; color1
+        mov $5,2 ; count1
+        f61 $0,101260 ; Alternating columns with two colors
+
+        mov $1,$15
+        f21 $0,101255 ; boolean AND
+        ; $0 = intersection of the most popular color pixels with the alternating columns
+
+        mov $1,$10
+        mov $2,255
+        f31 $0,102131 ; Pick pixels from image and color. When the mask is 0 then pick from the image. When the mask is [1..255] then use the `default_color`.
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1170000_puzzle_ba26e723_loda() {
+        let result: String = run_advanced("ba26e723", PROGRAM_BA26E723).expect("String");
+        assert_eq!(result, "5 1");
+    }
+
+    const PROGRAM_D406998B: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $10,$$81 ; input image
+        mov $20,$$83 ; most popular color across inputs
+
+        mov $15,$10
+        mov $16,$20
+        f21 $15,101251 ; where color is different than the most popular color
+        ; $15 = mask
+
+        mov $0,$10
+        f11 $0,101000 ; width of image
+        
+        mov $1,$10
+        f11 $1,101001 ; height of image
+
+        ; $0 = width
+        ; $1 = height
+        mov $2,1 ; color0
+        mov $3,1 ; count0
+        mov $4,0 ; color1
+        mov $5,1 ; count1
+        f61 $0,101260 ; Alternating columns with two colors
+        ; $0 = stripes that starts from the left edge
+        
+        f11 $0,101190 ; flip x
+        ; $0 = stripes that starts from the right edge
+
+        mov $1,$15
+        f21 $0,101255 ; boolean AND
+        ; $0 = intersection of the mask with the alternating columns
+
+        mov $1,$10
+        mov $2,255
+        f31 $0,102131 ; Pick pixels from image and color. When the mask is 0 then pick from the image. When the mask is [1..255] then use the `default_color`.
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1180000_puzzle_d406998b_loda() {
+        let result: String = run_advanced("d406998b", PROGRAM_D406998B).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    const PROGRAM_E9AFCF9A: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $10,$$81 ; input image
+        f11 $10,102206 ; sort columns by pixel value
+
+        mov $11,$10
+        f11 $11,101191 ; flip y
+
+        mov $0,$10
+        f11 $0,101000 ; width of image
+        
+        mov $1,$10
+        f11 $1,101001 ; height of image
+
+        ; $0 = width
+        ; $1 = height
+        mov $2,1 ; color0
+        mov $3,1 ; count0
+        mov $4,0 ; color1
+        mov $5,1 ; count1
+        f61 $0,101260 ; Alternating columns with two colors
+        ; $0 = stripes that starts from the left edge
+
+        mov $1,$10
+        mov $2,$11
+        f31 $0,102132 ; Pick pixels from two images. When the mask is 0 then pick `image_a`. When the mask is [1..255] then pick from `image_b`.
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1190000_puzzle_e9afcf9a_loda() {
+        let result: String = run_advanced("e9afcf9a", PROGRAM_E9AFCF9A).expect("String");
+        assert_eq!(result, "2 1");
     }
 }
