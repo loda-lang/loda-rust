@@ -106,19 +106,20 @@ impl ObjectsAndGravity {
             }
             let mut score: Image = Image::zero(self.image_size.width, self.image_size.height);
             let correct_count: u16 = solid_mask_count + item.object_mass;
-            for y in 0..self.image_size.height {
-                for x in 0..self.image_size.width {
-                    let candidate_mask: Image = solid_mask.overlay_with_mask_and_position(&item.mask_cropped, &item.mask_cropped, x as i32, y as i32)?;
+            for x in 0..self.image_size.width {
+                for y in 0..self.image_size.height {
+                    let y_reverse: i32 = (self.image_size.height as i32) - (y as i32) - 1;
+                    let candidate_mask: Image = solid_mask.overlay_with_mask_and_position(&item.mask_cropped, &item.mask_cropped, x as i32, y_reverse)?;
                     let candidate_mask_count: u16 = candidate_mask.mask_count_one();
                     if candidate_mask_count != correct_count {
                         // println!("object {} position: {} {}  mismatch in mass: {} != {}", index, x, y, candidate_mask_count, correct_count);
                         continue;
                     }
                     let intersection: Image = candidate_mask.mask_and(&solid_outline_mask)?;
-                    let intersection_count: u16 = intersection.mask_count_one();
+                    let intersection_count: u16 = intersection.mask_count_one() + 1;
                     let intersection_count_clamped: u8 = intersection_count.min(u8::MAX as u16) as u8;
                     // println!("object {} position: {} {}", index, x, y);
-                    score.set(x as i32, y as i32, intersection_count_clamped);
+                    score.set(x as i32, y_reverse, intersection_count_clamped);
                 }
             }
             if VERBOSE_GRAVITY {
