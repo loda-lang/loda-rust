@@ -13,7 +13,7 @@ mod tests {
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
-    use crate::arc::{ImageDrawRect, SingleColorObjects, SingleColorObjectClusterContainer};
+    use crate::arc::{ImageDrawRect, SingleColorObjects, SingleColorObjectClusterContainer, ObjectsAndGravity, ObjectsAndGravityDirection};
     use crate::arc::{MixMode, ImageMix, GravityDirection, ImageGravity, ImageSort, ImageSortMode};
     use std::collections::HashMap;
     use regex::Regex;
@@ -5892,6 +5892,75 @@ mod tests {
     #[test]
     fn test_1190000_puzzle_e9afcf9a_loda() {
         let result: String = run_advanced("e9afcf9a", PROGRAM_E9AFCF9A).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    mod solve_6a1e5592 {
+        use std::result;
+
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
+                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+
+                let mut found_enumerated_objects: Option<Image> = None;
+                for object in &single_color_objects.sparse_vec {
+                    if object.color != 5 {
+                        continue;
+                    }
+                    let container: &SingleColorObjectClusterContainer = match &object.container4 {
+                        Some(value) => value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    // println!("enumerated: {:?}", container.enumerated_clusters_uncropped);
+                    found_enumerated_objects = Some(container.enumerated_clusters_uncropped.clone());
+                    break;
+                }
+
+                let enumerated_objects: Image = match found_enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("No enumerated objects found"));
+                    }
+                };
+
+                let solid_mask: Image = input.to_mask_where_color_is(2);
+
+                let mut result_image: Image = input.clone();
+
+                match ObjectsAndGravity::gravity(&enumerated_objects, &solid_mask, ObjectsAndGravityDirection::GravityUp) {
+                    Ok(value) => {
+                        result_image = value;
+                        result_image = result_image.to_mask_where_color_is_different(0);
+                    },
+                    Err(error) => {
+                        println!("gravity error: {:?}", error);
+                    }
+                }
+
+                // let enumerated_objects2: Image = ObjectsAndGravity::gravity(&enumerated_objects, &solid_mask, ObjectsAndGravityDirection::GravityUp)?;
+
+                // result_image = solid_mask;
+                // result_image = enumerated_objects;
+                // result_image = enumerated_objects2;
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    // #[test]
+    fn test_1200000_puzzle_6a1e5592() {
+        let mut instance = solve_6a1e5592::MySolution {};
+        let result: String = run_analyze_and_solve("6a1e5592", &mut instance).expect("String");
         assert_eq!(result, "2 1");
     }
 }
