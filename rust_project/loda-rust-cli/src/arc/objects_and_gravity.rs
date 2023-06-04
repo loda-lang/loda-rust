@@ -119,7 +119,7 @@ impl ObjectsAndGravity {
                     }
                     let intersection: Image = candidate_mask.mask_and(&solid_outline_mask)?;
                     let intersection_count: u16 = intersection.mask_count_one() + 1;
-                    let score_value: u16 = intersection_count * score_factor;
+                    let score_value: u16 = intersection_count * score_factor * (y as u16);
                     let score_value_clamped: u8 = score_value.min(u8::MAX as u16) as u8;
                     // println!("object {} position: {} {}", index, x, y);
                     score.set(x as i32, y_reverse, score_value_clamped);
