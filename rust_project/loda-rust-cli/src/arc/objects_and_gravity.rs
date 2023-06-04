@@ -1,7 +1,7 @@
 //! Perform gravity operations on objects
-use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageTrim, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate};
+use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageTrim, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageOutline, ImageMaskBoolean};
 
-static VERBOSE_GRAVITY: bool = false;
+static VERBOSE_GRAVITY: bool = true;
 
 pub enum ObjectsAndGravityDirection {
     GravityUp,
@@ -94,6 +94,7 @@ impl ObjectsAndGravity {
             return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: solid_mask.size() != self.image_size"));
         }
         let solid_mask_count: u16 = solid_mask.mask_count_one();
+        let solid_outline_mask: Image = solid_mask.outline_mask_neighbour()?;
 
         let mut candidate_vec = Vec::<Candidate>::new();
 
@@ -113,14 +114,17 @@ impl ObjectsAndGravity {
                         // println!("object {} position: {} {}  mismatch in mass: {} != {}", index, x, y, candidate_mask_count, correct_count);
                         continue;
                     }
+                    let intersection: Image = candidate_mask.mask_and(&solid_outline_mask)?;
+                    let intersection_count: u16 = intersection.mask_count_one();
+                    let intersection_count_clamped: u8 = intersection_count.min(u8::MAX as u16) as u8;
                     // println!("object {} position: {} {}", index, x, y);
-                    score.set(x as i32, y as i32, 1);
+                    score.set(x as i32, y as i32, intersection_count_clamped);
                 }
             }
             if VERBOSE_GRAVITY {
                 println!("item_index {} score: {:?}", item_index, score);
             }
-            let mass: u16 = score.mask_count_one();
+            let mass: u16 = score.mask_count_nonzero();
             candidate_vec.push(Candidate { score, mass, item_index });
         }
 
