@@ -106,6 +106,8 @@ impl ObjectsAndGravity {
             }
             let mut score: Image = Image::zero(self.image_size.width, self.image_size.height);
             let correct_count: u16 = solid_mask_count + item.object_mass;
+            let score_factor: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
+            let mut highest_score: u16 = 0;
             for x in 0..self.image_size.width {
                 for y in 0..self.image_size.height {
                     let y_reverse: i32 = (self.image_size.height as i32) - (y as i32) - 1;
@@ -117,33 +119,61 @@ impl ObjectsAndGravity {
                     }
                     let intersection: Image = candidate_mask.mask_and(&solid_outline_mask)?;
                     let intersection_count: u16 = intersection.mask_count_one() + 1;
-                    let intersection_count_clamped: u8 = intersection_count.min(u8::MAX as u16) as u8;
+                    let score_value: u16 = intersection_count * score_factor;
+                    let score_value_clamped: u8 = score_value.min(u8::MAX as u16) as u8;
                     // println!("object {} position: {} {}", index, x, y);
-                    score.set(x as i32, y_reverse, intersection_count_clamped);
+                    score.set(x as i32, y_reverse, score_value_clamped);
+                    highest_score = highest_score.max(score_value);
                 }
             }
             if VERBOSE_GRAVITY {
-                println!("item_index {} score: {:?}", item_index, score);
+                println!("item_index {} highest_score: {} score: {:?}", item_index, highest_score, score);
             }
-            let mass: u16 = score.mask_count_nonzero();
-            candidate_vec.push(Candidate { score, mass, item_index });
+            let mass1: u16 = score.mask_count_nonzero();
+            let mass2: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
+            // let mass: u16 = mass1 * mass2;
+            let mass: u16 = mass1;
+            candidate_vec.push(Candidate { score, mass, item_index, highest_score });
         }
 
         // Pick the candidate with the lowest mass, which is the fewest number of positions where the object can fit
-        let mut lowest_mass: u16 = u16::MAX;
         let mut found_candidate: Option<&Candidate> = None;
         let mut count_ambiguous: u16 = 0;
-        for candidate in &candidate_vec {
-            if candidate.mass > lowest_mass {
-                continue;
+        if false {
+            let mut lowest_mass: u16 = u16::MAX;
+            for candidate in &candidate_vec {
+                if candidate.mass > lowest_mass {
+                    continue;
+                }
+                if lowest_mass == candidate.mass {
+                    count_ambiguous += 1;
+                } else {
+                    count_ambiguous = 0;
+                }
+                lowest_mass = candidate.mass;
+                found_candidate = Some(candidate);
             }
-            if lowest_mass == candidate.mass {
-                count_ambiguous += 1;
-            } else {
-                count_ambiguous = 0;
+            if count_ambiguous > 0 {
+                return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick. lowest_mass {}", lowest_mass));
             }
-            lowest_mass = candidate.mass;
-            found_candidate = Some(candidate);
+        }
+        if true {
+            let mut highest_score: u16 = 0;
+            for candidate in &candidate_vec {
+                if candidate.highest_score < highest_score {
+                    continue;
+                }
+                if candidate.highest_score == highest_score {
+                    count_ambiguous += 1;
+                } else {
+                    count_ambiguous = 0;
+                }
+                highest_score = candidate.highest_score;
+                found_candidate = Some(candidate);
+            }
+            if count_ambiguous > 0 {
+                return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick highest_score: {}", highest_score));
+            }
         }
         if count_ambiguous > 0 {
             return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick"));
@@ -253,6 +283,7 @@ struct Candidate {
     score: Image, 
     mass: u16,
     item_index: usize,
+    highest_score: u16,
 }
 
 #[derive(Clone, Debug)]
