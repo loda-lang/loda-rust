@@ -10,7 +10,7 @@ pub struct ObjectsAndMass {
 }
 
 impl ObjectsAndMass {
-    /// Measures the mass of each object, and returns and instance of `ObjectsAndMass`.
+    /// Measures the mass of each object, and returns an instance of `ObjectsAndMass`.
     /// 
     /// The `enumerated_objects` must be 1x1 or bigger.
     /// 
