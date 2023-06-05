@@ -1,6 +1,6 @@
 [package]
 name = "loda-rust-cli"
-version = "2023.6.1"
+version = "2023.6.2"
 authors = ["Simon Strandgaard <neoneye@gmail.com>"]
 description = "Command line interface for LODA Rust"
 repository = "https://github.com/loda-lang/loda-rust"
@@ -10,6 +10,9 @@ edition = "2021"
 [[bin]]
 name = "loda-rust"
 path = "src/main.rs"
+
+[features]
+linfa = ["dep:linfa", "dep:linfa-logistic", "dep:linfa-preprocessing", "dep:ndarray"]
 
 [dependencies]
 loda-rust-core = { path = "../loda-rust-core" }
@@ -45,10 +48,10 @@ bastion = { version = "0.4.5", features = ["tokio-runtime"] }
 reqwest = { version = "0.11.12", features = ["blocking", "json"] }
 unicode-width = "0.1.7"
 html-escape = "0.2.13"
-ndarray = { version = "0.15" }
-linfa = { version = "0.6.1" }
-linfa-logistic = "*"
-linfa-preprocessing = "*"
+ndarray = { version = "0.15", optional = true }
+linfa = { version = "0.6.1", optional = true }
+linfa-logistic = { version = "*", optional = true }
+linfa-preprocessing = { version = "*", optional = true }
 
 [dev-dependencies]
 tempfile = "3.3.0"
