@@ -22,6 +22,7 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{PathBuf, Path};
 use std::rc::Rc;
+use std::thread;
 use console::Style;
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use rand::SeedableRng;
@@ -1530,6 +1531,7 @@ impl TraverseProgramsAndModels {
     fn print_system_info() {
         println!("env::consts::ARCH: {}", std::env::consts::ARCH);
         println!("env::consts::OS: {}", std::env::consts::OS);
+        println!("thread::current(): {:?}", thread::current());
 
         const VERSION: &str = env!("CARGO_PKG_VERSION");
         let build_mode: &str;
