@@ -64,9 +64,6 @@ impl ObjectsAndGravity {
             let mask_uncropped: Image = enumerated_objects.to_mask_where_color_is(color);
             let mass_of_object: u16 = mask_uncropped.mask_count_one();
             if mass_of_object == 0 {
-                if VERBOSE_GRAVITY {
-                    println!("Integrity error. mass_of_object == 0 should not happen.");
-                }
                 continue;
             }
             let bounding_box: Rectangle = match mask_uncropped.bounding_box() {
