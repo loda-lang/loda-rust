@@ -1,5 +1,5 @@
 //! Perform gravity operations on objects
-use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageTrim, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageOutline, ImageMaskBoolean};
+use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageTrim, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageOutline, ImageMaskBoolean, Rectangle, ImageCrop};
 
 static VERBOSE_GRAVITY: bool = true;
 
@@ -64,9 +64,21 @@ impl ObjectsAndGravity {
             let mask_uncropped: Image = enumerated_objects.to_mask_where_color_is(color);
             let mass_of_object: u16 = mask_uncropped.mask_count_one();
             if mass_of_object == 0 {
+                if VERBOSE_GRAVITY {
+                    println!("Integrity error. mass_of_object == 0 should not happen.");
+                }
                 continue;
             }
-            let mask_cropped: Image = mask_uncropped.trim_color(0)?;
+            let bounding_box: Rectangle = match mask_uncropped.bounding_box() {
+                Some(value) => value,
+                None => {
+                    if VERBOSE_GRAVITY {
+                        println!("Integrity error. cannot find bounding box of a mask that contains non-zero pixels. should not happen.");
+                    }
+                    continue;
+                }
+            };
+            let mask_cropped: Image = mask_uncropped.crop(bounding_box)?;
             if VERBOSE_GRAVITY {
                 println!("color {} mass: {} mask: {:?}", color, mass_of_object, mask_cropped);
             }
@@ -75,6 +87,7 @@ impl ObjectsAndGravity {
                 mask_cropped,
                 object_mass: mass_of_object,
                 has_been_placed: false,
+                bounding_box,
             };
             items.push(item);
         }
@@ -289,6 +302,7 @@ struct Candidate {
 #[derive(Clone, Debug)]
 struct Item {
     object_id: u8,
+    bounding_box: Rectangle,
     mask_cropped: Image,
     object_mass: u16,
     has_been_placed: bool,
