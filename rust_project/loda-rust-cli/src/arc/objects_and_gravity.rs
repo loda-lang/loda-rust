@@ -1,5 +1,5 @@
 //! Perform gravity operations on objects
-use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageTrim, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageOutline, ImageMaskBoolean, Rectangle, ImageCrop};
+use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageTrim, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageOutline, ImageMaskBoolean, Rectangle, ImageCrop, PixelConnectivity, ImageMaskGrow, ImageCompare};
 
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
@@ -89,11 +89,15 @@ impl ObjectsAndGravity {
             };
             if VERBOSE_GRAVITY {
                 println!("index: {} color {} mass: {} mask: {:?}", item.index, item.object_id, item.object_mass, item.mask_cropped);
+                HtmlLog::image(&item.mask_cropped);
             }
             items.push(item);
         }
         if items.is_empty() {
             return Err(anyhow::anyhow!("ObjectsAndGravity.new: found zero objects. There must be 1 or more objects"));
+        }
+        if VERBOSE_GRAVITY {
+            HtmlLog::text(format!("Found {} objects", items.len()));
         }
         let instance = Self {
             image_size: enumerated_objects.size(),
@@ -108,7 +112,9 @@ impl ObjectsAndGravity {
             return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: solid_mask.size() != self.image_size"));
         }
         let solid_mask_count: u16 = solid_mask.mask_count_one();
-        let solid_outline_mask: Image = solid_mask.outline_mask_neighbour()?;
+        let solid_mask_grow: Image = solid_mask.mask_grow(PixelConnectivity::Connectivity8)?;
+        // let solid_mask_grow: Image = solid_mask.mask_grow(PixelConnectivity::Connectivity4)?;
+        let solid_outline_mask: Image = solid_mask_grow.diff(&solid_mask)?;
 
         let mut candidate_vec = Vec::<Candidate>::new();
 
@@ -121,34 +127,47 @@ impl ObjectsAndGravity {
             let mut score: Image = Image::zero(self.image_size.width, self.image_size.height);
             let correct_count: u16 = solid_mask_count + item.object_mass;
             let score_factor: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
+            let mut lowest_y_reverse: u8 = u8::MAX;
+            let mut highest_y: u8 = 0;
             let mut highest_score: u16 = 0;
             for x in 0..self.image_size.width {
                 for y in 0..self.image_size.height {
-                    let y_reverse: i32 = (self.image_size.height as i32) - (y as i32) - 1;
-                    let candidate_mask: Image = solid_mask.overlay_with_mask_and_position(&item.mask_cropped, &item.mask_cropped, x as i32, y_reverse)?;
+                    // let y_reverse: i32 = (self.image_size.height as i32) - (y as i32) - 1;
+                    let y_reverse: u8 = ((self.image_size.height as i32) - (y as i32) - 1).min(255).max(0) as u8;
+                    let candidate_mask: Image = solid_mask.overlay_with_mask_and_position(&item.mask_cropped, &item.mask_cropped, x as i32, y_reverse as i32)?;
                     let candidate_mask_count: u16 = candidate_mask.mask_count_one();
                     if candidate_mask_count != correct_count {
                         // println!("object {} position: {} {}  mismatch in mass: {} != {}", index, x, y, candidate_mask_count, correct_count);
                         continue;
                     }
                     let intersection: Image = candidate_mask.mask_and(&solid_outline_mask)?;
-                    let intersection_count: u16 = intersection.mask_count_one() + 1;
-                    let score_value: u16 = intersection_count * score_factor * (y as u16);
-                    let score_value_clamped: u8 = score_value.min(u8::MAX as u16) as u8;
+                    let intersection_count0: u16 = intersection.mask_count_one();
+                    let intersection_count1: u16 = intersection_count0 + 1;
+                    let score_value: u16 = intersection_count1 * score_factor * (y as u16);
+
+                    // let score_value: u16 = intersection_count * (y as u16);
+                    // let score_value_clamped: u8 = score_value.min(u8::MAX as u16) as u8;
                     // println!("object {} position: {} {}", index, x, y);
-                    score.set(x as i32, y_reverse, score_value_clamped);
+                    // score.set(x as i32, y_reverse, score_value_clamped);
+                    // score.set(x as i32, y_reverse as i32, 1);
+                    score.set(x as i32, y_reverse as i32, intersection_count0.min(255) as u8);
                     highest_score = highest_score.max(score_value);
+                    let item_y_max: u8 = ((y as i32) + (item.bounding_box.height() as i32) - 1).min(255) as u8;
+                    // let distance_to_bottom: i32 = (self.image_size.height as i32) - 1 - item_y_max - 1;
+                    lowest_y_reverse = lowest_y_reverse.min(y_reverse);
+                    highest_y = highest_y.max(item_y_max);
+                    break;
                 }
             }
             if VERBOSE_GRAVITY {
-                println!("item_index {} highest_score: {} score: {:?}", item_index, highest_score, score);
+                println!("item_index {} highest_score: {} highest_y: {} lowest_y_reverse: {} score: {:?}", item_index, highest_score, highest_y, lowest_y_reverse, score);
                 HtmlLog::image(&score);
             }
             let mass1: u16 = score.mask_count_nonzero();
             let mass2: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
             // let mass: u16 = mass1 * mass2;
             let mass: u16 = mass1;
-            candidate_vec.push(Candidate { score, mass, item_index, highest_score });
+            candidate_vec.push(Candidate { score, mass, item_index, highest_score, highest_y, lowest_y_reverse });
         }
         if VERBOSE_GRAVITY {
             HtmlLog::text(format!("candidate_vec.len() {}", candidate_vec.len()));
@@ -175,7 +194,7 @@ impl ObjectsAndGravity {
                 return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick. lowest_mass {}", lowest_mass));
             }
         }
-        if true {
+        if false {
             let mut highest_score: u16 = 0;
             for candidate in &candidate_vec {
                 if candidate.highest_score < highest_score {
@@ -191,6 +210,48 @@ impl ObjectsAndGravity {
             }
             if count_ambiguous > 0 {
                 return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick highest_score: {}", highest_score));
+            }
+        }
+        if false {
+            let mut lowest_y_reverse: u8 = u8::MAX;
+            for candidate in &candidate_vec {
+                if candidate.lowest_y_reverse > lowest_y_reverse {
+                    println!("a");
+                    continue;
+                }
+                if candidate.lowest_y_reverse == lowest_y_reverse {
+                    println!("b");
+                    count_ambiguous += 1;
+                } else {
+                    println!("c");
+                    count_ambiguous = 0;
+                }
+                lowest_y_reverse = candidate.lowest_y_reverse;
+                found_candidate = Some(candidate);
+            }
+            if count_ambiguous > 0 {
+                return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick lowest_y_reverse: {}", lowest_y_reverse));
+            }
+        }
+        if true {
+            let mut highest_y: u8 = 0;
+            for candidate in &candidate_vec {
+                if candidate.highest_y < highest_y {
+                    println!("a");
+                    continue;
+                }
+                if candidate.highest_y == highest_y {
+                    println!("b");
+                    count_ambiguous += 1;
+                } else {
+                    println!("c");
+                    count_ambiguous = 0;
+                }
+                highest_y = candidate.highest_y;
+                found_candidate = Some(candidate);
+            }
+            if count_ambiguous > 0 {
+                return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick highest_y: {}", highest_y));
             }
         }
         if count_ambiguous > 0 {
@@ -212,6 +273,7 @@ impl ObjectsAndGravity {
         let mut found_y: i32 = -1;
         let mut found_x: i32 = -1;
         let mut count_ambiguous2: u16 = 0;
+        let mut found_score: u8 = 0;
         for x in 0..score.width() as i32 {
             for y in 0..score.height() as i32 {
                 if y < found_y {
@@ -221,17 +283,21 @@ impl ObjectsAndGravity {
                 if value == 0 {
                     continue;
                 }
-                if y == found_y {
+                if value < found_score {
+                    continue;
+                }
+                if y == found_y && value == found_score {
                     count_ambiguous2 += 1;
                 } else {
                     count_ambiguous2 = 0;
                 }
+                found_score = value;
                 found_y = y;
                 found_x = x;
             }
         }
         if VERBOSE_GRAVITY {
-            println!("found_x: {} found_y: {} count_ambiguous2: {}", found_x, found_y, count_ambiguous2);
+            println!("found_x: {} found_y: {} found_score: {} count_ambiguous2: {}", found_x, found_y, found_score, count_ambiguous2);
         }
         if count_ambiguous2 > 0 {
             return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what position to pick"));
@@ -263,6 +329,7 @@ impl ObjectsAndGravity {
         let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
         let mut solid_mask_accumulated: Image = solid_mask.clone();
         for i in 0..self.items.len() {
+        // for i in 0..2 {
             let mut has_all_been_placed: bool = true;
             for item in &self.items {
                 if !item.has_been_placed {
@@ -274,7 +341,13 @@ impl ObjectsAndGravity {
                 break;
             }
 
-            let (image, object_id) = self.gravity_single_object(&solid_mask_accumulated)?;
+            let (image, object_id) = match self.gravity_single_object(&solid_mask_accumulated) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("gravity_multiple_objects: Unable to place single object. error: {}", error);
+                    break;
+                },
+            };
 
             for item in self.items.iter_mut() {
                 if item.object_id == object_id {
@@ -306,6 +379,8 @@ struct Candidate {
     mass: u16,
     item_index: usize,
     highest_score: u16,
+    highest_y: u8,
+    lowest_y_reverse: u8,
 }
 
 #[derive(Clone, Debug)]
