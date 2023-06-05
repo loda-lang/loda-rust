@@ -76,16 +76,17 @@ impl ObjectsAndGravity {
                 }
             };
             let mask_cropped: Image = mask_uncropped.crop(bounding_box)?;
-            if VERBOSE_GRAVITY {
-                println!("color {} mass: {} mask: {:?}", color, mass_of_object, mask_cropped);
-            }
             let item = Item {
+                index: items.len(),
                 object_id: color,
                 mask_cropped,
                 object_mass: mass_of_object,
                 has_been_placed: false,
                 bounding_box,
             };
+            if VERBOSE_GRAVITY {
+                println!("index: {} color {} mass: {} mask: {:?}", item.index, item.object_id, item.object_mass, item.mask_cropped);
+            }
             items.push(item);
         }
         if items.is_empty() {
@@ -298,6 +299,7 @@ struct Candidate {
 
 #[derive(Clone, Debug)]
 struct Item {
+    index: usize,
     object_id: u8,
     bounding_box: Rectangle,
     mask_cropped: Image,
