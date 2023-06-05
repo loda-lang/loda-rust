@@ -1,6 +1,9 @@
 //! Perform gravity operations on objects
 use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageTrim, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageOutline, ImageMaskBoolean, Rectangle, ImageCrop};
 
+#[allow(unused_imports)]
+use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
+
 static VERBOSE_GRAVITY: bool = true;
 
 pub enum ObjectsAndGravityDirection {
@@ -139,12 +142,16 @@ impl ObjectsAndGravity {
             }
             if VERBOSE_GRAVITY {
                 println!("item_index {} highest_score: {} score: {:?}", item_index, highest_score, score);
+                HtmlLog::image(&score);
             }
             let mass1: u16 = score.mask_count_nonzero();
             let mass2: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
             // let mass: u16 = mass1 * mass2;
             let mass: u16 = mass1;
             candidate_vec.push(Candidate { score, mass, item_index, highest_score });
+        }
+        if VERBOSE_GRAVITY {
+            HtmlLog::text(format!("candidate_vec.len() {}", candidate_vec.len()));
         }
 
         // Pick the candidate with the lowest mass, which is the fewest number of positions where the object can fit
@@ -239,6 +246,10 @@ impl ObjectsAndGravity {
         let item: &Item = &self.items[candidate.item_index];
         let object_to_draw: Image = item.mask_cropped.replace_color(1, item.object_id)?;
         result_image = result_image.overlay_with_mask_and_position(&object_to_draw, &item.mask_cropped, found_x, found_y)?;
+
+        if VERBOSE_GRAVITY {
+            HtmlLog::text(format!("did place object {} at ({},{})", item.index, found_x, found_y));
+        }
 
         Ok((result_image, item.object_id))
     }
