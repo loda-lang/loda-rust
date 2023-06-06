@@ -435,7 +435,7 @@ struct Candidate {
 impl Candidate {
     fn score(&self) -> i32 {
         // let mut a: i32 = self.highest_y as i32;
-        let a: i32 = (self.highest_y as i32) * 10000 - self.best_position.computed_score;
+        let a: i32 = (self.highest_y as i32) * 10000 + self.best_position.computed_score;
         a
     }
 }
@@ -488,7 +488,8 @@ impl CandidatePosition {
 
         // let a: f32 = jaccard_index;
         // let a: f32 = jaccard_index * (self.object_mass as f32);
-        let a: f32 = jaccard_index * (self.bounding_box_mass as f32) / (self.object_mass as f32);
+        // let a: f32 = jaccard_index * (self.bounding_box_mass as f32) / (self.object_mass as f32);
+        let a: f32 = jaccard_index * (self.intersection_count0 as f32) * (self.bounding_box_mass as f32) / (self.object_mass as f32);
 
         let score: i32 = (a * 10000.0) as i32;
         return score;
