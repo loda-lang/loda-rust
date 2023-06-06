@@ -127,6 +127,8 @@ impl ObjectsAndGravity {
             if item.has_been_placed {
                 continue;
             }
+            let object_mass: u16 = item.object_mass;
+            let bounding_box_mass: u16 = item.bounding_box.width() as u16 * item.bounding_box.height() as u16;
             let mut score: Image = Image::zero(self.image_size.width, self.image_size.height);
             let correct_count: u16 = solid_mask_count + item.object_mass;
             let score_factor: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
@@ -163,7 +165,19 @@ impl ObjectsAndGravity {
                     highest_score = highest_score.max(score_value);
                     let distance_to_bottom: u8 = ((y as i32) + (item.bounding_box.height() as i32) - 1).min(255) as u8;
                     found_distance_to_bottom = found_distance_to_bottom.min(distance_to_bottom);
-                    positions_unfiltered.push(CandidatePosition { x, y, distance_to_bottom, intersection_count0, ground_touch_count, ground_notouch_count });
+                    let mut candidate_position = CandidatePosition { 
+                        x, 
+                        y, 
+                        distance_to_bottom, 
+                        intersection_count0, 
+                        ground_touch_count, 
+                        ground_notouch_count, 
+                        object_mass,
+                        bounding_box_mass,
+                        computed_score: 0 
+                    };
+                    candidate_position.assign_score();
+                    positions_unfiltered.push(candidate_position);
                     break;
                 }
             }
@@ -173,10 +187,22 @@ impl ObjectsAndGravity {
                     positions_filtered.push(position.clone());
                 }
             }
+            positions_filtered.sort_unstable_by_key(|position| (position.computed_score, position.x));
+
+            let best_position: CandidatePosition = match positions_filtered.last() {
+                Some(position) => position.clone(),
+                None => {
+                    return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: unable to find a position"));
+                }
+            };
 
             let mut score2: Image = Image::zero(self.image_size.width, self.image_size.height);
             for position in &positions_filtered {
-                HtmlLog::text(format!("position: {:?}", position));
+                if position.x == best_position.x {
+                    HtmlLog::text(format!("position: {:?} -- BEST", position));
+                } else {
+                    HtmlLog::text(format!("position: {:?}", position));
+                }
                 score2.set(position.x as i32, position.y as i32, 1);
             }
 
@@ -189,7 +215,16 @@ impl ObjectsAndGravity {
             let mass2: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
             // let mass: u16 = mass1 * mass2;
             let mass: u16 = mass1;
-            candidate_vec.push(Candidate { score: score2, mass, item_index, highest_score, highest_y: found_distance_to_bottom, positions: positions_filtered });
+            let candidate = Candidate { 
+                score: score2, 
+                mass, 
+                item_index, 
+                highest_score, 
+                highest_y: found_distance_to_bottom, 
+                positions: positions_filtered,
+                best_position,
+            };
+            candidate_vec.push(candidate);
         }
         if VERBOSE_GRAVITY {
             HtmlLog::text(format!("candidate_vec.len() {}", candidate_vec.len()));
@@ -234,7 +269,7 @@ impl ObjectsAndGravity {
                 return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick highest_score: {}", highest_score));
             }
         }
-        if true {
+        if false {
             let mut highest_y: u8 = 0;
             for candidate in &candidate_vec {
                 if candidate.highest_y < highest_y {
@@ -255,13 +290,23 @@ impl ObjectsAndGravity {
                 return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick highest_y: {}", highest_y));
             }
         }
-        if count_ambiguous > 0 {
-            return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick"));
+        let candidate: Candidate;
+        {
+            let mut candidate_vec2 = candidate_vec.clone();
+            candidate_vec2.sort_unstable_by_key(|candidate| (candidate.score(), candidate.item_index));
+            
+            candidate = match candidate_vec2.last() {
+                Some(value) => value.clone(),
+                None => return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: no candidate found")),
+            };
         }
-        let candidate: Candidate = match found_candidate {
-            Some(value) => value.clone(),
-            None => return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: no candidate found")),
-        };
+        // if count_ambiguous > 0 {
+        //     return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick"));
+        // }
+        // let candidate: Candidate = match found_candidate {
+        //     Some(value) => value.clone(),
+        //     None => return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: no candidate found")),
+        // };
         if VERBOSE_GRAVITY {
             println!("candidate.item_index: {}", candidate.item_index);
         }
@@ -271,32 +316,34 @@ impl ObjectsAndGravity {
         }
         
         let score: &Image = &candidate.score;
-        let mut found_y: i32 = -1;
-        let mut found_x: i32 = -1;
+        let mut found_y: i32 = candidate.best_position.y as i32;
+        let mut found_x: i32 = candidate.best_position.x as i32;
+        // let mut found_y: i32 = -1;
+        // let mut found_x: i32 = -1;
         let mut count_ambiguous2: u16 = 0;
         let mut found_score: u8 = 0;
-        for x in 0..score.width() as i32 {
-            for y in 0..score.height() as i32 {
-                if y < found_y {
-                    continue;
-                }
-                let value: u8 = score.get(x, y).unwrap_or(0);
-                if value == 0 {
-                    continue;
-                }
-                if value < found_score {
-                    continue;
-                }
-                if y == found_y && value == found_score {
-                    count_ambiguous2 += 1;
-                } else {
-                    count_ambiguous2 = 0;
-                }
-                found_score = value;
-                found_y = y;
-                found_x = x;
-            }
-        }
+        // for x in 0..score.width() as i32 {
+        //     for y in 0..score.height() as i32 {
+        //         if y < found_y {
+        //             continue;
+        //         }
+        //         let value: u8 = score.get(x, y).unwrap_or(0);
+        //         if value == 0 {
+        //             continue;
+        //         }
+        //         if value < found_score {
+        //             continue;
+        //         }
+        //         if y == found_y && value == found_score {
+        //             count_ambiguous2 += 1;
+        //         } else {
+        //             count_ambiguous2 = 0;
+        //         }
+        //         found_score = value;
+        //         found_y = y;
+        //         found_x = x;
+        //     }
+        // }
         if VERBOSE_GRAVITY {
             println!("found_x: {} found_y: {} found_score: {} count_ambiguous2: {}", found_x, found_y, found_score, count_ambiguous2);
         }
@@ -382,6 +429,15 @@ struct Candidate {
     highest_score: u16,
     highest_y: u8,
     positions: Vec<CandidatePosition>,
+    best_position: CandidatePosition,
+}
+
+impl Candidate {
+    fn score(&self) -> i32 {
+        // let mut a: i32 = self.highest_y as i32;
+        let a: i32 = (self.highest_y as i32) * 10000 - self.best_position.computed_score;
+        a
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -404,8 +460,54 @@ struct CandidatePosition {
     /// Maximize. How many pixels intersect with the outline of the solid ground mask.
     intersection_count0: u16,
 
+    /// Start out with the biggest and most complex objects, and progress towards easier objects.
+    object_mass: u16,
+    bounding_box_mass: u16,
+
     // Future experiments
     // Complexity of the object bottom. The more complex the more important it is to find a good fit.
+
+    computed_score: i32,
+}
+
+impl CandidatePosition {
+    fn assign_score(&mut self) {
+        self.computed_score = self.score();
+    }
+
+    fn score(&self) -> i32 {
+        if self.ground_touch_count < 1 {
+            return 0;
+        }
+        
+        let numerator: f32 = self.ground_touch_count as f32;
+        let denominator: f32 = self.ground_touch_count as f32 + self.ground_notouch_count as f32;
+        let jaccard_index: f32 = numerator / denominator;
+
+        // return jaccard_index;
+
+        // let a: f32 = jaccard_index;
+        // let a: f32 = jaccard_index * (self.object_mass as f32);
+        let a: f32 = jaccard_index * (self.bounding_box_mass as f32) / (self.object_mass as f32);
+
+        let score: i32 = (a * 10000.0) as i32;
+        return score;
+
+        // let mut score: f32 = 0.0;
+        
+        // let mut score_maximize: f32 = 0.0;
+
+        // let mut score_minimize: f32 = 0.0;
+        // score_minimize += (self.distance_to_bottom as f32) * (self.distance_to_bottom as f32);
+
+        // score += score_maximize;
+        // score -= score_minimize;
+        // score += self.distance_to_bottom as f32 * 0.1;
+        // score += self.ground_touch_count as f32 * 0.1;
+        // score += self.ground_notouch_count as f32 * 0.1;
+        // score += self.intersection_count0 as f32 * 0.1;
+        // score
+    }
 }
 
 #[derive(Clone, Debug)]
