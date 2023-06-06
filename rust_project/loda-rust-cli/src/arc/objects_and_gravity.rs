@@ -130,8 +130,7 @@ impl ObjectsAndGravity {
             let mut score: Image = Image::zero(self.image_size.width, self.image_size.height);
             let correct_count: u16 = solid_mask_count + item.object_mass;
             let score_factor: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
-            let mut lowest_y_reverse: u8 = u8::MAX;
-            let mut highest_y: u8 = u8::MAX;
+            let mut found_distance_to_bottom: u8 = u8::MAX;
             let mut highest_score: u16 = 0;
             let mut positions_unfiltered = Vec::<CandidatePosition>::new();
             for x in 0..self.image_size.width {
@@ -162,17 +161,15 @@ impl ObjectsAndGravity {
 
                     score.set(x as i32, y_reverse as i32, intersection_count0.min(255) as u8);
                     highest_score = highest_score.max(score_value);
-                    let item_y_max: u8 = ((y as i32) + (item.bounding_box.height() as i32) - 1).min(255) as u8;
-                    // let distance_to_bottom: i32 = (self.image_size.height as i32) - 1 - item_y_max - 1;
-                    lowest_y_reverse = lowest_y_reverse.min(y_reverse);
-                    highest_y = highest_y.min(item_y_max);
-                    positions_unfiltered.push(CandidatePosition { x, y, distance_from_bottom: item_y_max, intersection_count0, ground_touch_count, ground_notouch_count });
+                    let distance_to_bottom: u8 = ((y as i32) + (item.bounding_box.height() as i32) - 1).min(255) as u8;
+                    found_distance_to_bottom = found_distance_to_bottom.min(distance_to_bottom);
+                    positions_unfiltered.push(CandidatePosition { x, y, distance_to_bottom, intersection_count0, ground_touch_count, ground_notouch_count });
                     break;
                 }
             }
             let mut positions_filtered = Vec::<CandidatePosition>::new();
             for position in &positions_unfiltered {
-                if position.distance_from_bottom == highest_y {
+                if position.distance_to_bottom == found_distance_to_bottom {
                     positions_filtered.push(position.clone());
                 }
             }
@@ -184,7 +181,7 @@ impl ObjectsAndGravity {
             }
 
             if VERBOSE_GRAVITY {
-                println!("item_index {} highest_score: {} highest_y: {} lowest_y_reverse: {} score: {:?}", item_index, highest_score, highest_y, lowest_y_reverse, score);
+                println!("item_index {} highest_score: {} found_distance_to_bottom: {} score: {:?}", item_index, highest_score, found_distance_to_bottom, score);
                 // HtmlLog::image(&score);
                 HtmlLog::image(&score2);
             }
@@ -192,7 +189,7 @@ impl ObjectsAndGravity {
             let mass2: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
             // let mass: u16 = mass1 * mass2;
             let mass: u16 = mass1;
-            candidate_vec.push(Candidate { score: score2, mass, item_index, highest_score, highest_y, lowest_y_reverse, positions: positions_filtered });
+            candidate_vec.push(Candidate { score: score2, mass, item_index, highest_score, highest_y: found_distance_to_bottom, positions: positions_filtered });
         }
         if VERBOSE_GRAVITY {
             HtmlLog::text(format!("candidate_vec.len() {}", candidate_vec.len()));
@@ -235,27 +232,6 @@ impl ObjectsAndGravity {
             }
             if count_ambiguous > 0 {
                 return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick highest_score: {}", highest_score));
-            }
-        }
-        if false {
-            let mut lowest_y_reverse: u8 = u8::MAX;
-            for candidate in &candidate_vec {
-                if candidate.lowest_y_reverse > lowest_y_reverse {
-                    println!("a");
-                    continue;
-                }
-                if candidate.lowest_y_reverse == lowest_y_reverse {
-                    println!("b");
-                    count_ambiguous += 1;
-                } else {
-                    println!("c");
-                    count_ambiguous = 0;
-                }
-                lowest_y_reverse = candidate.lowest_y_reverse;
-                found_candidate = Some(candidate);
-            }
-            if count_ambiguous > 0 {
-                return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick lowest_y_reverse: {}", lowest_y_reverse));
             }
         }
         if true {
@@ -405,7 +381,6 @@ struct Candidate {
     item_index: usize,
     highest_score: u16,
     highest_y: u8,
-    lowest_y_reverse: u8,
     positions: Vec<CandidatePosition>,
 }
 
@@ -418,7 +393,7 @@ struct CandidatePosition {
     y: u8,
 
     /// Minimize. The closer to the bottom the better.
-    distance_from_bottom: u8,
+    distance_to_bottom: u8,
     
     /// Maximize. As many pixels should be touching the ground as possible.
     ground_touch_count: u8,
