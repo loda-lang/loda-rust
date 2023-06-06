@@ -396,6 +396,7 @@ impl SingleColorObjects {
     /// In every pixel of the image, go through all the objects and save the mass as the pixel color.
     /// 
     /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
     pub fn mass_as_image(&self, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
         for object in &self.rectangle_vec {
@@ -458,6 +459,7 @@ impl SingleColorObjects {
     /// Extracts the number of holes for each objects with the specified `color`.
     /// 
     /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
     pub fn holecount_image(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         for object in &self.sparse_vec {
             if object.color != color {
