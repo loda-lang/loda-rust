@@ -5905,6 +5905,10 @@ mod tests {
         impl AnalyzeAndSolve for MySolution {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                println!("id: {}", pair.id);
+                if pair.id != "6a1e5592,pair1,train" {
+                    // return Ok(Image::zero(1, 1));
+                }
                 let input: &Image = &pair.input.image;
                 let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
                 let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");

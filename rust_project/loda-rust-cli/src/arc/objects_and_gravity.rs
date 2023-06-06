@@ -128,8 +128,9 @@ impl ObjectsAndGravity {
             let correct_count: u16 = solid_mask_count + item.object_mass;
             let score_factor: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
             let mut lowest_y_reverse: u8 = u8::MAX;
-            let mut highest_y: u8 = 0;
+            let mut highest_y: u8 = u8::MAX;
             let mut highest_score: u16 = 0;
+            let mut positions_unfiltered = Vec::<CandidatePosition>::new();
             for x in 0..self.image_size.width {
                 for y in 0..self.image_size.height {
                     // let y_reverse: i32 = (self.image_size.height as i32) - (y as i32) - 1;
@@ -155,19 +156,33 @@ impl ObjectsAndGravity {
                     let item_y_max: u8 = ((y as i32) + (item.bounding_box.height() as i32) - 1).min(255) as u8;
                     // let distance_to_bottom: i32 = (self.image_size.height as i32) - 1 - item_y_max - 1;
                     lowest_y_reverse = lowest_y_reverse.min(y_reverse);
-                    highest_y = highest_y.max(item_y_max);
+                    highest_y = highest_y.min(item_y_max);
+                    positions_unfiltered.push(CandidatePosition { x, y, highest_y: item_y_max, intersection_count0 });
                     break;
                 }
             }
+            let mut positions_filtered = Vec::<CandidatePosition>::new();
+            for position in &positions_unfiltered {
+                if position.highest_y == highest_y {
+                    positions_filtered.push(position.clone());
+                }
+            }
+
+            let mut score2: Image = Image::zero(self.image_size.width, self.image_size.height);
+            for position in &positions_filtered {
+                score2.set(position.x as i32, position.y as i32, 1);
+            }
+
             if VERBOSE_GRAVITY {
                 println!("item_index {} highest_score: {} highest_y: {} lowest_y_reverse: {} score: {:?}", item_index, highest_score, highest_y, lowest_y_reverse, score);
                 HtmlLog::image(&score);
+                HtmlLog::image(&score2);
             }
             let mass1: u16 = score.mask_count_nonzero();
             let mass2: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
             // let mass: u16 = mass1 * mass2;
             let mass: u16 = mass1;
-            candidate_vec.push(Candidate { score, mass, item_index, highest_score, highest_y, lowest_y_reverse });
+            candidate_vec.push(Candidate { score, mass, item_index, highest_score, highest_y, lowest_y_reverse, positions: positions_filtered });
         }
         if VERBOSE_GRAVITY {
             HtmlLog::text(format!("candidate_vec.len() {}", candidate_vec.len()));
@@ -381,6 +396,15 @@ struct Candidate {
     highest_score: u16,
     highest_y: u8,
     lowest_y_reverse: u8,
+    positions: Vec<CandidatePosition>,
+}
+
+#[derive(Clone, Debug)]
+struct CandidatePosition {
+    x: u8,
+    y: u8,
+    highest_y: u8,
+    intersection_count0: u16,
 }
 
 #[derive(Clone, Debug)]
