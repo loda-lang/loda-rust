@@ -3,7 +3,7 @@ use super::{InputLabelSet, ActionLabelSet, PropertyInput};
 use super::{HtmlLog, ImageToHTML};
 use std::collections::HashMap;
 
-pub struct HtmlFromTask {
+pub struct InspectTask {
     row_colgroup: String,
     row_title: String,
     row_input_image: String,
@@ -15,7 +15,7 @@ pub struct HtmlFromTask {
     row_predictions: String,
 }
 
-impl HtmlFromTask {
+impl InspectTask {
     fn new() -> Self {
         Self {
             row_colgroup: "<colgroup><col>".to_string(),
