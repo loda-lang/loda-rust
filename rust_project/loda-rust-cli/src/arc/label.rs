@@ -39,6 +39,14 @@ pub enum PropertyInput {
     InputHeightOfRemovedRectangleAfterSingleColorRemoval,
 
     // Ideas for more
+    // InputNoisePixelsCount,
+    // InputNoisePixelsCountOutsideAnyObjects,
+    // InputMaxNumberOfClustersInSparseSingleColorObject,
+    // InputMaxWidthOfClustersInSparseSingleColorObject,
+    // InputMaxHeightOfClustersInSparseSingleColorObject,
+    // InputMaxNoisePixelsInsideAnotherObject,
+    // InputPrimaryObjectInteriorMass,
+    // InputPrimaryObjectCornerCount,
     // InputCellCountHorizontal,
     // InputCellCountVertical,
     // InputUniqueColorCountAfterRemoval
