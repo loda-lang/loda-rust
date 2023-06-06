@@ -165,6 +165,7 @@ pub enum InputLabel {
     InputBorderFloodFillConnectivity4AllPixelsWithColor { color: u8 },
 
     // Ideas for more
+    // AllObjectsFromTheInputImagePresentExactlyOnceInTheOutputImageButWithDifferentOffsets,
     // BorderMostPopularColor { color: u8 },
     // BorderLeastPopularColor { color: u8 },
     // AmbiguousEnumeratedObjects, // Does `PixelConnectivity4` and `PixelConnectivity8` yield different results
