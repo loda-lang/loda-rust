@@ -1,11 +1,12 @@
-//! Perform gravity operations on objects
-use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageTrim, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageOutline, ImageMaskBoolean, Rectangle, ImageCrop, PixelConnectivity, ImageMaskGrow, ImageCompare, ImageMaskSolidGround};
+//! Perform gravity operations on objects matching shapes into the corresponding holes.
+use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageMaskBoolean, Rectangle, ImageCrop, PixelConnectivity, ImageMaskGrow, ImageCompare, ImageMaskSolidGround};
 
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
 
-static VERBOSE_GRAVITY: bool = true;
+static VERBOSE_GRAVITY: bool = false;
 
+#[allow(dead_code)]
 pub enum ObjectsAndGravityDirection {
     GravityUp,
     GravityDown,
@@ -20,6 +21,7 @@ pub struct ObjectsAndGravity {
 }
 
 impl ObjectsAndGravity {
+    #[allow(dead_code)]
     pub fn gravity(enumerated_objects: &Image, solid_mask: &Image, direction: ObjectsAndGravityDirection) -> anyhow::Result<Image> {
         if enumerated_objects.size() != solid_mask.size() {
             return Err(anyhow::anyhow!("both images must be the same size"));
@@ -56,7 +58,6 @@ impl ObjectsAndGravity {
     /// The `enumerated_objects` must be 1x1 or bigger.
     /// 
     /// An error is returned if there are zero objects.
-    #[allow(dead_code)]
     fn new(enumerated_objects: &Image) -> anyhow::Result<Self> {
         if enumerated_objects.is_empty() {
             return Err(anyhow::anyhow!("ObjectsAndGravity.new: image must be 1x1 or bigger"));
@@ -106,17 +107,20 @@ impl ObjectsAndGravity {
         Ok(instance)
     }
 
-    #[allow(dead_code)]
+    /// Pick an object from the list of objects that have not been placed yet.
+    /// 
+    /// Returns a tuple:
+    /// - An image with the object at its new position.
+    /// - The `object_id` of the object hat was placed.
     fn gravity_single_object(&self, solid_mask: &Image) -> anyhow::Result<(Image, u8)> {
         if solid_mask.size() != self.image_size {
             return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: solid_mask.size() != self.image_size"));
         }
         let solid_mask_count: u16 = solid_mask.mask_count_one();
         let solid_mask_grow: Image = solid_mask.mask_grow(PixelConnectivity::Connectivity8)?;
-        // let solid_mask_grow: Image = solid_mask.mask_grow(PixelConnectivity::Connectivity4)?;
         let solid_outline_mask: Image = solid_mask_grow.diff(&solid_mask)?;
 
-
+        // Empty pixels that you can stand on, that has a solid object immediately below it.
         let solid_ground_below_mask: Image = solid_mask.mask_ground_below()?;
 
         let mut candidate_vec = Vec::<Candidate>::new();
@@ -137,7 +141,6 @@ impl ObjectsAndGravity {
             let mut positions_unfiltered = Vec::<CandidatePosition>::new();
             for x in 0..self.image_size.width {
                 for y in 0..self.image_size.height {
-                    // let y_reverse: i32 = (self.image_size.height as i32) - (y as i32) - 1;
                     let y_reverse: u8 = ((self.image_size.height as i32) - (y as i32) - 1).min(255).max(0) as u8;
                     let candidate_mask: Image = solid_mask.overlay_with_mask_and_position(&item.mask_cropped, &item.mask_cropped, x as i32, y_reverse as i32)?;
                     let candidate_mask_count: u16 = candidate_mask.mask_count_one();
@@ -150,13 +153,7 @@ impl ObjectsAndGravity {
                     let intersection_count1: u16 = intersection_count0 + 1;
                     let score_value: u16 = intersection_count1 * score_factor * (y as u16);
 
-                    // let score_value: u16 = intersection_count * (y as u16);
-                    // let score_value_clamped: u8 = score_value.min(u8::MAX as u16) as u8;
-                    // println!("object {} position: {} {}", index, x, y);
-                    // score.set(x as i32, y_reverse, score_value_clamped);
-                    // score.set(x as i32, y_reverse as i32, 1);
-
-                    // TODO: measure number of holes underneath the object
+                    // Measure number of holes underneath the object
                     let intersection_touch: Image = candidate_mask.mask_and(&solid_ground_below_mask)?;
                     let ground_touch_count: u8 = intersection_touch.mask_count_one().min(255) as u8;
                     let ground_notouch_count: u8 = ((item.bounding_box.width() as i32) - (ground_touch_count as i32)).max(0) as u8;
@@ -199,10 +196,12 @@ impl ObjectsAndGravity {
 
             let mut score2: Image = Image::zero(self.image_size.width, self.image_size.height);
             for position in &positions_filtered {
-                if position.x == best_position.x {
-                    HtmlLog::text(format!("position: {:?} -- BEST", position));
-                } else {
-                    HtmlLog::text(format!("position: {:?}", position));
+                if VERBOSE_GRAVITY {
+                    if position.x == best_position.x {
+                        HtmlLog::text(format!("position: {:?} -- BEST", position));
+                    } else {
+                        HtmlLog::text(format!("position: {:?}", position));
+                    }
                 }
                 score2.set(position.x as i32, position.y as i32, 1);
             }
@@ -212,17 +211,10 @@ impl ObjectsAndGravity {
                 HtmlLog::image(&score);
                 HtmlLog::image(&score2);
             }
-            let mass1: u16 = score.mask_count_nonzero();
-            let mass2: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
-            // let mass: u16 = mass1 * mass2;
-            let mass: u16 = mass1;
             let candidate = Candidate { 
                 score: score2, 
-                mass, 
                 item_index, 
-                highest_score, 
                 highest_y: found_distance_to_bottom, 
-                positions: positions_filtered,
                 best_position,
             };
             candidate_vec.push(candidate);
@@ -231,66 +223,7 @@ impl ObjectsAndGravity {
             HtmlLog::text(format!("candidate_vec.len() {}", candidate_vec.len()));
         }
 
-        // Pick the candidate with the lowest mass, which is the fewest number of positions where the object can fit
-        let mut found_candidate: Option<&Candidate> = None;
-        let mut count_ambiguous: u16 = 0;
-        if false {
-            let mut lowest_mass: u16 = u16::MAX;
-            for candidate in &candidate_vec {
-                if candidate.mass > lowest_mass {
-                    continue;
-                }
-                if lowest_mass == candidate.mass {
-                    count_ambiguous += 1;
-                } else {
-                    count_ambiguous = 0;
-                }
-                lowest_mass = candidate.mass;
-                found_candidate = Some(candidate);
-            }
-            if count_ambiguous > 0 {
-                return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick. lowest_mass {}", lowest_mass));
-            }
-        }
-        if false {
-            let mut highest_score: u16 = 0;
-            for candidate in &candidate_vec {
-                if candidate.highest_score < highest_score {
-                    continue;
-                }
-                if candidate.highest_score == highest_score {
-                    count_ambiguous += 1;
-                } else {
-                    count_ambiguous = 0;
-                }
-                highest_score = candidate.highest_score;
-                found_candidate = Some(candidate);
-            }
-            if count_ambiguous > 0 {
-                return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick highest_score: {}", highest_score));
-            }
-        }
-        if false {
-            let mut highest_y: u8 = 0;
-            for candidate in &candidate_vec {
-                if candidate.highest_y < highest_y {
-                    println!("a");
-                    continue;
-                }
-                if candidate.highest_y == highest_y {
-                    println!("b");
-                    count_ambiguous += 1;
-                } else {
-                    println!("c");
-                    count_ambiguous = 0;
-                }
-                highest_y = candidate.highest_y;
-                found_candidate = Some(candidate);
-            }
-            if count_ambiguous > 0 {
-                return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick highest_y: {}", highest_y));
-            }
-        }
+        // Pick the candidate with highest score
         let candidate: Candidate;
         {
             let mut candidate_vec2 = candidate_vec.clone();
@@ -301,13 +234,6 @@ impl ObjectsAndGravity {
                 None => return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: no candidate found")),
             };
         }
-        // if count_ambiguous > 0 {
-        //     return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what object to pick"));
-        // }
-        // let candidate: Candidate = match found_candidate {
-        //     Some(value) => value.clone(),
-        //     None => return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: no candidate found")),
-        // };
         if VERBOSE_GRAVITY {
             println!("candidate.item_index: {}", candidate.item_index);
         }
@@ -316,43 +242,10 @@ impl ObjectsAndGravity {
             return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: integrity error. the candidate.score.size() != self.image_size"));
         }
         
-        let score: &Image = &candidate.score;
-        let mut found_y: i32 = candidate.best_position.y as i32;
-        let mut found_x: i32 = candidate.best_position.x as i32;
-        // let mut found_y: i32 = -1;
-        // let mut found_x: i32 = -1;
-        let mut count_ambiguous2: u16 = 0;
-        let mut found_score: u8 = 0;
-        // for x in 0..score.width() as i32 {
-        //     for y in 0..score.height() as i32 {
-        //         if y < found_y {
-        //             continue;
-        //         }
-        //         let value: u8 = score.get(x, y).unwrap_or(0);
-        //         if value == 0 {
-        //             continue;
-        //         }
-        //         if value < found_score {
-        //             continue;
-        //         }
-        //         if y == found_y && value == found_score {
-        //             count_ambiguous2 += 1;
-        //         } else {
-        //             count_ambiguous2 = 0;
-        //         }
-        //         found_score = value;
-        //         found_y = y;
-        //         found_x = x;
-        //     }
-        // }
+        let found_y: i32 = candidate.best_position.y as i32;
+        let found_x: i32 = candidate.best_position.x as i32;
         if VERBOSE_GRAVITY {
-            println!("found_x: {} found_y: {} found_score: {} count_ambiguous2: {}", found_x, found_y, found_score, count_ambiguous2);
-        }
-        if count_ambiguous2 > 0 {
-            return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: ambiguous what position to pick"));
-        }
-        if found_x < 0 || found_y < 0 {
-            return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: did not find a position to place the object"));
+            println!("found_x: {} found_y: {}", found_x, found_y);
         }
 
         let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
@@ -369,16 +262,14 @@ impl ObjectsAndGravity {
         Ok((result_image, item.object_id))
     }
 
-    /// loop that goes through all the objects, and applies gravity to them.
+    /// loop through all the objects, and applies gravity to them.
     /// 
-    /// Pick weirdest shape first, that are hard to fit into the holes, and then
+    /// Pick weirdest shape first, that is hard to fit into the holes, and then
     /// progress towards smaller shapes that are square and easier to place.
-    #[allow(dead_code)]
     fn gravity_multiple_objects(&mut self, solid_mask: &Image) -> anyhow::Result<Image> {
         let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
         let mut solid_mask_accumulated: Image = solid_mask.clone();
         for i in 0..self.items.len() {
-        // for i in 0..2 {
             let mut has_all_been_placed: bool = true;
             for item in &self.items {
                 if !item.has_been_placed {
@@ -425,17 +316,13 @@ impl ObjectsAndGravity {
 #[derive(Clone, Debug)]
 struct Candidate {
     score: Image, 
-    mass: u16,
     item_index: usize,
-    highest_score: u16,
     highest_y: u8,
-    positions: Vec<CandidatePosition>,
     best_position: CandidatePosition,
 }
 
 impl Candidate {
     fn score(&self) -> i32 {
-        // let mut a: i32 = self.highest_y as i32;
         let a: i32 = (self.highest_y as i32) * 10000 + self.best_position.computed_score;
         a
     }
@@ -465,10 +352,10 @@ struct CandidatePosition {
     object_mass: u16,
     bounding_box_mass: u16,
 
+    computed_score: i32,
+
     // Future experiments
     // Complexity of the object bottom. The more complex the more important it is to find a good fit.
-
-    computed_score: i32,
 }
 
 impl CandidatePosition {
@@ -478,37 +365,22 @@ impl CandidatePosition {
 
     fn score(&self) -> i32 {
         if self.ground_touch_count < 1 {
+            // The object doesn't touch the ground. It's a terrible candidate.
             return 0;
         }
         
+        // Determine how much of the object is touching the ground. The more the better.
+        // Holes underneath the object are unwanted.
         let numerator: f32 = self.ground_touch_count as f32;
         let denominator: f32 = self.ground_touch_count as f32 + self.ground_notouch_count as f32;
         let jaccard_index: f32 = numerator / denominator;
 
-        // return jaccard_index;
+        // Scale up the score by how connected it is to the left/right structure.
+        // Scale up the score by how big the object is.
+        let score: f32 = jaccard_index * (self.intersection_count0 as f32) * (self.bounding_box_mass as f32) / (self.object_mass as f32);
 
-        // let a: f32 = jaccard_index;
-        // let a: f32 = jaccard_index * (self.object_mass as f32);
-        // let a: f32 = jaccard_index * (self.bounding_box_mass as f32) / (self.object_mass as f32);
-        let a: f32 = jaccard_index * (self.intersection_count0 as f32) * (self.bounding_box_mass as f32) / (self.object_mass as f32);
-
-        let score: i32 = (a * 10000.0) as i32;
-        return score;
-
-        // let mut score: f32 = 0.0;
-        
-        // let mut score_maximize: f32 = 0.0;
-
-        // let mut score_minimize: f32 = 0.0;
-        // score_minimize += (self.distance_to_bottom as f32) * (self.distance_to_bottom as f32);
-
-        // score += score_maximize;
-        // score -= score_minimize;
-        // score += self.distance_to_bottom as f32 * 0.1;
-        // score += self.ground_touch_count as f32 * 0.1;
-        // score += self.ground_notouch_count as f32 * 0.1;
-        // score += self.intersection_count0 as f32 * 0.1;
-        // score
+        // Convert to integer, so the candidates can be sorted by their score.
+        (score * 10000.0) as i32
     }
 }
 
