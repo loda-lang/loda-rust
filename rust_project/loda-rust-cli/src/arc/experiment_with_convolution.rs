@@ -1,3 +1,4 @@
+//! Pseudo code for a NxN convolution with weights.
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageCompare, ImagePadding, ImageSize, ImageMaskCount};
 use anyhow::Context;

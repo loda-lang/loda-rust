@@ -4,6 +4,17 @@ use bit_set::BitSet;
 pub trait ImageGrid {
     fn remove_grid(&self) -> anyhow::Result<Image>;
 
+    /// Returns a mask. Where the cells are the value is 1 and where the grid lines are the value is 0.
+    /// 
+    /// The grid color is optional. If it is specified, the only rows/columns with a 1 unique color
+    /// that is the specified color are considered grid lines.
+    /// 
+    /// If the grid color is not specified, the grid lines are the places where the rows/columns has a single unique color,
+    /// there may be multiple different colors in the image, that takes up an entire row/column.
+    /// 
+    /// The spacing between the cells is not considered.
+    /// 
+    /// The thickness of the grid lines is not considered.
     fn mask_for_gridcells(&self, grid_color: Option<u8>) -> anyhow::Result<Image>;
 }
 
@@ -81,7 +92,7 @@ impl ImageGrid for Image {
             }
         }
 
-        return Ok(result_image);
+        Ok(result_image)
     }
 }
 

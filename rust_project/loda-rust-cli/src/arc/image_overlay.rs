@@ -1,7 +1,17 @@
-use super::{Image, ImageMix, MixMode};
+use super::{Image, ImageMix, MixMode, ImageSize};
 
 pub trait ImageOverlay {
+    /// Z-stack two images on top of each other.
+    /// 
+    /// Both images must have the same size, otherwise an error is returned.
     fn overlay_with_mask_color(&self, other: &Image, mask_color: u8) -> anyhow::Result<Image>;
+
+    /// Z-Stack multiple images on top of each other.
+    /// 
+    /// All the images must have the same size, otherwise an error is returned.
+    /// 
+    /// And the image size must be at least 1x1, otherwise an error is returned.
+    fn overlay_images(mask_color: u8, images: &Vec<Image>) -> anyhow::Result<Image>;
 
     /// Copy rectangle of pixels
     fn overlay_with_position(&self, other: &Image, x: i32, y: i32) -> anyhow::Result<Image>;
@@ -16,6 +26,27 @@ impl ImageOverlay for Image {
     fn overlay_with_mask_color(&self, other: &Image, mask_color: u8) -> anyhow::Result<Image> {
         let mode = MixMode::PickColor1WhenColor0IsDifferent { color0_filter: mask_color };
         other.mix(self, mode)
+    }
+
+    fn overlay_images(mask_color: u8, images: &Vec<Image>) -> anyhow::Result<Image> {
+        if images.len() < 2 {
+            return Err(anyhow::anyhow!("overlay_images: Expected at least 2 images"));
+        }
+        let mut result_image: Image = images[0].clone();
+        if result_image.is_empty() {
+            return Err(anyhow::anyhow!("overlay_images: The images must be 1x1 or bigger"));
+        }
+        let size: ImageSize = result_image.size();
+        for (index, image) in images.iter().enumerate() {
+            if index == 0 {
+                continue;
+            }
+            if image.size() != size {
+                return Err(anyhow::anyhow!("overlay_images: Expected all images to have the same size"));
+            }
+            result_image = result_image.overlay_with_mask_color(image, mask_color)?;
+        }
+        Ok(result_image)
     }
 
     fn overlay_with_position(&self, other: &Image, x: i32, y: i32) -> anyhow::Result<Image> {
@@ -178,7 +209,42 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_overlay_with_position_inside() {
+    fn test_20000_overlay_images() {
+        // Arrange
+        let pixels0: Vec<u8> = vec![
+            0, 0, 0,
+            9, 9, 9,
+        ];
+        let input0: Image = Image::try_create(3, 2, pixels0).expect("image");
+
+        let pixels1: Vec<u8> = vec![
+            9, 9, 1,
+            9, 1, 1,
+        ];
+        let input1: Image = Image::try_create(3, 2, pixels1).expect("image");
+
+        let pixels2: Vec<u8> = vec![
+            9, 9, 2,
+            9, 9, 9,
+        ];
+        let input2: Image = Image::try_create(3, 2, pixels2).expect("image");
+
+        let images: Vec<Image> = vec![input0, input1, input2];
+
+        // Act
+        let actual: Image = Image::overlay_images(9, &images).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 2,
+            9, 1, 1,
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_overlay_with_position_inside() {
         // Arrange
         let a_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1,
@@ -211,7 +277,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_overlay_with_position_clip_top_left() {
+    fn test_30001_overlay_with_position_clip_top_left() {
         // Arrange
         let a_pixels: Vec<u8> = vec![
             0, 0, 1, 1, 1, 1,
@@ -242,7 +308,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20002_overlay_with_position_clip_bottom_right() {
+    fn test_30002_overlay_with_position_clip_bottom_right() {
         // Arrange
         let a_pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -275,7 +341,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_overlay_with_position_outside() {
+    fn test_30003_overlay_with_position_outside() {
         let a_pixels: Vec<u8> = vec![
             1, 2,
             3, 4,
@@ -306,7 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_overlay_with_mask_and_position() {
+    fn test_40000_overlay_with_mask_and_position() {
         // Arrange
         let a_pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,

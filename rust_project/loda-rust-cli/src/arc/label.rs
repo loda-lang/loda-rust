@@ -286,6 +286,9 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // OutputSizeIsTheSameAsInputSmallestSingleColorObjectRectangle,
+    // OutputSizeIsTheSameAsInputSmallestSingleColorObjectSquare,
+    // OutputSizeIsTheSameAsInputSmallestSingleColorObjectNonSquare,
     // InputImageBorderFloodFillOnlyHappensInTheNoChangeAreaWithColor { color: u8 },
     // OutputImageContainSingleColorObject { color: u8 },
     // OutputImageDoesNotContainSingleColorObject { color: u8 },

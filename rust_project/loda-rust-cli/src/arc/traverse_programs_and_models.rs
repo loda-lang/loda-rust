@@ -411,6 +411,9 @@ impl TraverseProgramsAndModels {
             if task.occur_in_solutions_csv {
                 continue;
             }
+            if task.is_output_size_same_as_input_size() {
+                continue;
+            }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
             // }
@@ -418,7 +421,7 @@ impl TraverseProgramsAndModels {
             //     continue;
             // }
             let mut found: bool = false;
-            // found = true;
+            found = true;
             // if task.has_removal_color() {
             //     found = true;
             // }
@@ -475,14 +478,14 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            for input_label in &task.input_label_set_intersection {
-                match input_label {
-                    InputLabel::InputUnambiguousConnectivityWithAllColors => {
-                        found = true;
-                    },
-                    _ => {}
-                }
-            }
+            // for input_label in &task.input_label_set_intersection {
+            //     match input_label {
+            //         InputLabel::InputUnambiguousConnectivityWithAllColors => {
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
+            // }
             // for input_label in &task.input_label_set_intersection {
             //     match input_label {
             //         InputLabel::InputNoiseWithColor { color: _ } => {
@@ -1561,8 +1564,8 @@ impl TraverseProgramsAndModels {
         // When participating in the contest, then we want first to try out the existing solutions.
         // This may be a solution to one of the hidden puzzles.
         // However it's slow, so it's disabled while developing, where we only want to explore mutations.
-        let try_existing_solutions = false;
-        let try_logistic_regression = true;
+        let try_existing_solutions = true;
+        let try_logistic_regression = false;
 
         let number_of_programs_to_generate: usize = 3;
 

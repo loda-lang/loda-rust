@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageRotate, ImageHistogram, ImageReplaceColor};
+use super::{Histogram, Image, ImageRotate, ImageHistogram, ImageReplaceColor, ImageMask, ImageMaskBoolean, ImageMix, MixMode, ImageMaskCount};
 
 pub trait ImageDrawLineWhere {
     /// Draw a horizontal line if the `mask` contains one or more non-zero pixels.
@@ -52,6 +52,17 @@ pub trait ImageDrawLineWhere {
     /// 
     /// Returns tuple with `(number of columns, number of rows)` that was drawn.
     fn draw_line_between_top_bottom_and_left_right(&mut self, mask: &Image, line_color: u8) -> anyhow::Result<(u8,u8)>;
+
+    /// Shoot out lines in all directions where `mask` is non-zero.
+    /// 
+    /// Draw horizontal lines and vertical lines where the `mask` contains one or more non-zero pixels.
+    /// 
+    /// The color used is where the mask is non-zero.
+    /// 
+    /// The places where different colored lines overlaps, gets colored with the `overlap_color`.
+    /// 
+    /// Returns a tuple with `(number of columns, number of rows, number of overlapping pixels)`.
+    fn draw_line_between_top_bottom_and_left_right_preserve_color(&mut self, mask: &Image, overlap_color: u8) -> anyhow::Result<(u8,u8,u16)>;
 
     /// Draw lines between the `color0` pixels and `color1` pixels when both occur in the same column/row.
     /// 
@@ -184,6 +195,51 @@ impl ImageDrawLineWhere for Image {
         let count_columns: u8 = self.draw_line_between_top_bottom(mask, line_color)?;
         let count_rows: u8 = self.draw_line_between_left_right(mask, line_color)?;
         Ok((count_columns, count_rows))
+    }
+
+    fn draw_line_between_top_bottom_and_left_right_preserve_color(&mut self, mask: &Image, overlap_color: u8) -> anyhow::Result<(u8,u8,u16)> {
+        if self.size() != mask.size() {
+            return Err(anyhow::anyhow!("Expected mask.size to be the same as self.size"));
+        }
+        if self.is_empty() {
+            return Err(anyhow::anyhow!("Expected the image to be non-empty"));
+        }
+        let histogram_all: Histogram = self.histogram_all();
+        let mut count_columns_sum: u16 = 0;
+        let mut count_rows_sum: u16 = 0;
+        let mut sum_of_drawings: Image = Image::zero(self.width(), self.height());
+        let mut result_image: Image = self.clone();
+        for color in 0..=255u8 {
+            if histogram_all.get(color) == 0 {
+                continue;
+            }
+            // the intersection is where to draw with the current color
+            let color_mask: Image = self.to_mask_where_color_is(color);
+            let where_to_draw_mask: Image = color_mask.mask_and(mask)?;
+
+            // draw the lines
+            let mut drawing_mask: Image = where_to_draw_mask.clone();
+            let (count_columns, count_rows) = drawing_mask.draw_line_where_mask_is_nonzero(&where_to_draw_mask, 1)?;
+            count_columns_sum += count_columns as u16;
+            count_rows_sum += count_rows as u16;
+
+            // keep track of where there are overlap between the colored lines
+            sum_of_drawings = sum_of_drawings.mix(&drawing_mask, MixMode::Plus)?;
+
+            // draw the colored lines into the result image
+            result_image = drawing_mask.select_from_image_and_color(&result_image, color)?;
+        }
+
+        // set the overlapping pixels to the overlap color
+        let overlap_mask: Image = sum_of_drawings.to_mask_where_color_is_equal_or_greater_than(2);
+        let count_overlap: u16 = overlap_mask.mask_count_one();
+        result_image = overlap_mask.select_from_image_and_color(&result_image, overlap_color)?;
+
+        self.set_image(result_image);
+
+        let count_columns: u8 = count_columns_sum.min(u8::MAX as u16) as u8;
+        let count_rows: u8 = count_rows_sum.min(u8::MAX as u16) as u8;
+        Ok((count_columns, count_rows, count_overlap))
     }
 
     fn draw_line_connecting_two_colors(&mut self, color0: u8, color1: u8, line_color: u8) -> anyhow::Result<(u8,u8)> {
@@ -494,7 +550,87 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_draw_line_connecting_two_colors_different_color_values() {
+    fn test_50000_draw_line_between_top_bottom_and_left_right_preserve_color() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 7, 7,
+            7, 3, 7, 7, 7,
+            7, 7, 7, 7, 7,
+            7, 7, 7, 5, 7,
+            7, 7, 7, 7, 7,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        let mask_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 1, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 1, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let mask: Image = Image::try_create(5, 5, mask_pixels).expect("image");
+
+        // Act
+        let mut actual = input.clone();
+        let (count_columns, count_rows, count_overlap) = actual.draw_line_between_top_bottom_and_left_right_preserve_color(&mask, 255).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            7, 3, 7, 5, 7,
+            3, 3, 3, 255, 3,
+            7, 3, 7, 5, 7,
+            5, 255, 5, 5, 5,
+            7, 3, 7, 5, 7,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+        assert_eq!(count_columns, 2);
+        assert_eq!(count_rows, 2);
+        assert_eq!(count_overlap, 2);
+    }
+
+    #[test]
+    fn test_50001_draw_line_between_top_bottom_and_left_right_preserve_color() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 7, 7,
+            7, 7, 7, 5, 7,
+            7, 3, 7, 7, 7,
+            7, 7, 7, 5, 7,
+            7, 7, 7, 7, 7,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        let mask_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 0, 0, 1, 0,
+            0, 1, 0, 0, 0,
+            0, 0, 0, 1, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let mask: Image = Image::try_create(5, 5, mask_pixels).expect("image");
+
+        // Act
+        let mut actual = input.clone();
+        let (count_columns, count_rows, count_overlap) = actual.draw_line_between_top_bottom_and_left_right_preserve_color(&mask, 255).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            7, 3, 7, 5, 7,
+            5, 255, 5, 5, 5,
+            3, 3, 3, 255, 3,
+            5, 255, 5, 5, 5,
+            7, 3, 7, 5, 7,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+        assert_eq!(count_columns, 2);
+        assert_eq!(count_rows, 3);
+        assert_eq!(count_overlap, 3);
+    }
+
+    #[test]
+    fn test_60000_draw_line_connecting_two_colors_different_color_values() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -532,7 +668,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_draw_line_connecting_two_colors_same_color_value() {
+    fn test_60001_draw_line_connecting_two_colors_same_color_value() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 7, 0, 0, 0,
@@ -566,7 +702,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50002_draw_line_connecting_two_colors_same_as_line_color() {
+    fn test_60002_draw_line_connecting_two_colors_same_as_line_color() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 7, 0, 0, 0,

@@ -159,6 +159,7 @@ impl arc_work_model::Task {
     }
 
     fn assign_repair_mask(&mut self) {
+        self.assign_repair_mask_based_on_single_color_object_rectangle();
         self.assign_repair_mask_based_on_single_color_removal_and_changes_limited_to_color();
         self.assign_repair_mask_with_symmetry_repair_color();
         self.assign_repair_mask_based_on_most_popular_color();
@@ -246,6 +247,60 @@ impl arc_work_model::Task {
 
         if color != single_color_removal {
             // disagreement about what color is to be repaired
+            return;
+        }
+
+        for pair in &mut self.pairs {
+            _ = pair.input.assign_repair_mask_with_color(color);
+        }
+    }
+
+    /// Generate `repair_mask`
+    /// 
+    /// Precondition
+    /// `OutputSizeIsTheSameAsSingleColorObject` is a rectangle with a specific color.
+    /// 
+    /// Precondition
+    /// There `OutputSizeIsTheSameAsSingleColorObject` has its color among the `removal_histogram_intersection`.
+    fn assign_repair_mask_based_on_single_color_object_rectangle(&mut self) {
+        if self.has_repair_mask() {
+            return;
+        }
+
+        let mut found_colors = Histogram::new();
+        for action_label in &self.action_label_set_intersection {
+            match action_label {
+                ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label } => {
+                    match label {
+                        SingleColorObjectRectangleLabel::RectangleWithColor { color } => {
+                            found_colors.increment(*color);
+                        },
+                        SingleColorObjectRectangleLabel::SquareWithColor { color } => {
+                            found_colors.increment(*color);
+                        },
+                        SingleColorObjectRectangleLabel::NonSquareWithColor { color } => {
+                            found_colors.increment(*color);
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+        if found_colors.number_of_counters_greater_than_zero() > 1 {
+            // Multiple colors found, no consensus on what color is to be repaired
+            return;
+        }
+        let color: u8 = match found_colors.most_popular_color_disallow_ambiguous() {
+            Some(value) => value,
+            None => {
+                // Did not find a rectangle with a specific color
+                return;
+            }
+        };
+
+        if self.removal_histogram_intersection.get(color) == 0 {
+            // The color is not among the colors being removed
             return;
         }
 
