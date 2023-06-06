@@ -5953,11 +5953,7 @@ mod tests {
                     }
                 }
 
-                // let enumerated_objects2: Image = ObjectsAndGravity::gravity(&enumerated_objects, &solid_mask, ObjectsAndGravityDirection::GravityUp)?;
-
-                // result_image = solid_mask;
-                // result_image = enumerated_objects;
-                // result_image = enumerated_objects2;
+                result_image = solid_mask.select_from_images(&result_image, &input)?;
 
                 Ok(result_image)
             }
