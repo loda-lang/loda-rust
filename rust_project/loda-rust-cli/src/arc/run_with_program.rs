@@ -1271,7 +1271,7 @@ impl RunWithProgram {
         let all_test_pairs_are_correct: bool = count_test_correct == count_test;
 
         if pretty_print {
-            self.inspect_computed_images(&computed_images, &status_texts);
+            self.inspect_computed_images(&computed_images, &status_texts)?;
         }
 
         let result = RunWithProgramResult { 
@@ -1288,7 +1288,15 @@ impl RunWithProgram {
         Ok(result)
     }
 
-    fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<&str>) {
+    fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<&str>) -> anyhow::Result<()> {
+
+        let f = |image: &Image| -> anyhow::Result<String> {
+            let mut s = String::new();
+            s += "<td>";
+            s += &image.to_html();
+            s += "</td>";
+            Ok(s)
+        };
 
         // Table row with input and row with expected output
         let mut row_input: String = "<tr>".to_string();
@@ -1299,16 +1307,8 @@ impl RunWithProgram {
             if pair.pair_type != arc_work_model::PairType::Train {
                 continue;
             }
-            {
-                row_input += "<td>";
-                row_input += &pair.input.image.to_html();
-                row_input += "</td>";
-            }
-            {
-                row_output += "<td>";
-                row_output += &pair.output.image.to_html();
-                row_output += "</td>";
-            }
+            row_input += &f(&pair.input.image)?;
+            row_output += &f(&pair.output.image)?;
         }
 
         // Traverse the `Test` pairs
@@ -1316,16 +1316,8 @@ impl RunWithProgram {
             if pair.pair_type != arc_work_model::PairType::Test {
                 continue;
             }
-            {
-                row_input += "<td>";
-                row_input += &pair.input.image.to_html();
-                row_input += "</td>";
-            }
-            {
-                row_output += "<td>";
-                row_output += &pair.output.test_image.to_html();
-                row_output += "</td>";
-            }
+            row_input += &f(&pair.input.image)?;
+            row_output += &f(&pair.output.test_image)?;
         }
         row_input += "<td>Input</td></tr>";
         row_output += "<td>Output</td></tr>";
@@ -1333,9 +1325,7 @@ impl RunWithProgram {
         // Table row with computed output
         let mut row_predicted: String = "<tr>".to_string();
         for computed_image in computed_images {
-            row_predicted += "<td>";
-            row_predicted += &computed_image.to_html();
-            row_predicted += "</td>";
+            row_predicted += &f(&computed_image)?;
         }
         row_predicted += "<td>Predicted</td></tr>";
 
@@ -1348,6 +1338,7 @@ impl RunWithProgram {
 
         let html = format!("<h2>{}</h2><table>{}{}{}{}</table>", self.task.id, row_input, row_output, row_predicted, row_status);
         HtmlLog::html(html);
+        Ok(())
     }
 }
 
