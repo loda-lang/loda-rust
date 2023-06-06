@@ -1,4 +1,6 @@
 //! Perform gravity operations on objects matching shapes into the corresponding holes.
+//! 
+//! The ARC task `6a1e5592` is an example of this.
 use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageMaskBoolean, Rectangle, ImageCrop, PixelConnectivity, ImageMaskGrow, ImageCompare, ImageMaskSolidGround};
 
 #[allow(unused_imports)]
@@ -111,7 +113,7 @@ impl ObjectsAndGravity {
     /// 
     /// Returns a tuple:
     /// - An image with the object at its new position.
-    /// - The `object_id` of the object hat was placed.
+    /// - The `object_id` of the object that was placed.
     fn gravity_single_object(&self, solid_mask: &Image) -> anyhow::Result<(Image, u8)> {
         if solid_mask.size() != self.image_size {
             return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: solid_mask.size() != self.image_size"));
@@ -133,16 +135,23 @@ impl ObjectsAndGravity {
             }
             let object_mass: u16 = item.object_mass;
             let bounding_box_mass: u16 = item.bounding_box.width() as u16 * item.bounding_box.height() as u16;
-            let mut score: Image = Image::zero(self.image_size.width, self.image_size.height);
+            let mut score_verbose: Image = if VERBOSE_GRAVITY { 
+                Image::zero(self.image_size.width, self.image_size.height) 
+            } else { 
+                Image::empty()
+            };
             let correct_count: u16 = solid_mask_count + item.object_mass;
             let score_factor: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
             let mut found_distance_to_bottom: u8 = u8::MAX;
             let mut highest_score: u16 = 0;
             let mut positions_unfiltered = Vec::<CandidatePosition>::new();
             for x in 0..self.image_size.width {
-                for y in 0..self.image_size.height {
-                    let y_reverse: u8 = ((self.image_size.height as i32) - (y as i32) - 1).min(255).max(0) as u8;
-                    let candidate_mask: Image = solid_mask.overlay_with_mask_and_position(&item.mask_cropped, &item.mask_cropped, x as i32, y_reverse as i32)?;
+
+                // Traverse from the bottom to the top. And probe if the object can be placed at this position.
+                // The moment a good spot is found, then register the y-position and move on to the next x-position.
+                for y_reverse in 0..self.image_size.height {
+                    let y: u8 = ((self.image_size.height as i32) - (y_reverse as i32) - 1).min(255).max(0) as u8;
+                    let candidate_mask: Image = solid_mask.overlay_with_mask_and_position(&item.mask_cropped, &item.mask_cropped, x as i32, y as i32)?;
                     let candidate_mask_count: u16 = candidate_mask.mask_count_one();
                     if candidate_mask_count != correct_count {
                         // println!("object {} position: {} {}  mismatch in mass: {} != {}", index, x, y, candidate_mask_count, correct_count);
@@ -151,21 +160,22 @@ impl ObjectsAndGravity {
                     let intersection: Image = candidate_mask.mask_and(&solid_outline_mask)?;
                     let intersection_count0: u16 = intersection.mask_count_one();
                     let intersection_count1: u16 = intersection_count0 + 1;
-                    let score_value: u16 = intersection_count1 * score_factor * (y as u16);
+                    let score_value: u16 = intersection_count1 * score_factor * (y_reverse as u16);
 
                     // Measure number of holes underneath the object
                     let intersection_touch: Image = candidate_mask.mask_and(&solid_ground_below_mask)?;
                     let ground_touch_count: u8 = intersection_touch.mask_count_one().min(255) as u8;
                     let ground_notouch_count: u8 = ((item.bounding_box.width() as i32) - (ground_touch_count as i32)).max(0) as u8;
 
-                    score.set(x as i32, y_reverse as i32, intersection_count0.min(255) as u8);
+                    if VERBOSE_GRAVITY {
+                        score_verbose.set(x as i32, y as i32, intersection_count0.min(255) as u8);
+                    }
                     highest_score = highest_score.max(score_value);
-                    let distance_to_bottom: u8 = ((y as i32) + (item.bounding_box.height() as i32) - 1).min(255) as u8;
+                    let distance_to_bottom: u8 = ((y_reverse as i32) + (item.bounding_box.height() as i32) - 1).min(255) as u8;
                     found_distance_to_bottom = found_distance_to_bottom.min(distance_to_bottom);
                     let mut candidate_position = CandidatePosition { 
-                        x, 
-                        // y,   
-                        y: y_reverse,  // have i swapped y and y_reversed?
+                        x,
+                        y,
                         distance_to_bottom, 
                         intersection_count0, 
                         ground_touch_count, 
@@ -193,26 +203,24 @@ impl ObjectsAndGravity {
                     return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: unable to find a position"));
                 }
             };
-
-            let mut score2: Image = Image::zero(self.image_size.width, self.image_size.height);
-            for position in &positions_filtered {
-                if VERBOSE_GRAVITY {
-                    if position.x == best_position.x {
-                        HtmlLog::text(format!("position: {:?} -- BEST", position));
-                    } else {
-                        HtmlLog::text(format!("position: {:?}", position));
-                    }
-                }
-                score2.set(position.x as i32, position.y as i32, 1);
-            }
-
+            
             if VERBOSE_GRAVITY {
-                println!("item_index {} highest_score: {} found_distance_to_bottom: {} score: {:?}", item_index, highest_score, found_distance_to_bottom, score);
-                HtmlLog::image(&score);
-                HtmlLog::image(&score2);
+                let mut position_visualization: Image = Image::zero(self.image_size.width, self.image_size.height);
+                for position in &positions_filtered {
+                    if VERBOSE_GRAVITY {
+                        if position.x == best_position.x {
+                            HtmlLog::text(format!("position: {:?} -- BEST", position));
+                        } else {
+                            HtmlLog::text(format!("position: {:?}", position));
+                        }
+                    }
+                    position_visualization.set(position.x as i32, position.y as i32, 1);
+                }
+                println!("item_index {} highest_score: {} found_distance_to_bottom: {} score: {:?}", item_index, highest_score, found_distance_to_bottom, score_verbose);
+                HtmlLog::image(&score_verbose);
+                HtmlLog::image(&position_visualization);
             }
             let candidate = Candidate { 
-                score: score2, 
                 item_index, 
                 highest_y: found_distance_to_bottom, 
                 best_position,
@@ -236,10 +244,6 @@ impl ObjectsAndGravity {
         }
         if VERBOSE_GRAVITY {
             println!("candidate.item_index: {}", candidate.item_index);
-        }
-
-        if candidate.score.size() != self.image_size {
-            return Err(anyhow::anyhow!("ObjectsAndGravity.gravity: integrity error. the candidate.score.size() != self.image_size"));
         }
         
         let found_y: i32 = candidate.best_position.y as i32;
@@ -315,7 +319,6 @@ impl ObjectsAndGravity {
 
 #[derive(Clone, Debug)]
 struct Candidate {
-    score: Image, 
     item_index: usize,
     highest_y: u8,
     best_position: CandidatePosition,
