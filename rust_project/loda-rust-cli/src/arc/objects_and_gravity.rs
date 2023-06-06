@@ -167,7 +167,8 @@ impl ObjectsAndGravity {
                     found_distance_to_bottom = found_distance_to_bottom.min(distance_to_bottom);
                     let mut candidate_position = CandidatePosition { 
                         x, 
-                        y, 
+                        // y,   
+                        y: y_reverse,  // have i swapped y and y_reversed?
                         distance_to_bottom, 
                         intersection_count0, 
                         ground_touch_count, 
@@ -208,7 +209,7 @@ impl ObjectsAndGravity {
 
             if VERBOSE_GRAVITY {
                 println!("item_index {} highest_score: {} found_distance_to_bottom: {} score: {:?}", item_index, highest_score, found_distance_to_bottom, score);
-                // HtmlLog::image(&score);
+                HtmlLog::image(&score);
                 HtmlLog::image(&score2);
             }
             let mass1: u16 = score.mask_count_nonzero();
