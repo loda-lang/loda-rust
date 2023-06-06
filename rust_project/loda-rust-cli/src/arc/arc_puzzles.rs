@@ -5906,6 +5906,9 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 println!("id: {}", pair.id);
+                if pair.id != "6a1e5592,pair0,train" {
+                    // return Ok(Image::zero(1, 1));
+                }
                 if pair.id != "6a1e5592,pair1,train" {
                     // return Ok(Image::zero(1, 1));
                 }
@@ -5961,7 +5964,7 @@ mod tests {
         }
     }
 
-    // #[test]
+    #[test]
     fn test_1200000_puzzle_6a1e5592() {
         let mut instance = solve_6a1e5592::MySolution {};
         let result: String = run_analyze_and_solve("6a1e5592", &mut instance).expect("String");

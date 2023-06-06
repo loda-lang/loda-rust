@@ -1,5 +1,5 @@
 //! Perform gravity operations on objects
-use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageTrim, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageOutline, ImageMaskBoolean, Rectangle, ImageCrop, PixelConnectivity, ImageMaskGrow, ImageCompare};
+use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageTrim, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageOutline, ImageMaskBoolean, Rectangle, ImageCrop, PixelConnectivity, ImageMaskGrow, ImageCompare, ImageMaskSolidGround};
 
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
@@ -116,6 +116,9 @@ impl ObjectsAndGravity {
         // let solid_mask_grow: Image = solid_mask.mask_grow(PixelConnectivity::Connectivity4)?;
         let solid_outline_mask: Image = solid_mask_grow.diff(&solid_mask)?;
 
+
+        let solid_ground_below_mask: Image = solid_mask.mask_ground_below()?;
+
         let mut candidate_vec = Vec::<Candidate>::new();
 
         // Identify all positions where each object can be placed
@@ -151,38 +154,45 @@ impl ObjectsAndGravity {
                     // println!("object {} position: {} {}", index, x, y);
                     // score.set(x as i32, y_reverse, score_value_clamped);
                     // score.set(x as i32, y_reverse as i32, 1);
+
+                    // TODO: measure number of holes underneath the object
+                    let intersection_touch: Image = candidate_mask.mask_and(&solid_ground_below_mask)?;
+                    let ground_touch_count: u8 = intersection_touch.mask_count_one().min(255) as u8;
+                    let ground_notouch_count: u8 = ((item.bounding_box.width() as i32) - (ground_touch_count as i32)).max(0) as u8;
+
                     score.set(x as i32, y_reverse as i32, intersection_count0.min(255) as u8);
                     highest_score = highest_score.max(score_value);
                     let item_y_max: u8 = ((y as i32) + (item.bounding_box.height() as i32) - 1).min(255) as u8;
                     // let distance_to_bottom: i32 = (self.image_size.height as i32) - 1 - item_y_max - 1;
                     lowest_y_reverse = lowest_y_reverse.min(y_reverse);
                     highest_y = highest_y.min(item_y_max);
-                    positions_unfiltered.push(CandidatePosition { x, y, highest_y: item_y_max, intersection_count0 });
+                    positions_unfiltered.push(CandidatePosition { x, y, distance_from_bottom: item_y_max, intersection_count0, ground_touch_count, ground_notouch_count });
                     break;
                 }
             }
             let mut positions_filtered = Vec::<CandidatePosition>::new();
             for position in &positions_unfiltered {
-                if position.highest_y == highest_y {
+                if position.distance_from_bottom == highest_y {
                     positions_filtered.push(position.clone());
                 }
             }
 
             let mut score2: Image = Image::zero(self.image_size.width, self.image_size.height);
             for position in &positions_filtered {
+                HtmlLog::text(format!("position: {:?}", position));
                 score2.set(position.x as i32, position.y as i32, 1);
             }
 
             if VERBOSE_GRAVITY {
                 println!("item_index {} highest_score: {} highest_y: {} lowest_y_reverse: {} score: {:?}", item_index, highest_score, highest_y, lowest_y_reverse, score);
-                HtmlLog::image(&score);
+                // HtmlLog::image(&score);
                 HtmlLog::image(&score2);
             }
             let mass1: u16 = score.mask_count_nonzero();
             let mass2: u16 = (item.mask_cropped.width() as u16) * (item.mask_cropped.height() as u16);
             // let mass: u16 = mass1 * mass2;
             let mass: u16 = mass1;
-            candidate_vec.push(Candidate { score, mass, item_index, highest_score, highest_y, lowest_y_reverse, positions: positions_filtered });
+            candidate_vec.push(Candidate { score: score2, mass, item_index, highest_score, highest_y, lowest_y_reverse, positions: positions_filtered });
         }
         if VERBOSE_GRAVITY {
             HtmlLog::text(format!("candidate_vec.len() {}", candidate_vec.len()));
@@ -401,10 +411,26 @@ struct Candidate {
 
 #[derive(Clone, Debug)]
 struct CandidatePosition {
+    /// Pick an position that is as close to the original position as possible.
     x: u8,
+
+    /// Place the object at the deepest possible position.
     y: u8,
-    highest_y: u8,
+
+    /// Minimize. The closer to the bottom the better.
+    distance_from_bottom: u8,
+    
+    /// Maximize. As many pixels should be touching the ground as possible.
+    ground_touch_count: u8,
+    
+    /// Minimize. If the object shape leaves holes underneath then it's bad.
+    ground_notouch_count: u8,
+
+    /// Maximize. How many pixels intersect with the outline of the solid ground mask.
     intersection_count0: u16,
+
+    // Future experiments
+    // Complexity of the object bottom. The more complex the more important it is to find a good fit.
 }
 
 #[derive(Clone, Debug)]

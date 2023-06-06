@@ -12,7 +12,8 @@ enum InspectPredictedTransform {
     FlipY,
 }
 
-static INSPECT_PREDICTED_TRANSFORM: InspectPredictedTransform = InspectPredictedTransform::None;
+// static INSPECT_PREDICTED_TRANSFORM: InspectPredictedTransform = InspectPredictedTransform::None;
+static INSPECT_PREDICTED_TRANSFORM: InspectPredictedTransform = InspectPredictedTransform::FlipY;
 
 pub struct InspectPredicted;
 
