@@ -1,4 +1,4 @@
-//! ARC challenge experiments
+//! Experiments with Abstraction and Reasoning Corpus (ARC)
 mod action_label_util;
 mod arc_json_model;
 mod arc_json_model_to_html;
@@ -19,7 +19,6 @@ mod convolution3x3_with_mask;
 mod convolution5x5_special;
 mod convolution_with_program;
 mod experiment_with_convolution;
-mod experiment_with_logisticregression;
 mod export_tasks;
 mod generate_pattern;
 mod grid;
@@ -131,7 +130,6 @@ pub use convolution3x3::convolution3x3;
 pub use convolution3x3_with_mask::convolution3x3_with_mask;
 pub use convolution5x5_special::convolution5x5_special;
 pub use experiment_with_convolution::ExperimentWithConvolution;
-pub use experiment_with_logisticregression::ExperimentWithLogisticRegression;
 pub use export_tasks::ExportTasks;
 pub use generate_pattern::GeneratePattern;
 pub use grid::{Grid, GridPattern};
@@ -228,3 +226,9 @@ pub use symmetry::Symmetry;
 pub use symmetry_to_label::SymmetryToLabel;
 pub use time_util::*;
 pub use traverse_programs_and_models::TraverseProgramsAndModels;
+
+#[cfg(feature = "linfa")]
+mod experiment_with_logisticregression;
+
+#[cfg(feature = "linfa")]
+pub use experiment_with_logisticregression::ExperimentWithLogisticRegression;
