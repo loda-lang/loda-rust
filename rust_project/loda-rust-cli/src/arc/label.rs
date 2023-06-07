@@ -165,6 +165,8 @@ pub enum InputLabel {
     InputBorderFloodFillConnectivity4AllPixelsWithColor { color: u8 },
 
     // Ideas for more
+    // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
+    // AllObjectsAreMovedByTheSameOffsetWrapAround { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsFromTheInputImagePresentExactlyOnceInTheOutputImageButWithDifferentOffsets,
     // BorderMostPopularColor { color: u8 },
     // BorderLeastPopularColor { color: u8 },
