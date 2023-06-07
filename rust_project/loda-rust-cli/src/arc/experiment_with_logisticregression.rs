@@ -1125,6 +1125,12 @@ impl ExperimentWithLogisticRegression {
                     // push all the training pairs that have been rotated by 90 degrees.
                     // push all the training pairs that have been flipped.
                     //
+                    // when the image is splitted into multiple cells, example 3 cells:
+                    // cell0: is inside split area 0
+                    // cell1: is inside split area 1
+                    // cell2: is inside split area 2
+                    // border01: is on the border between cell0 and cell1
+                    // border12: is on the border between cell1 and cell2
                     // is solid object without holes
                     // hole is square/rectangle/sparse
                     // object size, is biggest
