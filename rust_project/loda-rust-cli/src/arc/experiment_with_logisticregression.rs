@@ -1121,6 +1121,20 @@ impl ExperimentWithLogisticRegression {
                     // record.serialize_raw(noise_color_in_outline2_connectivity4); // worsens the prediction
                     // record.serialize_raw(noise_color_in_outline2_connectivity8); // worsens the prediction
 
+                    let mut row_contains_noise_color: u8 = 0;
+                    let mut column_contains_noise_color: u8 = 0;
+                    if let Some(color) = noise_color {
+                        if histogram_rows[y as usize].get(color) > 0 {
+                            row_contains_noise_color = 1;
+                        }
+                        if histogram_columns[x as usize].get(color) > 0 {
+                            column_contains_noise_color = 1;
+                        }
+                    }
+                    record.serialize_raw(row_contains_noise_color);
+                    record.serialize_raw(column_contains_noise_color);
+
+
                     // Future experiments
                     // push all the training pairs that have been rotated by 90 degrees.
                     // push all the training pairs that have been flipped.
