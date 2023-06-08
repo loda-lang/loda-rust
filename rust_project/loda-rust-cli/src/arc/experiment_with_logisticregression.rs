@@ -41,6 +41,27 @@ struct Record {
 }
 
 impl Record {
+    #[allow(dead_code)]
+    fn serialize_bool(&mut self, value: bool) {
+        let v: f64 = if value { 1.0 } else { -1.0 };
+        self.values.push(v);
+    }
+
+    #[allow(dead_code)]
+    fn serialize_ternary(&mut self, value: i8) {
+        let v: f64;
+        if value == 0 {
+            v = 0.0;
+        } else {
+            if value > 0 { 
+                v = 1.0; 
+            } else { 
+                v = -1.0;
+            }
+        }
+        self.values.push(v);
+    }
+
     fn serialize_u8(&mut self, value: u8) {
         self.values.push(value as f64);
     }
