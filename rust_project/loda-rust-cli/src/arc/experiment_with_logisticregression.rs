@@ -683,15 +683,8 @@ impl ExperimentWithLogisticRegression {
                     let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
-                    let top_left: u8 = input.get(xx -1, yy - 1).unwrap_or(255);
-                    let top: u8 = input.get(xx, yy - 1).unwrap_or(255);
-                    let top_right: u8 = input.get(xx + 1, yy - 1).unwrap_or(255);
-                    let left: u8 = input.get(xx - 1, yy).unwrap_or(255);
-                    let center: u8 = input.get(xx, yy).unwrap_or(255);
-                    let right: u8 = input.get(xx + 1, yy).unwrap_or(255);
-                    let bottom_left: u8 = input.get(xx - 1, yy + 1).unwrap_or(255);
-                    let bottom: u8 = input.get(xx, yy + 1).unwrap_or(255);
-                    let bottom_right: u8 = input.get(xx + 1, yy + 1).unwrap_or(255);
+                    let area: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
+                    let center: u8 = area.get(2, 2).unwrap_or(255);
 
                     let image_top: u8 = input.get(xx, 0).unwrap_or(255);
                     let image_bottom: u8 = input.get(xx, original_input.height() as i32 - 1).unwrap_or(255);
@@ -715,24 +708,6 @@ impl ExperimentWithLogisticRegression {
                     // let is_grid: u8 = if grid_mask_center > 0 { 1 } else { 0 };
 
                     // let repair_center: u8 = repair_mask.get(xx, yy).unwrap_or(255);
-
-                    let t: i32 = 2;
-                    let top0: u8 = input.get(xx - t, yy - t).unwrap_or(255);
-                    let top1: u8 = input.get(xx - 1, yy - t).unwrap_or(255);
-                    let top2: u8 = input.get(xx, yy - t).unwrap_or(255);
-                    let top3: u8 = input.get(xx + 1, yy - t).unwrap_or(255);
-                    let top4: u8 = input.get(xx + t, yy - t).unwrap_or(255);
-                    let left1: u8 = input.get(xx - t, yy - 1).unwrap_or(255);
-                    let left2: u8 = input.get(xx - t, yy).unwrap_or(255);
-                    let left3: u8 = input.get(xx - t, yy + 1).unwrap_or(255);
-                    let right1: u8 = input.get(xx + t, yy - 1).unwrap_or(255);
-                    let right2: u8 = input.get(xx + t, yy).unwrap_or(255);                                    
-                    let right3: u8 = input.get(xx + t, yy + 1).unwrap_or(255);
-                    let bottom0: u8 = input.get(xx - t, yy + t).unwrap_or(255);
-                    let bottom1: u8 = input.get(xx - 1, yy + t).unwrap_or(255);
-                    let bottom2: u8 = input.get(xx, yy + t).unwrap_or(255);
-                    let bottom3: u8 = input.get(xx + 1, yy + t).unwrap_or(255);
-                    let bottom4: u8 = input.get(xx + t, yy + t).unwrap_or(255);
 
                     let neighbour_up: u8 = image_neighbour_up.get(xx, yy).unwrap_or(255);
                     let neighbour_down: u8 = image_neighbour_down.get(xx, yy).unwrap_or(255);
@@ -1351,31 +1326,13 @@ impl ExperimentWithLogisticRegression {
                         pair_id,
                         values: vec!(),
                     };
-                    record.serialize_color_complex(top_left);
-                    record.serialize_color_complex(top);
-                    record.serialize_color_complex(top_right);
-                    record.serialize_color_complex(left);
-                    record.serialize_color_complex(center);
-                    record.serialize_color_complex(right);
-                    record.serialize_color_complex(bottom_left);
-                    record.serialize_color_complex(bottom);
-                    record.serialize_color_complex(bottom_right);
-                    record.serialize_color_complex(top0);
-                    record.serialize_color_complex(top1);
-                    record.serialize_color_complex(top2);
-                    record.serialize_color_complex(top3);
-                    record.serialize_color_complex(top4);
-                    record.serialize_color_complex(left1);
-                    record.serialize_color_complex(left2);
-                    record.serialize_color_complex(left3);
-                    record.serialize_color_complex(right1);
-                    record.serialize_color_complex(right2);
-                    record.serialize_color_complex(right3);
-                    record.serialize_color_complex(bottom0);
-                    record.serialize_color_complex(bottom1);
-                    record.serialize_color_complex(bottom2);
-                    record.serialize_color_complex(bottom3);
-                    record.serialize_color_complex(bottom4);
+                    for area_y in 0..area.height() {
+                        for area_x in 0..area.width() {
+                            let color: u8 = area.get(area_x as i32, area_y as i32).unwrap_or(255);
+                            record.serialize_color_complex(color);
+                        }
+                    }
+
                     record.serialize_color_complex(center_x_reversed);
                     record.serialize_color_complex(center_y_reversed);
                     record.serialize_color_complex(mass_connectivity4);
