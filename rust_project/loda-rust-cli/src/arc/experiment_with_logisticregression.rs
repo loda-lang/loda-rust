@@ -26,7 +26,7 @@ use linfa::prelude::*;
 use linfa_logistic::MultiLogisticRegression;
 use ndarray::prelude::*;
 
-static WRITE_TO_HTMLLOG: bool = false;
+static WRITE_TO_HTMLLOG: bool = true;
 
 #[derive(Clone, Debug, Serialize)]
 struct Record {
@@ -66,8 +66,12 @@ impl Record {
         self.values.push(value as f64);
     }
 
-    fn serialize_color(&mut self, color: u8) {
-        self.serialize_onehot(color, 10);
+    fn serialize_color_onehot(&mut self, color: u8) {
+        self.serialize_complex(color, 10);
+    }
+
+    fn serialize_color_complex(&mut self, color: u8) {
+        self.serialize_complex(color, 10);
     }
 
     /// Set the counter to 1 that are equal to the value.
@@ -75,6 +79,7 @@ impl Record {
     /// Otherwise the counters are zero.
     /// 
     /// When the value overflows the capacity then set the `other` counter to 1.
+    #[allow(dead_code)]
     fn serialize_onehot(&mut self, value: u8, count: u8) {
         let mut found: u8 = 0;
         for i in 0..count {
@@ -284,10 +289,10 @@ impl ExperimentWithLogisticRegression {
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
             let mut image_neighbour_right: Image = Image::color(width, height, 255);
-            // let mut image_neighbour_upleft: Image = Image::color(width, height, 255);
-            // let mut image_neighbour_upright: Image = Image::color(width, height, 255);
-            // let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
-            // let mut image_neighbour_downright: Image = Image::color(width, height, 255);
+            let mut image_neighbour_upleft: Image = Image::color(width, height, 255);
+            let mut image_neighbour_upright: Image = Image::color(width, height, 255);
+            let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
+            let mut image_neighbour_downright: Image = Image::color(width, height, 255);
             if let Some(color) = most_popular_color {
                 let ignore_mask: Image = input.to_mask_where_color_is(color);
                 match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Up, 255) {
@@ -314,30 +319,30 @@ impl ExperimentWithLogisticRegression {
                     },
                     Err(_) => {},
                 }
-                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, 255) {
-                //     Ok(image) => {
-                //         image_neighbour_upleft = image;
-                //     },
-                //     Err(_) => {},
-                // }
-                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, 255) {
-                //     Ok(image) => {
-                //         image_neighbour_upright = image;
-                //     },
-                //     Err(_) => {},
-                // }
-                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, 255) {
-                //     Ok(image) => {
-                //         image_neighbour_downleft = image;
-                //     },
-                //     Err(_) => {},
-                // }
-                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, 255) {
-                //     Ok(image) => {
-                //         image_neighbour_downright = image;
-                //     },
-                //     Err(_) => {},
-                // }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, 255) {
+                    Ok(image) => {
+                        image_neighbour_upleft = image;
+                    },
+                    Err(_) => {},
+                }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, 255) {
+                    Ok(image) => {
+                        image_neighbour_upright = image;
+                    },
+                    Err(_) => {},
+                }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, 255) {
+                    Ok(image) => {
+                        image_neighbour_downleft = image;
+                    },
+                    Err(_) => {},
+                }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, 255) {
+                    Ok(image) => {
+                        image_neighbour_downright = image;
+                    },
+                    Err(_) => {},
+                }
             }
 
             let mut holes_connectivity4 = HashMap::<u8, Image>::new();
@@ -521,16 +526,16 @@ impl ExperimentWithLogisticRegression {
                     let neighbour_down: u8 = image_neighbour_down.get(xx, yy).unwrap_or(255);
                     let neighbour_left: u8 = image_neighbour_left.get(xx, yy).unwrap_or(255);
                     let neighbour_right: u8 = image_neighbour_right.get(xx, yy).unwrap_or(255);
-                    // let neighbour_upleft: u8 = image_neighbour_upleft.get(xx, yy).unwrap_or(255);
-                    // let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
-                    // let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
-                    // let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
+                    let neighbour_upleft: u8 = image_neighbour_upleft.get(xx, yy).unwrap_or(255);
+                    let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
+                    let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
+                    let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
 
                     let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
-                    let corners_center1: u8 = if corners_center == 1 { 1 } else { 0 };
-                    let corners_center2: u8 = if corners_center == 2 { 1 } else { 0 };
-                    let corners_center3: u8 = if corners_center == 3 { 1 } else { 0 };
-                    let corners_center4: u8 = if corners_center == 4 { 1 } else { 0 };
+                    let corners_center1: bool = corners_center == 1;
+                    let corners_center2: bool = corners_center == 2;
+                    let corners_center3: bool = corners_center == 3;
+                    let corners_center4: bool = corners_center == 4;
 
                     // let column_above_center: Image = match input.crop(Rectangle::new(x, 0, 1, y)) {
                     //     Ok(value) => value,
@@ -550,30 +555,30 @@ impl ExperimentWithLogisticRegression {
                     // };
 
                     let max_distance: u8 = 3;
-                    let distance_top: u8 = y.min(max_distance);
-                    let distance_bottom: u8 = y_reverse.min(max_distance);
-                    let distance_left: u8 = x.min(max_distance);
-                    let distance_right: u8 = x_reverse.min(max_distance);
+                    let distance_top: u8 = y.min(max_distance) + 1;
+                    let distance_bottom: u8 = y_reverse.min(max_distance) + 1;
+                    let distance_left: u8 = x.min(max_distance) + 1;
+                    let distance_right: u8 = x_reverse.min(max_distance) + 1;
 
-                    let input_is_noise_color: u8 = if noise_color == Some(center) { 1 } else { 0 };
+                    let input_is_noise_color: bool = noise_color == Some(center);
                     // let input_is_removal_color: u8 = if removal_color == Some(center) { 1 } else { 0 };
 
                     let mass_connectivity4: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
                     let mass_connectivity8: u8 = image_mass_connectivity8.get(xx, yy).unwrap_or(0);
 
-                    let input_is_most_popular_color: u8 = if most_popular_color == Some(center) { 1 } else { 0 };
+                    let input_is_most_popular_color: bool = most_popular_color == Some(center);
                 
-                    let x_mod2: u8 = x % 2;
-                    let y_mod2: u8 = y % 2;
-                    let x_reverse_mod2: u8 = x_reverse % 2;
-                    let y_reverse_mod2: u8 = y_reverse % 2;
+                    let x_mod2: bool = x % 2 == 0;
+                    let y_mod2: bool = y % 2 == 0;
+                    let x_reverse_mod2: bool = x_reverse % 2 == 0;
+                    let y_reverse_mod2: bool = y_reverse % 2 == 0;
 
                     // let x_mod3: u8 = x % 3;
                     // let y_mod3: u8 = y % 3;
                     // let x_reverse_mod3: u8 = x_reverse % 3;
                     // let y_reverse_mod3: u8 = y_reverse % 3;
 
-                    let mut preserve_edge: u8 = 0;
+                    let mut preserve_edge: bool = false;
 
                     let mut v0: u8 = 0;
                     let mut v1: u8 = 0;
@@ -771,22 +776,22 @@ impl ExperimentWithLogisticRegression {
                                 match *edge {
                                     ImageEdge::Top => {
                                         if y == 0 {
-                                            preserve_edge = 1;
+                                            preserve_edge = true;
                                         }
                                     },
                                     ImageEdge::Bottom => {
                                         if y_reverse == 0 {
-                                            preserve_edge = 1;
+                                            preserve_edge = true;
                                         }
                                     },
                                     ImageEdge::Left => {
                                         if x == 0 {
-                                            preserve_edge = 1;
+                                            preserve_edge = true;
                                         }
                                     },
                                     ImageEdge::Right => {
                                         if x_reverse == 0 {
-                                            preserve_edge = 1;
+                                            preserve_edge = true;
                                         }
                                     },
                                 }
@@ -984,20 +989,20 @@ impl ExperimentWithLogisticRegression {
                         // }
                     }
 
-                    let full_row_and_column: u8 = if is_full_row & is_full_column { 1 } else { 0 };
-                    let full_row_xor_column: u8 = if is_full_row ^ is_full_column { 1 } else { 0 };
-                    let full_row_or_column: u8 = if is_full_row | is_full_column { 1 } else { 0 };
+                    let full_row_and_column: bool = is_full_row & is_full_column;
+                    let full_row_xor_column: bool = is_full_row ^ is_full_column;
+                    let full_row_or_column: bool = is_full_row | is_full_column;
 
-                    let mut one_or_more_holes_connectivity4: u8 = 0;
+                    let mut one_or_more_holes_connectivity4: bool = false;
                     if let Some(hole_mask) = holes_connectivity4.get(&center) {
                         if hole_mask.get(xx, yy).unwrap_or(0) > 0 {
-                            one_or_more_holes_connectivity4 = 1;
+                            one_or_more_holes_connectivity4 = true;
                         }
                     }
-                    let mut one_or_more_holes_connectivity8: u8 = 0;
+                    let mut one_or_more_holes_connectivity8: bool = false;
                     if let Some(hole_mask) = holes_connectivity8.get(&center) {
                         if hole_mask.get(xx, yy).unwrap_or(0) > 0 {
-                            one_or_more_holes_connectivity8 = 1;
+                            one_or_more_holes_connectivity8 = true;
                         }
                     }
 
@@ -1010,8 +1015,8 @@ impl ExperimentWithLogisticRegression {
                         the_holecount_connectivity8 = holecount_image.get(xx, yy).unwrap_or(0);
                     }
 
-                    let mut noise_color_in_outline1_connectivity4: u8 = 0;
-                    let mut noise_color_in_outline1_connectivity8: u8 = 0;
+                    let mut noise_color_in_outline1_connectivity4: u8 = 255;
+                    let mut noise_color_in_outline1_connectivity8: u8 = 255;
                     // let mut noise_color_in_outline2_connectivity4: u8 = 0;
                     // let mut noise_color_in_outline2_connectivity8: u8 = 0;
                     if let Some(color) = noise_color {
@@ -1078,12 +1083,32 @@ impl ExperimentWithLogisticRegression {
                     //     }
                     // }
 
+                    let half_horizontal: i8;
+                    if xx * 2 == width as i32 { 
+                        half_horizontal = 0;
+                    } else {
+                        if xx * 2 < width as i32 { 
+                            half_horizontal = -1;
+                        } else { 
+                            half_horizontal = 1;
+                        };
+                    }
+                    let half_vertical: i8;
+                    if yy * 2 == height as i32 { 
+                        half_vertical = 0;
+                    } else {
+                        if yy * 2 < height as i32 { 
+                            half_vertical = -1;
+                        } else { 
+                            half_vertical = 1;
+                        };
+                    }
                     // let half_left: u8 = if xx * 2 < width as i32 { 1 } else { 0 };
                     // let half_right: u8 = if xx * 2 > width as i32 { 1 } else { 0 };
                     // let half_top: u8 = if yy * 2 < height as i32 { 1 } else { 0 };
                     // let half_bottom: u8 = if yy * 2 > height as i32 { 1 } else { 0 };
 
-                    let input_has_unambiguous_connectivity: u8 = if input_unambiguous_connectivity_histogram.get(center) > 0 { 1 } else { 0 };
+                    let input_has_unambiguous_connectivity: bool = input_unambiguous_connectivity_histogram.get(center) > 0;
 
                     let mut record = Record {
                         classification: output_color,
@@ -1091,66 +1116,82 @@ impl ExperimentWithLogisticRegression {
                         pair_id,
                         values: vec!(),
                     };
-                    record.serialize_color(top_left);
-                    record.serialize_color(top);
-                    record.serialize_color(top_right);
-                    record.serialize_color(left);
-                    record.serialize_color(center);
-                    record.serialize_color(right);
-                    record.serialize_color(bottom_left);
-                    record.serialize_color(bottom);
-                    record.serialize_color(bottom_right);
-                    record.serialize_color(top0);
-                    record.serialize_color(top1);
-                    record.serialize_color(top2);
-                    record.serialize_color(top3);
-                    record.serialize_color(top4);
-                    record.serialize_color(left1);
-                    record.serialize_color(left2);
-                    record.serialize_color(left3);
-                    record.serialize_color(right1);
-                    record.serialize_color(right2);
-                    record.serialize_color(right3);
-                    record.serialize_color(bottom0);
-                    record.serialize_color(bottom1);
-                    record.serialize_color(bottom2);
-                    record.serialize_color(bottom3);
-                    record.serialize_color(bottom4);
-                    record.serialize_color(center_x_reversed);
-                    record.serialize_color(center_y_reversed);
-                    record.serialize_color(mass_connectivity4);
-                    record.serialize_color(mass_connectivity8);
+                    record.serialize_color_complex(top_left);
+                    record.serialize_color_complex(top);
+                    record.serialize_color_complex(top_right);
+                    record.serialize_color_complex(left);
+                    record.serialize_color_complex(center);
+                    record.serialize_color_complex(right);
+                    record.serialize_color_complex(bottom_left);
+                    record.serialize_color_complex(bottom);
+                    record.serialize_color_complex(bottom_right);
+                    record.serialize_color_complex(top0);
+                    record.serialize_color_complex(top1);
+                    record.serialize_color_complex(top2);
+                    record.serialize_color_complex(top3);
+                    record.serialize_color_complex(top4);
+                    record.serialize_color_complex(left1);
+                    record.serialize_color_complex(left2);
+                    record.serialize_color_complex(left3);
+                    record.serialize_color_complex(right1);
+                    record.serialize_color_complex(right2);
+                    record.serialize_color_complex(right3);
+                    record.serialize_color_complex(bottom0);
+                    record.serialize_color_complex(bottom1);
+                    record.serialize_color_complex(bottom2);
+                    record.serialize_color_complex(bottom3);
+                    record.serialize_color_complex(bottom4);
+                    record.serialize_color_complex(center_x_reversed);
+                    record.serialize_color_complex(center_y_reversed);
+                    record.serialize_color_complex(mass_connectivity4);
+                    record.serialize_color_complex(mass_connectivity8);
+
+                    // for all 10 colors.
+                    record.serialize_color_complex(neighbour_upleft);
+                    record.serialize_color_complex(neighbour_upright);
+                    record.serialize_color_complex(neighbour_downleft);
+                    record.serialize_color_complex(neighbour_downright);
+
+                    // for all 10 colors.
+                    // look in the diagonal direction, skip the first 2 colors, and pick the 2nd color
+
                     record.serialize_u8(distance_top);
                     record.serialize_u8(distance_bottom);
                     record.serialize_u8(distance_left);
                     record.serialize_u8(distance_right);
-                    record.serialize_u8(input_is_noise_color);
-                    record.serialize_u8(input_is_most_popular_color);
-                    record.serialize_u8(x_mod2);
-                    record.serialize_u8(y_mod2);
-                    record.serialize_u8(x_reverse_mod2);
-                    record.serialize_u8(y_reverse_mod2);
-                    record.serialize_u8(preserve_edge);
-                    record.serialize_u8(full_row_and_column);
-                    record.serialize_u8(full_row_xor_column);
-                    record.serialize_u8(full_row_or_column);
-                    record.serialize_u8(one_or_more_holes_connectivity4);
-                    record.serialize_u8(one_or_more_holes_connectivity8);
-                    record.serialize_color(the_holecount_connectivity4);
-                    record.serialize_color(the_holecount_connectivity8);
-                    record.serialize_u8(corners_center1);
-                    record.serialize_u8(corners_center2);
-                    record.serialize_u8(corners_center3);
-                    record.serialize_u8(corners_center4);
+                    record.serialize_ternary(half_horizontal);
+                    record.serialize_ternary(half_vertical);
+                    record.serialize_bool(input_is_noise_color);
+                    record.serialize_bool(input_is_most_popular_color);
+                    record.serialize_bool(x_mod2);
+                    record.serialize_bool(y_mod2);
+                    record.serialize_bool(x_reverse_mod2);
+                    record.serialize_bool(y_reverse_mod2);
+                    record.serialize_bool(preserve_edge);
+                    record.serialize_bool(full_row_and_column);
+                    record.serialize_bool(full_row_xor_column);
+                    record.serialize_bool(full_row_or_column);
+                    record.serialize_bool(one_or_more_holes_connectivity4);
+                    record.serialize_bool(one_or_more_holes_connectivity8);
+                    record.serialize_color_complex(the_holecount_connectivity4);
+                    record.serialize_color_complex(the_holecount_connectivity8);
+                    record.serialize_bool(corners_center1);
+                    record.serialize_bool(corners_center2);
+                    record.serialize_bool(corners_center3);
+                    record.serialize_bool(corners_center4);
                     for i in 0..10 {
-                        let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
-                        record.serialize_u8(value);
+                        // let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
+                        // record.serialize_u8(value);
+                        let value2: u8 = if no_change_to_color[i] { i as u8 } else { 255 };
+                        record.serialize_color_complex(value2);
                     }
                     for i in 0..10 {
-                        let value: u8 = if input_histogram_intersection[i] { 1 } else { 0 };
-                        record.serialize_u8(value);
+                        // let value: u8 = if input_histogram_intersection[i] { 1 } else { 0 };
+                        // record.serialize_u8(value);
+                        let value2: u8 = if input_histogram_intersection[i] { i as u8 } else { 255 };
+                        record.serialize_color_complex(value2);
                     }
-                    record.serialize_u8(input_has_unambiguous_connectivity);
+                    record.serialize_bool(input_has_unambiguous_connectivity);
                     record.serialize_u8(v0);
                     record.serialize_u8(v1);
                     record.serialize_u8(v2);
@@ -1159,23 +1200,23 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_u8(v5);
                     record.serialize_u8(v6);
                     record.serialize_u8(v7);
-                    record.serialize_u8(noise_color_in_outline1_connectivity4);
-                    record.serialize_u8(noise_color_in_outline1_connectivity8);
+                    record.serialize_color_complex(noise_color_in_outline1_connectivity4);
+                    record.serialize_color_complex(noise_color_in_outline1_connectivity8);
                     // record.serialize_u8(noise_color_in_outline2_connectivity4); // worsens the prediction
                     // record.serialize_u8(noise_color_in_outline2_connectivity8); // worsens the prediction
 
-                    let mut row_contains_noise_color: u8 = 0;
-                    let mut column_contains_noise_color: u8 = 0;
+                    let mut row_contains_noise_color: bool = false;
+                    let mut column_contains_noise_color: bool = false;
                     if let Some(color) = noise_color {
                         if histogram_rows[y as usize].get(color) > 0 {
-                            row_contains_noise_color = 1;
+                            row_contains_noise_color = true;
                         }
                         if histogram_columns[x as usize].get(color) > 0 {
-                            column_contains_noise_color = 1;
+                            column_contains_noise_color = true;
                         }
                     }
-                    record.serialize_u8(row_contains_noise_color);
-                    record.serialize_u8(column_contains_noise_color);
+                    record.serialize_bool(row_contains_noise_color);
+                    record.serialize_bool(column_contains_noise_color);
 
 
                     // Future experiments
@@ -1401,13 +1442,13 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
                 }
                 HtmlLog::image(&computed_image);
             } else {
-                // HtmlLog::text(format!("{} - incorrect", task.id));
-                // let images: Vec<Image> = vec![
-                //     original_input,
-                //     expected_output,
-                //     computed_image.clone(),
-                // ];
-                // HtmlLog::compare_images(images);
+                HtmlLog::text(format!("{} - incorrect", task.id));
+                let images: Vec<Image> = vec![
+                    original_input,
+                    expected_output,
+                    computed_image.clone(),
+                ];
+                HtmlLog::compare_images(images);
             }
         }
 

@@ -12,6 +12,7 @@ name = "loda-rust"
 path = "src/main.rs"
 
 [features]
+default = ["linfa"]
 linfa = ["dep:linfa", "dep:linfa-logistic", "dep:linfa-preprocessing", "dep:ndarray"]
 
 [dependencies]
