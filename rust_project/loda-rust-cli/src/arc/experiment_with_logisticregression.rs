@@ -37,12 +37,12 @@ struct Record {
     // Future experiment
     // make a `secondary_values` vector that use a lower weight in the logistic regression.
     // examples of secondary values: is the x position a mod2==0, is x position a mod3==0.
-    values: Vec<u8>,
+    values: Vec<f64>,
 }
 
 impl Record {
-    fn serialize_raw(&mut self, value: u8) {
-        self.values.push(value);
+    fn serialize_u8(&mut self, value: u8) {
+        self.values.push(value as f64);
     }
 
     fn serialize_color(&mut self, color: u8) {
@@ -59,10 +59,10 @@ impl Record {
         for i in 0..count {
             let v: u8 = if i == value { 1 } else { 0 };
             found |= v;
-            self.values.push(v);
+            self.values.push(v as f64);
         }
         let other: u8 = if found > 0 { 0 } else { 1 };
-        self.values.push(other);
+        self.values.push(other as f64);
     }
 
     /// Set the counter to 1 that are equal to the value.
@@ -74,7 +74,7 @@ impl Record {
     fn serialize_onehot_discard_overflow(&mut self, value: u8, count: u8) {
         for i in 0..count {
             let v: u8 = if i == value { 1 } else { 0 };
-            self.values.push(v);
+            self.values.push(v as f64);
         }
     }
 
@@ -89,10 +89,10 @@ impl Record {
         for i in 0..count {
             let v: u8 = if i >= value { 1 } else { 0 };
             found |= v;
-            self.values.push(v);
+            self.values.push(v as f64);
         }
         let other: u8 = if found > 0 { 0 } else { 1 };
-        self.values.push(other);
+        self.values.push(other as f64);
     }
 }
 
@@ -1077,49 +1077,49 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_color(center_y_reversed);
                     record.serialize_color(mass_connectivity4);
                     record.serialize_color(mass_connectivity8);
-                    record.serialize_raw(distance_top);
-                    record.serialize_raw(distance_bottom);
-                    record.serialize_raw(distance_left);
-                    record.serialize_raw(distance_right);
-                    record.serialize_raw(input_is_noise_color);
-                    record.serialize_raw(input_is_most_popular_color);
-                    record.serialize_raw(x_mod2);
-                    record.serialize_raw(y_mod2);
-                    record.serialize_raw(x_reverse_mod2);
-                    record.serialize_raw(y_reverse_mod2);
-                    record.serialize_raw(preserve_edge);
-                    record.serialize_raw(full_row_and_column);
-                    record.serialize_raw(full_row_xor_column);
-                    record.serialize_raw(full_row_or_column);
-                    record.serialize_raw(one_or_more_holes_connectivity4);
-                    record.serialize_raw(one_or_more_holes_connectivity8);
+                    record.serialize_u8(distance_top);
+                    record.serialize_u8(distance_bottom);
+                    record.serialize_u8(distance_left);
+                    record.serialize_u8(distance_right);
+                    record.serialize_u8(input_is_noise_color);
+                    record.serialize_u8(input_is_most_popular_color);
+                    record.serialize_u8(x_mod2);
+                    record.serialize_u8(y_mod2);
+                    record.serialize_u8(x_reverse_mod2);
+                    record.serialize_u8(y_reverse_mod2);
+                    record.serialize_u8(preserve_edge);
+                    record.serialize_u8(full_row_and_column);
+                    record.serialize_u8(full_row_xor_column);
+                    record.serialize_u8(full_row_or_column);
+                    record.serialize_u8(one_or_more_holes_connectivity4);
+                    record.serialize_u8(one_or_more_holes_connectivity8);
                     record.serialize_color(the_holecount_connectivity4);
                     record.serialize_color(the_holecount_connectivity8);
-                    record.serialize_raw(corners_center1);
-                    record.serialize_raw(corners_center2);
-                    record.serialize_raw(corners_center3);
-                    record.serialize_raw(corners_center4);
+                    record.serialize_u8(corners_center1);
+                    record.serialize_u8(corners_center2);
+                    record.serialize_u8(corners_center3);
+                    record.serialize_u8(corners_center4);
                     for i in 0..10 {
                         let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
-                        record.serialize_raw(value);
+                        record.serialize_u8(value);
                     }
                     for i in 0..10 {
                         let value: u8 = if input_histogram_intersection[i] { 1 } else { 0 };
-                        record.serialize_raw(value);
+                        record.serialize_u8(value);
                     }
-                    record.serialize_raw(input_has_unambiguous_connectivity);
-                    record.serialize_raw(v0);
-                    record.serialize_raw(v1);
-                    record.serialize_raw(v2);
-                    record.serialize_raw(v3);
-                    record.serialize_raw(v4);
-                    record.serialize_raw(v5);
-                    record.serialize_raw(v6);
-                    record.serialize_raw(v7);
-                    record.serialize_raw(noise_color_in_outline1_connectivity4);
-                    record.serialize_raw(noise_color_in_outline1_connectivity8);
-                    // record.serialize_raw(noise_color_in_outline2_connectivity4); // worsens the prediction
-                    // record.serialize_raw(noise_color_in_outline2_connectivity8); // worsens the prediction
+                    record.serialize_u8(input_has_unambiguous_connectivity);
+                    record.serialize_u8(v0);
+                    record.serialize_u8(v1);
+                    record.serialize_u8(v2);
+                    record.serialize_u8(v3);
+                    record.serialize_u8(v4);
+                    record.serialize_u8(v5);
+                    record.serialize_u8(v6);
+                    record.serialize_u8(v7);
+                    record.serialize_u8(noise_color_in_outline1_connectivity4);
+                    record.serialize_u8(noise_color_in_outline1_connectivity8);
+                    // record.serialize_u8(noise_color_in_outline2_connectivity4); // worsens the prediction
+                    // record.serialize_u8(noise_color_in_outline2_connectivity8); // worsens the prediction
 
                     let mut row_contains_noise_color: u8 = 0;
                     let mut column_contains_noise_color: u8 = 0;
@@ -1131,8 +1131,8 @@ impl ExperimentWithLogisticRegression {
                             column_contains_noise_color = 1;
                         }
                     }
-                    record.serialize_raw(row_contains_noise_color);
-                    record.serialize_raw(column_contains_noise_color);
+                    record.serialize_u8(row_contains_noise_color);
+                    record.serialize_u8(column_contains_noise_color);
 
 
                     // Future experiments
@@ -1178,23 +1178,23 @@ impl ExperimentWithLogisticRegression {
                     // preserve corner: u8,
                     // x_distance_from_center: i16,
                     // y_distance_from_center: i16,
-                    // record.serialize_raw(the_horizontal_symmetry_connectivity4);
-                    // record.serialize_raw(the_horizontal_symmetry_connectivity8);
-                    // record.serialize_raw(the_vertical_symmetry_connectivity4);
-                    // record.serialize_raw(the_vertical_symmetry_connectivity8);
-                    // record.serialize_raw(is_corner);
-                    // record.serialize_raw(corner_top_left);
-                    // record.serialize_raw(corner_top_right);
-                    // record.serialize_raw(corner_bottom_left);
-                    // record.serialize_raw(corner_bottom_right);
-                    // record.serialize_raw(inside_bounding_box);
-                    // record.serialize_raw(is_grid);
+                    // record.serialize_u8(the_horizontal_symmetry_connectivity4);
+                    // record.serialize_u8(the_horizontal_symmetry_connectivity8);
+                    // record.serialize_u8(the_vertical_symmetry_connectivity4);
+                    // record.serialize_u8(the_vertical_symmetry_connectivity8);
+                    // record.serialize_u8(is_corner);
+                    // record.serialize_u8(corner_top_left);
+                    // record.serialize_u8(corner_top_right);
+                    // record.serialize_u8(corner_bottom_left);
+                    // record.serialize_u8(corner_bottom_right);
+                    // record.serialize_u8(inside_bounding_box);
+                    // record.serialize_u8(is_grid);
                     // record.serialize_color(grid_center);
                     // record.serialize_color(grid_color);
-                    // record.serialize_raw(half_left);
-                    // record.serialize_raw(half_right);
-                    // record.serialize_raw(half_top);
-                    // record.serialize_raw(half_bottom);
+                    // record.serialize_u8(half_left);
+                    // record.serialize_u8(half_right);
+                    // record.serialize_u8(half_top);
+                    // record.serialize_u8(half_bottom);
 
                     records.push(record);
                 }
@@ -1225,7 +1225,7 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
         data.push(record.is_test as f64);
         data.push(record.pair_id as f64);
         for value in &record.values {
-            data.push(*value as f64);
+            data.push(*value);
         }
         let value_count: usize = record.values.len();
         values_max = values_max.max(value_count);
