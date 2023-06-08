@@ -341,6 +341,26 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            let mut enumerated_clusters_grow_mask1 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters {
+                match image.mask_grow(*connectivity) {
+                    Ok(image) => {
+                        enumerated_clusters_grow_mask1.insert((*color, *connectivity), image);
+                    },
+                    Err(_) => {},
+                }
+            }
+
+            let mut enumerated_clusters_grow_mask2 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters_grow_mask1 {
+                match image.mask_grow(*connectivity) {
+                    Ok(image) => {
+                        enumerated_clusters_grow_mask2.insert((*color, *connectivity), image);
+                    },
+                    Err(_) => {},
+                }
+            }
+
             let mut small_medium_big = HashMap::<(u8, PixelConnectivity), Image>::new();
             for ((color, connectivity), image) in &enumerated_clusters {
                 let oam: ObjectsAndMass = match ObjectsAndMass::new(image) {
@@ -1354,13 +1374,35 @@ impl ExperimentWithLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
-                                let cluster_id: u8 = match enumerated_clusters_filled_holes_mask.get(&(color, *connectivity)) {
+                                let mask_value: u8 = match enumerated_clusters_filled_holes_mask.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
                                     }
                                     None => 255
                                 };
-                                record.serialize_color_complex(cluster_id);
+                                record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let mask_value: u8 = match enumerated_clusters_grow_mask1.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let mask_value: u8 = match enumerated_clusters_grow_mask2.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_bool(mask_value > 0);
                             }
                         }
                     }
