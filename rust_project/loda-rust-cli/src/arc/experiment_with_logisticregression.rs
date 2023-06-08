@@ -459,6 +459,31 @@ impl ExperimentWithLogisticRegression {
                 cluster_distance5.insert((*color, *connectivity), b);
             }
 
+            let mut cluster_id_neighbour = HashMap::<(u8, ImageNeighbourDirection, PixelConnectivity), Image>::new();
+            {
+                let directions = [
+                    ImageNeighbourDirection::Up,
+                    ImageNeighbourDirection::Down,
+                    ImageNeighbourDirection::Left,
+                    ImageNeighbourDirection::Right,
+                    ImageNeighbourDirection::UpLeft,
+                    ImageNeighbourDirection::UpRight,
+                    ImageNeighbourDirection::DownLeft,
+                    ImageNeighbourDirection::DownRight,
+                ];
+                for direction in directions {
+                    for ((color, connectivity), image) in &enumerated_clusters {
+                        let ignore_mask: Image = image.to_mask_where_color_is(0);
+                        match image.neighbour_color(&ignore_mask, direction, 255) {
+                            Ok(image) => {
+                                cluster_id_neighbour.insert((*color, direction, *connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
@@ -1421,9 +1446,9 @@ impl ExperimentWithLogisticRegression {
                         ImageNeighbourDirection::DownLeft,
                         ImageNeighbourDirection::DownRight,
                     ];
-                    for direction in directions {
+                    for direction in &directions {
                         for color in 0..=9 {
-                            let neighbour_color: u8 = match image_neighbour.get(&(color, direction)) {
+                            let neighbour_color: u8 = match image_neighbour.get(&(color, *direction)) {
                                 Some(value) => {
                                     value.get(xx, yy).unwrap_or(255)
                                 }
@@ -1449,7 +1474,7 @@ impl ExperimentWithLogisticRegression {
                                     }
                                     None => 255
                                 };
-                                record.serialize_complex(cluster_id, 10);
+                                record.serialize_complex(cluster_id, 21);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -1565,6 +1590,31 @@ impl ExperimentWithLogisticRegression {
                                 record.serialize_bool(distance % 2 == 0);
                             }
                         }
+
+                        let directions = [
+                            ImageNeighbourDirection::Up,
+                            ImageNeighbourDirection::Down,
+                            ImageNeighbourDirection::Left,
+                            ImageNeighbourDirection::Right,
+                            // ImageNeighbourDirection::UpLeft,
+                            // ImageNeighbourDirection::UpRight,
+                            // ImageNeighbourDirection::DownLeft,
+                            // ImageNeighbourDirection::DownRight,
+                        ];
+                        // for connectivity in &connectivity_vec {
+                        //     for direction in &directions {
+                        //         for color in 0..=9 {
+                        //             let cluster_id: u8 = match cluster_id_neighbour.get(&(color, *direction, *connectivity)) {
+                        //                 Some(value) => {
+                        //                     value.get(xx, yy).unwrap_or(255)
+                        //                 }
+                        //                 None => 255
+                        //             };
+                        //             record.serialize_complex(cluster_id, 13);
+                        //         }
+                        //     }
+                        // }
+    
                     }
 
                     {
