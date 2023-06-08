@@ -1477,9 +1477,17 @@ impl ExperimentWithLogisticRegression {
                             // record.serialize_bool(count < 2);
                         }
                     }
-                    
+
                     record.serialize_color_complex(center_denoise_type1);
-    
+
+                    for color in 0..=9 {
+                        let mut is_inside_bounding_box: bool = false;
+                        if let Some(sco) = &pair.input.single_color_objects {
+                            is_inside_bounding_box = sco.is_inside_bounding_box(color, xx, yy);
+                        }
+                        record.serialize_bool(is_inside_bounding_box);
+                    }
+
 
                     // Future experiments
                     // push all the training pairs that have been rotated by 90 degrees.
