@@ -94,6 +94,28 @@ impl Record {
         let other: u8 = if found > 0 { 0 } else { 1 };
         self.values.push(other as f64);
     }
+
+    /// Serialize to a complex number.
+    /// 
+    /// When the 0 <= value < count, then the the value is converted to a complex number,
+    /// with distance 1 from the origin. The values are evenly distributed around the unit circle.
+    /// 
+    /// When the value overflows the `x` and `y` are set to zero.
+    #[allow(dead_code)]
+    fn serialize_complex(&mut self, value: u8, count: u8) {
+        let x: f64;
+        let y: f64;
+        if count > 0 && value < count {
+            let radians: f64 = value as f64 * std::f64::consts::TAU / count as f64;
+            x = radians.cos();
+            y = radians.sin();
+        } else {
+            x = 0.0;
+            y = 0.0;
+        }
+        self.values.push(x);
+        self.values.push(y);
+    }
 }
 
 pub struct ExperimentWithLogisticRegression {
