@@ -13,7 +13,7 @@
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ObjectsUniqueColorCount};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ObjectsUniqueColorCount, ImageCrop, Rectangle, ImageExtractRowColumn};
 use super::{ActionLabel, InputLabel};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
@@ -60,6 +60,10 @@ impl Record {
             }
         }
         self.values.push(v);
+    }
+
+    fn serialize_f64(&mut self, value: f64) {
+        self.values.push(value);
     }
 
     fn serialize_u8(&mut self, value: u8) {
@@ -136,6 +140,23 @@ impl Record {
             let radians: f64 = ((value as f64) + 0.2) * std::f64::consts::TAU / count as f64;
             x = radians.cos();
             y = radians.sin();
+        } else {
+            x = 0.0;
+            y = 0.0;
+        }
+        self.values.push(x);
+        self.values.push(y);
+    }
+
+    #[allow(dead_code)]
+    fn serialize_complex_scaled(&mut self, value: u8, count: u8, scale: f64) {
+        let x: f64;
+        let y: f64;
+        if count > 0 && value < count {
+            // let radians: f64 = value as f64 * std::f64::consts::TAU / count as f64;
+            let radians: f64 = ((value as f64) + 0.2) * std::f64::consts::TAU / count as f64;
+            x = radians.cos() * scale;
+            y = radians.sin() * scale;
         } else {
             x = 0.0;
             y = 0.0;
@@ -656,6 +677,33 @@ impl ExperimentWithLogisticRegression {
                     //     Ok(value) => value,
                     //     Err(_) => Image::empty()
                     // };
+                    let center_column: Image = match input.crop(Rectangle::new(x, 0, 1, height)) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    let center_row: Image = match input.crop(Rectangle::new(0, y, width, 1)) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    let center_column_top: Image = match center_column.top_rows(y) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    let center_column_bottom: Image = match center_column.bottom_rows(y_reverse) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    let center_row_left: Image = match center_row.left_columns(x) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    let center_row_right: Image = match center_row.right_columns(y_reverse) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    
+
+
 
                     let max_distance: u8 = 3;
                     let distance_top: u8 = y.min(max_distance) + 1;
@@ -1179,12 +1227,12 @@ impl ExperimentWithLogisticRegression {
                     //     }
                     // }
 
-                    // let mut inside_bounding_box: u8 = 0;
-                    // if let Some(sco) = &pair.input.single_color_objects {
-                    //     if sco.is_inside_bounding_box(center, xx, yy) {
-                    //         inside_bounding_box = 1;
-                    //     }
-                    // }
+                    let mut inside_bounding_box: bool = false;
+                    if let Some(sco) = &pair.input.single_color_objects {
+                        if sco.is_inside_bounding_box(center, xx, yy) {
+                            inside_bounding_box = true;
+                        }
+                    }
 
                     let half_horizontal: i8;
                     if xx * 2 == width as i32 { 
@@ -1406,6 +1454,25 @@ impl ExperimentWithLogisticRegression {
                             }
                         }
                     }
+
+                    {
+                        let images: [&Image; 4] = [
+                            &center_column_top,
+                            &center_column_bottom,
+                            &center_row_left,
+                            &center_row_right,
+                        ];
+                        for image in images {
+                            let h: Histogram = image.histogram_all();
+                            let most_popular: Option<u8> = h.most_popular_color_disallow_ambiguous();
+                            let least_popular: Option<u8> = h.least_popular_color_disallow_ambiguous();
+                            record.serialize_color_complex(most_popular.unwrap_or(255));
+                            record.serialize_color_complex(least_popular.unwrap_or(255));
+                            // let count: u16 = h.number_of_counters_greater_than_zero();
+                            // record.serialize_f64((count+1) as f64);
+                            // record.serialize_bool(count < 2);
+                        }
+                    }
     
 
                     // Future experiments
@@ -1460,10 +1527,11 @@ impl ExperimentWithLogisticRegression {
                     // record.serialize_u8(corner_top_right);
                     // record.serialize_u8(corner_bottom_left);
                     // record.serialize_u8(corner_bottom_right);
-                    // record.serialize_u8(inside_bounding_box);
                     // record.serialize_u8(is_grid);
                     // record.serialize_color(grid_center);
                     // record.serialize_color(grid_color);
+                    // record.serialize_bool(inside_bounding_box);
+                    // record.serialize_complex(object_center, 20);
 
                     records.push(record);
                 }
