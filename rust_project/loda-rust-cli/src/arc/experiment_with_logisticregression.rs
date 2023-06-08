@@ -13,7 +13,7 @@
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ObjectsUniqueColorCount, ImageCrop, Rectangle, ImageExtractRowColumn};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ObjectsUniqueColorCount, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise};
 use super::{ActionLabel, InputLabel};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
@@ -589,6 +589,8 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            let input_denoise_type1: Image = input.denoise_type1(most_popular_color.unwrap_or(255))?;
+
             for y in 0..height {
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -615,6 +617,8 @@ impl ExperimentWithLogisticRegression {
                     let center_x_reversed: u8 = input.get(x_reverse as i32, yy).unwrap_or(255);
                     let center_y_reversed: u8 = input.get(xx, y_reverse as i32).unwrap_or(255);
                     
+                    let center_denoise_type1: u8 = input_denoise_type1.get(xx, yy).unwrap_or(255);
+
                     let object_center: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
                     // let object_top: u8 = enumerated_objects.get(xx, yy - 1).unwrap_or(255);
                     // let object_bottom: u8 = enumerated_objects.get(xx, yy + 1).unwrap_or(255);
@@ -1473,6 +1477,8 @@ impl ExperimentWithLogisticRegression {
                             // record.serialize_bool(count < 2);
                         }
                     }
+                    
+                    record.serialize_color_complex(center_denoise_type1);
     
 
                     // Future experiments
