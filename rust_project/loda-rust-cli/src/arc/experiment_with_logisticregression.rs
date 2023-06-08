@@ -13,7 +13,7 @@
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass};
 use super::{ActionLabel, InputLabel};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
@@ -311,23 +311,32 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
-            let mut enumerated_clusters4 = HashMap::<u8, Image>::new();
-            let mut enumerated_clusters8 = HashMap::<u8, Image>::new();
+            let mut enumerated_clusters = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.single_color_objects {
-                for color in 0..=9 {
-                    match sco.enumerate_clusters(color, PixelConnectivity::Connectivity4) {
-                        Ok(image) => {
-                            enumerated_clusters4.insert(color, image);
-                        },
-                        Err(_) => {},
-                    }
-                    match sco.enumerate_clusters(color, PixelConnectivity::Connectivity8) {
-                        Ok(image) => {
-                            enumerated_clusters8.insert(color, image);
-                        },
-                        Err(_) => {},
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.enumerate_clusters(color, connectivity) {
+                            Ok(image) => {
+                                enumerated_clusters.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
                     }
                 }
+            }
+
+            let mut small_medium_big = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters {
+                let oam: ObjectsAndMass = match ObjectsAndMass::new(image) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                let a: Image = match oam.group3_small_medium_big(false) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                small_medium_big.insert((*color, *connectivity), a);
             }
 
 
@@ -1285,23 +1294,28 @@ impl ExperimentWithLogisticRegression {
     
                     // Cluster id
                     {
-                        for color in 0..=9 {
-                            let cluster_id: u8 = match enumerated_clusters4.get(&color) {
-                                Some(value) => {
-                                    value.get(xx, yy).unwrap_or(255)
-                                }
-                                None => 255
-                            };
-                            record.serialize_complex(cluster_id, 255);
+                        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let cluster_id: u8 = match enumerated_clusters.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_complex(cluster_id, 10);
+                            }
                         }
-                        for color in 0..=9 {
-                            let cluster_id: u8 = match enumerated_clusters8.get(&color) {
-                                Some(value) => {
-                                    value.get(xx, yy).unwrap_or(255)
-                                }
-                                None => 255
-                            };
-                            record.serialize_complex(cluster_id, 255);
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let cluster_id: u8 = match small_medium_big.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_complex(cluster_id, 10);
+                            }
                         }
                     }
     
