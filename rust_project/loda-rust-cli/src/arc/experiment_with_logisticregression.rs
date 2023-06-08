@@ -13,7 +13,7 @@
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ObjectsUniqueColorCount};
 use super::{ActionLabel, InputLabel};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
@@ -326,6 +326,21 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            let mut enumerated_clusters_filled_holes_mask = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if let Some(sco) = &pair.input.single_color_objects {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.filled_holes_mask(color, connectivity) {
+                            Ok(image) => {
+                                enumerated_clusters_filled_holes_mask.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
             let mut small_medium_big = HashMap::<(u8, PixelConnectivity), Image>::new();
             for ((color, connectivity), image) in &enumerated_clusters {
                 let oam: ObjectsAndMass = match ObjectsAndMass::new(image) {
@@ -337,6 +352,19 @@ impl ExperimentWithLogisticRegression {
                     Err(_) => continue,
                 };
                 small_medium_big.insert((*color, *connectivity), a);
+            }
+
+            let mut sort2_small_big = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters {
+                let oam: ObjectsAndMass = match ObjectsAndMass::new(image) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                let a: Image = match oam.sort2_small_big(false) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                sort2_small_big.insert((*color, *connectivity), a);
             }
 
 
@@ -1314,7 +1342,29 @@ impl ExperimentWithLogisticRegression {
                                     }
                                     None => 255
                                 };
-                                record.serialize_complex(cluster_id, 10);
+                                record.serialize_complex(cluster_id, 4);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let cluster_id: u8 = match sort2_small_big.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_complex(cluster_id, 3);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let cluster_id: u8 = match enumerated_clusters_filled_holes_mask.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_color_complex(cluster_id);
                             }
                         }
                     }
