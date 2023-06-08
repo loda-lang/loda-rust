@@ -311,6 +311,25 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            let mut enumerated_clusters4 = HashMap::<u8, Image>::new();
+            let mut enumerated_clusters8 = HashMap::<u8, Image>::new();
+            if let Some(sco) = &pair.input.single_color_objects {
+                for color in 0..=9 {
+                    match sco.enumerate_clusters(color, PixelConnectivity::Connectivity4) {
+                        Ok(image) => {
+                            enumerated_clusters4.insert(color, image);
+                        },
+                        Err(_) => {},
+                    }
+                    match sco.enumerate_clusters(color, PixelConnectivity::Connectivity8) {
+                        Ok(image) => {
+                            enumerated_clusters8.insert(color, image);
+                        },
+                        Err(_) => {},
+                    }
+                }
+            }
+
 
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
@@ -1172,16 +1191,6 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_color_complex(center_y_reversed);
                     record.serialize_color_complex(mass_connectivity4);
                     record.serialize_color_complex(mass_connectivity8);
-
-                    // for all 10 colors.
-                    // record.serialize_color_complex(neighbour_upleft);
-                    // record.serialize_color_complex(neighbour_upright);
-                    // record.serialize_color_complex(neighbour_downleft);
-                    // record.serialize_color_complex(neighbour_downright);
-
-                    // for all 10 colors.
-                    // look in the diagonal direction, skip the first 2 colors, and pick the 2nd color
-
                     record.serialize_u8(distance_top);
                     record.serialize_u8(distance_bottom);
                     record.serialize_u8(distance_left);
@@ -1246,6 +1255,7 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_bool(column_contains_noise_color);
 
 
+                    // color of the neighbour in all 8 directions
                     let directions = [
                         ImageNeighbourDirection::Up,
                         ImageNeighbourDirection::Down,
@@ -1265,6 +1275,33 @@ impl ExperimentWithLogisticRegression {
                                 None => 255
                             };
                             record.serialize_color_complex(neighbour_color);
+                        }
+                    }
+
+                    // Future experiment
+                    // for all 10 colors.
+                    // look in the diagonal direction, skip the first 2 colors, and pick the 2nd color
+
+    
+                    // Cluster id
+                    {
+                        for color in 0..=9 {
+                            let cluster_id: u8 = match enumerated_clusters4.get(&color) {
+                                Some(value) => {
+                                    value.get(xx, yy).unwrap_or(255)
+                                }
+                                None => 255
+                            };
+                            record.serialize_complex(cluster_id, 255);
+                        }
+                        for color in 0..=9 {
+                            let cluster_id: u8 = match enumerated_clusters8.get(&color) {
+                                Some(value) => {
+                                    value.get(xx, yy).unwrap_or(255)
+                                }
+                                None => 255
+                            };
+                            record.serialize_complex(cluster_id, 255);
                         }
                     }
     
