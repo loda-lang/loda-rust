@@ -14,7 +14,7 @@
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ObjectsUniqueColorCount, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise};
-use super::{ActionLabel, InputLabel};
+use super::{ActionLabel, InputLabel, ImageMaskDistance};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
 use super::human_readable_utc_timestamp;
@@ -408,6 +408,56 @@ impl ExperimentWithLogisticRegression {
                 sort2_small_big.insert((*color, *connectivity), a);
             }
 
+            let mut cluster_distance1 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for color in 0..=9u8 {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    let image: Image = input.to_mask_where_color_is_different(color);
+                    let a: Image = match image.mask_distance(connectivity) {
+                        Ok(value) => value,
+                        Err(_) => continue,
+                    };
+                    cluster_distance1.insert((color, connectivity), a);
+                }
+            }
+            let mut cluster_distance2 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for color in 0..=9u8 {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    let image: Image = input.to_mask_where_color_is(color);
+                    let a: Image = match image.mask_distance(connectivity) {
+                        Ok(value) => value,
+                        Err(_) => continue,
+                    };
+                    cluster_distance2.insert((color, connectivity), a);
+                }
+            }
+            let mut cluster_distance3 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            let mut cluster_distance4 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for color in 0..=9u8 {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    // let image: Image = input.to_mask_where_color_is_different(color);
+                    let image: Image = input.to_mask_where_color_is(color);
+                    let a: Image = match image.mask_distance(connectivity) {
+                        Ok(value) => value,
+                        Err(_) => continue,
+                    };
+                    let b: Image = image.select_from_color_and_image(0, &a)?;
+                    cluster_distance3.insert((color, connectivity), b);
+                    let c: Image = image.select_from_image_and_color(&a, 0)?;
+                    cluster_distance4.insert((color, connectivity), c);
+                }
+            }
+            let mut cluster_distance5 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters {
+                let a: Image = match image.mask_distance(*connectivity) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                let b: Image = image.select_from_color_and_image(0, &a)?;
+                cluster_distance5.insert((*color, *connectivity), b);
+            }
 
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
@@ -1455,6 +1505,64 @@ impl ExperimentWithLogisticRegression {
                                     None => 255
                                 };
                                 record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let distance: u8 = match cluster_distance1.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                // record.serialize_u8(distance);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let distance: u8 = match cluster_distance2.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                // record.serialize_u8(distance);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let distance: u8 = match cluster_distance3.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                // record.serialize_u8(distance);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let distance: u8 = match cluster_distance4.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                // record.serialize_u8(distance);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let distance: u8 = match cluster_distance5.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                // record.serialize_u8(distance);
+                                // record.serialize_split_zeros_ones(distance, 5);
+                                // record.serialize_split_zeros_ones(distance, 8);
+                                record.serialize_bool(distance % 2 == 0);
                             }
                         }
                     }
