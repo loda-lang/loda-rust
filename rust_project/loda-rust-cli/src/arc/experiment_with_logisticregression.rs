@@ -132,7 +132,8 @@ impl Record {
         let x: f64;
         let y: f64;
         if count > 0 && value < count {
-            let radians: f64 = value as f64 * std::f64::consts::TAU / count as f64;
+            // let radians: f64 = value as f64 * std::f64::consts::TAU / count as f64;
+            let radians: f64 = ((value as f64) + 0.2) * std::f64::consts::TAU / count as f64;
             x = radians.cos();
             y = radians.sin();
         } else {
@@ -284,6 +285,32 @@ impl ExperimentWithLogisticRegression {
 
             let histogram_columns: Vec<Histogram> = input.histogram_columns();
             let histogram_rows: Vec<Histogram> = input.histogram_rows();
+
+            let mut image_neighbour = HashMap::<(u8, ImageNeighbourDirection), Image>::new();
+            {
+                let directions = [
+                    ImageNeighbourDirection::Up,
+                    ImageNeighbourDirection::Down,
+                    ImageNeighbourDirection::Left,
+                    ImageNeighbourDirection::Right,
+                    ImageNeighbourDirection::UpLeft,
+                    ImageNeighbourDirection::UpRight,
+                    ImageNeighbourDirection::DownLeft,
+                    ImageNeighbourDirection::DownRight,
+                ];
+                for direction in directions {
+                    for color in 0..=9 {
+                        let ignore_mask: Image = input.to_mask_where_color_is(color);
+                        match input.neighbour_color(&ignore_mask, direction, 255) {
+                            Ok(image) => {
+                                image_neighbour.insert((color, direction), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
 
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
@@ -526,10 +553,10 @@ impl ExperimentWithLogisticRegression {
                     let neighbour_down: u8 = image_neighbour_down.get(xx, yy).unwrap_or(255);
                     let neighbour_left: u8 = image_neighbour_left.get(xx, yy).unwrap_or(255);
                     let neighbour_right: u8 = image_neighbour_right.get(xx, yy).unwrap_or(255);
-                    let neighbour_upleft: u8 = image_neighbour_upleft.get(xx, yy).unwrap_or(255);
-                    let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
-                    let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
-                    let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
+                    // let neighbour_upleft: u8 = image_neighbour_upleft.get(xx, yy).unwrap_or(255);
+                    // let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
+                    // let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
+                    // let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
 
                     let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
                     let corners_center1: bool = corners_center == 1;
@@ -1147,10 +1174,10 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_color_complex(mass_connectivity8);
 
                     // for all 10 colors.
-                    record.serialize_color_complex(neighbour_upleft);
-                    record.serialize_color_complex(neighbour_upright);
-                    record.serialize_color_complex(neighbour_downleft);
-                    record.serialize_color_complex(neighbour_downright);
+                    // record.serialize_color_complex(neighbour_upleft);
+                    // record.serialize_color_complex(neighbour_upright);
+                    // record.serialize_color_complex(neighbour_downleft);
+                    // record.serialize_color_complex(neighbour_downright);
 
                     // for all 10 colors.
                     // look in the diagonal direction, skip the first 2 colors, and pick the 2nd color
@@ -1218,6 +1245,29 @@ impl ExperimentWithLogisticRegression {
                     record.serialize_bool(row_contains_noise_color);
                     record.serialize_bool(column_contains_noise_color);
 
+
+                    let directions = [
+                        ImageNeighbourDirection::Up,
+                        ImageNeighbourDirection::Down,
+                        ImageNeighbourDirection::Left,
+                        ImageNeighbourDirection::Right,
+                        ImageNeighbourDirection::UpLeft,
+                        ImageNeighbourDirection::UpRight,
+                        ImageNeighbourDirection::DownLeft,
+                        ImageNeighbourDirection::DownRight,
+                    ];
+                    for direction in directions {
+                        for color in 0..=9 {
+                            let neighbour_color: u8 = match image_neighbour.get(&(color, direction)) {
+                                Some(value) => {
+                                    value.get(xx, yy).unwrap_or(255)
+                                }
+                                None => 255
+                            };
+                            record.serialize_color_complex(neighbour_color);
+                        }
+                    }
+    
 
                     // Future experiments
                     // push all the training pairs that have been rotated by 90 degrees.
