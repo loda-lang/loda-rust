@@ -1186,10 +1186,6 @@ impl ExperimentWithLogisticRegression {
                             half_vertical = 1;
                         };
                     }
-                    // let half_left: u8 = if xx * 2 < width as i32 { 1 } else { 0 };
-                    // let half_right: u8 = if xx * 2 > width as i32 { 1 } else { 0 };
-                    // let half_top: u8 = if yy * 2 < height as i32 { 1 } else { 0 };
-                    // let half_bottom: u8 = if yy * 2 > height as i32 { 1 } else { 0 };
 
                     let input_has_unambiguous_connectivity: bool = input_unambiguous_connectivity_histogram.get(center) > 0;
 
@@ -1426,10 +1422,6 @@ impl ExperimentWithLogisticRegression {
                     // record.serialize_u8(is_grid);
                     // record.serialize_color(grid_center);
                     // record.serialize_color(grid_color);
-                    // record.serialize_u8(half_left);
-                    // record.serialize_u8(half_right);
-                    // record.serialize_u8(half_top);
-                    // record.serialize_u8(half_bottom);
 
                     records.push(record);
                 }
