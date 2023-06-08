@@ -71,11 +71,20 @@ impl Record {
     }
 
     fn serialize_color_onehot(&mut self, color: u8) {
-        self.serialize_complex(color, 10);
+        self.serialize_complex(color as u16, 10);
     }
 
     fn serialize_color_complex(&mut self, color: u8) {
-        self.serialize_complex(color, 10);
+        self.serialize_complex(color as u16, 10);
+    }
+
+    #[allow(dead_code)]
+    fn serialize_cluster_id(&mut self, color: u8, cluster_id: u8) {
+        let mut value: u16 = u16::MAX;
+        if cluster_id < 41 && color < 10 {
+            value = (cluster_id as u16) * 10 + (color as u16);
+        }
+        self.serialize_complex(value, 410);
     }
 
     /// Set the counter to 1 that are equal to the value.
@@ -132,7 +141,7 @@ impl Record {
     /// 
     /// When the value overflows the `x` and `y` are set to zero.
     #[allow(dead_code)]
-    fn serialize_complex(&mut self, value: u8, count: u8) {
+    fn serialize_complex(&mut self, value: u16, count: u16) {
         let x: f64;
         let y: f64;
         if count > 0 && value < count {
@@ -149,7 +158,7 @@ impl Record {
     }
 
     #[allow(dead_code)]
-    fn serialize_complex_scaled(&mut self, value: u8, count: u8, scale: f64) {
+    fn serialize_complex_scaled(&mut self, value: u16, count: u16, scale: f64) {
         let x: f64;
         let y: f64;
         if count > 0 && value < count {
@@ -1474,7 +1483,8 @@ impl ExperimentWithLogisticRegression {
                                     }
                                     None => 255
                                 };
-                                record.serialize_complex(cluster_id, 21);
+                                record.serialize_cluster_id(color, cluster_id);
+                                // record.serialize_complex(cluster_id as u16, 41);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -1485,7 +1495,7 @@ impl ExperimentWithLogisticRegression {
                                     }
                                     None => 255
                                 };
-                                record.serialize_complex(cluster_id, 4);
+                                record.serialize_complex(cluster_id as u16, 4);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -1496,7 +1506,7 @@ impl ExperimentWithLogisticRegression {
                                     }
                                     None => 255
                                 };
-                                record.serialize_complex(cluster_id, 3);
+                                record.serialize_complex(cluster_id as u16, 3);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -1610,7 +1620,8 @@ impl ExperimentWithLogisticRegression {
                         //                 }
                         //                 None => 255
                         //             };
-                        //             record.serialize_complex(cluster_id, 13);
+                        //             // record.serialize_complex(cluster_id, 13);
+                        //             record.serialize_cluster_id(color, cluster_id);
                         //         }
                         //     }
                         // }
