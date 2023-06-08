@@ -286,12 +286,12 @@ impl ExperimentWithLogisticRegression {
                 enumerated_objects = enumerated_objects.overlay_with_position(image, 0, 0)?;
             }
 
-            // let mut grid_color: u8 = 255;
-            // let mut grid_mask: Image = Image::empty();
-            // if let Some(grid_pattern) = &pair.input.grid_pattern {
-            //     grid_mask = grid_pattern.line_mask.clone();
-            //     grid_color = grid_pattern.color;
-            // }
+            let mut grid_color: u8 = 255;
+            let mut grid_mask: Image = Image::empty();
+            if let Some(grid_pattern) = &pair.input.grid_pattern {
+                grid_mask = grid_pattern.line_mask.clone();
+                grid_color = grid_pattern.color;
+            }
 
             // let mut repair_mask: Image = Image::zero(width, height);
             // if let Some(mask) = &pair.input.repair_mask {
@@ -703,9 +703,9 @@ impl ExperimentWithLogisticRegression {
                     // let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
                     // let enumerated_object: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
 
-                    // let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
-                    // let grid_center: u8 = if grid_mask_center > 0 { grid_color } else { 255 };
-                    // let is_grid: u8 = if grid_mask_center > 0 { 1 } else { 0 };
+                    let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
+                    let grid_center: u8 = if grid_mask_center > 0 { grid_color } else { 255 };
+                    let is_grid: bool = grid_mask_center > 0;
 
                     // let repair_center: u8 = repair_mask.get(xx, yy).unwrap_or(255);
 
@@ -1667,9 +1667,9 @@ impl ExperimentWithLogisticRegression {
                     // record.serialize_u8(corner_top_right);
                     // record.serialize_u8(corner_bottom_left);
                     // record.serialize_u8(corner_bottom_right);
-                    // record.serialize_u8(is_grid);
-                    // record.serialize_color(grid_center);
-                    // record.serialize_color(grid_color);
+                    record.serialize_bool(is_grid);
+                    record.serialize_color_complex(grid_center);
+                    record.serialize_color_complex(grid_color);
                     // record.serialize_bool(inside_bounding_box);
                     // record.serialize_complex(object_center, 20);
 
