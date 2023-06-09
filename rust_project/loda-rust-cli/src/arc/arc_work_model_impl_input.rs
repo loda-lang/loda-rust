@@ -1,8 +1,8 @@
-use super::{arc_work_model, ImageFill};
+use super::{arc_work_model, ImageFill, ImageLabelSet};
 use super::arc_work_model::Object;
-use super::{PropertyInput, ImageLabel, GridLabel, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel};
+use super::{PropertyInput, ImageLabel, GridLabel};
 use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
-use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop, SingleColorObjects};
+use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop, SingleColorObjects, SingleColorObjectToLabel};
 use std::collections::{HashMap, HashSet};
 
 impl arc_work_model::Input {
@@ -251,82 +251,14 @@ impl arc_work_model::Input {
                 return Ok(());
             }
         };
-        for object in &single_color_objects.rectangle_vec {
-            {
-                let label = SingleColorObjectRectangleLabel::RectangleWithColor { color: object.color };
-                let image_label = ImageLabel::SingleColorObjectRectangle { label };
-                self.image_label_set.insert(image_label);
+        let image_label_set: ImageLabelSet = match single_color_objects.to_image_label_set() {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Unable to convert single_color_objects to image_label_set. {} {:?}", self.id, error);
+                return Ok(());
             }
-            {
-                let label = SingleColorObjectRectangleLabel::RectangleWithSomeColor;
-                let image_label = ImageLabel::SingleColorObjectRectangle { label };
-                self.image_label_set.insert(image_label);
-            }
-            if object.is_square {
-                {
-                    let label = SingleColorObjectRectangleLabel::SquareWithColor { color: object.color };
-                    let image_label = ImageLabel::SingleColorObjectRectangle { label };
-                    self.image_label_set.insert(image_label);
-                }
-                {
-                    let label = SingleColorObjectRectangleLabel::SquareWithSomeColor;
-                    let image_label = ImageLabel::SingleColorObjectRectangle { label };
-                    self.image_label_set.insert(image_label);
-                }
-            } else {
-                {
-                    let label = SingleColorObjectRectangleLabel::NonSquareWithColor { color: object.color };
-                    let image_label = ImageLabel::SingleColorObjectRectangle { label };
-                    self.image_label_set.insert(image_label);
-                }
-                {
-                    let label = SingleColorObjectRectangleLabel::NonSquareWithSomeColor;
-                    let image_label = ImageLabel::SingleColorObjectRectangle { label };
-                    self.image_label_set.insert(image_label);
-                }
-            }
-        }
-        for object in &single_color_objects.sparse_vec {
-            {
-                let label = SingleColorObjectSparseLabel::SparseWithColor { color: object.color };
-                let image_label = ImageLabel::SingleColorObjectSparse { label };
-                self.image_label_set.insert(image_label);
-            }
-            {
-                let label = SingleColorObjectSparseLabel::SparseWithSomeColor;
-                let image_label = ImageLabel::SingleColorObjectSparse { label };
-                self.image_label_set.insert(image_label);
-            }
-        }
-        {
-            for object in &single_color_objects.rectangle_vec {
-                let image_label = ImageLabel::UnambiguousConnectivityWithColor { color: object.color };
-                self.image_label_set.insert(image_label);
-            }
-            let mut all_are_connectivity48_identical = true;
-            for object in &single_color_objects.sparse_vec {
-                if !object.connectivity48_identical {
-                    all_are_connectivity48_identical = false;
-                    continue;
-                }
-                let image_label = ImageLabel::UnambiguousConnectivityWithColor { color: object.color };
-                self.image_label_set.insert(image_label);
-            }
-            if all_are_connectivity48_identical {
-                let image_label = ImageLabel::UnambiguousConnectivityWithAllColors;
-                self.image_label_set.insert(image_label);
-            }
-        }
-        if let Some(color) = single_color_objects.single_pixel_noise_color() {
-            {
-                let image_label = ImageLabel::NoiseWithColor { color };
-                self.image_label_set.insert(image_label);
-            }
-            {
-                let image_label = ImageLabel::NoiseWithSomeColor;
-                self.image_label_set.insert(image_label);
-            }
-        }
+        };
+        self.image_label_set.extend(image_label_set);
         self.image_meta.single_color_objects = Some(single_color_objects);
         Ok(())
     }
