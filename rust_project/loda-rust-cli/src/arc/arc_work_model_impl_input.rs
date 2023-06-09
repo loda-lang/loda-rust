@@ -1,8 +1,8 @@
-use super::{arc_work_model, ImageFill, ImageLabelSet};
+use super::{arc_work_model, ImageFill};
 use super::arc_work_model::Object;
 use super::{PropertyInput, ImageLabel, GridLabel};
 use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
-use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop, SingleColorObject, SingleColorObjectToLabel};
+use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
 
 impl arc_work_model::Input {
@@ -207,7 +207,7 @@ impl arc_work_model::Input {
         self.resolve_grid();
         self.assign_symmetry_labels();
         self.assign_grid_labels();
-        self.assign_single_color_object()?;
+        self.image_meta.assign_single_color_object(&self.image)?;
         self.assign_border_flood_fill()?;
         Ok(())
     }
@@ -242,25 +242,6 @@ impl arc_work_model::Input {
             let label = ImageLabel::Grid { label: grid_label.clone() };
             self.image_meta.image_label_set.insert(label);
         }
-    }
-
-    pub fn assign_single_color_object(&mut self) -> anyhow::Result<()> {
-        let single_color_object: SingleColorObject = match SingleColorObject::find_objects(&self.image) {
-            Ok(value) => value,
-            Err(_) => {
-                return Ok(());
-            }
-        };
-        let image_label_set: ImageLabelSet = match single_color_object.to_image_label_set() {
-            Ok(value) => value,
-            Err(error) => {
-                error!("Unable to convert single_color_object to image_label_set. {} {:?}", self.id, error);
-                return Ok(());
-            }
-        };
-        self.image_meta.image_label_set.extend(image_label_set);
-        self.image_meta.single_color_object = Some(single_color_object);
-        Ok(())
     }
 
     pub fn assign_border_flood_fill(&mut self) -> anyhow::Result<()> {
