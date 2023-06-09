@@ -14,6 +14,15 @@ impl arc_work_model::ImageMeta {
         }
     }
 
+    pub fn analyze(&mut self, image: &Image) -> anyhow::Result<()> {
+        self.resolve_symmetry(image);
+        self.resolve_grid(image);
+        self.assign_symmetry_labels();
+        self.assign_grid_labels();
+        self.assign_single_color_object(image)?;
+        Ok(())
+    }
+
     pub fn resolve_grid(&mut self, image: &Image) {
         if self.grid.is_some() {
             return;

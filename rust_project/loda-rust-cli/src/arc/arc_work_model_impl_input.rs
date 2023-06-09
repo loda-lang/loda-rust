@@ -165,11 +165,7 @@ impl arc_work_model::Input {
     }
 
     pub fn update_input_label_set(&mut self) -> anyhow::Result<()> {
-        self.image_meta.resolve_symmetry(&self.image);
-        self.image_meta.resolve_grid(&self.image);
-        self.image_meta.assign_symmetry_labels();
-        self.image_meta.assign_grid_labels();
-        self.image_meta.assign_single_color_object(&self.image)?;
+        self.image_meta.analyze(&self.image)?;
         self.assign_border_flood_fill()?;
         Ok(())
     }
