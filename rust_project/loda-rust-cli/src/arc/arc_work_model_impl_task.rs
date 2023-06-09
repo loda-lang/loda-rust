@@ -350,7 +350,7 @@ impl arc_work_model::Task {
                 continue;
             }
             if is_first {
-                input_properties_intersection = pair.input.image_meta.input_properties.clone();
+                input_properties_intersection = pair.input.image_meta.image_properties.clone();
                 is_first = false;
                 continue;
             }
@@ -360,7 +360,7 @@ impl arc_work_model::Task {
             for key in input_properties_intersection.keys() {
                 keys_for_removal.insert(*key);
             }
-            for (key, value) in &pair.input.image_meta.input_properties {
+            for (key, value) in &pair.input.image_meta.image_properties {
                 if let Some(other_value) = input_properties_intersection.get(key) {
                     if *value == *other_value {
                         // Both hashmaps agree about the key and value. This is a keeper.
@@ -425,8 +425,8 @@ impl arc_work_model::Task {
                     Ok(image) => {
                         let mass: u16 = image.mask_count_one();
                         if mass == 0 {
-                            pair.input.image_meta.input_properties.insert(ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
-                            pair.input.image_meta.input_properties.insert(ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
+                            pair.input.image_meta.image_properties.insert(ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
+                            pair.input.image_meta.image_properties.insert(ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
                         }
                     },
                     Err(_) => {}
@@ -456,7 +456,7 @@ impl arc_work_model::Task {
 
             if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
-                pair.input.image_meta.input_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
+                pair.input.image_meta.image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
             }
 
             if let Some(index) = found_index_mass_max {
@@ -471,8 +471,8 @@ impl arc_work_model::Task {
                     
                     let width: u8 = trimmed_image.width();
                     let height: u8 = trimmed_image.height();
-                    pair.input.image_meta.input_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleColorRemoval, width);
-                    pair.input.image_meta.input_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleColorRemoval, height);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleColorRemoval, width);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleColorRemoval, height);
                 }
             }
         }
@@ -500,14 +500,14 @@ impl arc_work_model::Task {
                 let mass: u16 = image_mask.mask_count_zero();
                 if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
-                    pair.input.image_meta.input_properties.insert(ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
             {
                 let mass: u16 = image_mask.mask_count_one();
                 if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
-                    pair.input.image_meta.input_properties.insert(ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
 
@@ -539,7 +539,7 @@ impl arc_work_model::Task {
 
             if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
-                pair.input.image_meta.input_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
+                pair.input.image_meta.image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
             }
 
             if let Some(index) = found_index_mass_max {
@@ -556,8 +556,8 @@ impl arc_work_model::Task {
                     let height: u8 = trimmed_image.height();
                     // println!("biggest object: {}x{}", width, height);
 
-                    pair.input.image_meta.input_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor, width);
-                    pair.input.image_meta.input_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor, height);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor, width);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor, height);
                 }
             }
         }
@@ -817,7 +817,7 @@ impl arc_work_model::Task {
             let height_output: u8 = pair.output.image.height();
 
             for input_property in &input_properties {
-                let input_value_option: Option<&u8> = pair.input.image_meta.input_properties.get(input_property);
+                let input_value_option: Option<&u8> = pair.input.image_meta.image_properties.get(input_property);
                 let input_value: u8 = match input_value_option {
                     Some(value) => *value,
                     None => {
@@ -1062,7 +1062,7 @@ impl arc_work_model::Task {
     fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &Input) -> Vec<(RulePriority, u8)> {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
-        let dict: &HashMap<ImageProperty, u8> = &buffer_input.image_meta.input_properties;
+        let dict: &HashMap<ImageProperty, u8> = &buffer_input.image_meta.image_properties;
         for label in &self.action_label_set_intersection {
             match label {
                 ActionLabel::OutputPropertyIsConstant { output, value } => {

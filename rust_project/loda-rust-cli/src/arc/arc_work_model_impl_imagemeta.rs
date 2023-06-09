@@ -8,7 +8,7 @@ impl arc_work_model::ImageMeta {
     pub fn new() -> Self {
         Self {
             histogram: Histogram::new(),
-            input_properties: HashMap::new(),
+            image_properties: HashMap::new(),
             image_label_set: HashSet::new(),
             grid: None,
             symmetry: None,
@@ -27,7 +27,7 @@ impl arc_work_model::ImageMeta {
     }
 
     pub fn update_image_properties(&mut self, image: &Image) {
-        self.input_properties = Self::resolve_image_properties(image, &self.histogram);
+        self.image_properties = Self::resolve_image_properties(image, &self.histogram);
     }
 
     fn resolve_image_properties(image: &Image, histogram: &Histogram) -> HashMap<ImageProperty, u8> {

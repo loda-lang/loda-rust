@@ -54,7 +54,7 @@ pub struct ImageMeta {
     pub single_color_object: Option<SingleColorObject>,
 
     /// Computed values such as: number of unique colors, width of biggest object.
-    pub input_properties: HashMap<ImageProperty, u8>,
+    pub image_properties: HashMap<ImageProperty, u8>,
 }
 
 #[derive(Clone, Debug)]
