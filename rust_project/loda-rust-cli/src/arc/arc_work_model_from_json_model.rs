@@ -46,7 +46,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     image: pair.input.clone(),
                     histogram: histogram_input,
                     input_properties: HashMap::new(),
-                    input_label_set: HashSet::new(),
+                    image_label_set: HashSet::new(),
                     input_objects: HashMap::new(),
                     symmetry: None,
                     grid: None,
@@ -91,7 +91,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     image: pair.input.clone(),
                     histogram: histogram_input,
                     input_properties: HashMap::new(),
-                    input_label_set: HashSet::new(),
+                    image_label_set: HashSet::new(),
                     input_objects: HashMap::new(),
                     symmetry: None,
                     grid: None,
@@ -144,7 +144,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             insert_histogram_intersection,
             input_properties_intersection: HashMap::new(),
             action_label_set_intersection: ActionLabelSet::new(),
-            input_label_set_intersection: HashSet::new(),
+            input_image_label_set_intersection: HashSet::new(),
             occur_in_solutions_csv: false,
         };
         task.populate()?;

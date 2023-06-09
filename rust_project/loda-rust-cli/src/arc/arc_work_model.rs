@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry, Grid, GridPattern, SingleColorObjects, OutputSpecification};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObjects, OutputSpecification};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -36,7 +36,7 @@ pub struct Input {
     pub input_properties: HashMap<PropertyInput, u8>,
 
     /// Computed values such as: is symmetric x, is symmetric y.
-    pub input_label_set: InputLabelSet,
+    pub image_label_set: ImageLabelSet,
 
     /// The identified objects
     pub input_objects: HashMap<ObjectType, Vec<Object>>,
@@ -125,7 +125,7 @@ pub struct Task {
     pub removal_histogram_intersection: Histogram,
     pub insert_histogram_intersection: Histogram,
     pub input_properties_intersection: HashMap<PropertyInput, u8>,
-    pub input_label_set_intersection: InputLabelSet,
+    pub input_image_label_set_intersection: ImageLabelSet,
     pub action_label_set_intersection: ActionLabelSet,
     pub occur_in_solutions_csv: bool,
 }

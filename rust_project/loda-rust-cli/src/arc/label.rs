@@ -191,7 +191,7 @@ pub enum ImageLabel {
     // InputContainsOneOrMoreBoxes,
 }
 
-pub type InputLabelSet = HashSet<ImageLabel>;
+pub type ImageLabelSet = HashSet<ImageLabel>;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum ObjectLabel {

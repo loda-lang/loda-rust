@@ -201,7 +201,7 @@ pub use image_try_create::ImageTryCreate;
 pub use image_unicode_formatting::ImageUnicodeFormatting;
 pub use inspect_predicted::InspectPredicted;
 pub use inspect_task::InspectTask;
-pub use label::{ActionLabel, ActionLabelSet, GridLabel, ImageCorner, ImageEdge, ImageLabel, InputLabelSet, ObjectLabel, PropertyInput, PropertyOutput, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel, SymmetryLabel};
+pub use label::{ActionLabel, ActionLabelSet, GridLabel, ImageCorner, ImageEdge, ImageLabel, ImageLabelSet, ObjectLabel, PropertyInput, PropertyOutput, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel, SymmetryLabel};
 pub use ngram::{ImageNgram, RecordBigram, RecordTrigram};
 pub use number_to_image::NumberToImage;
 pub use object_with_different_color::ObjectWithDifferentColor;

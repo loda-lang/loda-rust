@@ -1,5 +1,5 @@
 use super::arc_work_model;
-use super::{InputLabelSet, ActionLabelSet, PropertyInput};
+use super::{ImageLabelSet, ActionLabelSet, PropertyInput};
 use super::{HtmlLog, ImageToHTML};
 use std::collections::HashMap;
 
@@ -40,8 +40,8 @@ impl InspectTask {
         format!("<ul class='without_bullets'>{}</ul>", label_vec.join(""))
     }
 
-    fn input_label_set_to_html(input_label_set: &InputLabelSet) -> String {
-        let mut label_vec: Vec<String> = input_label_set.iter().map(|label| format!("{:?}", label)).collect();
+    fn image_label_set_to_html(image_label_set: &ImageLabelSet) -> String {
+        let mut label_vec: Vec<String> = image_label_set.iter().map(|label| format!("{:?}", label)).collect();
         if label_vec.is_empty() {
             return "empty".to_string();
         }
@@ -108,7 +108,7 @@ impl InspectTask {
         }
         {
             self.row_input_labels += "<td>";
-            self.row_input_labels += &Self::input_label_set_to_html(&pair.input.input_label_set);
+            self.row_input_labels += &Self::image_label_set_to_html(&pair.input.image_label_set);
             self.row_input_labels += "</td>";
         }
         {
@@ -206,7 +206,7 @@ impl InspectTask {
         self.row_input_properties += "</td>";
 
         self.row_input_labels += &td_begin;
-        self.row_input_labels += &Self::input_label_set_to_html(&task.input_label_set_intersection);
+        self.row_input_labels += &Self::image_label_set_to_html(&task.input_image_label_set_intersection);
         self.row_input_labels += "</td>";
 
         self.row_output_image += &td_begin;

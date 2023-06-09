@@ -2,7 +2,7 @@ use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, Sym
 use super::arc_work_model::{Input, PairType, Object, Prediction};
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
-use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
+use super::{ImageLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use super::{OutputSpecification};
 use std::collections::{HashMap, HashSet};
 
@@ -364,21 +364,21 @@ impl arc_work_model::Task {
         self.input_properties_intersection = input_properties_intersection;
     }
 
-    fn update_input_label_set_intersection(&mut self) {
-        let mut input_label_set = InputLabelSet::new();
+    fn update_input_image_label_set_intersection(&mut self) {
+        let mut image_label_set = ImageLabelSet::new();
         let mut is_first = true;
         for pair in &mut self.pairs {
             if pair.pair_type != PairType::Train {
                 continue;
             }
             if is_first {
-                input_label_set = pair.input.input_label_set.clone();
+                image_label_set = pair.input.image_label_set.clone();
                 is_first = false;
                 continue;
             }
-            input_label_set = input_label_set.intersection(&pair.input.input_label_set).map(|l| l.clone()).collect();
+            image_label_set = image_label_set.intersection(&pair.input.image_label_set).map(|l| l.clone()).collect();
         }
-        self.input_label_set_intersection = input_label_set;
+        self.input_image_label_set_intersection = image_label_set;
     }
 
     fn assign_action_labels_for_output_for_train(&mut self) {
@@ -553,7 +553,7 @@ impl arc_work_model::Task {
     /// Extract `Vec<SingleColorObjectLabel>` from `input_label_set_intersection`.
     fn single_color_object_labels_from_input(&self) -> Vec<SingleColorObjectRectangleLabel> {
         let mut single_color_object_labels = Vec::<SingleColorObjectRectangleLabel>::new();
-        for image_label in &self.input_label_set_intersection {
+        for image_label in &self.input_image_label_set_intersection {
             let single_color_object_label: SingleColorObjectRectangleLabel = match image_label {
                 ImageLabel::InputSingleColorObjectRectangle { label } => label.clone(),
                 _ => continue
@@ -757,7 +757,7 @@ impl arc_work_model::Task {
     fn assign_labels(&mut self) -> anyhow::Result<()> {
         self.update_input_properties_for_all_pairs()?;
         self.update_input_properties_intersection();
-        self.update_input_label_set_intersection();
+        self.update_input_image_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
@@ -1402,7 +1402,7 @@ impl arc_work_model::Task {
 
     fn assign_single_pixel_noise_color(&mut self) -> anyhow::Result<()> {
         let mut found = false;
-        for image_label in &self.input_label_set_intersection {
+        for image_label in &self.input_image_label_set_intersection {
             match image_label {
                 ImageLabel::InputNoiseWithColor { color: _ } => {
                     found = true;
@@ -1538,7 +1538,7 @@ impl arc_work_model::Task {
         let mut repair_diagonal_a: bool = false;
         let mut repair_diagonal_b: bool = false;
 
-        for image_label in &self.input_label_set_intersection {
+        for image_label in &self.input_image_label_set_intersection {
             match image_label {
                 ImageLabel::InputSymmetry { label } => {
                     match label {
@@ -1617,7 +1617,7 @@ impl arc_work_model::Task {
         let mut prio3_grid_count: usize = 0;
         let mut prio3_grid_color: u8 = u8::MAX;
 
-        for image_label in &self.input_label_set_intersection {
+        for image_label in &self.input_image_label_set_intersection {
             match image_label {
                 ImageLabel::InputGrid { label } => {
                     match label {
