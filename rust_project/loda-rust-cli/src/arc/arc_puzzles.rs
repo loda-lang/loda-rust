@@ -3688,7 +3688,7 @@ mod tests {
         impl AnalyzeAndSolve for MySolution {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
-                println!("grid: {:?}", pair.input.grid);
+                println!("grid: {:?}", pair.input.image_meta.grid);
                 let result_image: Image = pair.input.image.clone();
                 Ok(result_image)
             }

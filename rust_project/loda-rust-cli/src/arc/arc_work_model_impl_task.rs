@@ -1656,7 +1656,7 @@ impl arc_work_model::Task {
             let grid_color: u8 = prio1_grid_color;
             let mut success = true;
             for pair in self.pairs.iter_mut() {
-                let grid = match &pair.input.grid {
+                let grid = match &pair.input.image_meta.grid {
                     Some(value) => value.clone(),
                     None => {
                         // One or more of the grids are not initialized, aborting.
@@ -1689,7 +1689,7 @@ impl arc_work_model::Task {
         if prio2_grid_with_some_color {
             let mut success = true;
             for pair in self.pairs.iter_mut() {
-                let grid = match &pair.input.grid {
+                let grid = match &pair.input.image_meta.grid {
                     Some(value) => value.clone(),
                     None => {
                         // One or more of the grids are not initialized, aborting.
@@ -1722,7 +1722,7 @@ impl arc_work_model::Task {
             let grid_color: u8 = prio3_grid_color;
             let mut success = true;
             for pair in self.pairs.iter_mut() {
-                let grid = match &pair.input.grid {
+                let grid = match &pair.input.image_meta.grid {
                     Some(value) => value.clone(),
                     None => {
                         // One or more of the grids are not initialized, aborting.

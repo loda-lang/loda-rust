@@ -32,6 +32,8 @@ pub struct ImageMeta {
     /// Computed values such as: is symmetric x, is symmetric y.
     pub image_label_set: ImageLabelSet,
 
+    pub grid: Option<Grid>,
+
     pub single_color_object: Option<SingleColorObject>,
 }
 
@@ -50,7 +52,6 @@ pub struct Input {
     pub input_objects: HashMap<ObjectType, Vec<Object>>,
 
     pub symmetry: Option<Symmetry>,
-    pub grid: Option<Grid>,
     
     pub repair_mask: Option<Image>,
     pub repaired_image: Option<Image>,

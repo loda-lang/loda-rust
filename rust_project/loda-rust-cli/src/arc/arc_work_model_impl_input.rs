@@ -1,7 +1,7 @@
 use super::{arc_work_model, ImageFill};
 use super::arc_work_model::Object;
-use super::{PropertyInput, ImageLabel, GridLabel};
-use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
+use super::{PropertyInput, ImageLabel};
+use super::{Symmetry, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
 use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
 
@@ -188,25 +188,11 @@ impl arc_work_model::Input {
         self.symmetry = Some(symmetry);
     }
 
-    pub fn resolve_grid(&mut self) {
-        if self.grid.is_some() {
-            return;
-        }
-        let grid: Grid = match Grid::analyze(&self.image) {
-            Ok(value) => value,
-            Err(error) => {
-                println!("Unable to find grid. {} error: {:?}", self.id, error);
-                return;
-            }
-        };
-        self.grid = Some(grid);
-    }
-
     pub fn update_input_label_set(&mut self) -> anyhow::Result<()> {
         self.resolve_symmetry();
-        self.resolve_grid();
+        self.image_meta.resolve_grid(&self.image);
         self.assign_symmetry_labels();
-        self.assign_grid_labels();
+        self.image_meta.assign_grid_labels();
         self.image_meta.assign_single_color_object(&self.image)?;
         self.assign_border_flood_fill()?;
         Ok(())
@@ -224,22 +210,6 @@ impl arc_work_model::Input {
         };
         for symmetry_label in symmetry_labels {
             let label = ImageLabel::Symmetry { label: symmetry_label.clone() };
-            self.image_meta.image_label_set.insert(label);
-        }
-    }
-
-    pub fn assign_grid_labels(&mut self) {
-        let grid_labels: HashSet<GridLabel>;
-        match &self.grid {
-            Some(grid) => {
-                grid_labels = grid.to_grid_labels();
-            },
-            None => {
-                return;
-            }
-        };
-        for grid_label in grid_labels {
-            let label = ImageLabel::Grid { label: grid_label.clone() };
             self.image_meta.image_label_set.insert(label);
         }
     }
