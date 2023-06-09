@@ -13,8 +13,8 @@
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode};
-use super::{ActionLabel, InputLabel};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ObjectsUniqueColorCount, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise};
+use super::{ActionLabel, InputLabel, ImageMaskDistance};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
 use super::human_readable_utc_timestamp;
@@ -37,16 +37,54 @@ struct Record {
     // Future experiment
     // make a `secondary_values` vector that use a lower weight in the logistic regression.
     // examples of secondary values: is the x position a mod2==0, is x position a mod3==0.
-    values: Vec<u8>,
+    values: Vec<f64>,
 }
 
 impl Record {
-    fn serialize_raw(&mut self, value: u8) {
+    #[allow(dead_code)]
+    fn serialize_bool(&mut self, value: bool) {
+        let v: f64 = if value { 1.0 } else { -1.0 };
+        self.values.push(v);
+    }
+
+    #[allow(dead_code)]
+    fn serialize_ternary(&mut self, value: i8) {
+        let v: f64;
+        if value == 0 {
+            v = 0.0;
+        } else {
+            if value > 0 { 
+                v = 1.0; 
+            } else { 
+                v = -1.0;
+            }
+        }
+        self.values.push(v);
+    }
+
+    fn serialize_f64(&mut self, value: f64) {
         self.values.push(value);
     }
 
-    fn serialize_color(&mut self, color: u8) {
-        self.serialize_onehot(color, 10);
+    fn serialize_u8(&mut self, value: u8) {
+        self.values.push(value as f64);
+    }
+
+    fn serialize_color_onehot(&mut self, color: u8) {
+        self.serialize_complex(color as u16, 10);
+    }
+
+    fn serialize_color_complex(&mut self, color: u8) {
+        self.serialize_complex(color as u16, 10);
+    }
+
+    #[allow(dead_code)]
+    fn serialize_cluster_id(&mut self, color: u8, cluster_id: u8) {
+        let mut value: u16 = u16::MAX;
+        if cluster_id < 41 && color < 10 {
+            value = (cluster_id as u16) * 10 + (color as u16);
+        }
+        self.serialize_complex(value, 410);
     }
 
     /// Set the counter to 1 that are equal to the value.
@@ -54,15 +92,16 @@ impl Record {
     /// Otherwise the counters are zero.
     /// 
     /// When the value overflows the capacity then set the `other` counter to 1.
+    #[allow(dead_code)]
     fn serialize_onehot(&mut self, value: u8, count: u8) {
         let mut found: u8 = 0;
         for i in 0..count {
             let v: u8 = if i == value { 1 } else { 0 };
             found |= v;
-            self.values.push(v);
+            self.values.push(v as f64);
         }
         let other: u8 = if found > 0 { 0 } else { 1 };
-        self.values.push(other);
+        self.values.push(other as f64);
     }
 
     /// Set the counter to 1 that are equal to the value.
@@ -74,7 +113,7 @@ impl Record {
     fn serialize_onehot_discard_overflow(&mut self, value: u8, count: u8) {
         for i in 0..count {
             let v: u8 = if i == value { 1 } else { 0 };
-            self.values.push(v);
+            self.values.push(v as f64);
         }
     }
 
@@ -89,10 +128,50 @@ impl Record {
         for i in 0..count {
             let v: u8 = if i >= value { 1 } else { 0 };
             found |= v;
-            self.values.push(v);
+            self.values.push(v as f64);
         }
         let other: u8 = if found > 0 { 0 } else { 1 };
-        self.values.push(other);
+        self.values.push(other as f64);
+    }
+
+    /// Serialize to a complex number.
+    /// 
+    /// When the 0 <= value < count, then the the value is converted to a complex number,
+    /// with distance 1 from the origin. The values are evenly distributed around the unit circle.
+    /// 
+    /// When the value overflows the `x` and `y` are set to zero.
+    #[allow(dead_code)]
+    fn serialize_complex(&mut self, value: u16, count: u16) {
+        let x: f64;
+        let y: f64;
+        if count > 0 && value < count {
+            // let radians: f64 = value as f64 * std::f64::consts::TAU / count as f64;
+            let radians: f64 = ((value as f64) + 0.2) * std::f64::consts::TAU / count as f64;
+            x = radians.cos();
+            y = radians.sin();
+        } else {
+            x = 0.0;
+            y = 0.0;
+        }
+        self.values.push(x);
+        self.values.push(y);
+    }
+
+    #[allow(dead_code)]
+    fn serialize_complex_scaled(&mut self, value: u16, count: u16, scale: f64) {
+        let x: f64;
+        let y: f64;
+        if count > 0 && value < count {
+            // let radians: f64 = value as f64 * std::f64::consts::TAU / count as f64;
+            let radians: f64 = ((value as f64) + 0.2) * std::f64::consts::TAU / count as f64;
+            x = radians.cos() * scale;
+            y = radians.sin() * scale;
+        } else {
+            x = 0.0;
+            y = 0.0;
+        }
+        self.values.push(x);
+        self.values.push(y);
     }
 }
 
@@ -207,12 +286,12 @@ impl ExperimentWithLogisticRegression {
                 enumerated_objects = enumerated_objects.overlay_with_position(image, 0, 0)?;
             }
 
-            // let mut grid_color: u8 = 255;
-            // let mut grid_mask: Image = Image::empty();
-            // if let Some(grid_pattern) = &pair.input.grid_pattern {
-            //     grid_mask = grid_pattern.line_mask.clone();
-            //     grid_color = grid_pattern.color;
-            // }
+            let mut grid_color: u8 = 255;
+            let mut grid_mask: Image = Image::empty();
+            if let Some(grid_pattern) = &pair.input.grid_pattern {
+                grid_mask = grid_pattern.line_mask.clone();
+                grid_color = grid_pattern.color;
+            }
 
             // let mut repair_mask: Image = Image::zero(width, height);
             // if let Some(mask) = &pair.input.repair_mask {
@@ -237,14 +316,191 @@ impl ExperimentWithLogisticRegression {
             let histogram_columns: Vec<Histogram> = input.histogram_columns();
             let histogram_rows: Vec<Histogram> = input.histogram_rows();
 
+            let mut image_neighbour = HashMap::<(u8, ImageNeighbourDirection), Image>::new();
+            {
+                let directions = [
+                    ImageNeighbourDirection::Up,
+                    ImageNeighbourDirection::Down,
+                    ImageNeighbourDirection::Left,
+                    ImageNeighbourDirection::Right,
+                    ImageNeighbourDirection::UpLeft,
+                    ImageNeighbourDirection::UpRight,
+                    ImageNeighbourDirection::DownLeft,
+                    ImageNeighbourDirection::DownRight,
+                ];
+                for direction in directions {
+                    for color in 0..=9 {
+                        let ignore_mask: Image = input.to_mask_where_color_is(color);
+                        match input.neighbour_color(&ignore_mask, direction, 255) {
+                            Ok(image) => {
+                                image_neighbour.insert((color, direction), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
+            let mut enumerated_clusters = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if let Some(sco) = &pair.input.single_color_objects {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.enumerate_clusters(color, connectivity) {
+                            Ok(image) => {
+                                enumerated_clusters.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
+            let mut enumerated_clusters_filled_holes_mask = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if let Some(sco) = &pair.input.single_color_objects {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.filled_holes_mask(color, connectivity) {
+                            Ok(image) => {
+                                enumerated_clusters_filled_holes_mask.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
+            let mut enumerated_clusters_grow_mask1 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters {
+                match image.mask_grow(*connectivity) {
+                    Ok(image) => {
+                        enumerated_clusters_grow_mask1.insert((*color, *connectivity), image);
+                    },
+                    Err(_) => {},
+                }
+            }
+
+            let mut enumerated_clusters_grow_mask2 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters_grow_mask1 {
+                match image.mask_grow(*connectivity) {
+                    Ok(image) => {
+                        enumerated_clusters_grow_mask2.insert((*color, *connectivity), image);
+                    },
+                    Err(_) => {},
+                }
+            }
+
+            let mut small_medium_big = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters {
+                let oam: ObjectsAndMass = match ObjectsAndMass::new(image) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                let a: Image = match oam.group3_small_medium_big(false) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                small_medium_big.insert((*color, *connectivity), a);
+            }
+
+            let mut sort2_small_big = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters {
+                let oam: ObjectsAndMass = match ObjectsAndMass::new(image) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                let a: Image = match oam.sort2_small_big(false) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                sort2_small_big.insert((*color, *connectivity), a);
+            }
+
+            let mut cluster_distance1 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for color in 0..=9u8 {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    let image: Image = input.to_mask_where_color_is_different(color);
+                    let a: Image = match image.mask_distance(connectivity) {
+                        Ok(value) => value,
+                        Err(_) => continue,
+                    };
+                    cluster_distance1.insert((color, connectivity), a);
+                }
+            }
+            let mut cluster_distance2 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for color in 0..=9u8 {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    let image: Image = input.to_mask_where_color_is(color);
+                    let a: Image = match image.mask_distance(connectivity) {
+                        Ok(value) => value,
+                        Err(_) => continue,
+                    };
+                    cluster_distance2.insert((color, connectivity), a);
+                }
+            }
+            let mut cluster_distance3 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            let mut cluster_distance4 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for color in 0..=9u8 {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    // let image: Image = input.to_mask_where_color_is_different(color);
+                    let image: Image = input.to_mask_where_color_is(color);
+                    let a: Image = match image.mask_distance(connectivity) {
+                        Ok(value) => value,
+                        Err(_) => continue,
+                    };
+                    let b: Image = image.select_from_color_and_image(0, &a)?;
+                    cluster_distance3.insert((color, connectivity), b);
+                    let c: Image = image.select_from_image_and_color(&a, 0)?;
+                    cluster_distance4.insert((color, connectivity), c);
+                }
+            }
+            let mut cluster_distance5 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters {
+                let a: Image = match image.mask_distance(*connectivity) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                let b: Image = image.select_from_color_and_image(0, &a)?;
+                cluster_distance5.insert((*color, *connectivity), b);
+            }
+
+            let mut cluster_id_neighbour = HashMap::<(u8, ImageNeighbourDirection, PixelConnectivity), Image>::new();
+            {
+                let directions = [
+                    ImageNeighbourDirection::Up,
+                    ImageNeighbourDirection::Down,
+                    ImageNeighbourDirection::Left,
+                    ImageNeighbourDirection::Right,
+                    ImageNeighbourDirection::UpLeft,
+                    ImageNeighbourDirection::UpRight,
+                    ImageNeighbourDirection::DownLeft,
+                    ImageNeighbourDirection::DownRight,
+                ];
+                for direction in directions {
+                    for ((color, connectivity), image) in &enumerated_clusters {
+                        let ignore_mask: Image = image.to_mask_where_color_is(0);
+                        match image.neighbour_color(&ignore_mask, direction, 255) {
+                            Ok(image) => {
+                                cluster_id_neighbour.insert((*color, direction, *connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
             let mut image_neighbour_right: Image = Image::color(width, height, 255);
-            // let mut image_neighbour_upleft: Image = Image::color(width, height, 255);
-            // let mut image_neighbour_upright: Image = Image::color(width, height, 255);
-            // let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
-            // let mut image_neighbour_downright: Image = Image::color(width, height, 255);
+            let mut image_neighbour_upleft: Image = Image::color(width, height, 255);
+            let mut image_neighbour_upright: Image = Image::color(width, height, 255);
+            let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
+            let mut image_neighbour_downright: Image = Image::color(width, height, 255);
             if let Some(color) = most_popular_color {
                 let ignore_mask: Image = input.to_mask_where_color_is(color);
                 match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Up, 255) {
@@ -271,30 +527,30 @@ impl ExperimentWithLogisticRegression {
                     },
                     Err(_) => {},
                 }
-                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, 255) {
-                //     Ok(image) => {
-                //         image_neighbour_upleft = image;
-                //     },
-                //     Err(_) => {},
-                // }
-                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, 255) {
-                //     Ok(image) => {
-                //         image_neighbour_upright = image;
-                //     },
-                //     Err(_) => {},
-                // }
-                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, 255) {
-                //     Ok(image) => {
-                //         image_neighbour_downleft = image;
-                //     },
-                //     Err(_) => {},
-                // }
-                // match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, 255) {
-                //     Ok(image) => {
-                //         image_neighbour_downright = image;
-                //     },
-                //     Err(_) => {},
-                // }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, 255) {
+                    Ok(image) => {
+                        image_neighbour_upleft = image;
+                    },
+                    Err(_) => {},
+                }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, 255) {
+                    Ok(image) => {
+                        image_neighbour_upright = image;
+                    },
+                    Err(_) => {},
+                }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, 255) {
+                    Ok(image) => {
+                        image_neighbour_downleft = image;
+                    },
+                    Err(_) => {},
+                }
+                match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, 255) {
+                    Ok(image) => {
+                        image_neighbour_downright = image;
+                    },
+                    Err(_) => {},
+                }
             }
 
             let mut holes_connectivity4 = HashMap::<u8, Image>::new();
@@ -417,6 +673,8 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            let input_denoise_type1: Image = input.denoise_type1(most_popular_color.unwrap_or(255))?;
+
             for y in 0..height {
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -425,15 +683,8 @@ impl ExperimentWithLogisticRegression {
                     let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
-                    let top_left: u8 = input.get(xx -1, yy - 1).unwrap_or(255);
-                    let top: u8 = input.get(xx, yy - 1).unwrap_or(255);
-                    let top_right: u8 = input.get(xx + 1, yy - 1).unwrap_or(255);
-                    let left: u8 = input.get(xx - 1, yy).unwrap_or(255);
-                    let center: u8 = input.get(xx, yy).unwrap_or(255);
-                    let right: u8 = input.get(xx + 1, yy).unwrap_or(255);
-                    let bottom_left: u8 = input.get(xx - 1, yy + 1).unwrap_or(255);
-                    let bottom: u8 = input.get(xx, yy + 1).unwrap_or(255);
-                    let bottom_right: u8 = input.get(xx + 1, yy + 1).unwrap_or(255);
+                    let area: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
+                    let center: u8 = area.get(2, 2).unwrap_or(255);
 
                     let image_top: u8 = input.get(xx, 0).unwrap_or(255);
                     let image_bottom: u8 = input.get(xx, original_input.height() as i32 - 1).unwrap_or(255);
@@ -443,6 +694,8 @@ impl ExperimentWithLogisticRegression {
                     let center_x_reversed: u8 = input.get(x_reverse as i32, yy).unwrap_or(255);
                     let center_y_reversed: u8 = input.get(xx, y_reverse as i32).unwrap_or(255);
                     
+                    let center_denoise_type1: u8 = input_denoise_type1.get(xx, yy).unwrap_or(255);
+
                     let object_center: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
                     // let object_top: u8 = enumerated_objects.get(xx, yy - 1).unwrap_or(255);
                     // let object_bottom: u8 = enumerated_objects.get(xx, yy + 1).unwrap_or(255);
@@ -450,29 +703,11 @@ impl ExperimentWithLogisticRegression {
                     // let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
                     // let enumerated_object: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
 
-                    // let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
-                    // let grid_center: u8 = if grid_mask_center > 0 { grid_color } else { 255 };
-                    // let is_grid: u8 = if grid_mask_center > 0 { 1 } else { 0 };
+                    let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
+                    let grid_center: u8 = if grid_mask_center > 0 { grid_color } else { 255 };
+                    let is_grid: bool = grid_mask_center > 0;
 
                     // let repair_center: u8 = repair_mask.get(xx, yy).unwrap_or(255);
-
-                    let t: i32 = 2;
-                    let top0: u8 = input.get(xx - t, yy - t).unwrap_or(255);
-                    let top1: u8 = input.get(xx - 1, yy - t).unwrap_or(255);
-                    let top2: u8 = input.get(xx, yy - t).unwrap_or(255);
-                    let top3: u8 = input.get(xx + 1, yy - t).unwrap_or(255);
-                    let top4: u8 = input.get(xx + t, yy - t).unwrap_or(255);
-                    let left1: u8 = input.get(xx - t, yy - 1).unwrap_or(255);
-                    let left2: u8 = input.get(xx - t, yy).unwrap_or(255);
-                    let left3: u8 = input.get(xx - t, yy + 1).unwrap_or(255);
-                    let right1: u8 = input.get(xx + t, yy - 1).unwrap_or(255);
-                    let right2: u8 = input.get(xx + t, yy).unwrap_or(255);                                    
-                    let right3: u8 = input.get(xx + t, yy + 1).unwrap_or(255);
-                    let bottom0: u8 = input.get(xx - t, yy + t).unwrap_or(255);
-                    let bottom1: u8 = input.get(xx - 1, yy + t).unwrap_or(255);
-                    let bottom2: u8 = input.get(xx, yy + t).unwrap_or(255);
-                    let bottom3: u8 = input.get(xx + 1, yy + t).unwrap_or(255);
-                    let bottom4: u8 = input.get(xx + t, yy + t).unwrap_or(255);
 
                     let neighbour_up: u8 = image_neighbour_up.get(xx, yy).unwrap_or(255);
                     let neighbour_down: u8 = image_neighbour_down.get(xx, yy).unwrap_or(255);
@@ -484,10 +719,10 @@ impl ExperimentWithLogisticRegression {
                     // let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
 
                     let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
-                    let corners_center1: u8 = if corners_center == 1 { 1 } else { 0 };
-                    let corners_center2: u8 = if corners_center == 2 { 1 } else { 0 };
-                    let corners_center3: u8 = if corners_center == 3 { 1 } else { 0 };
-                    let corners_center4: u8 = if corners_center == 4 { 1 } else { 0 };
+                    let corners_center1: bool = corners_center == 1;
+                    let corners_center2: bool = corners_center == 2;
+                    let corners_center3: bool = corners_center == 3;
+                    let corners_center4: bool = corners_center == 4;
 
                     // let column_above_center: Image = match input.crop(Rectangle::new(x, 0, 1, y)) {
                     //     Ok(value) => value,
@@ -505,32 +740,59 @@ impl ExperimentWithLogisticRegression {
                     //     Ok(value) => value,
                     //     Err(_) => Image::empty()
                     // };
+                    let center_column: Image = match input.crop(Rectangle::new(x, 0, 1, height)) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    let center_row: Image = match input.crop(Rectangle::new(0, y, width, 1)) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    let center_column_top: Image = match center_column.top_rows(y) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    let center_column_bottom: Image = match center_column.bottom_rows(y_reverse) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    let center_row_left: Image = match center_row.left_columns(x) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    let center_row_right: Image = match center_row.right_columns(y_reverse) {
+                        Ok(value) => value,
+                        Err(_) => Image::empty()
+                    };
+                    
+
+
 
                     let max_distance: u8 = 3;
-                    let distance_top: u8 = y.min(max_distance);
-                    let distance_bottom: u8 = y_reverse.min(max_distance);
-                    let distance_left: u8 = x.min(max_distance);
-                    let distance_right: u8 = x_reverse.min(max_distance);
+                    let distance_top: u8 = y.min(max_distance) + 1;
+                    let distance_bottom: u8 = y_reverse.min(max_distance) + 1;
+                    let distance_left: u8 = x.min(max_distance) + 1;
+                    let distance_right: u8 = x_reverse.min(max_distance) + 1;
 
-                    let input_is_noise_color: u8 = if noise_color == Some(center) { 1 } else { 0 };
+                    let input_is_noise_color: bool = noise_color == Some(center);
                     // let input_is_removal_color: u8 = if removal_color == Some(center) { 1 } else { 0 };
 
                     let mass_connectivity4: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
                     let mass_connectivity8: u8 = image_mass_connectivity8.get(xx, yy).unwrap_or(0);
 
-                    let input_is_most_popular_color: u8 = if most_popular_color == Some(center) { 1 } else { 0 };
+                    let input_is_most_popular_color: bool = most_popular_color == Some(center);
                 
-                    let x_mod2: u8 = x % 2;
-                    let y_mod2: u8 = y % 2;
-                    let x_reverse_mod2: u8 = x_reverse % 2;
-                    let y_reverse_mod2: u8 = y_reverse % 2;
+                    let x_mod2: bool = x % 2 == 0;
+                    let y_mod2: bool = y % 2 == 0;
+                    let x_reverse_mod2: bool = x_reverse % 2 == 0;
+                    let y_reverse_mod2: bool = y_reverse % 2 == 0;
 
                     // let x_mod3: u8 = x % 3;
                     // let y_mod3: u8 = y % 3;
                     // let x_reverse_mod3: u8 = x_reverse % 3;
                     // let y_reverse_mod3: u8 = y_reverse % 3;
 
-                    let mut preserve_edge: u8 = 0;
+                    let mut preserve_edge: bool = false;
 
                     let mut v0: u8 = 0;
                     let mut v1: u8 = 0;
@@ -728,22 +990,22 @@ impl ExperimentWithLogisticRegression {
                                 match *edge {
                                     ImageEdge::Top => {
                                         if y == 0 {
-                                            preserve_edge = 1;
+                                            preserve_edge = true;
                                         }
                                     },
                                     ImageEdge::Bottom => {
                                         if y_reverse == 0 {
-                                            preserve_edge = 1;
+                                            preserve_edge = true;
                                         }
                                     },
                                     ImageEdge::Left => {
                                         if x == 0 {
-                                            preserve_edge = 1;
+                                            preserve_edge = true;
                                         }
                                     },
                                     ImageEdge::Right => {
                                         if x_reverse == 0 {
-                                            preserve_edge = 1;
+                                            preserve_edge = true;
                                         }
                                     },
                                 }
@@ -941,20 +1203,20 @@ impl ExperimentWithLogisticRegression {
                         // }
                     }
 
-                    let full_row_and_column: u8 = if is_full_row & is_full_column { 1 } else { 0 };
-                    let full_row_xor_column: u8 = if is_full_row ^ is_full_column { 1 } else { 0 };
-                    let full_row_or_column: u8 = if is_full_row | is_full_column { 1 } else { 0 };
+                    let full_row_and_column: bool = is_full_row & is_full_column;
+                    let full_row_xor_column: bool = is_full_row ^ is_full_column;
+                    let full_row_or_column: bool = is_full_row | is_full_column;
 
-                    let mut one_or_more_holes_connectivity4: u8 = 0;
+                    let mut one_or_more_holes_connectivity4: bool = false;
                     if let Some(hole_mask) = holes_connectivity4.get(&center) {
                         if hole_mask.get(xx, yy).unwrap_or(0) > 0 {
-                            one_or_more_holes_connectivity4 = 1;
+                            one_or_more_holes_connectivity4 = true;
                         }
                     }
-                    let mut one_or_more_holes_connectivity8: u8 = 0;
+                    let mut one_or_more_holes_connectivity8: bool = false;
                     if let Some(hole_mask) = holes_connectivity8.get(&center) {
                         if hole_mask.get(xx, yy).unwrap_or(0) > 0 {
-                            one_or_more_holes_connectivity8 = 1;
+                            one_or_more_holes_connectivity8 = true;
                         }
                     }
 
@@ -967,8 +1229,8 @@ impl ExperimentWithLogisticRegression {
                         the_holecount_connectivity8 = holecount_image.get(xx, yy).unwrap_or(0);
                     }
 
-                    let mut noise_color_in_outline1_connectivity4: u8 = 0;
-                    let mut noise_color_in_outline1_connectivity8: u8 = 0;
+                    let mut noise_color_in_outline1_connectivity4: u8 = 255;
+                    let mut noise_color_in_outline1_connectivity8: u8 = 255;
                     // let mut noise_color_in_outline2_connectivity4: u8 = 0;
                     // let mut noise_color_in_outline2_connectivity8: u8 = 0;
                     if let Some(color) = noise_color {
@@ -1028,19 +1290,35 @@ impl ExperimentWithLogisticRegression {
                     //     }
                     // }
 
-                    // let mut inside_bounding_box: u8 = 0;
-                    // if let Some(sco) = &pair.input.single_color_objects {
-                    //     if sco.is_inside_bounding_box(center, xx, yy) {
-                    //         inside_bounding_box = 1;
-                    //     }
-                    // }
+                    let mut inside_bounding_box: bool = false;
+                    if let Some(sco) = &pair.input.single_color_objects {
+                        if sco.is_inside_bounding_box(center, xx, yy) {
+                            inside_bounding_box = true;
+                        }
+                    }
 
-                    // let half_left: u8 = if xx * 2 < width as i32 { 1 } else { 0 };
-                    // let half_right: u8 = if xx * 2 > width as i32 { 1 } else { 0 };
-                    // let half_top: u8 = if yy * 2 < height as i32 { 1 } else { 0 };
-                    // let half_bottom: u8 = if yy * 2 > height as i32 { 1 } else { 0 };
+                    let half_horizontal: i8;
+                    if xx * 2 == width as i32 { 
+                        half_horizontal = 0;
+                    } else {
+                        if xx * 2 < width as i32 { 
+                            half_horizontal = -1;
+                        } else { 
+                            half_horizontal = 1;
+                        };
+                    }
+                    let half_vertical: i8;
+                    if yy * 2 == height as i32 { 
+                        half_vertical = 0;
+                    } else {
+                        if yy * 2 < height as i32 { 
+                            half_vertical = -1;
+                        } else { 
+                            half_vertical = 1;
+                        };
+                    }
 
-                    let input_has_unambiguous_connectivity: u8 = if input_unambiguous_connectivity_histogram.get(center) > 0 { 1 } else { 0 };
+                    let input_has_unambiguous_connectivity: bool = input_unambiguous_connectivity_histogram.get(center) > 0;
 
                     let mut record = Record {
                         classification: output_color,
@@ -1048,83 +1326,305 @@ impl ExperimentWithLogisticRegression {
                         pair_id,
                         values: vec!(),
                     };
-                    record.serialize_color(top_left);
-                    record.serialize_color(top);
-                    record.serialize_color(top_right);
-                    record.serialize_color(left);
-                    record.serialize_color(center);
-                    record.serialize_color(right);
-                    record.serialize_color(bottom_left);
-                    record.serialize_color(bottom);
-                    record.serialize_color(bottom_right);
-                    record.serialize_color(top0);
-                    record.serialize_color(top1);
-                    record.serialize_color(top2);
-                    record.serialize_color(top3);
-                    record.serialize_color(top4);
-                    record.serialize_color(left1);
-                    record.serialize_color(left2);
-                    record.serialize_color(left3);
-                    record.serialize_color(right1);
-                    record.serialize_color(right2);
-                    record.serialize_color(right3);
-                    record.serialize_color(bottom0);
-                    record.serialize_color(bottom1);
-                    record.serialize_color(bottom2);
-                    record.serialize_color(bottom3);
-                    record.serialize_color(bottom4);
-                    record.serialize_color(center_x_reversed);
-                    record.serialize_color(center_y_reversed);
-                    record.serialize_color(mass_connectivity4);
-                    record.serialize_color(mass_connectivity8);
-                    record.serialize_raw(distance_top);
-                    record.serialize_raw(distance_bottom);
-                    record.serialize_raw(distance_left);
-                    record.serialize_raw(distance_right);
-                    record.serialize_raw(input_is_noise_color);
-                    record.serialize_raw(input_is_most_popular_color);
-                    record.serialize_raw(x_mod2);
-                    record.serialize_raw(y_mod2);
-                    record.serialize_raw(x_reverse_mod2);
-                    record.serialize_raw(y_reverse_mod2);
-                    record.serialize_raw(preserve_edge);
-                    record.serialize_raw(full_row_and_column);
-                    record.serialize_raw(full_row_xor_column);
-                    record.serialize_raw(full_row_or_column);
-                    record.serialize_raw(one_or_more_holes_connectivity4);
-                    record.serialize_raw(one_or_more_holes_connectivity8);
-                    record.serialize_color(the_holecount_connectivity4);
-                    record.serialize_color(the_holecount_connectivity8);
-                    record.serialize_raw(corners_center1);
-                    record.serialize_raw(corners_center2);
-                    record.serialize_raw(corners_center3);
-                    record.serialize_raw(corners_center4);
+                    for area_y in 0..area.height() {
+                        for area_x in 0..area.width() {
+                            let color: u8 = area.get(area_x as i32, area_y as i32).unwrap_or(255);
+                            record.serialize_color_complex(color);
+                        }
+                    }
+
+                    record.serialize_color_complex(center_x_reversed);
+                    record.serialize_color_complex(center_y_reversed);
+                    record.serialize_color_complex(mass_connectivity4);
+                    record.serialize_color_complex(mass_connectivity8);
+                    record.serialize_u8(distance_top);
+                    record.serialize_u8(distance_bottom);
+                    record.serialize_u8(distance_left);
+                    record.serialize_u8(distance_right);
+                    record.serialize_ternary(half_horizontal);
+                    record.serialize_ternary(half_vertical);
+                    record.serialize_bool(input_is_noise_color);
+                    record.serialize_bool(input_is_most_popular_color);
+                    record.serialize_bool(x_mod2);
+                    record.serialize_bool(y_mod2);
+                    record.serialize_bool(x_reverse_mod2);
+                    record.serialize_bool(y_reverse_mod2);
+                    record.serialize_bool(preserve_edge);
+                    record.serialize_bool(full_row_and_column);
+                    record.serialize_bool(full_row_xor_column);
+                    record.serialize_bool(full_row_or_column);
+                    record.serialize_bool(one_or_more_holes_connectivity4);
+                    record.serialize_bool(one_or_more_holes_connectivity8);
+                    record.serialize_color_complex(the_holecount_connectivity4);
+                    record.serialize_color_complex(the_holecount_connectivity8);
+                    record.serialize_bool(corners_center1);
+                    record.serialize_bool(corners_center2);
+                    record.serialize_bool(corners_center3);
+                    record.serialize_bool(corners_center4);
                     for i in 0..10 {
-                        let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
-                        record.serialize_raw(value);
+                        // let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
+                        // record.serialize_u8(value);
+                        let value2: u8 = if no_change_to_color[i] { i as u8 } else { 255 };
+                        record.serialize_color_complex(value2);
                     }
                     for i in 0..10 {
-                        let value: u8 = if input_histogram_intersection[i] { 1 } else { 0 };
-                        record.serialize_raw(value);
+                        // let value: u8 = if input_histogram_intersection[i] { 1 } else { 0 };
+                        // record.serialize_u8(value);
+                        let value2: u8 = if input_histogram_intersection[i] { i as u8 } else { 255 };
+                        record.serialize_color_complex(value2);
                     }
-                    record.serialize_raw(input_has_unambiguous_connectivity);
-                    record.serialize_raw(v0);
-                    record.serialize_raw(v1);
-                    record.serialize_raw(v2);
-                    record.serialize_raw(v3);
-                    record.serialize_raw(v4);
-                    record.serialize_raw(v5);
-                    record.serialize_raw(v6);
-                    record.serialize_raw(v7);
-                    record.serialize_raw(noise_color_in_outline1_connectivity4);
-                    record.serialize_raw(noise_color_in_outline1_connectivity8);
-                    // record.serialize_raw(noise_color_in_outline2_connectivity4); // worsens the prediction
-                    // record.serialize_raw(noise_color_in_outline2_connectivity8); // worsens the prediction
+                    record.serialize_bool(input_has_unambiguous_connectivity);
+                    record.serialize_u8(v0);
+                    record.serialize_u8(v1);
+                    record.serialize_u8(v2);
+                    record.serialize_u8(v3);
+                    record.serialize_u8(v4);
+                    record.serialize_u8(v5);
+                    record.serialize_u8(v6);
+                    record.serialize_u8(v7);
+                    record.serialize_color_complex(noise_color_in_outline1_connectivity4);
+                    record.serialize_color_complex(noise_color_in_outline1_connectivity8);
+                    // record.serialize_u8(noise_color_in_outline2_connectivity4); // worsens the prediction
+                    // record.serialize_u8(noise_color_in_outline2_connectivity8); // worsens the prediction
+
+                    let mut row_contains_noise_color: bool = false;
+                    let mut column_contains_noise_color: bool = false;
+                    if let Some(color) = noise_color {
+                        if histogram_rows[y as usize].get(color) > 0 {
+                            row_contains_noise_color = true;
+                        }
+                        if histogram_columns[x as usize].get(color) > 0 {
+                            column_contains_noise_color = true;
+                        }
+                    }
+                    record.serialize_bool(row_contains_noise_color);
+                    record.serialize_bool(column_contains_noise_color);
+
+
+                    // color of the neighbour in all 8 directions
+                    let directions = [
+                        ImageNeighbourDirection::Up,
+                        ImageNeighbourDirection::Down,
+                        ImageNeighbourDirection::Left,
+                        ImageNeighbourDirection::Right,
+                        ImageNeighbourDirection::UpLeft,
+                        ImageNeighbourDirection::UpRight,
+                        ImageNeighbourDirection::DownLeft,
+                        ImageNeighbourDirection::DownRight,
+                    ];
+                    for direction in &directions {
+                        for color in 0..=9 {
+                            let neighbour_color: u8 = match image_neighbour.get(&(color, *direction)) {
+                                Some(value) => {
+                                    value.get(xx, yy).unwrap_or(255)
+                                }
+                                None => 255
+                            };
+                            record.serialize_color_complex(neighbour_color);
+                        }
+                    }
+
+                    // Future experiment
+                    // for all 10 colors.
+                    // look in the diagonal direction, skip the first 2 colors, and pick the 2nd color
+
+    
+                    // Cluster id
+                    {
+                        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let cluster_id: u8 = match enumerated_clusters.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_cluster_id(color, cluster_id);
+                                // record.serialize_complex(cluster_id as u16, 41);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let cluster_id: u8 = match small_medium_big.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_complex(cluster_id as u16, 4);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let cluster_id: u8 = match sort2_small_big.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_complex(cluster_id as u16, 3);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let mask_value: u8 = match enumerated_clusters_filled_holes_mask.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let mask_value: u8 = match enumerated_clusters_grow_mask1.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let mask_value: u8 = match enumerated_clusters_grow_mask2.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let distance: u8 = match cluster_distance1.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                // record.serialize_u8(distance);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let distance: u8 = match cluster_distance2.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                // record.serialize_u8(distance);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let distance: u8 = match cluster_distance3.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                // record.serialize_u8(distance);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let distance: u8 = match cluster_distance4.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                // record.serialize_u8(distance);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let distance: u8 = match cluster_distance5.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                // record.serialize_u8(distance);
+                                // record.serialize_split_zeros_ones(distance, 5);
+                                // record.serialize_split_zeros_ones(distance, 8);
+                                record.serialize_bool(distance % 2 == 0);
+                            }
+                        }
+
+                        let directions = [
+                            ImageNeighbourDirection::Up,
+                            ImageNeighbourDirection::Down,
+                            ImageNeighbourDirection::Left,
+                            ImageNeighbourDirection::Right,
+                            // ImageNeighbourDirection::UpLeft,
+                            // ImageNeighbourDirection::UpRight,
+                            // ImageNeighbourDirection::DownLeft,
+                            // ImageNeighbourDirection::DownRight,
+                        ];
+                        // for connectivity in &connectivity_vec {
+                        //     for direction in &directions {
+                        //         for color in 0..=9 {
+                        //             let cluster_id: u8 = match cluster_id_neighbour.get(&(color, *direction, *connectivity)) {
+                        //                 Some(value) => {
+                        //                     value.get(xx, yy).unwrap_or(255)
+                        //                 }
+                        //                 None => 255
+                        //             };
+                        //             // record.serialize_complex(cluster_id, 13);
+                        //             record.serialize_cluster_id(color, cluster_id);
+                        //         }
+                        //     }
+                        // }
+    
+                    }
+
+                    {
+                        let images: [&Image; 4] = [
+                            &center_column_top,
+                            &center_column_bottom,
+                            &center_row_left,
+                            &center_row_right,
+                        ];
+                        for image in images {
+                            let h: Histogram = image.histogram_all();
+                            let most_popular: Option<u8> = h.most_popular_color_disallow_ambiguous();
+                            let least_popular: Option<u8> = h.least_popular_color_disallow_ambiguous();
+                            record.serialize_color_complex(most_popular.unwrap_or(255));
+                            record.serialize_color_complex(least_popular.unwrap_or(255));
+                            // let count: u16 = h.number_of_counters_greater_than_zero();
+                            // record.serialize_f64((count+1) as f64);
+                            // record.serialize_bool(count < 2);
+                        }
+                    }
+
+                    record.serialize_color_complex(center_denoise_type1);
+
+                    for color in 0..=9 {
+                        let mut is_inside_bounding_box: bool = false;
+                        if let Some(sco) = &pair.input.single_color_objects {
+                            is_inside_bounding_box = sco.is_inside_bounding_box(color, xx, yy);
+                        }
+                        record.serialize_bool(is_inside_bounding_box);
+                    }
+
 
                     // Future experiments
                     // push all the training pairs that have been rotated by 90 degrees.
                     // push all the training pairs that have been flipped.
                     //
+                    // when the image is splitted into multiple cells, example 3 cells:
+                    // cell0: is inside split area 0
+                    // cell1: is inside split area 1
+                    // cell2: is inside split area 2
+                    // border01: is on the border between cell0 and cell1
+                    // border12: is on the border between cell1 and cell2
                     // is solid object without holes
                     // hole is square/rectangle/sparse
                     // object size, is biggest
@@ -1158,23 +1658,20 @@ impl ExperimentWithLogisticRegression {
                     // preserve corner: u8,
                     // x_distance_from_center: i16,
                     // y_distance_from_center: i16,
-                    // record.serialize_raw(the_horizontal_symmetry_connectivity4);
-                    // record.serialize_raw(the_horizontal_symmetry_connectivity8);
-                    // record.serialize_raw(the_vertical_symmetry_connectivity4);
-                    // record.serialize_raw(the_vertical_symmetry_connectivity8);
-                    // record.serialize_raw(is_corner);
-                    // record.serialize_raw(corner_top_left);
-                    // record.serialize_raw(corner_top_right);
-                    // record.serialize_raw(corner_bottom_left);
-                    // record.serialize_raw(corner_bottom_right);
-                    // record.serialize_raw(inside_bounding_box);
-                    // record.serialize_raw(is_grid);
-                    // record.serialize_color(grid_center);
-                    // record.serialize_color(grid_color);
-                    // record.serialize_raw(half_left);
-                    // record.serialize_raw(half_right);
-                    // record.serialize_raw(half_top);
-                    // record.serialize_raw(half_bottom);
+                    // record.serialize_u8(the_horizontal_symmetry_connectivity4);
+                    // record.serialize_u8(the_horizontal_symmetry_connectivity8);
+                    // record.serialize_u8(the_vertical_symmetry_connectivity4);
+                    // record.serialize_u8(the_vertical_symmetry_connectivity8);
+                    // record.serialize_u8(is_corner);
+                    // record.serialize_u8(corner_top_left);
+                    // record.serialize_u8(corner_top_right);
+                    // record.serialize_u8(corner_bottom_left);
+                    // record.serialize_u8(corner_bottom_right);
+                    record.serialize_bool(is_grid);
+                    record.serialize_color_complex(grid_center);
+                    record.serialize_color_complex(grid_color);
+                    // record.serialize_bool(inside_bounding_box);
+                    // record.serialize_complex(object_center, 20);
 
                     records.push(record);
                 }
@@ -1205,7 +1702,7 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
         data.push(record.is_test as f64);
         data.push(record.pair_id as f64);
         for value in &record.values {
-            data.push(*value as f64);
+            data.push(*value);
         }
         let value_count: usize = record.values.len();
         values_max = values_max.max(value_count);
@@ -1338,13 +1835,13 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
                 }
                 HtmlLog::image(&computed_image);
             } else {
-                // HtmlLog::text(format!("{} - incorrect", task.id));
-                // let images: Vec<Image> = vec![
-                //     original_input,
-                //     expected_output,
-                //     computed_image.clone(),
-                // ];
-                // HtmlLog::compare_images(images);
+                HtmlLog::text(format!("{} - incorrect", task.id));
+                let images: Vec<Image> = vec![
+                    original_input,
+                    expected_output,
+                    computed_image.clone(),
+                ];
+                HtmlLog::compare_images(images);
             }
         }
 

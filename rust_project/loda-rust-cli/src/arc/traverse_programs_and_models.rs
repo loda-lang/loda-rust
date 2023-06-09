@@ -22,6 +22,7 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{PathBuf, Path};
 use std::rc::Rc;
+use std::thread;
 use console::Style;
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use rand::SeedableRng;
@@ -29,7 +30,11 @@ use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
 
 #[allow(unused_imports)]
-use super::{ExperimentWithConvolution, ExperimentWithLogisticRegression};
+use super::ExperimentWithConvolution;
+
+#[allow(unused_imports)]
+#[cfg(feature = "linfa")]
+use super::ExperimentWithLogisticRegression;
 
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
@@ -79,12 +84,24 @@ impl TraverseProgramsAndModels {
     }
 
     pub fn experiment_with_convolution() -> anyhow::Result<()> {
-        let tpam = TraverseProgramsAndModels::new()?;
-        let task_vec: Vec<Task> = tpam.to_task_vec();
+        // let tpam = TraverseProgramsAndModels::new()?;
+        // let task_vec: Vec<Task> = tpam.to_task_vec();
         // let mut instance = ExperimentWithConvolution::new(task_vec);
-        let mut instance = ExperimentWithLogisticRegression::new(task_vec);
-        instance.run()?;
-        Ok(())
+        // instance.run()?;
+        #[cfg(feature = "linfa")]
+        {
+            let tpam = TraverseProgramsAndModels::new()?;
+            let task_vec: Vec<Task> = tpam.to_task_vec();
+            let mut instance = ExperimentWithLogisticRegression::new(task_vec);
+            instance.run()?;
+            return Ok(());
+        }
+
+        #[cfg(not(feature = "linfa"))]
+        {
+            // return anyhow::bail!("The 'linfa' feature is not enabled");
+            anyhow::bail!("The 'linfa' feature is not enabled")
+        }
     }
 
     pub fn export_dataset() -> anyhow::Result<()> {
@@ -404,6 +421,7 @@ impl TraverseProgramsAndModels {
             // if task.input_histogram_intersection.most_popular_color_disallow_ambiguous() == None {
             //     continue;
             // }
+            #[allow(unused_assignments)]
             let mut found: bool = false;
             found = true;
             // if task.has_removal_color() {
@@ -1530,6 +1548,7 @@ impl TraverseProgramsAndModels {
     fn print_system_info() {
         println!("env::consts::ARCH: {}", std::env::consts::ARCH);
         println!("env::consts::OS: {}", std::env::consts::OS);
+        println!("thread::current(): {:?}", thread::current());
 
         const VERSION: &str = env!("CARGO_PKG_VERSION");
         let build_mode: &str;
@@ -1679,54 +1698,62 @@ impl TraverseProgramsAndModels {
         }
 
         if try_logistic_regression {
-            let number_of_tasks: u64 = runner.plan.scheduled_model_item_vec.len() as u64;
-            println!("{} - Run logistic regression with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
-            let pb = ProgressBar::new(number_of_tasks as u64);
-            let verbose_logistic_regression = false;
-            let verify_test_output = false;
-            for model_item in &runner.plan.scheduled_model_item_vec {
-                let task: Task = model_item.borrow().task.clone();
-                
-                let predictions: Vec<Prediction> = match ExperimentWithLogisticRegression::process_task(&task, verify_test_output) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        if verbose_logistic_regression {
-                            println!("task: {} - could not make predictions. error: {:?}", task.id, error);
+            #[cfg(feature = "linfa")]
+            {
+                let number_of_tasks: u64 = runner.plan.scheduled_model_item_vec.len() as u64;
+                println!("{} - Run logistic regression with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
+                let pb = ProgressBar::new(number_of_tasks as u64);
+                let verbose_logistic_regression = false;
+                let verify_test_output = false;
+                for model_item in &runner.plan.scheduled_model_item_vec {
+                    let task: Task = model_item.borrow().task.clone();
+                    
+                    let predictions: Vec<Prediction> = match ExperimentWithLogisticRegression::process_task(&task, verify_test_output) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            if verbose_logistic_regression {
+                                println!("task: {} - could not make predictions. error: {:?}", task.id, error);
+                            }
+                            pb.inc(1);
+                            continue;
                         }
-                        pb.inc(1);
-                        continue;
+                    };
+                    if verbose_logistic_regression {
+                        println!("task: {} - predictions.len(): {}", task.id, predictions.len());
                     }
-                };
-                if verbose_logistic_regression {
-                    println!("task: {} - predictions.len(): {}", task.id, predictions.len());
+    
+                    let model_id: ModelItemId = model_item.borrow().id.clone(); 
+    
+                    let test_item = TestItem { 
+                        output_id: 0,
+                        number_of_predictions: predictions.len() as u8,
+                        predictions: predictions,
+                    };
+                    let task_name: String = model_id.file_stem();
+                    let task_item = TaskItem {
+                        task_name: task_name,
+                        test_vec: vec![test_item],
+                    };
+                    // TODO: don't add if already exists
+                    state.current_tasks.push(task_item);        
+                    pb.inc(1);
                 }
-
-                let model_id: ModelItemId = model_item.borrow().id.clone(); 
-
-                let test_item = TestItem { 
-                    output_id: 0,
-                    number_of_predictions: predictions.len() as u8,
-                    predictions: predictions,
-                };
-                let task_name: String = model_id.file_stem();
-                let task_item = TaskItem {
-                    task_name: task_name,
-                    test_vec: vec![test_item],
-                };
-                // TODO: don't add if already exists
-                state.current_tasks.push(task_item);        
-                pb.inc(1);
+                pb.finish_and_clear();
+                save_solutions_json(
+                    &self.arc_config.path_solution_dir,
+                    &self.arc_config.path_solution_teamid_json,
+                    &state.current_tasks
+                );
+                println!("{} - Executable elapsed: {}.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
+    
+                println!("Done!");
+                return Ok(());
             }
-            pb.finish_and_clear();
-            save_solutions_json(
-                &self.arc_config.path_solution_dir,
-                &self.arc_config.path_solution_teamid_json,
-                &state.current_tasks
-            );
-            println!("{} - Executable elapsed: {}.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
 
-            println!("Done!");
-            return Ok(());
+            #[cfg(not(feature = "linfa"))]
+            {
+                error!("{} - Logistic regression is not enabled. Please enable the 'linfa' feature.", human_readable_utc_timestamp());
+            }
         }
 
         // loop until all puzzles have been solved

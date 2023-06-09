@@ -1,4 +1,4 @@
-use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObjects, SingleColorObjectRectangle};
+use super::{arc_work_model, GridLabel, GridPattern, InspectTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObjects, SingleColorObjectRectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction};
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
@@ -2086,7 +2086,7 @@ impl arc_work_model::Task {
     }
 
     pub fn inspect(&self) -> anyhow::Result<()> {
-        HtmlFromTask::inspect(self)
+        InspectTask::inspect(self)
     }
 
     pub fn count_train(&self) -> usize {

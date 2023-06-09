@@ -39,6 +39,14 @@ pub enum PropertyInput {
     InputHeightOfRemovedRectangleAfterSingleColorRemoval,
 
     // Ideas for more
+    // InputNoisePixelsCount,
+    // InputNoisePixelsCountOutsideAnyObjects,
+    // InputMaxNumberOfClustersInSparseSingleColorObject,
+    // InputMaxWidthOfClustersInSparseSingleColorObject,
+    // InputMaxHeightOfClustersInSparseSingleColorObject,
+    // InputMaxNoisePixelsInsideAnotherObject,
+    // InputPrimaryObjectInteriorMass,
+    // InputPrimaryObjectCornerCount,
     // InputCellCountHorizontal,
     // InputCellCountVertical,
     // InputUniqueColorCountAfterRemoval
@@ -157,6 +165,9 @@ pub enum InputLabel {
     InputBorderFloodFillConnectivity4AllPixelsWithColor { color: u8 },
 
     // Ideas for more
+    // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
+    // AllObjectsAreMovedByTheSameOffsetWrapAround { offset_x: i32, offset_y: i32, background_color: u8 },
+    // AllObjectsFromTheInputImagePresentExactlyOnceInTheOutputImageButWithDifferentOffsets,
     // BorderMostPopularColor { color: u8 },
     // BorderLeastPopularColor { color: u8 },
     // AmbiguousEnumeratedObjects, // Does `PixelConnectivity4` and `PixelConnectivity8` yield different results

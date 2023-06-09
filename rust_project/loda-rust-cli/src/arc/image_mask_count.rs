@@ -5,6 +5,7 @@ pub trait ImageMaskCount {
     fn mask_count_zero(&self) -> u16;
     fn mask_count_one(&self) -> u16;
     fn mask_count_other(&self) -> u16;
+    fn mask_count_nonzero(&self) -> u16;
 }
 
 impl ImageMaskCount for Image {
@@ -45,6 +46,12 @@ impl ImageMaskCount for Image {
         let (_count0, _count1, count_other) = self.mask_count();
         count_other
     }
+
+    fn mask_count_nonzero(&self) -> u16 {
+        let (_count0, count1, count_other) = self.mask_count();
+        count1 + count_other
+    }
+
 }
 
 #[cfg(test)]

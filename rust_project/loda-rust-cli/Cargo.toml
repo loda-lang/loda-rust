@@ -11,6 +11,9 @@ edition = "2021"
 name = "loda-rust"
 path = "src/main.rs"
 
+[features]
+linfa = ["dep:linfa", "dep:linfa-logistic", "dep:linfa-preprocessing", "dep:ndarray"]
+
 [dependencies]
 loda-rust-core = { path = "../loda-rust-core" }
 env_logger = "0.10.0"
@@ -45,10 +48,10 @@ bastion = { version = "0.4.5", features = ["tokio-runtime"] }
 reqwest = { version = "0.11.12", features = ["blocking", "json"] }
 unicode-width = "0.1.7"
 html-escape = "0.2.13"
-ndarray = { version = "0.15" }
-linfa = { version = "0.6.1" }
-linfa-logistic = "*"
-linfa-preprocessing = "*"
+ndarray = { version = "0.15", optional = true }
+linfa = { version = "0.6.1", optional = true }
+linfa-logistic = { version = "*", optional = true }
+linfa-preprocessing = { version = "*", optional = true }
 petgraph = "0.6.3"
 
 [dev-dependencies]
