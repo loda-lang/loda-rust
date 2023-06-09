@@ -1,7 +1,7 @@
 use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask};
 use super::{SingleColorObject, SingleColorObjectToLabel};
-use super::{Grid, GridLabel, GridToLabel};
-use super::{Symmetry, SymmetryLabel, SymmetryToLabel};
+use super::{Grid, GridToLabel};
+use super::{Symmetry, SymmetryToLabel};
 use std::collections::HashSet;
 
 impl arc_work_model::ImageMeta {
@@ -18,8 +18,7 @@ impl arc_work_model::ImageMeta {
     pub fn analyze(&mut self, image: &Image) -> anyhow::Result<()> {
         self.histogram = image.histogram_all();
         self.assign_grid(image)?;
-        self.resolve_symmetry(image);
-        self.assign_symmetry_labels();
+        self.assign_symmetry(image)?;
         self.assign_single_color_object(image)?;
         self.assign_border_flood_fill(image)?;
         Ok(())
@@ -44,44 +43,33 @@ impl arc_work_model::ImageMeta {
         Ok(())
     }
 
-    pub fn resolve_symmetry(&mut self, image: &Image) {
+    pub fn assign_symmetry(&mut self, image: &Image) -> anyhow::Result<()> {
         if self.symmetry.is_some() {
-            return;
+            return Ok(());
         }
 
         let width: u8 = image.width();
         let height: u8 = image.height();
         if width == 0 || height == 0 {
-            return;
+            return Ok(());
         }
         if width == 1 && height == 1 {
-            return;
+            return Ok(());
         }
 
         let symmetry: Symmetry = match Symmetry::analyze(image) {
             Ok(value) => value,
             Err(error) => {
                 println!("Unable to find symmetry. error: {:?}", error);
-                return;
+                return Ok(());
             }
         };
-        self.symmetry = Some(symmetry);
-    }
-
-    pub fn assign_symmetry_labels(&mut self) {
-        let symmetry_labels: HashSet<SymmetryLabel>;
-        match &self.symmetry {
-            Some(symmetry) => {
-                symmetry_labels = symmetry.to_symmetry_labels();
-            },
-            None => {
-                return;
-            }
-        };
-        for symmetry_label in symmetry_labels {
+        for symmetry_label in symmetry.to_symmetry_labels() {
             let label = ImageLabel::Symmetry { label: symmetry_label.clone() };
             self.image_label_set.insert(label);
         }
+        self.symmetry = Some(symmetry);
+        Ok(())
     }
 
     pub fn assign_single_color_object(&mut self, image: &Image) -> anyhow::Result<()> {
