@@ -1,6 +1,7 @@
 use super::{arc_work_model, Image, ImageLabelSet, ImageLabel};
 use super::{SingleColorObject, SingleColorObjectToLabel};
 use super::{Grid, GridLabel, GridToLabel};
+use super::{Symmetry, SymmetryLabel, SymmetryToLabel};
 use std::collections::HashSet;
 
 impl arc_work_model::ImageMeta {
@@ -8,6 +9,7 @@ impl arc_work_model::ImageMeta {
         Self {
             image_label_set: HashSet::new(),
             grid: None,
+            symmetry: None,
             single_color_object: None,
         }
     }
@@ -38,6 +40,46 @@ impl arc_work_model::ImageMeta {
         };
         for grid_label in grid_labels {
             let label = ImageLabel::Grid { label: grid_label.clone() };
+            self.image_label_set.insert(label);
+        }
+    }
+
+    pub fn resolve_symmetry(&mut self, image: &Image) {
+        if self.symmetry.is_some() {
+            return;
+        }
+
+        let width: u8 = image.width();
+        let height: u8 = image.height();
+        if width == 0 || height == 0 {
+            return;
+        }
+        if width == 1 && height == 1 {
+            return;
+        }
+
+        let symmetry: Symmetry = match Symmetry::analyze(image) {
+            Ok(value) => value,
+            Err(error) => {
+                println!("Unable to find symmetry. error: {:?}", error);
+                return;
+            }
+        };
+        self.symmetry = Some(symmetry);
+    }
+
+    pub fn assign_symmetry_labels(&mut self) {
+        let symmetry_labels: HashSet<SymmetryLabel>;
+        match &self.symmetry {
+            Some(symmetry) => {
+                symmetry_labels = symmetry.to_symmetry_labels();
+            },
+            None => {
+                return;
+            }
+        };
+        for symmetry_label in symmetry_labels {
+            let label = ImageLabel::Symmetry { label: symmetry_label.clone() };
             self.image_label_set.insert(label);
         }
     }

@@ -34,6 +34,8 @@ pub struct ImageMeta {
 
     pub grid: Option<Grid>,
 
+    pub symmetry: Option<Symmetry>,
+    
     pub single_color_object: Option<SingleColorObject>,
 }
 
@@ -51,8 +53,6 @@ pub struct Input {
     /// The identified objects
     pub input_objects: HashMap<ObjectType, Vec<Object>>,
 
-    pub symmetry: Option<Symmetry>,
-    
     pub repair_mask: Option<Image>,
     pub repaired_image: Option<Image>,
 

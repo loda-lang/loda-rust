@@ -176,7 +176,7 @@ impl arc_work_model::Task {
 
         // proceed only if all the pairs have a repair color
         for pair in &mut self.pairs {
-            if let Some(symmetry) = &pair.input.symmetry {
+            if let Some(symmetry) = &pair.input.image_meta.symmetry {
                 if symmetry.repair_color.is_none() {
                     // One or more of the pairs is missing a repair color
                     return;
@@ -187,7 +187,7 @@ impl arc_work_model::Task {
         // create attention mask with the repair color.
         for pair in &mut self.pairs {
             let color: u8;
-            if let Some(symmetry) = &pair.input.symmetry {
+            if let Some(symmetry) = &pair.input.image_meta.symmetry {
                 if let Some(repair_color) = symmetry.repair_color {
                     color = repair_color;
                 } else {
@@ -1591,7 +1591,7 @@ impl arc_work_model::Task {
 
     fn compute_input_repaired_image_execute(&mut self) -> anyhow::Result<()> {
         for (_index, pair) in self.pairs.iter_mut().enumerate() {
-            let (symmetry, repair_mask) = match (&pair.input.symmetry, &pair.input.repair_mask) {
+            let (symmetry, repair_mask) = match (&pair.input.image_meta.symmetry, &pair.input.repair_mask) {
                 (Some(a), Some(b)) => (a, b),
                 _ => {
                     return Err(anyhow::anyhow!("symmetry and repair_mask"));

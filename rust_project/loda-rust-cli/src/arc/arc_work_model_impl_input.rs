@@ -1,7 +1,7 @@
 use super::{arc_work_model, ImageFill};
 use super::arc_work_model::Object;
 use super::{PropertyInput, ImageLabel};
-use super::{Symmetry, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
+use super::{Image, Rectangle};
 use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
 
@@ -164,54 +164,14 @@ impl arc_work_model::Input {
         dict
     }
 
-    pub fn resolve_symmetry(&mut self) {
-        if self.symmetry.is_some() {
-            return;
-        }
-
-        let width: u8 = self.image.width();
-        let height: u8 = self.image.height();
-        if width == 0 || height == 0 {
-            return;
-        }
-        if width == 1 && height == 1 {
-            return;
-        }
-
-        let symmetry: Symmetry = match Symmetry::analyze(&self.image) {
-            Ok(value) => value,
-            Err(error) => {
-                println!("Unable to find symmetry. {} error: {:?}", self.id, error);
-                return;
-            }
-        };
-        self.symmetry = Some(symmetry);
-    }
-
     pub fn update_input_label_set(&mut self) -> anyhow::Result<()> {
-        self.resolve_symmetry();
+        self.image_meta.resolve_symmetry(&self.image);
         self.image_meta.resolve_grid(&self.image);
-        self.assign_symmetry_labels();
+        self.image_meta.assign_symmetry_labels();
         self.image_meta.assign_grid_labels();
         self.image_meta.assign_single_color_object(&self.image)?;
         self.assign_border_flood_fill()?;
         Ok(())
-    }
-
-    pub fn assign_symmetry_labels(&mut self) {
-        let symmetry_labels: HashSet<SymmetryLabel>;
-        match &self.symmetry {
-            Some(symmetry) => {
-                symmetry_labels = symmetry.to_symmetry_labels();
-            },
-            None => {
-                return;
-            }
-        };
-        for symmetry_label in symmetry_labels {
-            let label = ImageLabel::Symmetry { label: symmetry_label.clone() };
-            self.image_meta.image_label_set.insert(label);
-        }
     }
 
     pub fn assign_border_flood_fill(&mut self) -> anyhow::Result<()> {
