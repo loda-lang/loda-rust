@@ -26,10 +26,17 @@ pub struct Object {
     pub object_label_set: HashSet<ObjectLabel>,
 }
 
+/// Data about the image.
+#[derive(Clone, Debug)]
+pub struct ImageMeta {
+}
+
 #[derive(Clone, Debug)]
 pub struct Input {
     pub id: String,
     pub image: Image,
+    pub image_meta: ImageMeta,
+
     pub histogram: Histogram,
     
     /// Computed values such as: number of unique colors, width of biggest object.

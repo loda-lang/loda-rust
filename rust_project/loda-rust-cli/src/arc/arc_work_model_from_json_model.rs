@@ -1,5 +1,6 @@
 use super::arc_json_model;
 use super::arc_work_model;
+use super::arc_work_model::ImageMeta;
 use super::{Image, Histogram, ImageHistogram, ActionLabelSet};
 use std::collections::{HashMap, HashSet};
 
@@ -44,6 +45,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                 let buffer_input = arc_work_model::Input {
                     id: format!("{},input{},train", task_id, index),
                     image: pair.input.clone(),
+                    image_meta: ImageMeta::new(),
                     histogram: histogram_input,
                     input_properties: HashMap::new(),
                     image_label_set: HashSet::new(),
@@ -89,6 +91,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                 let buffer_input = arc_work_model::Input {
                     id: format!("{},input{},test", task_id, index),
                     image: pair.input.clone(),
+                    image_meta: ImageMeta::new(),
                     histogram: histogram_input,
                     input_properties: HashMap::new(),
                     image_label_set: HashSet::new(),
