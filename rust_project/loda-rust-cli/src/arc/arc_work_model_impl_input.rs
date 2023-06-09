@@ -1,6 +1,6 @@
 use super::{arc_work_model, ImageFill};
 use super::arc_work_model::Object;
-use super::{PropertyInput, InputLabel, GridLabel, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel};
+use super::{PropertyInput, ImageLabel, GridLabel, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel};
 use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
 use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop, SingleColorObjects};
 use std::collections::{HashMap, HashSet};
@@ -223,7 +223,7 @@ impl arc_work_model::Input {
             }
         };
         for symmetry_label in symmetry_labels {
-            let label = InputLabel::InputSymmetry { label: symmetry_label.clone() };
+            let label = ImageLabel::InputSymmetry { label: symmetry_label.clone() };
             self.input_label_set.insert(label);
         }
     }
@@ -239,7 +239,7 @@ impl arc_work_model::Input {
             }
         };
         for grid_label in grid_labels {
-            let label = InputLabel::InputGrid { label: grid_label.clone() };
+            let label = ImageLabel::InputGrid { label: grid_label.clone() };
             self.input_label_set.insert(label);
         }
     }
@@ -254,34 +254,34 @@ impl arc_work_model::Input {
         for object in &single_color_objects.rectangle_vec {
             {
                 let label = SingleColorObjectRectangleLabel::RectangleWithColor { color: object.color };
-                let input_label = InputLabel::InputSingleColorObjectRectangle { label };
+                let input_label = ImageLabel::InputSingleColorObjectRectangle { label };
                 self.input_label_set.insert(input_label);
             }
             {
                 let label = SingleColorObjectRectangleLabel::RectangleWithSomeColor;
-                let input_label = InputLabel::InputSingleColorObjectRectangle { label };
+                let input_label = ImageLabel::InputSingleColorObjectRectangle { label };
                 self.input_label_set.insert(input_label);
             }
             if object.is_square {
                 {
                     let label = SingleColorObjectRectangleLabel::SquareWithColor { color: object.color };
-                    let input_label = InputLabel::InputSingleColorObjectRectangle { label };
+                    let input_label = ImageLabel::InputSingleColorObjectRectangle { label };
                     self.input_label_set.insert(input_label);
                 }
                 {
                     let label = SingleColorObjectRectangleLabel::SquareWithSomeColor;
-                    let input_label = InputLabel::InputSingleColorObjectRectangle { label };
+                    let input_label = ImageLabel::InputSingleColorObjectRectangle { label };
                     self.input_label_set.insert(input_label);
                 }
             } else {
                 {
                     let label = SingleColorObjectRectangleLabel::NonSquareWithColor { color: object.color };
-                    let input_label = InputLabel::InputSingleColorObjectRectangle { label };
+                    let input_label = ImageLabel::InputSingleColorObjectRectangle { label };
                     self.input_label_set.insert(input_label);
                 }
                 {
                     let label = SingleColorObjectRectangleLabel::NonSquareWithSomeColor;
-                    let input_label = InputLabel::InputSingleColorObjectRectangle { label };
+                    let input_label = ImageLabel::InputSingleColorObjectRectangle { label };
                     self.input_label_set.insert(input_label);
                 }
             }
@@ -289,18 +289,18 @@ impl arc_work_model::Input {
         for object in &single_color_objects.sparse_vec {
             {
                 let label = SingleColorObjectSparseLabel::SparseWithColor { color: object.color };
-                let input_label = InputLabel::InputSingleColorObjectSparse { label };
+                let input_label = ImageLabel::InputSingleColorObjectSparse { label };
                 self.input_label_set.insert(input_label);
             }
             {
                 let label = SingleColorObjectSparseLabel::SparseWithSomeColor;
-                let input_label = InputLabel::InputSingleColorObjectSparse { label };
+                let input_label = ImageLabel::InputSingleColorObjectSparse { label };
                 self.input_label_set.insert(input_label);
             }
         }
         {
             for object in &single_color_objects.rectangle_vec {
-                let input_label = InputLabel::InputUnambiguousConnectivityWithColor { color: object.color };
+                let input_label = ImageLabel::InputUnambiguousConnectivityWithColor { color: object.color };
                 self.input_label_set.insert(input_label);
             }
             let mut all_are_connectivity48_identical = true;
@@ -309,21 +309,21 @@ impl arc_work_model::Input {
                     all_are_connectivity48_identical = false;
                     continue;
                 }
-                let input_label = InputLabel::InputUnambiguousConnectivityWithColor { color: object.color };
+                let input_label = ImageLabel::InputUnambiguousConnectivityWithColor { color: object.color };
                 self.input_label_set.insert(input_label);
             }
             if all_are_connectivity48_identical {
-                let input_label = InputLabel::InputUnambiguousConnectivityWithAllColors;
+                let input_label = ImageLabel::InputUnambiguousConnectivityWithAllColors;
                 self.input_label_set.insert(input_label);
             }
         }
         if let Some(color) = single_color_objects.single_pixel_noise_color() {
             {
-                let input_label = InputLabel::InputNoiseWithColor { color };
+                let input_label = ImageLabel::InputNoiseWithColor { color };
                 self.input_label_set.insert(input_label);
             }
             {
-                let input_label = InputLabel::InputNoiseWithSomeColor;
+                let input_label = ImageLabel::InputNoiseWithSomeColor;
                 self.input_label_set.insert(input_label);
             }
         }
@@ -340,7 +340,7 @@ impl arc_work_model::Input {
             if mask_before != mask_after {
                 continue;
             }
-            let input_label = InputLabel::InputBorderFloodFillConnectivity4AllPixelsWithColor { color };
+            let input_label = ImageLabel::InputBorderFloodFillConnectivity4AllPixelsWithColor { color };
             self.input_label_set.insert(input_label);
         }
         Ok(())

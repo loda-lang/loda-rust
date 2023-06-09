@@ -119,9 +119,9 @@ pub enum SingleColorObjectSparseLabel {
     SparseWithSomeColor,
 }
 
-/// Properties about the input image.
+/// Properties used for both the input image and the output image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum InputLabel {
+pub enum ImageLabel {
     InputSymmetry { label: SymmetryLabel },
     InputGrid { label: GridLabel },
     InputSingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },
@@ -191,7 +191,7 @@ pub enum InputLabel {
     // InputContainsOneOrMoreBoxes,
 }
 
-pub type InputLabelSet = HashSet<InputLabel>;
+pub type InputLabelSet = HashSet<ImageLabel>;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum ObjectLabel {

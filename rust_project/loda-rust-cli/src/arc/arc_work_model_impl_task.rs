@@ -1,4 +1,4 @@
-use super::{arc_work_model, GridLabel, GridPattern, InspectTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObjects, SingleColorObjectRectangle};
+use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObjects, SingleColorObjectRectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction};
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
@@ -555,7 +555,7 @@ impl arc_work_model::Task {
         let mut single_color_object_labels = Vec::<SingleColorObjectRectangleLabel>::new();
         for input_label in &self.input_label_set_intersection {
             let single_color_object_label: SingleColorObjectRectangleLabel = match input_label {
-                InputLabel::InputSingleColorObjectRectangle { label } => label.clone(),
+                ImageLabel::InputSingleColorObjectRectangle { label } => label.clone(),
                 _ => continue
             };
             single_color_object_labels.push(single_color_object_label);
@@ -1404,11 +1404,11 @@ impl arc_work_model::Task {
         let mut found = false;
         for input_label in &self.input_label_set_intersection {
             match input_label {
-                InputLabel::InputNoiseWithColor { color: _ } => {
+                ImageLabel::InputNoiseWithColor { color: _ } => {
                     found = true;
                     break;
                 },
-                InputLabel::InputNoiseWithSomeColor => {
+                ImageLabel::InputNoiseWithSomeColor => {
                     found = true;
                     break;
                 },
@@ -1540,7 +1540,7 @@ impl arc_work_model::Task {
 
         for input_label in &self.input_label_set_intersection {
             match input_label {
-                InputLabel::InputSymmetry { label } => {
+                ImageLabel::InputSymmetry { label } => {
                     match label {
                         SymmetryLabel::HorizontalWithMismatches => {
                             repair_horizontal = true;
@@ -1619,7 +1619,7 @@ impl arc_work_model::Task {
 
         for input_label in &self.input_label_set_intersection {
             match input_label {
-                InputLabel::InputGrid { label } => {
+                ImageLabel::InputGrid { label } => {
                     match label {
                         GridLabel::GridColor { color } => {
                             prio1_grid_with_specific_color = true;

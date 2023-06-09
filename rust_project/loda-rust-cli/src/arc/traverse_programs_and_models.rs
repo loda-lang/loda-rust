@@ -37,7 +37,7 @@ use super::ExperimentWithConvolution;
 use super::ExperimentWithLogisticRegression;
 
 #[allow(unused_imports)]
-use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
+use super::{HtmlLog, ImageToHTML, ImageLabel, GridLabel};
 
 static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 
