@@ -29,6 +29,9 @@ pub struct Object {
 /// Data about the image.
 #[derive(Clone, Debug)]
 pub struct ImageMeta {
+    /// Computed values such as: is symmetric x, is symmetric y.
+    pub image_label_set: ImageLabelSet,
+
     pub single_color_object: Option<SingleColorObject>,
 }
 
@@ -42,9 +45,6 @@ pub struct Input {
     
     /// Computed values such as: number of unique colors, width of biggest object.
     pub input_properties: HashMap<PropertyInput, u8>,
-
-    /// Computed values such as: is symmetric x, is symmetric y.
-    pub image_label_set: ImageLabelSet,
 
     /// The identified objects
     pub input_objects: HashMap<ObjectType, Vec<Object>>,

@@ -108,7 +108,7 @@ impl InspectTask {
         }
         {
             self.row_input_labels += "<td>";
-            self.row_input_labels += &Self::image_label_set_to_html(&pair.input.image_label_set);
+            self.row_input_labels += &Self::image_label_set_to_html(&pair.input.image_meta.image_label_set);
             self.row_input_labels += "</td>";
         }
         {

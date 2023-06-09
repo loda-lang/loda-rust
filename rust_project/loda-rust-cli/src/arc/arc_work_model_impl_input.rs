@@ -224,7 +224,7 @@ impl arc_work_model::Input {
         };
         for symmetry_label in symmetry_labels {
             let label = ImageLabel::Symmetry { label: symmetry_label.clone() };
-            self.image_label_set.insert(label);
+            self.image_meta.image_label_set.insert(label);
         }
     }
 
@@ -240,7 +240,7 @@ impl arc_work_model::Input {
         };
         for grid_label in grid_labels {
             let label = ImageLabel::Grid { label: grid_label.clone() };
-            self.image_label_set.insert(label);
+            self.image_meta.image_label_set.insert(label);
         }
     }
 
@@ -258,7 +258,7 @@ impl arc_work_model::Input {
                 return Ok(());
             }
         };
-        self.image_label_set.extend(image_label_set);
+        self.image_meta.image_label_set.extend(image_label_set);
         self.image_meta.single_color_object = Some(single_color_object);
         Ok(())
     }
@@ -273,7 +273,7 @@ impl arc_work_model::Input {
                 continue;
             }
             let image_label = ImageLabel::BorderFloodFillConnectivity4AllPixelsWithColor { color };
-            self.image_label_set.insert(image_label);
+            self.image_meta.image_label_set.insert(image_label);
         }
         Ok(())
     }

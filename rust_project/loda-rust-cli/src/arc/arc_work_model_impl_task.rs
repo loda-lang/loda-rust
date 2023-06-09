@@ -368,15 +368,17 @@ impl arc_work_model::Task {
         let mut image_label_set = ImageLabelSet::new();
         let mut is_first = true;
         for pair in &mut self.pairs {
+            // Future experiment
+            // Also use the `test` pairs. Maybe the intersection will contain fewer items and less noise.
             if pair.pair_type != PairType::Train {
                 continue;
             }
             if is_first {
-                image_label_set = pair.input.image_label_set.clone();
+                image_label_set = pair.input.image_meta.image_label_set.clone();
                 is_first = false;
                 continue;
             }
-            image_label_set = image_label_set.intersection(&pair.input.image_label_set).map(|l| l.clone()).collect();
+            image_label_set = image_label_set.intersection(&pair.input.image_meta.image_label_set).map(|l| l.clone()).collect();
         }
         self.input_image_label_set_intersection = image_label_set;
     }
