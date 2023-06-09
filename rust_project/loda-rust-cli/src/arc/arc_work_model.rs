@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, ImageProperty, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -61,7 +61,7 @@ pub struct Input {
     pub image_meta: ImageMeta,
 
     /// Computed values such as: number of unique colors, width of biggest object.
-    pub input_properties: HashMap<PropertyInput, u8>,
+    pub input_properties: HashMap<ImageProperty, u8>,
 
     /// The identified objects
     pub input_objects: HashMap<ObjectType, Vec<Object>>,
@@ -144,7 +144,7 @@ pub struct Task {
     pub output_histogram_intersection: Histogram,
     pub removal_histogram_intersection: Histogram,
     pub insert_histogram_intersection: Histogram,
-    pub input_properties_intersection: HashMap<PropertyInput, u8>,
+    pub input_properties_intersection: HashMap<ImageProperty, u8>,
     pub input_image_label_set_intersection: ImageLabelSet,
     pub action_label_set_intersection: ActionLabelSet,
     pub occur_in_solutions_csv: bool,

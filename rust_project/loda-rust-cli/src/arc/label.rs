@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-/// Properties about the input image. These properties all have value `u8`.
+/// Properties about the `input` image, or the `output` image. These properties all have value `u8`.
 /// 
 /// These properties are used for reasoning about what the size of the output image may be.
 /// Usually it's the width and height of the input image that is being used.
@@ -9,47 +9,47 @@ use std::collections::HashSet;
 /// Extreme values in the range `[31..255]`, occur frequently. These are not filtered out.
 /// It's rare that extreme values are being used for computing the output size.
 /// 
-/// All the `PropertyInput` values can be computed for a `test pair` without accessing the output image.
+/// All the `ImageProperty` values can be computed for a `test pair` without accessing the output image.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum PropertyInput {
-    InputWidth,
-    InputWidthPlus1,
-    InputWidthPlus2,
-    InputWidthMinus1,
-    InputWidthMinus2,
-    InputHeight,
-    InputHeightPlus1,
-    InputHeightPlus2,
-    InputHeightMinus1,
-    InputHeightMinus2,
-    InputBiggestValueThatDividesWidthAndHeight,
-    InputUniqueColorCount,
-    InputUniqueColorCountMinus1,
-    InputNumberOfPixelsWithMostPopularColor,
-    InputNumberOfPixelsWith2ndMostPopularColor,
-    InputWidthOfPrimaryObjectAfterSingleColorRemoval,
-    InputHeightOfPrimaryObjectAfterSingleColorRemoval,
-    InputMassOfPrimaryObjectAfterSingleColorRemoval,
-    InputWidthOfPrimaryObjectAfterSingleIntersectionColor,
-    InputHeightOfPrimaryObjectAfterSingleIntersectionColor,
-    InputMassOfPrimaryObjectAfterSingleIntersectionColor,
-    InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor,
-    InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
-    InputWidthOfRemovedRectangleAfterSingleColorRemoval,
-    InputHeightOfRemovedRectangleAfterSingleColorRemoval,
+pub enum ImageProperty {
+    Width,
+    WidthPlus1,
+    WidthPlus2,
+    WidthMinus1,
+    WidthMinus2,
+    Height,
+    HeightPlus1,
+    HeightPlus2,
+    HeightMinus1,
+    HeightMinus2,
+    BiggestValueThatDividesWidthAndHeight,
+    UniqueColorCount,
+    UniqueColorCountMinus1,
+    NumberOfPixelsWithMostPopularColor,
+    NumberOfPixelsWith2ndMostPopularColor,
+    WidthOfPrimaryObjectAfterSingleColorRemoval,
+    HeightOfPrimaryObjectAfterSingleColorRemoval,
+    MassOfPrimaryObjectAfterSingleColorRemoval,
+    WidthOfPrimaryObjectAfterSingleIntersectionColor,
+    HeightOfPrimaryObjectAfterSingleIntersectionColor,
+    MassOfPrimaryObjectAfterSingleIntersectionColor,
+    NumberOfPixelsCorrespondingToTheSingleIntersectionColor,
+    NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
+    WidthOfRemovedRectangleAfterSingleColorRemoval,
+    HeightOfRemovedRectangleAfterSingleColorRemoval,
 
     // Ideas for more
-    // InputNoisePixelsCount,
-    // InputNoisePixelsCountOutsideAnyObjects,
-    // InputMaxNumberOfClustersInSparseSingleColorObject,
-    // InputMaxWidthOfClustersInSparseSingleColorObject,
-    // InputMaxHeightOfClustersInSparseSingleColorObject,
-    // InputMaxNoisePixelsInsideAnotherObject,
-    // InputPrimaryObjectInteriorMass,
-    // InputPrimaryObjectCornerCount,
-    // InputCellCountHorizontal,
-    // InputCellCountVertical,
-    // InputUniqueColorCountAfterRemoval
+    // NoisePixelsCount,
+    // NoisePixelsCountOutsideAnyObjects,
+    // MaxNumberOfClustersInSparseSingleColorObject,
+    // MaxWidthOfClustersInSparseSingleColorObject,
+    // MaxHeightOfClustersInSparseSingleColorObject,
+    // MaxNoisePixelsInsideAnotherObject,
+    // PrimaryObjectInteriorMass,
+    // PrimaryObjectCornerCount,
+    // CellCountHorizontal,
+    // CellCountVertical,
+    // UniqueColorCountAfterRemoval
     // Number of 1px lines horizontal
     // Number of 1px lines vertical
 }
@@ -236,13 +236,13 @@ pub enum ImageCorner {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ActionLabel {
-    OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: PropertyInput },
-    OutputPropertyIsInputPropertyMultipliedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
-    OutputPropertyIsInputPropertyMultipliedBySomeScale { output: PropertyOutput, input: PropertyInput },
-    OutputPropertyIsInputPropertyMultipliedByInputSize { output: PropertyOutput, input: PropertyInput },
-    OutputPropertyIsInputPropertyDividedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
-    OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: PropertyInput },
-    OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: PropertyInput },
+    OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: ImageProperty },
+    OutputPropertyIsInputPropertyMultipliedBy { output: PropertyOutput, input: ImageProperty, scale: u8 },
+    OutputPropertyIsInputPropertyMultipliedBySomeScale { output: PropertyOutput, input: ImageProperty },
+    OutputPropertyIsInputPropertyMultipliedByInputSize { output: PropertyOutput, input: ImageProperty },
+    OutputPropertyIsInputPropertyDividedBy { output: PropertyOutput, input: ImageProperty, scale: u8 },
+    OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: ImageProperty },
+    OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: ImageProperty },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
     OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObjectRectangleLabel },
     
@@ -344,7 +344,7 @@ mod tests {
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputHeight,
-                input: PropertyInput::InputHeight
+                input: ImageProperty::Height
             };
             set0.insert(label);
         }
@@ -353,7 +353,7 @@ mod tests {
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputHeight,
-                input: PropertyInput::InputHeight
+                input: ImageProperty::Height
             };
             set1.insert(label);
         }
@@ -361,7 +361,7 @@ mod tests {
         let set2: ActionLabelSet = set0.intersection(&set1).map(|l| l.clone()).collect();
         let expected_label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
             output: PropertyOutput::OutputHeight,
-            input: PropertyInput::InputHeight
+            input: ImageProperty::Height
         };
         assert_eq!(set2.contains(&expected_label), true);
     }

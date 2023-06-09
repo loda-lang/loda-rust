@@ -2,7 +2,7 @@ use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, Sym
 use super::arc_work_model::{Input, PairType, Object, Prediction};
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
-use super::{ImageLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
+use super::{ImageLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, ImageProperty, PropertyOutput, ActionLabelUtil};
 use super::{OutputSpecification};
 use std::collections::{HashMap, HashSet};
 
@@ -343,7 +343,7 @@ impl arc_work_model::Task {
     }
 
     fn update_input_properties_intersection(&mut self) {
-        let mut input_properties_intersection: HashMap<PropertyInput, u8> = HashMap::new();
+        let mut input_properties_intersection: HashMap<ImageProperty, u8> = HashMap::new();
         let mut is_first = true;
         for pair in &mut self.pairs {
             if pair.pair_type == PairType::Test {
@@ -356,7 +356,7 @@ impl arc_work_model::Task {
             }
 
             // Intersection between `input_properties_intersection` and `pair.input.input_properties`.
-            let mut keys_for_removal: HashSet<PropertyInput> = HashSet::new();
+            let mut keys_for_removal: HashSet<ImageProperty> = HashSet::new();
             for key in input_properties_intersection.keys() {
                 keys_for_removal.insert(*key);
             }
@@ -425,8 +425,8 @@ impl arc_work_model::Task {
                     Ok(image) => {
                         let mass: u16 = image.mask_count_one();
                         if mass == 0 {
-                            pair.input.input_properties.insert(PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
-                            pair.input.input_properties.insert(PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
+                            pair.input.input_properties.insert(ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
+                            pair.input.input_properties.insert(ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
                         }
                     },
                     Err(_) => {}
@@ -456,7 +456,7 @@ impl arc_work_model::Task {
 
             if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
-                pair.input.input_properties.insert(PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
+                pair.input.input_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
             }
 
             if let Some(index) = found_index_mass_max {
@@ -471,8 +471,8 @@ impl arc_work_model::Task {
                     
                     let width: u8 = trimmed_image.width();
                     let height: u8 = trimmed_image.height();
-                    pair.input.input_properties.insert(PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval, width);
-                    pair.input.input_properties.insert(PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval, height);
+                    pair.input.input_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleColorRemoval, width);
+                    pair.input.input_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleColorRemoval, height);
                 }
             }
         }
@@ -500,14 +500,14 @@ impl arc_work_model::Task {
                 let mass: u16 = image_mask.mask_count_zero();
                 if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
-                    pair.input.input_properties.insert(PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
+                    pair.input.input_properties.insert(ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
             {
                 let mass: u16 = image_mask.mask_count_one();
                 if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
-                    pair.input.input_properties.insert(PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
+                    pair.input.input_properties.insert(ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
 
@@ -539,7 +539,7 @@ impl arc_work_model::Task {
 
             if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
-                pair.input.input_properties.insert(PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
+                pair.input.input_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
             }
 
             if let Some(index) = found_index_mass_max {
@@ -556,8 +556,8 @@ impl arc_work_model::Task {
                     let height: u8 = trimmed_image.height();
                     // println!("biggest object: {}x{}", width, height);
 
-                    pair.input.input_properties.insert(PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor, width);
-                    pair.input.input_properties.insert(PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor, height);
+                    pair.input.input_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor, width);
+                    pair.input.input_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor, height);
                 }
             }
         }
@@ -777,32 +777,32 @@ impl arc_work_model::Task {
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
 
-        let input_properties: [PropertyInput; 25] = [
-            PropertyInput::InputWidth, 
-            PropertyInput::InputWidthPlus1, 
-            PropertyInput::InputWidthPlus2, 
-            PropertyInput::InputWidthMinus1, 
-            PropertyInput::InputWidthMinus2, 
-            PropertyInput::InputHeight,
-            PropertyInput::InputHeightPlus1,
-            PropertyInput::InputHeightPlus2,
-            PropertyInput::InputHeightMinus1,
-            PropertyInput::InputHeightMinus2,
-            PropertyInput::InputBiggestValueThatDividesWidthAndHeight,
-            PropertyInput::InputUniqueColorCount,
-            PropertyInput::InputUniqueColorCountMinus1,
-            PropertyInput::InputNumberOfPixelsWithMostPopularColor,
-            PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor,
-            PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval,
-            PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval,
-            PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval,
-            PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor,
-            PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor,
-            PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor,
-            PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor,
-            PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
-            PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval,
-            PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval,
+        let input_properties: [ImageProperty; 25] = [
+            ImageProperty::Width, 
+            ImageProperty::WidthPlus1, 
+            ImageProperty::WidthPlus2, 
+            ImageProperty::WidthMinus1, 
+            ImageProperty::WidthMinus2, 
+            ImageProperty::Height,
+            ImageProperty::HeightPlus1,
+            ImageProperty::HeightPlus2,
+            ImageProperty::HeightMinus1,
+            ImageProperty::HeightMinus2,
+            ImageProperty::BiggestValueThatDividesWidthAndHeight,
+            ImageProperty::UniqueColorCount,
+            ImageProperty::UniqueColorCountMinus1,
+            ImageProperty::NumberOfPixelsWithMostPopularColor,
+            ImageProperty::NumberOfPixelsWith2ndMostPopularColor,
+            ImageProperty::WidthOfPrimaryObjectAfterSingleColorRemoval,
+            ImageProperty::HeightOfPrimaryObjectAfterSingleColorRemoval,
+            ImageProperty::MassOfPrimaryObjectAfterSingleColorRemoval,
+            ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor,
+            ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor,
+            ImageProperty::MassOfPrimaryObjectAfterSingleIntersectionColor,
+            ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor,
+            ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
+            ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval,
+            ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
@@ -916,7 +916,7 @@ impl arc_work_model::Task {
     fn input_properties_intersection_get_unique_color_count(&self) -> Option<u8> {
         for (input_property, property_value) in &self.input_properties_intersection {
             match *input_property {
-                PropertyInput::InputUniqueColorCount => {
+                ImageProperty::UniqueColorCount => {
                     return Some(*property_value);
                 },
                 _ => {}
@@ -949,18 +949,18 @@ impl arc_work_model::Task {
                     }
                     let s = format!("{:?} = {:?}", output, input);
                     let mut priority = RulePriority::Medium;
-                    if *output == PropertyOutput::OutputWidth && *input == PropertyInput::InputWidth {
+                    if *output == PropertyOutput::OutputWidth && *input == ImageProperty::Width {
                         priority = RulePriority::Simple;
                     }
-                    if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeight {
+                    if *output == PropertyOutput::OutputHeight && *input == ImageProperty::Height {
                         priority = RulePriority::Simple;
                     }
-                    if *input == PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor {
+                    if *input == ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor {
                         if self.input_properties_intersection_get_unique_color_count() == Some(2) {
                             priority = RulePriority::Simple;
                         }
                     }
-                    if *input == PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor {
+                    if *input == ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor {
                         if self.input_properties_intersection_get_unique_color_count() == Some(2) {
                             priority = RulePriority::Simple;
                         }
@@ -1062,7 +1062,7 @@ impl arc_work_model::Task {
     fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &Input) -> Vec<(RulePriority, u8)> {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
-        let dict: &HashMap<PropertyInput, u8> = &buffer_input.input_properties;
+        let dict: &HashMap<ImageProperty, u8> = &buffer_input.input_properties;
         for label in &self.action_label_set_intersection {
             match label {
                 ActionLabel::OutputPropertyIsConstant { output, value } => {
@@ -1083,18 +1083,18 @@ impl arc_work_model::Task {
                         }
                     };
                     let mut priority = RulePriority::Medium;
-                    if *output == PropertyOutput::OutputWidth && *input == PropertyInput::InputWidth {
+                    if *output == PropertyOutput::OutputWidth && *input == ImageProperty::Width {
                         priority = RulePriority::Simple;
                     }
-                    if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeight {
+                    if *output == PropertyOutput::OutputHeight && *input == ImageProperty::Height {
                         priority = RulePriority::Simple;
                     }
-                    if *input == PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor {
+                    if *input == ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor {
                         if self.input_properties_intersection_get_unique_color_count() == Some(2) {
                             priority = RulePriority::Simple;
                         }
                     }
-                    if *input == PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor {
+                    if *input == ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor {
                         if self.input_properties_intersection_get_unique_color_count() == Some(2) {
                             priority = RulePriority::Simple;
                         }
@@ -1878,16 +1878,16 @@ impl arc_work_model::Task {
             match *action {
                 ActionLabel::OutputPropertyIsEqualToInputProperty { output: _, input } => {
                     match input {
-                        PropertyInput::InputWidth => {
+                        ImageProperty::Width => {
                             simple_explanation_for_width = true;
                         },
-                        PropertyInput::InputHeight => {
+                        ImageProperty::Height => {
                             simple_explanation_for_height = true;
                         },
-                        PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor => {
+                        ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor => {
                             depends_on_object_width = true;
                         },
-                        PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor => {
+                        ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor => {
                             depends_on_object_height = true;
                         },
                         _ => {}

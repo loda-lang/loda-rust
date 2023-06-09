@@ -1,4 +1,4 @@
-use super::{arc_work_model, PropertyInput};
+use super::{arc_work_model, ImageProperty};
 use super::arc_work_model::Object;
 use super::{Image, Rectangle};
 use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop};
@@ -9,7 +9,7 @@ impl arc_work_model::Input {
         self.input_properties = self.resolve_input_properties();
     }
 
-    fn resolve_input_properties(&self) -> HashMap<PropertyInput, u8> {
+    fn resolve_input_properties(&self) -> HashMap<ImageProperty, u8> {
         let width_input: u8 = self.image.width();
         let height_input: u8 = self.image.height();
 
@@ -118,47 +118,47 @@ impl arc_work_model::Input {
             }
         }
 
-        let mut dict = HashMap::<PropertyInput, u8>::new();
-        dict.insert(PropertyInput::InputWidth, width_input);
-        dict.insert(PropertyInput::InputHeight, height_input);
+        let mut dict = HashMap::<ImageProperty, u8>::new();
+        dict.insert(ImageProperty::Width, width_input);
+        dict.insert(ImageProperty::Height, height_input);
         if let Some(value) = width_input_plus1 {
-            dict.insert(PropertyInput::InputWidthPlus1, value);
+            dict.insert(ImageProperty::WidthPlus1, value);
         }
         if let Some(value) = width_input_plus2 {
-            dict.insert(PropertyInput::InputWidthPlus2, value);
+            dict.insert(ImageProperty::WidthPlus2, value);
         }
         if let Some(value) = width_input_minus1 {
-            dict.insert(PropertyInput::InputWidthMinus1, value);
+            dict.insert(ImageProperty::WidthMinus1, value);
         }
         if let Some(value) = width_input_minus2 {
-            dict.insert(PropertyInput::InputWidthMinus2, value);
+            dict.insert(ImageProperty::WidthMinus2, value);
         }
         if let Some(value) = height_input_plus1 {
-            dict.insert(PropertyInput::InputHeightPlus1, value);
+            dict.insert(ImageProperty::HeightPlus1, value);
         }
         if let Some(value) = height_input_plus2 {
-            dict.insert(PropertyInput::InputHeightPlus2, value);
+            dict.insert(ImageProperty::HeightPlus2, value);
         }
         if let Some(value) = height_input_minus1 {
-            dict.insert(PropertyInput::InputHeightMinus1, value);
+            dict.insert(ImageProperty::HeightMinus1, value);
         }
         if let Some(value) = height_input_minus2 {
-            dict.insert(PropertyInput::InputHeightMinus2, value);
+            dict.insert(ImageProperty::HeightMinus2, value);
         }
         if let Some(value) = biggest_value_that_divides_width_and_height {
-            dict.insert(PropertyInput::InputBiggestValueThatDividesWidthAndHeight, value);
+            dict.insert(ImageProperty::BiggestValueThatDividesWidthAndHeight, value);
         }
         if let Some(value) = input_unique_color_count {
-            dict.insert(PropertyInput::InputUniqueColorCount, value);
+            dict.insert(ImageProperty::UniqueColorCount, value);
         }
         if let Some(value) = input_unique_color_count_minus1 {
-            dict.insert(PropertyInput::InputUniqueColorCountMinus1, value);
+            dict.insert(ImageProperty::UniqueColorCountMinus1, value);
         }
         if let Some(value) = input_number_of_pixels_with_most_popular_color {
-            dict.insert(PropertyInput::InputNumberOfPixelsWithMostPopularColor, value);
+            dict.insert(ImageProperty::NumberOfPixelsWithMostPopularColor, value);
         }
         if let Some(value) = input_number_of_pixels_with_2nd_most_popular_color {
-            dict.insert(PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor, value);
+            dict.insert(ImageProperty::NumberOfPixelsWith2ndMostPopularColor, value);
         }
         dict
     }

@@ -1,5 +1,5 @@
 use super::arc_work_model;
-use super::{ImageLabelSet, ActionLabelSet, PropertyInput};
+use super::{ImageLabelSet, ActionLabelSet, ImageProperty};
 use super::{HtmlLog, ImageToHTML};
 use std::collections::HashMap;
 
@@ -50,7 +50,7 @@ impl InspectTask {
         format!("<ul class='without_bullets'>{}</ul>", label_vec.join(""))
     }
 
-    fn input_properties_to_html(input_properties: &HashMap<PropertyInput, u8>) -> String {
+    fn input_properties_to_html(input_properties: &HashMap<ImageProperty, u8>) -> String {
         let mut items: Vec<String> = input_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
         if items.is_empty() {
             return "empty".to_string();
