@@ -52,6 +52,9 @@ pub struct ImageMeta {
     pub symmetry: Option<Symmetry>,
     
     pub single_color_object: Option<SingleColorObject>,
+
+    /// Computed values such as: number of unique colors, width of biggest object.
+    pub input_properties: HashMap<ImageProperty, u8>,
 }
 
 #[derive(Clone, Debug)]
@@ -59,9 +62,6 @@ pub struct Input {
     pub id: String,
     pub image: Image,
     pub image_meta: ImageMeta,
-
-    /// Computed values such as: number of unique colors, width of biggest object.
-    pub input_properties: HashMap<ImageProperty, u8>,
 
     /// The identified objects
     pub input_objects: HashMap<ObjectType, Vec<Object>>,

@@ -50,7 +50,7 @@ impl InspectTask {
         format!("<ul class='without_bullets'>{}</ul>", label_vec.join(""))
     }
 
-    fn input_properties_to_html(input_properties: &HashMap<ImageProperty, u8>) -> String {
+    fn image_properties_to_html(input_properties: &HashMap<ImageProperty, u8>) -> String {
         let mut items: Vec<String> = input_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
         if items.is_empty() {
             return "empty".to_string();
@@ -103,7 +103,7 @@ impl InspectTask {
         }
         {
             self.row_input_properties += "<td>";
-            self.row_input_properties += &Self::input_properties_to_html(&pair.input.input_properties);
+            self.row_input_properties += &Self::image_properties_to_html(&pair.input.image_meta.input_properties);
             self.row_input_properties += "</td>";
         }
         {
@@ -202,7 +202,7 @@ impl InspectTask {
         self.row_input_image += "</td>";
 
         self.row_input_properties += &td_begin;
-        self.row_input_properties += &Self::input_properties_to_html(&task.input_properties_intersection);
+        self.row_input_properties += &Self::image_properties_to_html(&task.input_properties_intersection);
         self.row_input_properties += "</td>";
 
         self.row_input_labels += &td_begin;

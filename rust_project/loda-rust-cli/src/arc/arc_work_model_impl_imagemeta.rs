@@ -1,13 +1,14 @@
-use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask};
+use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask, ImageProperty};
 use super::{SingleColorObject, SingleColorObjectToLabel};
 use super::{Grid, GridToLabel};
 use super::{Symmetry, SymmetryToLabel};
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
 impl arc_work_model::ImageMeta {
     pub fn new() -> Self {
         Self {
             histogram: Histogram::new(),
+            input_properties: HashMap::new(),
             image_label_set: HashSet::new(),
             grid: None,
             symmetry: None,
@@ -17,11 +18,170 @@ impl arc_work_model::ImageMeta {
 
     pub fn analyze(&mut self, image: &Image) -> anyhow::Result<()> {
         self.histogram = image.histogram_all();
+        self.update_image_properties(image);
         self.assign_grid(image)?;
         self.assign_symmetry(image)?;
         self.assign_single_color_object(image)?;
         self.assign_border_flood_fill(image)?;
         Ok(())
+    }
+
+    pub fn update_image_properties(&mut self, image: &Image) {
+        self.input_properties = Self::resolve_image_properties(image, &self.histogram);
+    }
+
+    fn resolve_image_properties(image: &Image, histogram: &Histogram) -> HashMap<ImageProperty, u8> {
+        let width_input: u8 = image.width();
+        let height_input: u8 = image.height();
+
+        let mut width_input_plus1: Option<u8> = None;
+        {
+            let value: u16 = (width_input as u16) + 1;
+            if value <= (u8::MAX as u16) {
+                width_input_plus1 = Some(value as u8);
+            }
+        }
+
+        let mut height_input_plus1: Option<u8> = None;
+        {
+            let value: u16 = (height_input as u16) + 1;
+            if value <= (u8::MAX as u16) {
+                height_input_plus1 = Some(value as u8);
+            }
+        }
+
+        let mut width_input_plus2: Option<u8> = None;
+        {
+            let value: u16 = (width_input as u16) + 2;
+            if value <= (u8::MAX as u16) {
+                width_input_plus2 = Some(value as u8);
+            }
+        }
+
+        let mut height_input_plus2: Option<u8> = None;
+        {
+            let value: u16 = (height_input as u16) + 2;
+            if value <= (u8::MAX as u16) {
+                height_input_plus2 = Some(value as u8);
+            }
+        }
+
+        let mut width_input_minus1: Option<u8> = None;
+        {
+            if width_input >= 1 {
+                width_input_minus1 = Some(width_input - 1);
+            }
+        }
+
+        let mut height_input_minus1: Option<u8> = None;
+        {
+            if height_input >= 1 {
+                height_input_minus1 = Some(height_input - 1);
+            }
+        }
+        
+        let mut width_input_minus2: Option<u8> = None;
+        {
+            if width_input >= 2 {
+                width_input_minus2 = Some(width_input - 2);
+            }
+        }
+
+        let mut height_input_minus2: Option<u8> = None;
+        {
+            if height_input >= 2 {
+                height_input_minus2 = Some(height_input - 2);
+            }
+        }
+
+        let mut biggest_value_that_divides_width_and_height: Option<u8> = None;
+        if width_input == height_input {
+            biggest_value_that_divides_width_and_height = Some(width_input);
+        } else {
+            let smallest: u8 = width_input.min(height_input);
+            let biggest: u8 = width_input.max(height_input);
+            if smallest >= 2 {
+                let rem: u8 = biggest % smallest;
+                if rem == 0 {
+                    biggest_value_that_divides_width_and_height = Some(smallest);
+                }
+            }
+        }
+
+        let input_unique_color_count_raw: u16 = histogram.number_of_counters_greater_than_zero();
+        let mut input_unique_color_count: Option<u8> = None;
+        if input_unique_color_count_raw <= (u8::MAX as u16) {
+            input_unique_color_count = Some(input_unique_color_count_raw as u8);
+        }
+
+        let mut input_unique_color_count_minus1: Option<u8> = None;
+        if let Some(value) = input_unique_color_count {
+            if value >= 1 {
+                input_unique_color_count_minus1 = Some(value - 1);
+            }
+        }
+
+        let mut input_number_of_pixels_with_most_popular_color: Option<u8> = None;
+        let mut input_number_of_pixels_with_2nd_most_popular_color: Option<u8> = None;
+        let histogram_pairs: Vec<(u32,u8)> = histogram.pairs_descending();
+        for (histogram_index, histogram_pair) in histogram_pairs.iter().enumerate() {
+            if histogram_index >= 2 {
+                break;
+            }
+            let pixel_count: u32 = histogram_pair.0;
+            if pixel_count <= (u8::MAX as u32) {
+                if histogram_index == 0 {
+                    input_number_of_pixels_with_most_popular_color = Some(pixel_count as u8);
+                }
+                if histogram_index == 1 {
+                    input_number_of_pixels_with_2nd_most_popular_color = Some(pixel_count as u8);
+                }
+            }
+        }
+
+        let mut dict = HashMap::<ImageProperty, u8>::new();
+        dict.insert(ImageProperty::Width, width_input);
+        dict.insert(ImageProperty::Height, height_input);
+        if let Some(value) = width_input_plus1 {
+            dict.insert(ImageProperty::WidthPlus1, value);
+        }
+        if let Some(value) = width_input_plus2 {
+            dict.insert(ImageProperty::WidthPlus2, value);
+        }
+        if let Some(value) = width_input_minus1 {
+            dict.insert(ImageProperty::WidthMinus1, value);
+        }
+        if let Some(value) = width_input_minus2 {
+            dict.insert(ImageProperty::WidthMinus2, value);
+        }
+        if let Some(value) = height_input_plus1 {
+            dict.insert(ImageProperty::HeightPlus1, value);
+        }
+        if let Some(value) = height_input_plus2 {
+            dict.insert(ImageProperty::HeightPlus2, value);
+        }
+        if let Some(value) = height_input_minus1 {
+            dict.insert(ImageProperty::HeightMinus1, value);
+        }
+        if let Some(value) = height_input_minus2 {
+            dict.insert(ImageProperty::HeightMinus2, value);
+        }
+        if let Some(value) = biggest_value_that_divides_width_and_height {
+            dict.insert(ImageProperty::BiggestValueThatDividesWidthAndHeight, value);
+        }
+        if let Some(value) = input_unique_color_count {
+            dict.insert(ImageProperty::UniqueColorCount, value);
+        }
+        if let Some(value) = input_unique_color_count_minus1 {
+            dict.insert(ImageProperty::UniqueColorCountMinus1, value);
+        }
+        if let Some(value) = input_number_of_pixels_with_most_popular_color {
+            dict.insert(ImageProperty::NumberOfPixelsWithMostPopularColor, value);
+        }
+        if let Some(value) = input_number_of_pixels_with_2nd_most_popular_color {
+            dict.insert(ImageProperty::NumberOfPixelsWith2ndMostPopularColor, value);
+        }
+        dict
     }
 
     pub fn assign_grid(&mut self, image: &Image) -> anyhow::Result<()> {
