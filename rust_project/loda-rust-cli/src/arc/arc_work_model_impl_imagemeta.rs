@@ -1,4 +1,4 @@
-use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram};
+use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask};
 use super::{SingleColorObject, SingleColorObjectToLabel};
 use super::{Grid, GridLabel, GridToLabel};
 use super::{Symmetry, SymmetryLabel, SymmetryToLabel};
@@ -22,6 +22,7 @@ impl arc_work_model::ImageMeta {
         self.assign_symmetry_labels();
         self.assign_grid_labels();
         self.assign_single_color_object(image)?;
+        self.assign_border_flood_fill(image)?;
         Ok(())
     }
 
@@ -111,6 +112,21 @@ impl arc_work_model::ImageMeta {
         };
         self.image_label_set.extend(image_label_set);
         self.single_color_object = Some(single_color_object);
+        Ok(())
+    }
+
+    pub fn assign_border_flood_fill(&mut self, image: &Image) -> anyhow::Result<()> {
+        for (_count, color) in self.histogram.pairs_ordered_by_color() {
+            let mut filled: Image = image.clone();
+            let mask_before: Image = filled.to_mask_where_color_is(color);
+            filled.border_flood_fill(color, 255, PixelConnectivity::Connectivity4);
+            let mask_after: Image = filled.to_mask_where_color_is(255);
+            if mask_before != mask_after {
+                continue;
+            }
+            let image_label = ImageLabel::BorderFloodFillConnectivity4AllPixelsWithColor { color };
+            self.image_label_set.insert(image_label);
+        }
         Ok(())
     }
 }

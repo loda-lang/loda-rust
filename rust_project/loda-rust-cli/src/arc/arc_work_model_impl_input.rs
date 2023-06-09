@@ -1,6 +1,5 @@
-use super::{arc_work_model, ImageFill};
+use super::{arc_work_model, PropertyInput};
 use super::arc_work_model::Object;
-use super::{PropertyInput, ImageLabel};
 use super::{Image, Rectangle};
 use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
@@ -167,22 +166,7 @@ impl arc_work_model::Input {
     pub fn update_image_meta(&mut self) -> anyhow::Result<()> {
         self.image_meta.analyze(&self.image)?;
         self.update_input_properties();
-        self.assign_border_flood_fill()?;
-        Ok(())
-    }
 
-    pub fn assign_border_flood_fill(&mut self) -> anyhow::Result<()> {
-        for (_count, color) in self.image_meta.histogram.pairs_ordered_by_color() {
-            let mut image: Image = self.image.clone();
-            let mask_before: Image = image.to_mask_where_color_is(color);
-            image.border_flood_fill(color, 255, PixelConnectivity::Connectivity4);
-            let mask_after: Image = image.to_mask_where_color_is(255);
-            if mask_before != mask_after {
-                continue;
-            }
-            let image_label = ImageLabel::BorderFloodFillConnectivity4AllPixelsWithColor { color };
-            self.image_meta.image_label_set.insert(image_label);
-        }
         Ok(())
     }
 
