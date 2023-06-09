@@ -4,9 +4,24 @@ use std::collections::{HashMap, HashSet};
 #[derive(Clone, Debug)]
 pub struct Output {
     pub id: String,
+
+    /// The `image` is only available for the `train` pairs.
+    /// 
+    /// The `image` is not available for the `test` pairs.
+    /// It's up to the solver to predict what the `image` should be for the `test` pairs.
     pub image: Image,
+
+    /// For the public ARC dataset, the expected output image is available. But is not available for the private ARC dataset.
+    /// When comparing if the prediction was correct, then it's the `test_image` that should be used.
+    /// However since it's not available for the private ARC dataset.
     pub test_image: Image,
+
     pub histogram: Histogram,
+
+    /// The meta data that can be extracted from the `train` output image.
+    /// 
+    /// It's not available for the `test` pairs, and the fields are `None` or empty.
+    pub image_meta: ImageMeta,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]

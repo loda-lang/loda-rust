@@ -73,10 +73,21 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    fn update_input_properties_for_all_pairs(&mut self) -> anyhow::Result<()> {
+    fn update_input_image_meta(&mut self) -> anyhow::Result<()> {
         for pair in &mut self.pairs {
-            pair.input.update_input_properties();
-            pair.input.update_input_label_set()?;
+            pair.input.update_image_meta()?;
+        }
+        Ok(())
+    }
+
+    fn update_output_image_meta(&mut self) -> anyhow::Result<()> {
+        for pair in &mut self.pairs {
+            // Only the `train` pair has an output image.
+            // The `test` pair has no output image.
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
+            pair.output.update_image_meta()?;
         }
         Ok(())
     }
@@ -757,7 +768,8 @@ impl arc_work_model::Task {
     }
 
     fn assign_labels(&mut self) -> anyhow::Result<()> {
-        self.update_input_properties_for_all_pairs()?;
+        self.update_input_image_meta()?;
+        self.update_output_image_meta()?;
         self.update_input_properties_intersection();
         self.update_input_image_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();

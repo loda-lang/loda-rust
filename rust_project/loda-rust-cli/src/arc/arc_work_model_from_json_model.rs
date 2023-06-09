@@ -64,6 +64,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     image: pair.output.clone(),
                     test_image: Image::empty(),
                     histogram: histogram_output,
+                    image_meta: ImageMeta::new(),
                 };
                 let result_pair = arc_work_model::Pair {
                     id: format!("{},pair{},train", task_id, index),
@@ -106,6 +107,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     image: Image::empty(),
                     test_image: pair.output.clone(),
                     histogram: histogram_output,
+                    image_meta: ImageMeta::new(),
                 };
                 let result_pair = arc_work_model::Pair {
                     id: format!("{},pair{},test", task_id, index),

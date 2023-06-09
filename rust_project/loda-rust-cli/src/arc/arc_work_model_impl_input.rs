@@ -164,7 +164,8 @@ impl arc_work_model::Input {
         dict
     }
 
-    pub fn update_input_label_set(&mut self) -> anyhow::Result<()> {
+    pub fn update_image_meta(&mut self) -> anyhow::Result<()> {
+        self.update_input_properties();
         self.image_meta.analyze(&self.image)?;
         self.assign_border_flood_fill()?;
         Ok(())
