@@ -17,43 +17,31 @@ impl arc_work_model::ImageMeta {
 
     pub fn analyze(&mut self, image: &Image) -> anyhow::Result<()> {
         self.histogram = image.histogram_all();
+        self.assign_grid(image)?;
         self.resolve_symmetry(image);
-        self.resolve_grid(image);
         self.assign_symmetry_labels();
-        self.assign_grid_labels();
         self.assign_single_color_object(image)?;
         self.assign_border_flood_fill(image)?;
         Ok(())
     }
 
-    pub fn resolve_grid(&mut self, image: &Image) {
+    pub fn assign_grid(&mut self, image: &Image) -> anyhow::Result<()> {
         if self.grid.is_some() {
-            return;
+            return Ok(());
         }
         let grid: Grid = match Grid::analyze(image) {
             Ok(value) => value,
             Err(error) => {
                 println!("Unable to find grid. error: {:?}", error);
-                return;
+                return Ok(());
             }
         };
-        self.grid = Some(grid);
-    }
-
-    pub fn assign_grid_labels(&mut self) {
-        let grid_labels: HashSet<GridLabel>;
-        match &self.grid {
-            Some(grid) => {
-                grid_labels = grid.to_grid_labels();
-            },
-            None => {
-                return;
-            }
-        };
-        for grid_label in grid_labels {
+        for grid_label in grid.to_grid_labels() {
             let label = ImageLabel::Grid { label: grid_label.clone() };
             self.image_label_set.insert(label);
         }
+        self.grid = Some(grid);
+        Ok(())
     }
 
     pub fn resolve_symmetry(&mut self, image: &Image) {
