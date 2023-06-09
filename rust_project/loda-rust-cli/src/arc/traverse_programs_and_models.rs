@@ -480,16 +480,16 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            // for input_label in &task.input_label_set_intersection {
-            //     match input_label {
+            // for image_label in &task.input_label_set_intersection {
+            //     match image_label {
             //         InputLabel::InputUnambiguousConnectivityWithAllColors => {
             //             found = true;
             //         },
             //         _ => {}
             //     }
             // }
-            // for input_label in &task.input_label_set_intersection {
-            //     match input_label {
+            // for image_label in &task.input_label_set_intersection {
+            //     match image_label {
             //         InputLabel::InputNoiseWithColor { color: _ } => {
             //             found = true;
             //         },
@@ -499,8 +499,8 @@ impl TraverseProgramsAndModels {
             //         _ => {}
             //     }
             // }
-            // for input_label in &task.input_label_set_intersection {
-            //     let grid_label: GridLabel = match input_label {
+            // for image_label in &task.input_label_set_intersection {
+            //     let grid_label: GridLabel = match image_label {
             //         InputLabel::InputGrid { label } => label.clone(),
             //         _ => continue
             //     };

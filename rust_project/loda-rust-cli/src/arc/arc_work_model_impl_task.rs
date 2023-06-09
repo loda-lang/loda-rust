@@ -553,8 +553,8 @@ impl arc_work_model::Task {
     /// Extract `Vec<SingleColorObjectLabel>` from `input_label_set_intersection`.
     fn single_color_object_labels_from_input(&self) -> Vec<SingleColorObjectRectangleLabel> {
         let mut single_color_object_labels = Vec::<SingleColorObjectRectangleLabel>::new();
-        for input_label in &self.input_label_set_intersection {
-            let single_color_object_label: SingleColorObjectRectangleLabel = match input_label {
+        for image_label in &self.input_label_set_intersection {
+            let single_color_object_label: SingleColorObjectRectangleLabel = match image_label {
                 ImageLabel::InputSingleColorObjectRectangle { label } => label.clone(),
                 _ => continue
             };
@@ -1402,8 +1402,8 @@ impl arc_work_model::Task {
 
     fn assign_single_pixel_noise_color(&mut self) -> anyhow::Result<()> {
         let mut found = false;
-        for input_label in &self.input_label_set_intersection {
-            match input_label {
+        for image_label in &self.input_label_set_intersection {
+            match image_label {
                 ImageLabel::InputNoiseWithColor { color: _ } => {
                     found = true;
                     break;
@@ -1538,8 +1538,8 @@ impl arc_work_model::Task {
         let mut repair_diagonal_a: bool = false;
         let mut repair_diagonal_b: bool = false;
 
-        for input_label in &self.input_label_set_intersection {
-            match input_label {
+        for image_label in &self.input_label_set_intersection {
+            match image_label {
                 ImageLabel::InputSymmetry { label } => {
                     match label {
                         SymmetryLabel::HorizontalWithMismatches => {
@@ -1617,8 +1617,8 @@ impl arc_work_model::Task {
         let mut prio3_grid_count: usize = 0;
         let mut prio3_grid_color: u8 = u8::MAX;
 
-        for input_label in &self.input_label_set_intersection {
-            match input_label {
+        for image_label in &self.input_label_set_intersection {
+            match image_label {
                 ImageLabel::InputGrid { label } => {
                     match label {
                         GridLabel::GridColor { color } => {
