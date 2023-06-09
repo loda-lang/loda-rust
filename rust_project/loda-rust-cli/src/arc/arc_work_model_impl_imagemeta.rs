@@ -1,4 +1,4 @@
-use super::{arc_work_model, Image, ImageLabelSet, ImageLabel};
+use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram};
 use super::{SingleColorObject, SingleColorObjectToLabel};
 use super::{Grid, GridLabel, GridToLabel};
 use super::{Symmetry, SymmetryLabel, SymmetryToLabel};
@@ -7,6 +7,7 @@ use std::collections::HashSet;
 impl arc_work_model::ImageMeta {
     pub fn new() -> Self {
         Self {
+            histogram: Histogram::new(),
             image_label_set: HashSet::new(),
             grid: None,
             symmetry: None,
@@ -15,6 +16,7 @@ impl arc_work_model::ImageMeta {
     }
 
     pub fn analyze(&mut self, image: &Image) -> anyhow::Result<()> {
+        self.histogram = image.histogram_all();
         self.resolve_symmetry(image);
         self.resolve_grid(image);
         self.assign_symmetry_labels();

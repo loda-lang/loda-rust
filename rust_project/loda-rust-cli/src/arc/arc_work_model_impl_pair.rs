@@ -67,17 +67,17 @@ impl arc_work_model::Pair {
                     self.action_label_set.insert(ActionLabel::InputImageIsPresentExactlyOnceInsideOutputImage);
                 }
                 if count >= 1 {
-                    for (color_count, color) in self.input.histogram.pairs_ordered_by_color() {
+                    for (color_count, color) in self.input.image_meta.histogram.pairs_ordered_by_color() {
                         if color_count == count as u32 {
                             self.action_label_set.insert(ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsColor { color });
                         }
                     }
-                    if let Some((_color, color_count)) = self.input.histogram.most_popular_pair_disallow_ambiguous() {
+                    if let Some((_color, color_count)) = self.input.image_meta.histogram.most_popular_pair_disallow_ambiguous() {
                         if color_count == count as u32 {
                             self.action_label_set.insert(ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsTheMostPopularColorOfInputImage);
                         }
                     }
-                    if let Some((_color, color_count)) = self.input.histogram.least_popular_pair_disallow_ambiguous() {
+                    if let Some((_color, color_count)) = self.input.image_meta.histogram.least_popular_pair_disallow_ambiguous() {
                         if color_count == count as u32 {
                             self.action_label_set.insert(ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsTheLeastPopularColorOfInputImage);
                         }
@@ -86,7 +86,7 @@ impl arc_work_model::Pair {
             }
         }
 
-        if self.input.histogram == self.output.histogram {
+        if self.input.image_meta.histogram == self.output.image_meta.histogram {
             self.action_label_set.insert(ActionLabel::OutputImageHistogramEqualToInputImageHistogram);
         }
 
@@ -99,7 +99,7 @@ impl arc_work_model::Pair {
                 Some(value) => value,
                 None => break
             };
-            let most_popular_color: u8 = match self.input.histogram.most_popular_color() {
+            let most_popular_color: u8 = match self.input.image_meta.histogram.most_popular_color() {
                 Some(value) => value,
                 None => break
             };
@@ -246,8 +246,8 @@ impl arc_work_model::Pair {
         if input.size() != output.size() {
             return Ok(());
         }
-        let h0: &Histogram = &self.input.histogram;
-        let h1: &Histogram = &self.output.histogram;
+        let h0: &Histogram = &self.input.image_meta.histogram;
+        let h1: &Histogram = &self.output.image_meta.histogram;
         let mut h2: Histogram = h0.clone();
         h2.intersection_histogram(h1);
         for (_count, color) in h2.pairs_ordered_by_color() {
@@ -352,11 +352,11 @@ impl arc_work_model::Pair {
             let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color };
             self.action_label_set.insert(label);
         }
-        if self.input.histogram.most_popular_color() == Some(color) {
+        if self.input.image_meta.histogram.most_popular_color() == Some(color) {
             let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage;
             self.action_label_set.insert(label);
         }
-        if self.input.histogram.least_popular_color() == Some(color) {
+        if self.input.image_meta.histogram.least_popular_color() == Some(color) {
             let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage;
             self.action_label_set.insert(label);
         }
@@ -365,9 +365,9 @@ impl arc_work_model::Pair {
     }
 
     fn analyze_output_colors(&mut self) -> anyhow::Result<()> {
-        let mut histogram: Histogram = self.output.histogram.clone();
+        let mut histogram: Histogram = self.output.image_meta.histogram.clone();
         let output_histogram_unique_count: u16 = histogram.number_of_counters_greater_than_zero();
-        histogram.intersection_histogram(&self.input.histogram);
+        histogram.intersection_histogram(&self.input.image_meta.histogram);
         let intersection_count: u16 = histogram.number_of_counters_greater_than_zero();
 
         if output_histogram_unique_count <= (u8::MAX as u16) {

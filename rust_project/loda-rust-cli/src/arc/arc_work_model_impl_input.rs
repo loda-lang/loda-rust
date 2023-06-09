@@ -88,7 +88,7 @@ impl arc_work_model::Input {
             }
         }
 
-        let input_unique_color_count_raw: u16 = self.histogram.number_of_counters_greater_than_zero();
+        let input_unique_color_count_raw: u16 = self.image_meta.histogram.number_of_counters_greater_than_zero();
         let mut input_unique_color_count: Option<u8> = None;
         if input_unique_color_count_raw <= (u8::MAX as u16) {
             input_unique_color_count = Some(input_unique_color_count_raw as u8);
@@ -103,7 +103,7 @@ impl arc_work_model::Input {
 
         let mut input_number_of_pixels_with_most_popular_color: Option<u8> = None;
         let mut input_number_of_pixels_with_2nd_most_popular_color: Option<u8> = None;
-        let histogram_pairs: Vec<(u32,u8)> = self.histogram.pairs_descending();
+        let histogram_pairs: Vec<(u32,u8)> = self.image_meta.histogram.pairs_descending();
         for (histogram_index, histogram_pair) in histogram_pairs.iter().enumerate() {
             if histogram_index >= 2 {
                 break;
@@ -165,14 +165,14 @@ impl arc_work_model::Input {
     }
 
     pub fn update_image_meta(&mut self) -> anyhow::Result<()> {
-        self.update_input_properties();
         self.image_meta.analyze(&self.image)?;
+        self.update_input_properties();
         self.assign_border_flood_fill()?;
         Ok(())
     }
 
     pub fn assign_border_flood_fill(&mut self) -> anyhow::Result<()> {
-        for (_count, color) in self.histogram.pairs_ordered_by_color() {
+        for (_count, color) in self.image_meta.histogram.pairs_ordered_by_color() {
             let mut image: Image = self.image.clone();
             let mask_before: Image = image.to_mask_where_color_is(color);
             image.border_flood_fill(color, 255, PixelConnectivity::Connectivity4);
@@ -187,7 +187,7 @@ impl arc_work_model::Input {
     }
 
     pub fn find_object_masks_using_histogram_most_popular_color(&self) -> anyhow::Result<Vec<Image>> {
-        let background_color: u8 = match self.histogram.most_popular_color_disallow_ambiguous() {
+        let background_color: u8 = match self.image_meta.histogram.most_popular_color_disallow_ambiguous() {
             Some(value) => value,
             None => {
                 return Err(anyhow::anyhow!("unclear what the background color is"));

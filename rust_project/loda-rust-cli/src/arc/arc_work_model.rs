@@ -16,8 +16,6 @@ pub struct Output {
     /// However since it's not available for the private ARC dataset.
     pub test_image: Image,
 
-    pub histogram: Histogram,
-
     /// The meta data that can be extracted from the `train` output image.
     /// 
     /// It's not available for the `test` pairs, and the fields are `None` or empty.
@@ -44,6 +42,8 @@ pub struct Object {
 /// Data about the image.
 #[derive(Clone, Debug)]
 pub struct ImageMeta {
+    pub histogram: Histogram,
+
     /// Computed values such as: is symmetric x, is symmetric y.
     pub image_label_set: ImageLabelSet,
 
@@ -60,8 +60,6 @@ pub struct Input {
     pub image: Image,
     pub image_meta: ImageMeta,
 
-    pub histogram: Histogram,
-    
     /// Computed values such as: number of unique colors, width of biggest object.
     pub input_properties: HashMap<PropertyInput, u8>,
 

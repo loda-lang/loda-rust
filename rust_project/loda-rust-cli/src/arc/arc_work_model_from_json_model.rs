@@ -46,7 +46,6 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     id: format!("{},input{},train", task_id, index),
                     image: pair.input.clone(),
                     image_meta: ImageMeta::new(),
-                    histogram: histogram_input,
                     input_properties: HashMap::new(),
                     input_objects: HashMap::new(),
                     repair_mask: None,
@@ -63,7 +62,6 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     id: format!("{},output{},train", task_id, index),
                     image: pair.output.clone(),
                     test_image: Image::empty(),
-                    histogram: histogram_output,
                     image_meta: ImageMeta::new(),
                 };
                 let result_pair = arc_work_model::Pair {
@@ -83,13 +81,10 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
         {
             let pairs: Vec<arc_json_model::ImagePair> = json_task.images_test()?;
             for (index, pair) in pairs.iter().enumerate() {
-                let histogram_input: Histogram = pair.input.histogram_all();
-                let histogram_output: Histogram = pair.output.histogram_all();
                 let buffer_input = arc_work_model::Input {
                     id: format!("{},input{},test", task_id, index),
                     image: pair.input.clone(),
                     image_meta: ImageMeta::new(),
-                    histogram: histogram_input,
                     input_properties: HashMap::new(),
                     input_objects: HashMap::new(),
                     repair_mask: None,
@@ -106,7 +101,6 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     id: format!("{},output{},test", task_id, index),
                     image: Image::empty(),
                     test_image: pair.output.clone(),
-                    histogram: histogram_output,
                     image_meta: ImageMeta::new(),
                 };
                 let result_pair = arc_work_model::Pair {
