@@ -1,3 +1,28 @@
+//! Experiments solving an ARC task with a graph representation.
+//! 
+//! The flow of the solver is as follows:
+//! 
+//! Compare input images with each other, train+test
+//!        
+//! Compare output images with each other, train only
+//!
+//! Establish links between input image and output image, train only
+//! - place an agent that walks the graph as if it was a game level.
+//! - where does the output gets its size from?
+//! - where does the output gets its color from?
+//! - do the same object appear in both input and output, but with a different offset?
+//! - do the same object appear in both input and output, but with a different color?
+//! - do an object only appear across the output images, but not in the input image?
+//!
+//! Recreate output images for the train pairs
+//! - reapply transformations to the input images.
+//! - keep the best transformations, reject bad transformations.
+//! - make sure that the output image can be recreated with the transformations.
+//! - if it cannot be recreated, then establish even more links between input and output, and try again.
+//!
+//! Create output images for the test pairs
+//! - reapply the same transformations to the input images.        
+//!
 use super::{Image, ImageCompare, ImagePadding, ImageSize, ImageMaskCount};
 use petgraph::{stable_graph::NodeIndex, visit::EdgeRef};
 
