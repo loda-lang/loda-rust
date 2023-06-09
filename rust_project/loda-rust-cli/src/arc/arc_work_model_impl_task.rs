@@ -555,7 +555,7 @@ impl arc_work_model::Task {
         let mut single_color_object_labels = Vec::<SingleColorObjectRectangleLabel>::new();
         for image_label in &self.input_image_label_set_intersection {
             let single_color_object_label: SingleColorObjectRectangleLabel = match image_label {
-                ImageLabel::InputSingleColorObjectRectangle { label } => label.clone(),
+                ImageLabel::SingleColorObjectRectangle { label } => label.clone(),
                 _ => continue
             };
             single_color_object_labels.push(single_color_object_label);
@@ -1404,11 +1404,11 @@ impl arc_work_model::Task {
         let mut found = false;
         for image_label in &self.input_image_label_set_intersection {
             match image_label {
-                ImageLabel::InputNoiseWithColor { color: _ } => {
+                ImageLabel::NoiseWithColor { color: _ } => {
                     found = true;
                     break;
                 },
-                ImageLabel::InputNoiseWithSomeColor => {
+                ImageLabel::NoiseWithSomeColor => {
                     found = true;
                     break;
                 },
@@ -1540,7 +1540,7 @@ impl arc_work_model::Task {
 
         for image_label in &self.input_image_label_set_intersection {
             match image_label {
-                ImageLabel::InputSymmetry { label } => {
+                ImageLabel::Symmetry { label } => {
                     match label {
                         SymmetryLabel::HorizontalWithMismatches => {
                             repair_horizontal = true;
@@ -1619,7 +1619,7 @@ impl arc_work_model::Task {
 
         for image_label in &self.input_image_label_set_intersection {
             match image_label {
-                ImageLabel::InputGrid { label } => {
+                ImageLabel::Grid { label } => {
                     match label {
                         GridLabel::GridColor { color } => {
                             prio1_grid_with_specific_color = true;

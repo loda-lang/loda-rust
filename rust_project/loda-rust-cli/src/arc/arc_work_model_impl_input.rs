@@ -223,7 +223,7 @@ impl arc_work_model::Input {
             }
         };
         for symmetry_label in symmetry_labels {
-            let label = ImageLabel::InputSymmetry { label: symmetry_label.clone() };
+            let label = ImageLabel::Symmetry { label: symmetry_label.clone() };
             self.image_label_set.insert(label);
         }
     }
@@ -239,7 +239,7 @@ impl arc_work_model::Input {
             }
         };
         for grid_label in grid_labels {
-            let label = ImageLabel::InputGrid { label: grid_label.clone() };
+            let label = ImageLabel::Grid { label: grid_label.clone() };
             self.image_label_set.insert(label);
         }
     }
@@ -254,34 +254,34 @@ impl arc_work_model::Input {
         for object in &single_color_objects.rectangle_vec {
             {
                 let label = SingleColorObjectRectangleLabel::RectangleWithColor { color: object.color };
-                let image_label = ImageLabel::InputSingleColorObjectRectangle { label };
+                let image_label = ImageLabel::SingleColorObjectRectangle { label };
                 self.image_label_set.insert(image_label);
             }
             {
                 let label = SingleColorObjectRectangleLabel::RectangleWithSomeColor;
-                let image_label = ImageLabel::InputSingleColorObjectRectangle { label };
+                let image_label = ImageLabel::SingleColorObjectRectangle { label };
                 self.image_label_set.insert(image_label);
             }
             if object.is_square {
                 {
                     let label = SingleColorObjectRectangleLabel::SquareWithColor { color: object.color };
-                    let image_label = ImageLabel::InputSingleColorObjectRectangle { label };
+                    let image_label = ImageLabel::SingleColorObjectRectangle { label };
                     self.image_label_set.insert(image_label);
                 }
                 {
                     let label = SingleColorObjectRectangleLabel::SquareWithSomeColor;
-                    let image_label = ImageLabel::InputSingleColorObjectRectangle { label };
+                    let image_label = ImageLabel::SingleColorObjectRectangle { label };
                     self.image_label_set.insert(image_label);
                 }
             } else {
                 {
                     let label = SingleColorObjectRectangleLabel::NonSquareWithColor { color: object.color };
-                    let image_label = ImageLabel::InputSingleColorObjectRectangle { label };
+                    let image_label = ImageLabel::SingleColorObjectRectangle { label };
                     self.image_label_set.insert(image_label);
                 }
                 {
                     let label = SingleColorObjectRectangleLabel::NonSquareWithSomeColor;
-                    let image_label = ImageLabel::InputSingleColorObjectRectangle { label };
+                    let image_label = ImageLabel::SingleColorObjectRectangle { label };
                     self.image_label_set.insert(image_label);
                 }
             }
@@ -289,18 +289,18 @@ impl arc_work_model::Input {
         for object in &single_color_objects.sparse_vec {
             {
                 let label = SingleColorObjectSparseLabel::SparseWithColor { color: object.color };
-                let image_label = ImageLabel::InputSingleColorObjectSparse { label };
+                let image_label = ImageLabel::SingleColorObjectSparse { label };
                 self.image_label_set.insert(image_label);
             }
             {
                 let label = SingleColorObjectSparseLabel::SparseWithSomeColor;
-                let image_label = ImageLabel::InputSingleColorObjectSparse { label };
+                let image_label = ImageLabel::SingleColorObjectSparse { label };
                 self.image_label_set.insert(image_label);
             }
         }
         {
             for object in &single_color_objects.rectangle_vec {
-                let image_label = ImageLabel::InputUnambiguousConnectivityWithColor { color: object.color };
+                let image_label = ImageLabel::UnambiguousConnectivityWithColor { color: object.color };
                 self.image_label_set.insert(image_label);
             }
             let mut all_are_connectivity48_identical = true;
@@ -309,21 +309,21 @@ impl arc_work_model::Input {
                     all_are_connectivity48_identical = false;
                     continue;
                 }
-                let image_label = ImageLabel::InputUnambiguousConnectivityWithColor { color: object.color };
+                let image_label = ImageLabel::UnambiguousConnectivityWithColor { color: object.color };
                 self.image_label_set.insert(image_label);
             }
             if all_are_connectivity48_identical {
-                let image_label = ImageLabel::InputUnambiguousConnectivityWithAllColors;
+                let image_label = ImageLabel::UnambiguousConnectivityWithAllColors;
                 self.image_label_set.insert(image_label);
             }
         }
         if let Some(color) = single_color_objects.single_pixel_noise_color() {
             {
-                let image_label = ImageLabel::InputNoiseWithColor { color };
+                let image_label = ImageLabel::NoiseWithColor { color };
                 self.image_label_set.insert(image_label);
             }
             {
-                let image_label = ImageLabel::InputNoiseWithSomeColor;
+                let image_label = ImageLabel::NoiseWithSomeColor;
                 self.image_label_set.insert(image_label);
             }
         }
@@ -340,7 +340,7 @@ impl arc_work_model::Input {
             if mask_before != mask_after {
                 continue;
             }
-            let image_label = ImageLabel::InputBorderFloodFillConnectivity4AllPixelsWithColor { color };
+            let image_label = ImageLabel::BorderFloodFillConnectivity4AllPixelsWithColor { color };
             self.image_label_set.insert(image_label);
         }
         Ok(())

@@ -122,47 +122,47 @@ pub enum SingleColorObjectSparseLabel {
 /// Properties used for both the input image and the output image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ImageLabel {
-    InputSymmetry { label: SymmetryLabel },
-    InputGrid { label: GridLabel },
-    InputSingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },
-    InputSingleColorObjectSparse { label: SingleColorObjectSparseLabel },
+    Symmetry { label: SymmetryLabel },
+    Grid { label: GridLabel },
+    SingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },
+    SingleColorObjectSparse { label: SingleColorObjectSparseLabel },
 
     /// Isolated noise pixels that each have `mass=1`.
     /// 
     /// A noise pixel may be connected diagonally with another noise pixel,
     /// however bigger diagonal shapes are suppressed.
     ///
-    /// When all the training pairs agree on the same noise color,
+    /// When all the images agree on the same noise color,
     /// then that color may have some meaning.
-    InputNoiseWithColor { color: u8 },
+    NoiseWithColor { color: u8 },
 
     /// Isolated noise pixels that each have `mass=1`.
     /// 
     /// A noise pixel may be connected diagonally with another noise pixel,
     /// however bigger diagonal shapes are suppressed.
     ///
-    /// Each of the training pair have its own noise color,
+    /// Each of the images have its own noise color,
     /// then that color may have some meaning.
-    InputNoiseWithSomeColor,
+    NoiseWithSomeColor,
 
     /// Both `PixelConnectivity4` and `PixelConnectivity8` yields the same child objects for a particular `color`.
     /// 
-    /// When segmenting the input image into connected components, then the masks are the same
+    /// When segmenting the image into connected components, then the masks are the same
     /// for the `4 connected` pixels as the `8 connected` pixels.
-    InputUnambiguousConnectivityWithColor { color: u8 },
+    UnambiguousConnectivityWithColor { color: u8 },
 
     /// Both `PixelConnectivity4` and `PixelConnectivity8` yields the same child objects for all the colors in the input image.
     /// 
-    /// When segmenting the input image into connected components, then the masks are the same
+    /// When segmenting the image into connected components, then the masks are the same
     /// for the `4 connected` pixels as the `8 connected` pixels.
-    InputUnambiguousConnectivityWithAllColors,
+    UnambiguousConnectivityWithAllColors,
 
     /// Doing flood fill along the border, and the mask of the color is still the same.
     /// 
     /// The color is touching the edges, and all pixels of this color is reachable.
     /// 
     /// There are no isolated pixels.
-    InputBorderFloodFillConnectivity4AllPixelsWithColor { color: u8 },
+    BorderFloodFillConnectivity4AllPixelsWithColor { color: u8 },
 
     // Ideas for more
     // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
@@ -180,15 +180,15 @@ pub enum ImageLabel {
     // LeastPopularObjectInteriorColorConnectivity4 { color: u8 },
     // MostPopularObjectOutlineColorConnectivity4 { color: u8 },
     // LeastPopularObjectOutlineColorConnectivity4 { color: u8 },
-    // InputImageIsSingleColorObjectsMaybeWithBackgroundColor,
-    // InputImageIsSingleColorObjectsWithBackgroundColor,
-    // InputImageIsSingleColorObjectsWithoutBackgroundColor,
+    // ImageIsSingleColorObjectsMaybeWithBackgroundColor,
+    // ImageIsSingleColorObjectsWithBackgroundColor,
+    // ImageIsSingleColorObjectsWithoutBackgroundColor,
     // AllObjectsHaveTheSameSize,
     // AllSingleColorObjectsHaveTheSameSize { label: SingleColorObjectLabel },
-    // InputColorThatDoesNotOccurInTheIntersection { color: u8 },
-    // InputUniqueColors { color: Vec<u8> },
-    // InputAspectRatio { width: u8, height: u8 },
-    // InputContainsOneOrMoreBoxes,
+    // ColorThatDoesNotOccurInTheIntersection { color: u8 },
+    // UniqueColors { color: Vec<u8> },
+    // AspectRatio { width: u8, height: u8 },
+    // ContainsOneOrMoreBoxes,
 }
 
 pub type ImageLabelSet = HashSet<ImageLabel>;
