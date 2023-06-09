@@ -26,7 +26,7 @@ use linfa::prelude::*;
 use linfa_logistic::MultiLogisticRegression;
 use ndarray::prelude::*;
 
-static WRITE_TO_HTMLLOG: bool = true;
+static WRITE_TO_HTMLLOG: bool = false;
 
 #[derive(Clone, Debug, Serialize)]
 struct Record {
