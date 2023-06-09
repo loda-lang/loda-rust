@@ -29,6 +29,7 @@ pub struct Object {
 /// Data about the image.
 #[derive(Clone, Debug)]
 pub struct ImageMeta {
+    pub single_color_objects: Option<SingleColorObjects>,
 }
 
 #[derive(Clone, Debug)]
@@ -60,8 +61,6 @@ pub struct Input {
 
     pub substitution_rule_applied: Option<Image>,
     
-    pub single_color_objects: Option<SingleColorObjects>,
-
     pub predicted_single_color_image: Option<Image>,
 
     pub removal_color: Option<u8>,

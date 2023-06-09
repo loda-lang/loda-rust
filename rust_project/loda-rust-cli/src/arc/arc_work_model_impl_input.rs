@@ -327,7 +327,7 @@ impl arc_work_model::Input {
                 self.image_label_set.insert(image_label);
             }
         }
-        self.single_color_objects = Some(single_color_objects);
+        self.image_meta.single_color_objects = Some(single_color_objects);
         Ok(())
     }
 
