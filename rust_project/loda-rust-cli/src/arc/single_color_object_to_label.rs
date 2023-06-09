@@ -1,10 +1,10 @@
-use super::{SingleColorObjects, ImageLabel, ImageLabelSet, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel};
+use super::{SingleColorObject, ImageLabel, ImageLabelSet, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel};
 
 pub trait SingleColorObjectToLabel {
     fn to_image_label_set(&self) -> anyhow::Result<ImageLabelSet>;
 }
 
-impl SingleColorObjectToLabel for SingleColorObjects {
+impl SingleColorObjectToLabel for SingleColorObject {
     fn to_image_label_set(&self) -> anyhow::Result<ImageLabelSet> {
         let mut image_label_set = ImageLabelSet::new();
         for object in &self.rectangle_vec {

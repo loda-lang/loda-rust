@@ -2,7 +2,7 @@ use super::{arc_work_model, ImageFill, ImageLabelSet};
 use super::arc_work_model::Object;
 use super::{PropertyInput, ImageLabel, GridLabel};
 use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
-use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop, SingleColorObjects, SingleColorObjectToLabel};
+use super::{ConnectedComponent, PixelConnectivity, ImageMask, ImageCrop, SingleColorObject, SingleColorObjectToLabel};
 use std::collections::{HashMap, HashSet};
 
 impl arc_work_model::Input {
@@ -207,7 +207,7 @@ impl arc_work_model::Input {
         self.resolve_grid();
         self.assign_symmetry_labels();
         self.assign_grid_labels();
-        self.assign_single_color_objects()?;
+        self.assign_single_color_object()?;
         self.assign_border_flood_fill()?;
         Ok(())
     }
@@ -244,22 +244,22 @@ impl arc_work_model::Input {
         }
     }
 
-    pub fn assign_single_color_objects(&mut self) -> anyhow::Result<()> {
-        let single_color_objects: SingleColorObjects = match SingleColorObjects::find_objects(&self.image) {
+    pub fn assign_single_color_object(&mut self) -> anyhow::Result<()> {
+        let single_color_object: SingleColorObject = match SingleColorObject::find_objects(&self.image) {
             Ok(value) => value,
             Err(_) => {
                 return Ok(());
             }
         };
-        let image_label_set: ImageLabelSet = match single_color_objects.to_image_label_set() {
+        let image_label_set: ImageLabelSet = match single_color_object.to_image_label_set() {
             Ok(value) => value,
             Err(error) => {
-                error!("Unable to convert single_color_objects to image_label_set. {} {:?}", self.id, error);
+                error!("Unable to convert single_color_object to image_label_set. {} {:?}", self.id, error);
                 return Ok(());
             }
         };
         self.image_label_set.extend(image_label_set);
-        self.image_meta.single_color_objects = Some(single_color_objects);
+        self.image_meta.single_color_object = Some(single_color_object);
         Ok(())
     }
 

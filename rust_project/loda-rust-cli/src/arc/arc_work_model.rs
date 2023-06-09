@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObjects, OutputSpecification};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -29,7 +29,7 @@ pub struct Object {
 /// Data about the image.
 #[derive(Clone, Debug)]
 pub struct ImageMeta {
-    pub single_color_objects: Option<SingleColorObjects>,
+    pub single_color_object: Option<SingleColorObject>,
 }
 
 #[derive(Clone, Debug)]

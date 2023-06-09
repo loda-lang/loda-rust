@@ -13,7 +13,7 @@ mod tests {
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
-    use crate::arc::{ImageDrawRect, SingleColorObjects, SingleColorObjectClusterContainer, ObjectsAndGravity, ObjectsAndGravityDirection};
+    use crate::arc::{ImageDrawRect, SingleColorObject, SingleColorObjectClusterContainer, ObjectsAndGravity, ObjectsAndGravityDirection};
     use crate::arc::{MixMode, ImageMix, GravityDirection, ImageGravity, ImageSort, ImageSortMode, Color};
     use std::collections::HashMap;
     use regex::Regex;
@@ -4759,7 +4759,7 @@ mod tests {
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");                
                 let mask: Image = input.to_mask_where_color_is(noise_color);
                 
-                let single_color_objects: &SingleColorObjects = pair.input.image_meta.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
                 let mut result_image: Image = input.clone();
                 for object in &single_color_objects.sparse_vec {
                     if object.color != noise_color {
@@ -4888,7 +4888,7 @@ mod tests {
                 let input: &Image = &pair.input.image;
                 let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
 
-                let single_color_objects: &SingleColorObjects = pair.input.image_meta.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
 
                 let mut result_image: Image = Image::zero(input.width(), input.height());
                 for object in &single_color_objects.sparse_vec {
@@ -4986,7 +4986,7 @@ mod tests {
                 let input: &Image = &pair.input.image;
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
 
-                let single_color_objects: &SingleColorObjects = pair.input.image_meta.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
                 let mut result_image: Image = input.clone();
                 for object in &single_color_objects.sparse_vec {
                     if object.color != noise_color {
@@ -5031,7 +5031,7 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
 
-                let single_color_objects: &SingleColorObjects = pair.input.image_meta.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
 
                 // Histogram of the isolated pixels
                 let mut isolated_pixels: Image = input.count_duplicate_pixels_in_neighbours()?;
@@ -5100,7 +5100,7 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
                 let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
-                let single_color_objects: &SingleColorObjects = pair.input.image_meta.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
 
                 let mut result_image: Image = input.clone();
                 for object in &single_color_objects.sparse_vec {
@@ -5904,7 +5904,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let single_color_objects: &SingleColorObjects = pair.input.image_meta.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
 
                 let mut found_enumerated_objects: Option<Image> = None;
                 for object in &single_color_objects.sparse_vec {

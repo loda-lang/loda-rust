@@ -222,7 +222,7 @@ pub use rectangle::Rectangle;
 pub use register_arc_functions::register_arc_functions;
 pub use reverse_color_popularity::ReverseColorPopularity;
 pub use run_with_program::{AnalyzeAndSolve, RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData};
-pub use single_color_object::{SingleColorObjects, SingleColorObjectRectangle, SingleColorObjectSparse, SingleColorObjectCluster, SingleColorObjectClusterContainer};
+pub use single_color_object::{SingleColorObject, SingleColorObjectRectangle, SingleColorObjectSparse, SingleColorObjectCluster, SingleColorObjectClusterContainer};
 pub use single_color_object_satisfies_label::SingleColorObjectSatisfiesLabel;
 pub use single_color_object_to_label::SingleColorObjectToLabel;
 pub use stack_strings::StackStrings;

@@ -260,13 +260,13 @@ pub struct SingleColorObjectCluster {
 }
 
 #[derive(Clone, Debug)]
-pub struct SingleColorObjects {
+pub struct SingleColorObject {
     pub image_size: ImageSize,
     pub rectangle_vec: Vec<SingleColorObjectRectangle>,
     pub sparse_vec: Vec<SingleColorObjectSparse>,
 }
 
-impl SingleColorObjects {
+impl SingleColorObject {
     pub fn find_objects(image: &Image) -> anyhow::Result<Self> {
         if image.is_empty() {
             return Err(anyhow::anyhow!("The image must be 1x1 or bigger"));
@@ -707,7 +707,7 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let actual: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
 
         // Assert
         assert_eq!(actual.rectangle_vec.len(), 6);
@@ -724,7 +724,7 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let actual: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
 
         // Assert
         assert_eq!(actual.rectangle_vec.len(), 2);
@@ -769,7 +769,7 @@ mod tests {
         let input: Image = Image::try_create(9, 8, pixels).expect("image");
         
         // Act
-        let actual: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let actual: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
 
         // Assert
         assert_eq!(actual.rectangle_vec.len(), 0);
@@ -843,7 +843,7 @@ mod tests {
             9, 8, 8, 8, 8, 8, 8, 5, 5,
         ];
         let input: Image = Image::try_create(9, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Option<u8> = objects.single_pixel_noise_color();
@@ -865,7 +865,7 @@ mod tests {
             9, 8, 8, 8, 8, 8, 8, 5, 5,
         ];
         let input: Image = Image::try_create(9, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Option<u8> = objects.single_pixel_noise_color();
@@ -887,7 +887,7 @@ mod tests {
             9, 8, 8, 8, 8, 8, 8, 5, 5,
         ];
         let input: Image = Image::try_create(9, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Option<u8> = objects.single_pixel_noise_color();
@@ -909,7 +909,7 @@ mod tests {
             9, 8, 8, 8, 8, 8, 8, 5, 5,
         ];
         let input: Image = Image::try_create(9, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Option<u8> = objects.single_pixel_noise_color();
@@ -931,7 +931,7 @@ mod tests {
             7, 8, 7, 8, 8, 8,
         ];
         let input: Image = Image::try_create(6, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.mass_as_image(PixelConnectivity::Connectivity4).expect("image");
@@ -959,7 +959,7 @@ mod tests {
             8, 8, 8, 8,
         ];
         let input: Image = Image::try_create(4, 3, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.mass_as_image(PixelConnectivity::Connectivity4).expect("image");
@@ -987,7 +987,7 @@ mod tests {
             5, 5, 5, 5, 8, 8,
         ];
         let input: Image = Image::try_create(6, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.holes_mask(5, PixelConnectivity::Connectivity4).expect("image");
@@ -1019,7 +1019,7 @@ mod tests {
             5, 5, 5, 5, 8, 8,
         ];
         let input: Image = Image::try_create(6, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.holecount_image(5, PixelConnectivity::Connectivity4).expect("image");
@@ -1050,7 +1050,7 @@ mod tests {
             7, 7, 7, 0, 7, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.holecount_image(3, PixelConnectivity::Connectivity4).expect("image");
@@ -1080,7 +1080,7 @@ mod tests {
             7, 7, 7, 0, 7, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.filled_holes_mask(3, PixelConnectivity::Connectivity4).expect("image");
@@ -1110,7 +1110,7 @@ mod tests {
             7, 7, 7, 0, 7, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.filled_holes_mask(7, PixelConnectivity::Connectivity4).expect("image");
@@ -1141,7 +1141,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.filled_holes_mask(3, PixelConnectivity::Connectivity4).expect("image");
@@ -1169,7 +1169,7 @@ mod tests {
             0, 0, 0, 7, 0, 7,
         ];
         let input: Image = Image::try_create(6, 3, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act + Assert
         {
@@ -1194,7 +1194,7 @@ mod tests {
             0, 0, 0, 7, 0, 7,
         ];
         let input: Image = Image::try_create(6, 3, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act + Assert
         {
@@ -1235,7 +1235,7 @@ mod tests {
             0, 0, 0, 0, 3, 3, 3, 0,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.horizontal_symmetry_mask(3, PixelConnectivity::Connectivity4).expect("image");
@@ -1263,7 +1263,7 @@ mod tests {
             0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(5, 3, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.horizontal_symmetry_mask(7, PixelConnectivity::Connectivity4).expect("image");
@@ -1291,7 +1291,7 @@ mod tests {
             0, 5, 5, 5, 5, 0, 0, 5,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.horizontal_symmetry_mask(5, PixelConnectivity::Connectivity8).expect("image");
@@ -1323,7 +1323,7 @@ mod tests {
             0, 0, 0, 0, 3, 3, 3, 0,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.vertical_symmetry_mask(3, PixelConnectivity::Connectivity4).expect("image");
@@ -1351,7 +1351,7 @@ mod tests {
             0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(5, 3, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.vertical_symmetry_mask(7, PixelConnectivity::Connectivity4).expect("image");
@@ -1379,7 +1379,7 @@ mod tests {
             5, 0, 0, 0, 0, 0, 5, 5,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.vertical_symmetry_mask(5, PixelConnectivity::Connectivity8).expect("image");
@@ -1408,7 +1408,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 4, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.enumerate_clusters(5, PixelConnectivity::Connectivity4).expect("image");
@@ -1437,7 +1437,7 @@ mod tests {
             0, 0, 5, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.enumerate_clusters(5, PixelConnectivity::Connectivity4).expect("image");

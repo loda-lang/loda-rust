@@ -1,4 +1,4 @@
-use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObjects, SingleColorObjectRectangle};
+use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction};
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
@@ -658,7 +658,7 @@ impl arc_work_model::Task {
     fn assign_output_size_for_single_color_objects_with_label(&mut self, single_color_object_label: &SingleColorObjectRectangleLabel, execute: bool) -> anyhow::Result<()> {
         let mut predicted_sizes = HashMap::<usize, ImageSize>::new();
         for (pair_index, pair) in self.pairs.iter().enumerate() {
-            let single_color_objects: &SingleColorObjects = match &pair.input.image_meta.single_color_objects {
+            let single_color_objects: &SingleColorObject = match &pair.input.image_meta.single_color_object {
                 Some(value) => value,
                 None => {
                     return Err(anyhow::anyhow!("All input pairs must have some single_color_objects"));
@@ -1419,7 +1419,7 @@ impl arc_work_model::Task {
             return Ok(());
         }
         for pair in self.pairs.iter_mut() {
-            let single_color_objects: &SingleColorObjects = match &pair.input.image_meta.single_color_objects {
+            let single_color_objects: &SingleColorObject = match &pair.input.image_meta.single_color_object {
                 Some(value) => value,
                 None => {
                     continue;
