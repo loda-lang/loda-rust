@@ -421,6 +421,7 @@ impl TraverseProgramsAndModels {
             // if task.input_histogram_intersection.most_popular_color_disallow_ambiguous() == None {
             //     continue;
             // }
+            #[allow(unused_assignments)]
             let mut found: bool = false;
             found = true;
             // if task.has_removal_color() {
