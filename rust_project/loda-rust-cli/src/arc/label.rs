@@ -37,9 +37,10 @@ pub enum ImageProperty {
     NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
     WidthOfRemovedRectangleAfterSingleColorRemoval,
     HeightOfRemovedRectangleAfterSingleColorRemoval,
+    MassOfAllNoisePixels,
+    UniqueNoiseColorCount,
 
     // Ideas for more
-    // NoisePixelsCount,
     // NoisePixelsCountOutsideAnyObjects,
     // MaxNumberOfClustersInSparseSingleColorObject,
     // MaxWidthOfClustersInSparseSingleColorObject,

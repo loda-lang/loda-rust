@@ -23,10 +23,11 @@ impl arc_work_model::ImageMeta {
         self.assign_symmetry(image)?;
         self.assign_single_color_object(image)?;
         self.assign_border_flood_fill(image)?;
+        self.assign_image_properties_about_noise_pixels()?;
         Ok(())
     }
 
-    pub fn update_image_properties(&mut self, image: &Image) {
+    fn update_image_properties(&mut self, image: &Image) {
         self.image_properties = Self::resolve_image_properties(image, &self.histogram);
     }
 
@@ -184,7 +185,7 @@ impl arc_work_model::ImageMeta {
         dict
     }
 
-    pub fn assign_grid(&mut self, image: &Image) -> anyhow::Result<()> {
+    fn assign_grid(&mut self, image: &Image) -> anyhow::Result<()> {
         if self.grid.is_some() {
             return Ok(());
         }
@@ -203,7 +204,7 @@ impl arc_work_model::ImageMeta {
         Ok(())
     }
 
-    pub fn assign_symmetry(&mut self, image: &Image) -> anyhow::Result<()> {
+    fn assign_symmetry(&mut self, image: &Image) -> anyhow::Result<()> {
         if self.symmetry.is_some() {
             return Ok(());
         }
@@ -232,7 +233,7 @@ impl arc_work_model::ImageMeta {
         Ok(())
     }
 
-    pub fn assign_single_color_object(&mut self, image: &Image) -> anyhow::Result<()> {
+    fn assign_single_color_object(&mut self, image: &Image) -> anyhow::Result<()> {
         let single_color_object: SingleColorObject = match SingleColorObject::find_objects(image) {
             Ok(value) => value,
             Err(_) => {
@@ -251,7 +252,7 @@ impl arc_work_model::ImageMeta {
         Ok(())
     }
 
-    pub fn assign_border_flood_fill(&mut self, image: &Image) -> anyhow::Result<()> {
+    fn assign_border_flood_fill(&mut self, image: &Image) -> anyhow::Result<()> {
         for (_count, color) in self.histogram.pairs_ordered_by_color() {
             let mut filled: Image = image.clone();
             let mask_before: Image = filled.to_mask_where_color_is(color);
@@ -262,6 +263,22 @@ impl arc_work_model::ImageMeta {
             }
             let image_label = ImageLabel::BorderFloodFillConnectivity4AllPixelsWithColor { color };
             self.image_label_set.insert(image_label);
+        }
+        Ok(())
+    }
+
+    fn assign_image_properties_about_noise_pixels(&mut self) -> anyhow::Result<()> {
+        if let Some(sco) = &self.single_color_object {
+            let histogram: Histogram = sco.single_pixel_noise_histogram();
+            let color_count: u8 = histogram.number_of_counters_greater_than_zero().min(255) as u8;
+            if color_count > 0 {
+                self.image_properties.insert(ImageProperty::UniqueNoiseColorCount, color_count);
+
+                let mass: u32 = histogram.sum();
+                if mass <= 255 {
+                    self.image_properties.insert(ImageProperty::MassOfAllNoisePixels, mass as u8);
+                }
+            }
         }
         Ok(())
     }

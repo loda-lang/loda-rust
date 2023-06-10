@@ -825,7 +825,7 @@ impl arc_work_model::Task {
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
 
-        let input_properties: [ImageProperty; 25] = [
+        let input_properties: [ImageProperty; 27] = [
             ImageProperty::Width, 
             ImageProperty::WidthPlus1, 
             ImageProperty::WidthPlus2, 
@@ -851,6 +851,8 @@ impl arc_work_model::Task {
             ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
             ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval,
             ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval,
+            ImageProperty::UniqueNoiseColorCount,
+            ImageProperty::MassOfAllNoisePixels,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
