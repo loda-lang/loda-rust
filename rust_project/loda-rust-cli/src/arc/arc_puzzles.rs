@@ -4994,7 +4994,7 @@ mod tests {
                     }
                     let rect: Rectangle = object.bounding_box;
                     result_image = result_image.draw_rect_border(rect.min_x(), rect.min_y(), rect.max_x(), rect.max_y(), 42)?;
-                    result_image = object.mask.select_from_image_and_color(&result_image, object.color)?;
+                    result_image = object.mask_uncropped.select_from_image_and_color(&result_image, object.color)?;
                 }
 
                 Ok(result_image)

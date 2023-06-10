@@ -41,7 +41,11 @@ pub struct SingleColorObjectSparse {
     pub color: u8,
 
     /// This image has the same size as the original image.
-    pub mask: Image,
+    pub mask_uncropped: Image,
+
+    /// This image has been cropped to the bounding box.
+    #[allow(dead_code)]
+    pub mask_cropped: Image,
 
     /// Bounding box of the mask
     pub bounding_box: Rectangle,
@@ -88,8 +92,9 @@ impl SingleColorObjectSparse {
         if verbose {
             println!("SingleColorObjectSparse.create: color: {} mask: {:?} rect: {:?}", color, mask, rect);
         }
-        let cropped_object: Image = image.crop(rect)?;
-        let mut histogram: Histogram = cropped_object.histogram_all();
+        let mask_cropped: Image = mask.crop(rect)?;
+        let image_cropped: Image = image.crop(rect)?;
+        let mut histogram: Histogram = image_cropped.histogram_all();
         let mass_object: u16 = histogram.get(color).min(u16::MAX as u32) as u16;
         histogram.set_counter_to_zero(color);
         let mass_non_object: u16 = histogram.sum().min(u16::MAX as u32) as u16;
@@ -98,7 +103,8 @@ impl SingleColorObjectSparse {
         }
         let mut instance = SingleColorObjectSparse {
             color,
-            mask,
+            mask_uncropped: mask,
+            mask_cropped,
             bounding_box: rect,
             mass_object,
             mass_non_object,
@@ -156,7 +162,7 @@ impl SingleColorObjectSparse {
     /// The `connectivity` parameter is for choosing between 4-connected and 8-connected.
     fn analyze(&mut self, connectivity: PixelConnectivity) -> anyhow::Result<()> {
         // Objects that is not the background
-        let cropped_mask: Image = self.mask.crop(self.bounding_box)?;
+        let cropped_mask: Image = self.mask_uncropped.crop(self.bounding_box)?;
         let ignore_mask: Image = cropped_mask.invert_mask();
 
         let blank = Image::zero(cropped_mask.width(), cropped_mask.height());
@@ -209,12 +215,12 @@ impl SingleColorObjectSparse {
         }
 
         // The holes
-        let mut holes_mask_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
+        let mut holes_mask_uncropped: Image = Image::zero(self.mask_uncropped.width(), self.mask_uncropped.height());
         holes_mask_uncropped = holes_mask_uncropped.overlay_with_position(&accumulated_holes_mask, self.bounding_box.min_x(), self.bounding_box.min_y())?;
 
         // Enumerate the clusters
         let enumerated_clusters: Image = Image::object_enumerate(&object_mask_vec)?;
-        let mut enumerated_clusters_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
+        let mut enumerated_clusters_uncropped: Image = Image::zero(self.mask_uncropped.width(), self.mask_uncropped.height());
         enumerated_clusters_uncropped = enumerated_clusters_uncropped.overlay_with_position(&enumerated_clusters, self.bounding_box.min_x(), self.bounding_box.min_y())?;
 
         let container = SingleColorObjectClusterContainer {
@@ -320,7 +326,7 @@ impl SingleColorObject {
             result_mask = result_mask.mix(&object.mask, MixMode::Plus)?;
         }
         for object in &self.sparse_vec {
-            result_mask = result_mask.mix(&object.mask, MixMode::Plus)?;
+            result_mask = result_mask.mix(&object.mask_uncropped, MixMode::Plus)?;
         }
         let actual_mass: u16 = result_mask.mask_count_one();
         let expected_mass: u16 = (self.image_size.width as u16) * (self.image_size.height as u16);
@@ -750,7 +756,7 @@ mod tests {
             1, 0, 0,
         ];
         let expected_mask: Image = Image::try_create(3, 2, expected_pixels).expect("image");
-        assert_eq!(object.mask, expected_mask);
+        assert_eq!(object.mask_uncropped, expected_mask);
 
         assert_eq!(object.mass_object, 2);
         assert_eq!(object.mass_non_object, 4);
@@ -762,6 +768,46 @@ mod tests {
             histogram.increment(3);
             histogram.increment(3);
             assert_eq!(object.histogram_non_object, histogram);
+        }
+    }
+
+    #[test]
+    fn test_20001_object_sparse_mask_uncropped_and_mask_cropped() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            3, 3, 3, 3, 3,
+            3, 5, 3, 3, 3,
+            3, 3, 3, 5, 3,
+            3, 3, 3, 3, 3,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        assert_eq!(actual.rectangle_vec.len(), 0);
+        assert_eq!(actual.sparse_vec.len(), 2);
+        let object: &SingleColorObjectSparse = actual.sparse_vec.last().expect("1 instance");
+        assert_eq!(object.color, 5);
+        assert_eq!(object.bounding_box, Rectangle::new(1, 1, 3, 2));
+
+        // Assert
+        {
+            let expected_pixels: Vec<u8> = vec![
+                0, 0, 0, 0, 0,
+                0, 1, 0, 0, 0,
+                0, 0, 0, 1, 0,
+                0, 0, 0, 0, 0,
+            ];
+            let expected_mask: Image = Image::try_create(5, 4, expected_pixels).expect("image");
+            assert_eq!(object.mask_uncropped, expected_mask);
+        }
+        {
+            let expected_pixels: Vec<u8> = vec![
+                1, 0, 0,
+                0, 0, 1,
+            ];
+            let expected_mask: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+            assert_eq!(object.mask_cropped, expected_mask);
         }
     }
 
