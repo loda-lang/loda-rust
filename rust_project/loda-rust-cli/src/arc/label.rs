@@ -300,6 +300,10 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // NoMovementInDirectionX,
+    // NoMovementInDirectionY,
+    // ObjectsOnlyMoveInDirectionX,
+    // ObjectsOnlyMoveInDirectionY,
     // OutputSizeIsTheSameAsInputSmallestSingleColorObjectRectangle,
     // OutputSizeIsTheSameAsInputSmallestSingleColorObjectSquare,
     // OutputSizeIsTheSameAsInputSmallestSingleColorObjectNonSquare,
