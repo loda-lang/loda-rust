@@ -308,12 +308,12 @@ impl InspectTask {
         let tbody: String = format!(
             "<tbody>{}{}{}{}{}{}{}{}{}</tbody>",
             self.row_input_image, 
+            self.row_output_image, 
+            self.row_action_colors,
             self.row_input_properties, 
             self.row_input_labels, 
-            self.row_output_image, 
             self.row_output_labels, 
             self.row_input_output_labels, 
-            self.row_action_colors,
             self.row_action_labels,
             self.row_predictions
         );
