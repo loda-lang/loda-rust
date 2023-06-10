@@ -41,6 +41,7 @@ pub enum ImageProperty {
     UniqueNoiseColorCount,
 
     // Ideas for more
+    // NumberOfClusters,
     // NoisePixelsCountOutsideAnyObjects,
     // MaxNumberOfClustersInSparseSingleColorObject,
     // MaxWidthOfClustersInSparseSingleColorObject,

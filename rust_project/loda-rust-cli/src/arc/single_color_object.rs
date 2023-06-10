@@ -257,6 +257,8 @@ pub struct SingleColorObjectCluster {
     // shape of each hole. square, non-square, rectangular, other.
     // color of each hole. same, different.
     // shape of cluster
+    // corner with irregularity, regularity
+    // edge with irregularity, regularity
 }
 
 #[derive(Clone, Debug)]
