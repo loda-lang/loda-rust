@@ -73,6 +73,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     action_label_set: ActionLabelSet::new(),
                     prediction_set: arc_work_model::PredictionSet::new(),
                     output_specification_vec: vec!(),
+                    input_output_image_label_set_intersection: HashSet::new(),
                 };
                 result_pairs.push(result_pair);
             }
@@ -111,6 +112,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     action_label_set: ActionLabelSet::new(),
                     prediction_set: arc_work_model::PredictionSet::new(),
                     output_specification_vec: vec!(),
+                    input_output_image_label_set_intersection: HashSet::new(),
                 };
                 result_pairs.push(result_pair);
             }

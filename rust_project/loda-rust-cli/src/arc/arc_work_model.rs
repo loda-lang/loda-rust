@@ -132,6 +132,7 @@ pub struct Pair {
     pub action_label_set: ActionLabelSet,
     pub prediction_set: PredictionSet,
     pub output_specification_vec: Vec<OutputSpecification>,
+    pub input_output_image_label_set_intersection: ImageLabelSet,
 }
 
 #[derive(Clone, Debug)]

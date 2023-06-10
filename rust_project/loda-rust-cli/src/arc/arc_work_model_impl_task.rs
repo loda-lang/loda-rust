@@ -413,6 +413,19 @@ impl arc_work_model::Task {
         self.output_image_label_set_intersection = Self::intersection_of_multiple_image_label_set(image_label_set_vec);
     }
 
+    fn update_input_output_image_label_set_intersection(&mut self) {
+        for pair in &mut self.pairs {
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
+            let image_label_set_vec: Vec<&ImageLabelSet> = vec![
+                &pair.input.image_meta.image_label_set,
+                &pair.output.image_meta.image_label_set
+            ];
+            pair.input_output_image_label_set_intersection = Self::intersection_of_multiple_image_label_set(image_label_set_vec);
+        }
+    }
+
     fn assign_action_labels_for_output_for_train(&mut self) {
         for pair in &mut self.pairs {
             if pair.pair_type != PairType::Train {
@@ -792,6 +805,7 @@ impl arc_work_model::Task {
         self.update_input_properties_intersection();
         self.update_input_image_label_set_intersection();
         self.update_output_image_label_set_intersection();
+        self.update_input_output_image_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
