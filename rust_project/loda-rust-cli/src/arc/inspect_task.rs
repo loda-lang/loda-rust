@@ -10,6 +10,7 @@ pub struct InspectTask {
     row_input_properties: String,
     row_input_labels: String,
     row_output_image: String,
+    row_output_labels: String,
     row_action_colors: String,
     row_action_labels: String,
     row_predictions: String,
@@ -24,6 +25,7 @@ impl InspectTask {
             row_input_properties: "<tr><td>Input properties</td>".to_string(),
             row_input_labels: "<tr><td>Input labels</td>".to_string(),
             row_output_image: "<tr><td>Output image</td>".to_string(),
+            row_output_labels: "<tr><td>Output labels</td>".to_string(),
             row_action_colors: "<tr><td>Action colors</td>".to_string(),
             row_action_labels: "<tr><td>Action labels</td>".to_string(),
             row_predictions: "<tr><td>Predictions</td>".to_string(),
@@ -50,8 +52,8 @@ impl InspectTask {
         format!("<ul class='without_bullets'>{}</ul>", label_vec.join(""))
     }
 
-    fn image_properties_to_html(input_properties: &HashMap<ImageProperty, u8>) -> String {
-        let mut items: Vec<String> = input_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
+    fn image_properties_to_html(image_properties: &HashMap<ImageProperty, u8>) -> String {
+        let mut items: Vec<String> = image_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
         if items.is_empty() {
             return "empty".to_string();
         }
@@ -122,6 +124,11 @@ impl InspectTask {
                 },
             };
             self.row_output_image += "</td>";
+        }
+        {
+            self.row_output_labels += "<td>";
+            self.row_output_labels += &Self::image_label_set_to_html(&pair.output.image_meta.image_label_set);
+            self.row_output_labels += "</td>";
         }
         {
             self.row_action_colors += "<td>Removal<br>";
@@ -230,6 +237,9 @@ impl InspectTask {
         }
         self.row_output_image += "</td>";
 
+        self.row_output_labels += "<td>";
+        self.row_output_labels += "</td>";
+
         self.row_action_colors += &td_begin;
         self.row_action_colors += "Removal<br>";
         match task.removal_histogram_intersection.color_image() {
@@ -267,6 +277,7 @@ impl InspectTask {
         self.row_input_properties += "</tr>";
         self.row_input_labels += "</tr>";
         self.row_output_image += "</tr>";
+        self.row_output_labels += "</tr>";
         self.row_action_colors += "</tr>";
         self.row_action_labels += "</tr>";
         self.row_predictions += "</tr>";
@@ -284,11 +295,12 @@ impl InspectTask {
 
         let thead: String = format!("<thead>{}</thead>", self.row_title);
         let tbody: String = format!(
-            "<tbody>{}{}{}{}{}{}{}</tbody>",
+            "<tbody>{}{}{}{}{}{}{}{}</tbody>",
             self.row_input_image, 
             self.row_input_properties, 
             self.row_input_labels, 
             self.row_output_image, 
+            self.row_output_labels, 
             self.row_action_colors,
             self.row_action_labels,
             self.row_predictions
