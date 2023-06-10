@@ -146,6 +146,7 @@ pub struct Task {
     pub insert_histogram_intersection: Histogram,
     pub input_properties_intersection: HashMap<ImageProperty, u8>,
     pub input_image_label_set_intersection: ImageLabelSet,
+    pub output_image_label_set_intersection: ImageLabelSet,
     pub action_label_set_intersection: ActionLabelSet,
     pub occur_in_solutions_csv: bool,
 }

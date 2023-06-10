@@ -52,6 +52,7 @@ pub enum ImageProperty {
     // UniqueColorCountAfterRemoval
     // Number of 1px lines horizontal
     // Number of 1px lines vertical
+    // Number of corners in primary object
 }
 
 /// Does the image contain symmetric patterns

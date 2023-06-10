@@ -394,6 +394,23 @@ impl arc_work_model::Task {
         self.input_image_label_set_intersection = image_label_set;
     }
 
+    fn update_output_image_label_set_intersection(&mut self) {
+        let mut image_label_set = ImageLabelSet::new();
+        let mut is_first = true;
+        for pair in &mut self.pairs {
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
+            if is_first {
+                image_label_set = pair.output.image_meta.image_label_set.clone();
+                is_first = false;
+                continue;
+            }
+            image_label_set = image_label_set.intersection(&pair.output.image_meta.image_label_set).map(|l| l.clone()).collect();
+        }
+        self.output_image_label_set_intersection = image_label_set;
+    }
+
     fn assign_action_labels_for_output_for_train(&mut self) {
         for pair in &mut self.pairs {
             if pair.pair_type != PairType::Train {
@@ -772,6 +789,7 @@ impl arc_work_model::Task {
         self.update_output_image_meta()?;
         self.update_input_properties_intersection();
         self.update_input_image_label_set_intersection();
+        self.update_output_image_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();

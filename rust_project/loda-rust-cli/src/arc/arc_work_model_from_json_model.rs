@@ -134,6 +134,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             input_properties_intersection: HashMap::new(),
             action_label_set_intersection: ActionLabelSet::new(),
             input_image_label_set_intersection: HashSet::new(),
+            output_image_label_set_intersection: HashSet::new(),
             occur_in_solutions_csv: false,
         };
         task.populate()?;
