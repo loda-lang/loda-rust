@@ -88,8 +88,10 @@ impl arc_work_model::Pair {
                             // Does it preserve some property:
                             // What makes this object special? 
                             // Is it the background color, then maybe skip it.
+                            // Does it occur once or multiple times.
                             // Is it a hollow box.
                             // Is it a solid box.
+                            // Is it the mass the smallest/biggest/in-between.
                             // How many holes does it have.
                             // Are there multiple objects with the same shape.
                             // Nearest color.
