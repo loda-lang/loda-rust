@@ -146,8 +146,16 @@ pub struct Task {
     pub removal_histogram_intersection: Histogram,
     pub insert_histogram_intersection: Histogram,
     pub input_properties_intersection: HashMap<ImageProperty, u8>,
+
+    /// What do the `input` images have in common across the pairs.
     pub input_image_label_set_intersection: ImageLabelSet,
+
+    /// What do the `output` images have in common across the pairs.
     pub output_image_label_set_intersection: ImageLabelSet,
+
+    /// What do the `input` images and the `output` images have in common across the pairs.
+    pub input_output_image_label_set_intersection: ImageLabelSet,
+
     pub action_label_set_intersection: ActionLabelSet,
     pub occur_in_solutions_csv: bool,
 }

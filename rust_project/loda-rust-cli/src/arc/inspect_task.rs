@@ -248,7 +248,9 @@ impl InspectTask {
         self.row_output_labels += &Self::image_label_set_to_html(&task.output_image_label_set_intersection);
         self.row_output_labels += "</td>";
 
-        self.row_input_output_labels += "<td>N/A</td>";
+        self.row_input_output_labels += &td_begin;
+        self.row_input_output_labels += &Self::image_label_set_to_html(&task.input_output_image_label_set_intersection);
+        self.row_input_output_labels += "</td>";
 
         self.row_action_colors += &td_begin;
         self.row_action_colors += "Removal<br>";
