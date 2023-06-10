@@ -1507,6 +1507,24 @@ impl arc_work_model::Task {
     }
 
     fn assign_predicted_output_palette(&mut self) {
+        // Comparing the output histogram "intersection" with "union". 
+        // If it’s identical, then there is strong agreement on what color to use.
+        {
+            let mut histogram: Histogram = self.output_histogram_intersection.clone();
+            histogram.intersection_histogram(&self.output_histogram_union);
+            let count: u16 = histogram.number_of_counters_greater_than_zero();
+            let same1: bool = count == self.output_histogram_intersection.number_of_counters_greater_than_zero();
+            let same2: bool = count == self.output_histogram_union.number_of_counters_greater_than_zero();
+            if same1 && same2 {
+                // All the training pairs agree on using the same color palette.
+                // Assign these predictions to all the pairs.
+                for pair in self.pairs.iter_mut() {
+                    pair.prediction_set.insert(arc_work_model::Prediction::OutputPalette { histogram: histogram.clone() });
+                }
+                return;
+            }
+        }
+
         let mut predicted_histogram_dict = HashMap::<usize, Histogram>::new();
         for (index, pair) in self.pairs.iter().enumerate() {
             let predicted_histogram: Histogram = match self.predict_output_palette_for_input(&pair.input) {
