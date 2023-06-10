@@ -440,6 +440,16 @@ impl arc_work_model::Task {
         self.input_output_image_label_set_intersection = Self::intersection_of_multiple_image_label_set(image_label_set_vec);
     }
 
+    fn determine_if_objects_have_moved(&mut self) -> anyhow::Result<()> {
+        for pair in &mut self.pairs {
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
+            pair.determine_if_objects_have_moved()?;            
+        }
+        Ok(())
+    }
+
     fn assign_action_labels_for_output_for_train(&mut self) {
         for pair in &mut self.pairs {
             if pair.pair_type != PairType::Train {
@@ -810,6 +820,7 @@ impl arc_work_model::Task {
         _ = self.assign_most_popular_intersection_color();
         _ = self.assign_single_pixel_noise_color();
         _ = self.assign_output_specification_vec();
+        _ = self.determine_if_objects_have_moved();
         Ok(())
     }
 

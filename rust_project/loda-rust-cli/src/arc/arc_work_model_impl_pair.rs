@@ -7,6 +7,29 @@ use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
 use crate::arc::{HtmlLog, ImageToHTML};
 
 impl arc_work_model::Pair {
+    pub fn determine_if_objects_have_moved(&mut self) -> anyhow::Result<()> {
+        let sco_input = match &self.input.image_meta.single_color_object {
+            Some(sco) => sco,
+            None => return Ok(()),
+        };
+        let sco_output = match &self.output.image_meta.single_color_object {
+            Some(sco) => sco,
+            None => return Ok(()),
+        };
+
+        // use bloom filter
+        // with sco_output data. populate bloom filter with all objects transformed: normal, rotated, flipped, scale2, scale3, scale4.
+
+        // loop over all objects in sco_input
+        // if the object is in the bloom filter, then it's present in the output
+        // and loop over all the pixels to find its xy position
+        // save info about how much the object has moved
+        // save info about how the object is aligned to the edges
+        // save info about what direction the object moved
+
+        Ok(())
+    }
+
     pub fn update_action_label_set(&mut self) {
         let width_input: u8 = self.input.image.width();
         let height_input: u8 = self.input.image.height();
