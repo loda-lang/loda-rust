@@ -95,6 +95,8 @@ impl arc_work_model::Pair {
                             // How many holes does it have.
                             // Are there multiple objects with the same shape.
                             // Nearest color.
+                            // Is it centered inside the output image.
+                            // Is it centered inside another object.
                             // Is distance to right edge the same as in the original image
                             // Is it mounted to the corner, nearest corner, farthest corner
                             // Is it mounted to the edge, in a particular direction, nearest edge, farthest edge
