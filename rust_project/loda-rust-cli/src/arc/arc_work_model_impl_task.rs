@@ -392,11 +392,8 @@ impl arc_work_model::Task {
     fn update_input_image_label_set_intersection(&mut self) {
         let mut image_label_set_vec: Vec<&ImageLabelSet> = Vec::new();
         for pair in &self.pairs {
-            // Future experiment
-            // TODO: Also use the `test` pairs. Maybe the intersection will contain fewer items and less noise.
-            if pair.pair_type != PairType::Train {
-                continue;
-            }
+            // Traverse both `train` and `test` pairs.
+            // Since we are allowed to look at the `test` pair input images.
             image_label_set_vec.push(&pair.input.image_meta.image_label_set);
         }
         self.input_image_label_set_intersection = Self::intersection_of_multiple_image_label_set(image_label_set_vec);
