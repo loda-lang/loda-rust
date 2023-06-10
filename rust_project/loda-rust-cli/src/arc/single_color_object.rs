@@ -338,6 +338,16 @@ impl SingleColorObject {
     /// 
     /// Returns `None` when the all colors have an area with `mass > 1`. And thus no single pixels can be identified.
     pub fn single_pixel_noise_color(&self) -> Option<u8> {
+        let histogram: Histogram = self.single_pixel_noise_histogram();
+        histogram.most_popular_color_disallow_ambiguous()
+    }
+
+    /// Histogram of the noise pixels.
+    /// 
+    /// The noise pixels are isolated lonely pixels with a mass of 1 pixel.
+    /// 
+    /// Returns an empty histogram when all colors have an area with `mass > 1`. And thus no single pixels can be identified.
+    pub fn single_pixel_noise_histogram(&self) -> Histogram {
         let mut histogram: Histogram = Histogram::new();
         for object in &self.rectangle_vec {
             if object.mass == 1 {
@@ -388,7 +398,7 @@ impl SingleColorObject {
             // the clusters are separated by 1 or more pixels, so there is a high chance that it's noise.
             histogram.increment_by(object.color, object.mass_object as u32);
         }
-        histogram.most_popular_color_disallow_ambiguous()
+        histogram
     }
 
     /// Extracts the `mass` from all objects. Clamp the `mass` to a maximum of 255.
@@ -831,7 +841,32 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_single_pixel_noise_color_from_rectangle_object() {
+    fn test_40000_single_pixel_noise_histogram() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 0, 0, 5, 5, 5, 5,
+            7, 4, 7, 0, 0, 5, 5, 5, 4,
+            7, 7, 7, 0, 0, 5, 5, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+            8, 8, 8, 8, 8, 3, 8, 5, 5,
+            8, 4, 8, 8, 8, 8, 8, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+        ];
+        let input: Image = Image::try_create(9, 7, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Histogram = objects.single_pixel_noise_histogram();
+
+        // Assert
+        let mut expected = Histogram::new();
+        expected.increment_by(4, 3);
+        expected.increment_by(3, 1);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_50000_single_pixel_noise_color_from_rectangle_object() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 0, 5, 5, 5, 5,
@@ -853,7 +888,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_single_pixel_noise_color_from_sparse_object() {
+    fn test_50001_single_pixel_noise_color_from_sparse_object() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 0, 5, 5, 5, 5,
@@ -875,7 +910,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_single_pixel_noise_color_from_sparse_object_ambiguous() {
+    fn test_50002_single_pixel_noise_color_from_sparse_object_ambiguous() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 0, 5, 5, 5, 5,
@@ -897,7 +932,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40003_single_pixel_noise_color_from_sparse_object_ignore_diagonal() {
+    fn test_50003_single_pixel_noise_color_from_sparse_object_ignore_diagonal() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 0, 5, 3, 5, 3,
@@ -919,7 +954,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_mass_as_image_connectivity4() {
+    fn test_60000_mass_as_image_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 0, 5,
@@ -951,7 +986,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_mass_as_image_connectivity4() {
+    fn test_60001_mass_as_image_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             8, 8, 5, 8,
@@ -975,7 +1010,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_holes_mask_connectivity4() {
+    fn test_70000_holes_mask_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 0, 0,
@@ -1007,7 +1042,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70000_holecount_image_connectivity4() {
+    fn test_80000_holecount_image_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 0, 0,
@@ -1039,7 +1074,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70001_holecount_image_connectivity4() {
+    fn test_80001_holecount_image_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 7, 0,
@@ -1069,7 +1104,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80000_filled_holes_mask_connectivity4() {
+    fn test_90000_filled_holes_mask_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 7, 0,
@@ -1099,7 +1134,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80001_filled_holes_mask_connectivity4() {
+    fn test_90001_filled_holes_mask_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 7, 0,
@@ -1129,7 +1164,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80002_filled_holes_mask_connectivity4() {
+    fn test_90002_filled_holes_mask_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 3, 3, 3, 0,
@@ -1161,7 +1196,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90000_corner_classification() {
+    fn test_100000_corner_classification() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 7, 0, 7,
@@ -1186,7 +1221,7 @@ mod tests {
     }
 
     #[test]
-    fn test_100000_is_inside_bounding_box() {
+    fn test_110000_is_inside_bounding_box() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 7, 0, 7,
@@ -1223,7 +1258,7 @@ mod tests {
     }
 
     #[test]
-    fn test_110000_horizontal_symmetry_mask1() {
+    fn test_120000_horizontal_symmetry_mask1() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 7, 7, 0, 0, 0, 0, 0,
@@ -1255,7 +1290,7 @@ mod tests {
     }
 
     #[test]
-    fn test_110001_horizontal_symmetry_mask2() {
+    fn test_120001_horizontal_symmetry_mask2() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 7, 7, 0, 0,
@@ -1279,7 +1314,7 @@ mod tests {
     }
 
     #[test]
-    fn test_110002_horizontal_symmetry_mask3() {
+    fn test_120002_horizontal_symmetry_mask3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 5, 0, 0, 0, 0,
@@ -1311,7 +1346,7 @@ mod tests {
     }
 
     #[test]
-    fn test_120000_vertical_symmetry_mask1() {
+    fn test_130000_vertical_symmetry_mask1() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 7, 7, 0, 0, 0, 0, 3,
@@ -1343,7 +1378,7 @@ mod tests {
     }
 
     #[test]
-    fn test_120001_vertical_symmetry_mask2() {
+    fn test_130001_vertical_symmetry_mask2() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 7, 7, 0, 0,
@@ -1367,7 +1402,7 @@ mod tests {
     }
 
     #[test]
-    fn test_120002_vertical_symmetry_mask3() {
+    fn test_130002_vertical_symmetry_mask3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 5, 5, 0, 0, 7,
@@ -1399,7 +1434,7 @@ mod tests {
     }
 
     #[test]
-    fn test_130000_enumerate_clusters_rectangle() {
+    fn test_140000_enumerate_clusters_rectangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -1425,7 +1460,7 @@ mod tests {
     }
 
     #[test]
-    fn test_130001_enumerate_clusters_sparse() {
+    fn test_140001_enumerate_clusters_sparse() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 5, 0, 0, 0,
@@ -1455,5 +1490,4 @@ mod tests {
         let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
-
 }
