@@ -346,6 +346,12 @@ impl arc_work_model::Task {
         let mut input_properties_intersection: HashMap<ImageProperty, u8> = HashMap::new();
         let mut is_first = true;
         for pair in &mut self.pairs {
+            // Future experiment: 
+            // Also consider the "test" pairs. Currently we only consider the "train" pairs.
+            // however several of the ImageProperties are only computed for the "train" pairs,
+            // so doing intersection will not work for those properties.
+            // example `WidthOfRemovedRectangleAfterSingleColorRemoval` is requires access to the "output" image,
+            // thus it cannot be computed for the "test" pairs.
             if pair.pair_type == PairType::Test {
                 continue;
             }
