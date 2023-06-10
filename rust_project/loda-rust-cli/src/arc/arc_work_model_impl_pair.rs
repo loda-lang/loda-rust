@@ -45,7 +45,7 @@ impl arc_work_model::Pair {
                     let move_x: i32 = sco_output_rect.bounding_box.min_x() - x;
                     let move_y: i32 = sco_output_rect.bounding_box.min_y() - y;
                     if move_x != 0 || move_y != 0 || !same_input_output_size {
-                        println!("color: {} -> {} size_normal: {:?} move {},{}", sco_input_rect.color, sco_output_rect.color, size_normal, move_x, move_y);
+                        println!("color: {} -> {} rect normal: {:?} move {},{}", sco_input_rect.color, sco_output_rect.color, size_normal, move_x, move_y);
                         // Does it preserve some property:
                         // Is distance to right edge the same as in the original image
                         // Is it mounted to the corner, nearest corner, farthest corner
@@ -53,21 +53,63 @@ impl arc_work_model::Pair {
                         // Is it mounted to another object
                         // Did it cross over a blue object on its path
                     } else {
-                        println!("color: {} -> {} size_normal: {:?} no move", sco_input_rect.color, sco_output_rect.color, size_normal);
+                        println!("color: {} -> {} rect normal: {:?} no move", sco_input_rect.color, sco_output_rect.color, size_normal);
                     }
                 } else {
                     if size == size_rotated {
-                        println!("color: {} -> {} size_rotated: {:?}", sco_input_rect.color, sco_output_rect.color, size_rotated);
+                        println!("color: {} -> {} rect rotated: {:?}", sco_input_rect.color, sco_output_rect.color, size_rotated);
                     } else {
                         if sco_output_rect.mass == sco_input_rect.mass {
-                            println!("color: {} -> {} mass: {:?} changed shape", sco_input_rect.color, sco_output_rect.color, sco_input_rect.mass);
+                            println!("color: {} -> {} rect mass: {:?} changed shape", sco_input_rect.color, sco_output_rect.color, sco_input_rect.mass);
                         }
                     }
                 }
             }
         }
 
-        // Compare input sparse objects with output sparse objects using bloom filter
+        // Compare input sparse objects with output sparse objects
+        // Ignoring the clusters that are contained within the sparse objects.
+        for sco_input_sparse in &sco_input.sparse_vec {
+            let size_normal: ImageSize = sco_input_sparse.bounding_box.size();
+            let x: i32 = sco_input_sparse.bounding_box.min_x();
+            let y: i32 = sco_input_sparse.bounding_box.min_y();
+            let input_mask: &Image = &sco_input_sparse.mask_cropped;
+
+            for sco_output_sparse in &sco_output.sparse_vec {
+                let output_mask: &Image = &sco_output_sparse.mask_cropped;
+
+                let size: ImageSize = sco_output_sparse.bounding_box.size();
+                if size == size_normal {
+                    if input_mask == output_mask {
+                        let move_x: i32 = sco_output_sparse.bounding_box.min_x() - x;
+                        let move_y: i32 = sco_output_sparse.bounding_box.min_y() - y;
+                        if move_x != 0 || move_y != 0 || !same_input_output_size {
+                            println!("color: {} -> {} sparse size_normal: {:?} move {},{}", sco_input_sparse.color, sco_output_sparse.color, size_normal, move_x, move_y);
+                            // Does it preserve some property:
+                            // What makes this object special? 
+                            // Is it the background color, then maybe skip it.
+                            // Is it a hollow box.
+                            // Is it a solid box.
+                            // How many holes does it have.
+                            // Are there multiple objects with the same shape.
+                            // Nearest color.
+                            // Is distance to right edge the same as in the original image
+                            // Is it mounted to the corner, nearest corner, farthest corner
+                            // Is it mounted to the edge, in a particular direction, nearest edge, farthest edge
+                            // Is it mounted to another object
+                            // Did it cross over a blue object on its path
+                        } else {
+                            println!("color: {} -> {} sparse size_normal: {:?} no move", sco_input_sparse.color, sco_output_sparse.color, size_normal);
+                        }        
+                    }
+                }
+            }
+        }
+
+        // Identify landmarks in the input image or output image
+
+        // Compare clusters inside the sparse objects within input vs. output. 
+        // maybe using bloom filter
         // with sco_output data. populate bloom filter with all objects transformed: normal, rotated, flipped, scale2, scale3, scale4.
 
         // loop over all objects in sco_input
