@@ -8,6 +8,12 @@ use crate::arc::{HtmlLog, ImageToHTML};
 
 impl arc_work_model::Pair {
     pub fn determine_if_objects_have_moved(&mut self) -> anyhow::Result<()> {
+        // self.determine_if_objects_have_moved_inner()?;
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn determine_if_objects_have_moved_inner(&mut self) -> anyhow::Result<()> {
         let sco_input = match &self.input.image_meta.single_color_object {
             Some(sco) => sco,
             None => return Ok(()),
@@ -17,7 +23,51 @@ impl arc_work_model::Pair {
             None => return Ok(()),
         };
 
-        // use bloom filter
+        let same_input_output_size: bool = self.input.image.size() == self.output.image.size();
+
+        println!("determine_if_objects_have_moved - pair {}", self.id);
+
+        // Compare input rectangles with output rectangles.
+        //
+        // Experiments
+        // Has same mass as one of the sparse objects
+        // Has the object lost mass
+        // Has the object gained mass
+        for sco_input_rect in &sco_input.rectangle_vec {
+            let size_normal: ImageSize = sco_input_rect.bounding_box.size();
+            let size_rotated: ImageSize = size_normal.rotate();
+            let x: i32 = sco_input_rect.bounding_box.min_x();
+            let y: i32 = sco_input_rect.bounding_box.min_y();
+
+            for sco_output_rect in &sco_output.rectangle_vec {
+                let size: ImageSize = sco_output_rect.bounding_box.size();
+                if size == size_normal {
+                    let move_x: i32 = sco_output_rect.bounding_box.min_x() - x;
+                    let move_y: i32 = sco_output_rect.bounding_box.min_y() - y;
+                    if move_x != 0 || move_y != 0 || !same_input_output_size {
+                        println!("color: {} -> {} size_normal: {:?} move {},{}", sco_input_rect.color, sco_output_rect.color, size_normal, move_x, move_y);
+                        // Does it preserve some property:
+                        // Is distance to right edge the same as in the original image
+                        // Is it mounted to the corner, nearest corner, farthest corner
+                        // Is it mounted to the edge, in a particular direction, nearest edge, farthest edge
+                        // Is it mounted to another object
+                        // Did it cross over a blue object on its path
+                    } else {
+                        println!("color: {} -> {} size_normal: {:?} no move", sco_input_rect.color, sco_output_rect.color, size_normal);
+                    }
+                } else {
+                    if size == size_rotated {
+                        println!("color: {} -> {} size_rotated: {:?}", sco_input_rect.color, sco_output_rect.color, size_rotated);
+                    } else {
+                        if sco_output_rect.mass == sco_input_rect.mass {
+                            println!("color: {} -> {} mass: {:?} changed shape", sco_input_rect.color, sco_output_rect.color, sco_input_rect.mass);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Compare input sparse objects with output sparse objects using bloom filter
         // with sco_output data. populate bloom filter with all objects transformed: normal, rotated, flipped, scale2, scale3, scale4.
 
         // loop over all objects in sco_input
@@ -26,6 +76,8 @@ impl arc_work_model::Pair {
         // save info about how much the object has moved
         // save info about how the object is aligned to the edges
         // save info about what direction the object moved
+
+        // Verify that all the pixels been accounted for. No objects forgotten or over counted.
 
         Ok(())
     }
