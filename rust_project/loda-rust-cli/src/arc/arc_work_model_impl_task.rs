@@ -405,6 +405,9 @@ impl arc_work_model::Task {
     fn update_output_image_label_set_intersection(&mut self) {
         let mut image_label_set_vec: Vec<&ImageLabelSet> = Vec::new();
         for pair in &mut self.pairs {
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
             image_label_set_vec.push(&pair.output.image_meta.image_label_set);
         }
         self.output_image_label_set_intersection = Self::intersection_of_multiple_image_label_set(image_label_set_vec);
