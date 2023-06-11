@@ -788,6 +788,8 @@ impl arc_work_model::Task {
         // Future experiment: 
         // if the object sizes varies a lot and it corresponds with the output size then it's a strong connection.
         // Assign a confidence score to the predicted size.
+        //
+        // Reject `Prediction::OutputSize` when it contains a 0. All the output images are supposed to be 1x1 or bigger.
 
         for (pair_index, pair) in self.pairs.iter_mut().enumerate() {
             let predicted_size: ImageSize = match predicted_sizes.get(&pair_index) {
