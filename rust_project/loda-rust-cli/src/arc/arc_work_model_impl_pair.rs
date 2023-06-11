@@ -8,14 +8,17 @@ use crate::arc::{HtmlLog, ImageToHTML};
 
 impl arc_work_model::Pair {
     pub fn determine_if_objects_have_moved(&mut self) -> anyhow::Result<()> {
-        self.determine_if_output_size_is_the_same_as_an_objects()?;
+        self.determine_if_output_size_is_the_same_as_one_of_the_objects()?;
 
         // self.determine_if_objects_have_moved_inner()?;
         Ok(())
     }
 
-    #[allow(dead_code)]
-    fn determine_if_output_size_is_the_same_as_an_objects(&mut self) -> anyhow::Result<()> {
+    /// Most of the time the output size is the same as the input size.
+    /// However when the output size is different than the input size. What is the reason for that?
+    /// 
+    /// This function checks if any of the input objects have the same size as the output size.
+    fn determine_if_output_size_is_the_same_as_one_of_the_objects(&mut self) -> anyhow::Result<()> {
         let output_size: ImageSize = self.output.image.size();
         let same_input_output_size: bool = self.input.image.size() == output_size;
         if same_input_output_size {
@@ -27,37 +30,33 @@ impl arc_work_model::Pair {
             None => return Ok(()),
         };
 
-        // println!("determine_if_output_size_is_the_same_as_an_objects - pair {}", self.id);
-
+        // Traverse the rectangle objects
         for sco_input_rect in &sco_input.rectangle_vec {
             let color: u8 = sco_input_rect.color;
             let size_normal: ImageSize = sco_input_rect.bounding_box.size();
             let size_rotated: ImageSize = size_normal.rotate();
 
             if size_normal == output_size {
-                // println!("pair {} - output size is bounding box of color {}", self.id, color);
                 let label = ActionLabel::OutputSizeIsTheSameAsBoundingBoxOfColor { color };
                 self.action_label_set.insert(label);
             }
             if size_rotated == output_size {
-                // println!("pair {} - output size is rotated bounding box of color {}", self.id, color);
                 let label = ActionLabel::OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color };
                 self.action_label_set.insert(label);
             }
         }
 
+        // Traverse the sparse objects
         for sco_input_sparse in &sco_input.sparse_vec {
             let color: u8 = sco_input_sparse.color;
             let size_normal: ImageSize = sco_input_sparse.bounding_box.size();
             let size_rotated: ImageSize = size_normal.rotate();
 
             if size_normal == output_size {
-                // println!("pair {} - output size is bounding box of color {}", self.id, color);
                 let label = ActionLabel::OutputSizeIsTheSameAsBoundingBoxOfColor { color };
                 self.action_label_set.insert(label);
             }
             if size_rotated == output_size {
-                // println!("pair {} - output size is rotated bounding box of color {}", self.id, color);
                 let label = ActionLabel::OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color };
                 self.action_label_set.insert(label);
             }
