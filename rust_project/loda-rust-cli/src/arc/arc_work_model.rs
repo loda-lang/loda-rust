@@ -150,15 +150,20 @@ pub struct Task {
     pub output_histogram_intersection: Histogram,
     pub removal_histogram_intersection: Histogram,
     pub insert_histogram_intersection: Histogram,
+
+    /// What do the `input` images have in common across the `train` and `test` pairs.
     pub input_properties_intersection: HashMap<ImageProperty, u8>,
 
-    /// What do the `input` images have in common across the pairs.
+    /// What do the `input` images and the `output` images have in common across the `train` pairs. Not available for the `test` pairs.
+    pub input_output_properties_intersection: HashMap<ImageProperty, u8>,
+
+    /// What do the `input` images have in common across the `train` and `test` pairs.
     pub input_image_label_set_intersection: ImageLabelSet,
 
-    /// What do the `output` images have in common across the pairs.
+    /// What do the `output` images have in common across the `train` pairs. Not available for the `test` pairs.
     pub output_image_label_set_intersection: ImageLabelSet,
 
-    /// What do the `input` images and the `output` images have in common across the pairs.
+    /// What do the `input` images and the `output` images have in common across the `train` pairs. Not available for the `test` pairs.
     pub input_output_image_label_set_intersection: ImageLabelSet,
 
     pub action_label_set_intersection: ActionLabelSet,
