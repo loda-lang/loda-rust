@@ -1,7 +1,8 @@
-use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle};
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle, ImageProperty};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
+use std::collections::HashMap;
 
 #[allow(unused_imports)]
 use crate::arc::{HtmlLog, ImageToHTML};
@@ -592,5 +593,18 @@ impl arc_work_model::Pair {
             }
         }
         None
+    }
+
+    /// Union of `input.image_meta.image_properties` with `input_output_image_properties`.
+    /// 
+    /// The `input.image_meta.image_properties` is available for all the pairs, both `train` and `test`.
+    /// 
+    /// The `input_output_image_properties` is only available for the `train` pairs.
+    /// For the `test` pairs there are no access to the `output` image, so these properties cannot be computed.
+    /// These have been computed by comparing `input` with `output`. Thus these properties only appear for the `train` pairs.
+    pub fn union_of_image_properties(&self) -> HashMap<ImageProperty, u8> {
+        let mut image_properties: HashMap<ImageProperty, u8> = self.input.image_meta.image_properties.clone();
+        image_properties.extend(&self.input_output_image_properties);
+        image_properties
     }
 }

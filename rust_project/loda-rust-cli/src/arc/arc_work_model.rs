@@ -132,7 +132,12 @@ pub struct Pair {
     pub action_label_set: ActionLabelSet,
     pub prediction_set: PredictionSet,
     pub output_specification_vec: Vec<OutputSpecification>,
+
+    /// What does the `input.image_meta.image_label_set` have in common with the `output.image_meta.image_label_set`.
     pub input_output_image_label_set_intersection: ImageLabelSet,
+
+    /// Computed image properties, by comparing input with output.
+    pub input_output_image_properties: HashMap<ImageProperty, u8>,
 }
 
 #[derive(Clone, Debug)]
