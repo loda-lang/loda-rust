@@ -62,6 +62,7 @@ impl Record {
         self.values.push(v);
     }
 
+    #[allow(dead_code)]
     fn serialize_f64(&mut self, value: f64) {
         self.values.push(value);
     }
@@ -70,6 +71,7 @@ impl Record {
         self.values.push(value as f64);
     }
 
+    #[allow(dead_code)]
     fn serialize_color_onehot(&mut self, color: u8) {
         self.serialize_complex(color as u16, 10);
     }
@@ -497,9 +499,17 @@ impl ExperimentWithLogisticRegression {
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
             let mut image_neighbour_right: Image = Image::color(width, height, 255);
+            #[allow(unused_variables)]
+            #[allow(unused_assignments)]
             let mut image_neighbour_upleft: Image = Image::color(width, height, 255);
+            #[allow(unused_variables)]
+            #[allow(unused_assignments)]
             let mut image_neighbour_upright: Image = Image::color(width, height, 255);
+            #[allow(unused_variables)]
+            #[allow(unused_assignments)]
             let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
+            #[allow(unused_variables)]
+            #[allow(unused_assignments)]
             let mut image_neighbour_downright: Image = Image::color(width, height, 255);
             if let Some(color) = most_popular_color {
                 let ignore_mask: Image = input.to_mask_where_color_is(color);
@@ -1290,6 +1300,8 @@ impl ExperimentWithLogisticRegression {
                     //     }
                     // }
 
+                    #[allow(unused_variables)]
+                    #[allow(unused_assignments)]
                     let mut inside_bounding_box: bool = false;
                     if let Some(sco) = &pair.input.image_meta.single_color_object {
                         if sco.is_inside_bounding_box(center, xx, yy) {
@@ -1501,6 +1513,7 @@ impl ExperimentWithLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
+                                #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance1.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -1512,6 +1525,7 @@ impl ExperimentWithLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
+                                #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance2.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -1523,6 +1537,7 @@ impl ExperimentWithLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
+                                #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance3.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -1534,6 +1549,7 @@ impl ExperimentWithLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
+                                #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance4.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -1558,6 +1574,7 @@ impl ExperimentWithLogisticRegression {
                             }
                         }
 
+                        #[allow(unused_variables)]
                         let directions = [
                             ImageNeighbourDirection::Up,
                             ImageNeighbourDirection::Down,
