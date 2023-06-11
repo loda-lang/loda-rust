@@ -1002,7 +1002,7 @@ impl arc_work_model::Task {
     /// 
     /// These functions are nearly identical, and I think they can be merged.
     /// `output_size_rules_for()` 
-    /// `predict_output_size_for_output_property_and_input()`
+    /// `predict_output_size_for_output_property_and_pair()`
     /// so it's the same computation that is taking place.
     fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<(RulePriority, String)> {
         let mut rules: Vec<(RulePriority, String)> = vec!();
@@ -1150,9 +1150,9 @@ impl arc_work_model::Task {
     /// 
     /// These functions are nearly identical, and I think they can be merged.
     /// `output_size_rules_for()` 
-    /// `predict_output_size_for_output_property_and_input()`
+    /// `predict_output_size_for_output_property_and_pair()`
     /// so it's the same computation that is taking place.
-    fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, pair: &Pair) -> Vec<(RulePriority, u8)> {
+    fn predict_output_size_for_output_property_and_pair(&self, property_output: &PropertyOutput, pair: &Pair) -> Vec<(RulePriority, u8)> {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
         let dict: HashMap<ImageProperty, u8> = pair.union_of_image_properties();
@@ -1301,7 +1301,7 @@ impl arc_work_model::Task {
         Err(anyhow::anyhow!("found no object with object_label: {:?}", object_label))
     }
 
-    pub fn predict_output_size_for_input(&self, pair: &Pair) -> anyhow::Result<ImageSize> {
+    pub fn predict_output_size_for_pair(&self, pair: &Pair) -> anyhow::Result<ImageSize> {
         for label in &self.action_label_set_intersection {
             // Future experiments: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
             match label {
@@ -1325,7 +1325,7 @@ impl arc_work_model::Task {
         let mut found_width: Option<u8> = None;
         let mut found_height: Option<u8> = None;
         for output_property in &output_properties {
-            let rules: Vec<(RulePriority, u8)> = self.predict_output_size_for_output_property_and_input(output_property, pair);
+            let rules: Vec<(RulePriority, u8)> = self.predict_output_size_for_output_property_and_pair(output_property, pair);
 
             // pick the simplest rule
             let value: u8 = match rules.first() {
@@ -1400,7 +1400,7 @@ impl arc_work_model::Task {
 
         let mut predicted_size_dict = HashMap::<usize, ImageSize>::new();
         for (index, pair) in self.pairs.iter().enumerate() {
-            let predicted_size: ImageSize = match self.predict_output_size_for_input(pair) {
+            let predicted_size: ImageSize = match self.predict_output_size_for_pair(pair) {
                 Ok(value) => value,
                 Err(_error) => {
                     // Idea: Flag the pair as being undecided.
