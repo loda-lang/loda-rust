@@ -1111,6 +1111,7 @@ impl arc_work_model::Task {
             return rules_pretty;
         }
 
+        // OutputSizeIsTheSameAsBoundingBoxOfColor
         for label in &self.action_label_set_intersection {
             match label {
                 ActionLabel::OutputSizeIsTheSameAsBoundingBoxOfColor { color } => {
@@ -1119,6 +1120,8 @@ impl arc_work_model::Task {
                 _ => {}
             }
         }
+
+        // OutputSizeIsTheSameAsRotatedBoundingBoxOfColor
         for label in &self.action_label_set_intersection {
             match label {
                 ActionLabel::OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color } => {
@@ -1342,10 +1345,38 @@ impl arc_work_model::Task {
                 };
                 return Ok(instance);
             },
-            _ => {
-                return Err(anyhow::anyhow!("Undecided"));
+            _ => {}
+        }
+
+        // OutputSizeIsTheSameAsBoundingBoxOfColor
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputSizeIsTheSameAsBoundingBoxOfColor { color } => {
+                    if let Some(sco) = &input.image_meta.single_color_object {
+                        if let Some(rect) = sco.bounding_box(*color) {
+                            return Ok(rect.size());
+                        }
+                    }
+                },
+                _ => {}
             }
         }
+
+        // OutputSizeIsTheSameAsRotatedBoundingBoxOfColor
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color } => {
+                    if let Some(sco) = &input.image_meta.single_color_object {
+                        if let Some(rect) = sco.bounding_box(*color) {
+                            return Ok(rect.size().rotate());
+                        }
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        Err(anyhow::anyhow!("Undecided"))
     }
 
     fn assign_predicted_output_size(&mut self) {
