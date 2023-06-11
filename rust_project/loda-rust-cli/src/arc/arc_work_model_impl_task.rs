@@ -1,5 +1,5 @@
 use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle};
-use super::arc_work_model::{Input, PairType, Object, Prediction};
+use super::arc_work_model::{Input, PairType, Object, Prediction, Pair};
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
 use super::{ImageLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, ImageProperty, PropertyOutput, ActionLabelUtil};
@@ -1142,10 +1142,10 @@ impl arc_work_model::Task {
     /// `output_size_rules_for()` 
     /// `predict_output_size_for_output_property_and_input()`
     /// so it's the same computation that is taking place.
-    fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &Input) -> Vec<(RulePriority, u8)> {
+    fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, pair: &Pair) -> Vec<(RulePriority, u8)> {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
-        let dict: &HashMap<ImageProperty, u8> = &buffer_input.image_meta.image_properties;
+        let dict: &HashMap<ImageProperty, u8> = &pair.input.image_meta.image_properties;
         for label in &self.action_label_set_intersection {
             match label {
                 ActionLabel::OutputPropertyIsConstant { output, value } => {
@@ -1215,8 +1215,8 @@ impl arc_work_model::Task {
                         }
                     };
                     let input_size: u8 = match property_output {
-                        PropertyOutput::OutputWidth => buffer_input.image.width(),
-                        PropertyOutput::OutputHeight => buffer_input.image.height()
+                        PropertyOutput::OutputWidth => pair.input.image.width(),
+                        PropertyOutput::OutputHeight => pair.input.image.height()
                     };
                     let computed_value: u32 = (input_value as u32) * (input_size as u32);
                     if computed_value > (u8::MAX as u32) {
@@ -1291,12 +1291,12 @@ impl arc_work_model::Task {
         Err(anyhow::anyhow!("found no object with object_label: {:?}", object_label))
     }
 
-    pub fn predict_output_size_for_input(&self, input: &Input) -> anyhow::Result<ImageSize> {
+    pub fn predict_output_size_for_input(&self, pair: &Pair) -> anyhow::Result<ImageSize> {
         for label in &self.action_label_set_intersection {
             // Future experiments: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
             match label {
                 ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
-                    match self.size_of_object(input, object_label) {
+                    match self.size_of_object(&pair.input, object_label) {
                         Ok(value) => {
                             return Ok(value);
                         },
@@ -1315,7 +1315,7 @@ impl arc_work_model::Task {
         let mut found_width: Option<u8> = None;
         let mut found_height: Option<u8> = None;
         for output_property in &output_properties {
-            let rules: Vec<(RulePriority, u8)> = self.predict_output_size_for_output_property_and_input(output_property, input);
+            let rules: Vec<(RulePriority, u8)> = self.predict_output_size_for_output_property_and_input(output_property, pair);
 
             // pick the simplest rule
             let value: u8 = match rules.first() {
@@ -1354,7 +1354,7 @@ impl arc_work_model::Task {
         for label in &self.action_label_set_intersection {
             match label {
                 ActionLabel::OutputSizeIsTheSameAsBoundingBoxOfColor { color } => {
-                    if let Some(sco) = &input.image_meta.single_color_object {
+                    if let Some(sco) = &pair.input.image_meta.single_color_object {
                         if let Some(rect) = sco.bounding_box(*color) {
                             return Ok(rect.size());
                         }
@@ -1368,7 +1368,7 @@ impl arc_work_model::Task {
         for label in &self.action_label_set_intersection {
             match label {
                 ActionLabel::OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color } => {
-                    if let Some(sco) = &input.image_meta.single_color_object {
+                    if let Some(sco) = &pair.input.image_meta.single_color_object {
                         if let Some(rect) = sco.bounding_box(*color) {
                             return Ok(rect.size().rotate());
                         }
@@ -1390,7 +1390,7 @@ impl arc_work_model::Task {
 
         let mut predicted_size_dict = HashMap::<usize, ImageSize>::new();
         for (index, pair) in self.pairs.iter().enumerate() {
-            let predicted_size: ImageSize = match self.predict_output_size_for_input(&pair.input) {
+            let predicted_size: ImageSize = match self.predict_output_size_for_input(pair) {
                 Ok(value) => value,
                 Err(_error) => {
                     // Idea: Flag the pair as being undecided.
