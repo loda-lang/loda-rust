@@ -344,32 +344,23 @@ impl arc_work_model::Task {
         }
     }
 
-    fn update_input_properties_intersection(&mut self) {
-        let mut input_properties_intersection: HashMap<ImageProperty, u8> = HashMap::new();
+    fn intersection_of_multiple_image_property_hashmap(items: Vec<&HashMap<ImageProperty, u8>>) -> HashMap<ImageProperty, u8> {
+        let mut intersection: HashMap<ImageProperty, u8> = HashMap::new();
         let mut is_first = true;
-        for pair in &mut self.pairs {
-            // Future experiment: 
-            // Also consider the "test" pairs. Currently we only consider the "train" pairs.
-            // however several of the ImageProperties are only computed for the "train" pairs,
-            // so doing intersection will not work for those properties.
-            // example `WidthOfRemovedRectangleAfterSingleColorRemoval` is requires access to the "output" image,
-            // thus it cannot be computed for the "test" pairs.
-            // if pair.pair_type == PairType::Test { // TODO: get rid of this check
-            //     continue;
-            // }
+        for item in items {
             if is_first {
-                input_properties_intersection = pair.input.image_meta.image_properties.clone();
+                intersection = item.clone();
                 is_first = false;
                 continue;
             }
 
-            // Intersection between `input_properties_intersection` and `pair.input.input_properties`.
+            // Schedule everything to be removed from the intersection
             let mut keys_for_removal: HashSet<ImageProperty> = HashSet::new();
-            for key in input_properties_intersection.keys() {
+            for key in intersection.keys() {
                 keys_for_removal.insert(*key);
             }
-            for (key, value) in &pair.input.image_meta.image_properties {
-                if let Some(other_value) = input_properties_intersection.get(key) {
+            for (key, value) in item {
+                if let Some(other_value) = intersection.get(key) {
                     if *value == *other_value {
                         // Both hashmaps agree about the key and value. This is a keeper.
                         keys_for_removal.remove(key);
@@ -377,10 +368,18 @@ impl arc_work_model::Task {
                 }
             }
             for key in &keys_for_removal {
-                input_properties_intersection.remove(key);
+                intersection.remove(key);
             }
         }
-        self.input_properties_intersection = input_properties_intersection;
+        intersection
+    }
+
+    fn update_input_properties_intersection(&mut self) {
+        let mut items: Vec<&HashMap<ImageProperty, u8>> = vec!();
+        for pair in &mut self.pairs {
+            items.push(&pair.input.image_meta.image_properties);
+        }
+        self.input_properties_intersection = Self::intersection_of_multiple_image_property_hashmap(items);
     }
 
     fn intersection_of_multiple_image_label_set(label_set_vec: Vec<&ImageLabelSet>) -> ImageLabelSet {
