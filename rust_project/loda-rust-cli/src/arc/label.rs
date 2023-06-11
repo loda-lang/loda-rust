@@ -248,6 +248,8 @@ pub enum ActionLabel {
     OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: ImageProperty },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
     OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObjectRectangleLabel },
+    OutputSizeIsTheSameAsBoundingBoxOfColor { color: u8 },
+    OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color: u8 },
     
     OutputImageIsSymmetricX,
     OutputImageIsSymmetricY,

@@ -820,7 +820,6 @@ impl arc_work_model::Task {
         _ = self.assign_most_popular_intersection_color();
         _ = self.assign_single_pixel_noise_color();
         _ = self.assign_output_specification_vec();
-        _ = self.determine_if_objects_have_moved();
         Ok(())
     }
 
@@ -835,6 +834,7 @@ impl arc_work_model::Task {
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
+        _ = self.determine_if_objects_have_moved();
 
         let input_properties: [ImageProperty; 27] = [
             ImageProperty::Width, 
@@ -1109,6 +1109,23 @@ impl arc_work_model::Task {
         if rules_vec.len() == output_properties.len() {
             let rules_pretty: String = rules_vec.join("<br>");
             return rules_pretty;
+        }
+
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputSizeIsTheSameAsBoundingBoxOfColor { color } => {
+                    return format!("OutputSizeIsTheSameAsBoundingBoxOfColor {}", color);
+                },
+                _ => {}
+            }
+        }
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color } => {
+                    return format!("OutputSizeIsTheSameAsRotatedBoundingBoxOfColor {}", color);
+                },
+                _ => {}
+            }
         }
 
         "Undecided".to_string()
