@@ -107,7 +107,7 @@ impl InspectTask {
         }
         {
             self.row_input_properties += "<td>";
-            self.row_input_properties += &Self::image_properties_to_html(&pair.input.image_meta.image_properties);
+            self.row_input_properties += &Self::image_properties_to_html(&pair.union_of_image_properties());
             self.row_input_properties += "</td>";
         }
         {
