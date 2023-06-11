@@ -139,6 +139,8 @@ impl arc_work_model::Pair {
                         let move_y: i32 = sco_output_sparse.bounding_box.min_y() - y;
                         if move_x != 0 || move_y != 0 || !same_input_output_size {
                             println!("color: {} -> {} sparse size_normal: {:?} move {},{}", sco_input_sparse.color, sco_output_sparse.color, size_normal, move_x, move_y);
+                            // relations.push(format!("color: {} -> {} sparse size_normal: {:?} move {},{}", sco_input_sparse.color, sco_output_sparse.color, size_normal, move_x, move_y));
+                            // graph neural network, triples (predicate subject object),
                             // Does it preserve some property:
                             // What makes this object special? 
                             // Is it the background color, then maybe skip it.
