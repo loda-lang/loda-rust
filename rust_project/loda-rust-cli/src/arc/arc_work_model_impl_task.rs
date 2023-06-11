@@ -2259,4 +2259,34 @@ impl arc_work_model::Task {
     pub fn is_output_size_same_as_removed_rectangle_after_single_color_removal(&self) -> bool {
         ActionLabelUtil::is_output_size_same_as_removed_rectangle_after_single_color_removal(&self.action_label_set_intersection)
     }
+
+    /// Detect if the predicted size was incorrect.
+    /// 
+    /// This uses the expected output of the `test` pair. So don't use this for making predictions.
+    /// In ARC's hidden dataset, there are no access to the expected output.
+    /// Nor in the real world. 
+    #[allow(dead_code)]
+    pub fn has_predicted_output_size_and_its_incorrect(&self) -> bool {
+        for pair in &self.pairs {
+            let predicted_size: ImageSize = match pair.predicted_output_size() {
+                Some(value) => value,
+                None => {
+                    return false;
+                }
+            };
+            match pair.pair_type {
+                PairType::Train => {
+                    if predicted_size != pair.output.image.size() {
+                        return true;
+                    }
+                },
+                PairType::Test => {
+                    if predicted_size != pair.output.test_image.size() {
+                        return true;
+                    }
+                },
+            }
+        }
+        false
+    }
 }
