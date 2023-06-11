@@ -560,22 +560,33 @@ impl SingleColorObject {
         0
     }
 
-    /// Check if the coordinate is inside the bounding box.
-    #[allow(dead_code)]
-    pub fn is_inside_bounding_box(&self, color: u8, x: i32, y: i32) -> bool {
+    /// Bounding box of the specified `color`.
+    pub fn bounding_box(&self, color: u8) -> Option<Rectangle> {
         for object in &self.rectangle_vec {
             if object.color != color {
                 continue;
             }
-            return object.bounding_box.is_inside(x, y);
+            return Some(object.bounding_box);
         }
         for object in &self.sparse_vec {
             if object.color != color {
                 continue;
             }
-            return object.bounding_box.is_inside(x, y);
+            return Some(object.bounding_box);
         }
-        false
+        None
+    }
+
+    /// Check if the coordinate is inside the bounding box.
+    #[allow(dead_code)]
+    pub fn is_inside_bounding_box(&self, color: u8, x: i32, y: i32) -> bool {
+        let bounding_box: Rectangle = match self.bounding_box(color) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+        bounding_box.is_inside(x, y)
     }
 
     /// Mask of the objects with the specified `color`, where the object is horizontal symmetric.
@@ -1269,7 +1280,25 @@ mod tests {
     }
 
     #[test]
-    fn test_110000_is_inside_bounding_box() {
+    fn test_110000_bounding_box() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 7, 0, 7,
+            0, 6, 0, 0, 7, 0,
+            0, 0, 0, 7, 0, 7,
+        ];
+        let input: Image = Image::try_create(6, 3, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act + Assert
+        assert_eq!(objects.bounding_box(0), Some(Rectangle::new(0, 0, 6, 3)));
+        assert_eq!(objects.bounding_box(6), Some(Rectangle::new(1, 1, 1, 1)));
+        assert_eq!(objects.bounding_box(7), Some(Rectangle::new(3, 0, 3, 3)));
+        assert_eq!(objects.bounding_box(9), None);
+    }
+
+    #[test]
+    fn test_110001_is_inside_bounding_box() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 7, 0, 7,
