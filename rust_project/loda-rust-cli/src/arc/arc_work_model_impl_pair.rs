@@ -10,6 +10,13 @@ impl arc_work_model::Pair {
     pub fn determine_if_objects_have_moved(&mut self) -> anyhow::Result<()> {
         self.determine_if_output_size_is_the_same_as_one_of_the_objects()?;
 
+        // Future experiment:
+        // Detect splitviews, where there is a separator.
+        // Is the single color object is a rectangle that extends all the way to the edges. 
+        // Then it may be a separator line.
+        // What are the dimensions of the area left/right of the separator line.
+        // Does the output correspond to the area next to the rectangle.
+
         // self.determine_if_objects_have_moved_inner()?;
         Ok(())
     }
