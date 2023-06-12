@@ -18,6 +18,10 @@ fn find_files_recursively(rootdir: &Path, file_extension: &str) -> Vec<PathBuf> 
 
     fn is_hidden(entry: &DirEntry, file_extension_inner: &str) -> bool {
         if entry.file_type().is_file() {
+            if entry.path().extension().is_none() {
+                // debug!("ignore file without file extension. {:?}", entry);
+                return true
+            }
             // If this is a file and it has the wrong extension, then ignore it
             if let Some(extension) = entry.path().extension() {
                 if extension != file_extension_inner {
@@ -117,6 +121,7 @@ mod tests {
         fs::write(basedir.join("readme.md"), b"Ignore this file. It doesn't have the asm file extension")?;
         fs::write(basedir.join("file1.asm"), b"I'm also an asm file")?;
         fs::write(basedir.join(".gitignore"), b"Ignore this file. It doesn't have the asm file extension")?;
+        fs::write(basedir.join("IGNORE"), b"Ignore this file. It doesn't have any file extension")?;
         let paths = find_asm_files_recursively(&basedir);
         assert_eq!(paths.len(), 2);
         Ok(())

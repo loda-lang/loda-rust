@@ -1,7 +1,7 @@
-use super::arc_json_model;
+use super::{arc_json_model, InspectPredicted};
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model;
-use super::{Image, ImageSize, ImageToNumber, NumberToImage, register_arc_functions, Prediction, HtmlLog, ImageToHTML};
+use super::{Image, ImageSize, ImageToNumber, NumberToImage, register_arc_functions, Prediction};
 use super::{ImageRotate, ImageSymmetry, Color};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
@@ -1271,7 +1271,7 @@ impl RunWithProgram {
         let all_test_pairs_are_correct: bool = count_test_correct == count_test;
 
         if pretty_print {
-            self.inspect_computed_images(&computed_images, &status_texts);
+            InspectPredicted::inspect(&self.task, &computed_images, &status_texts)?;
         }
 
         let result = RunWithProgramResult { 
@@ -1286,68 +1286,6 @@ impl RunWithProgram {
         };
 
         Ok(result)
-    }
-
-    fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<&str>) {
-
-        // Table row with input and row with expected output
-        let mut row_input: String = "<tr>".to_string();
-        let mut row_output: String = "<tr>".to_string();
-
-        // Traverse the `Train` pairs
-        for pair in &self.task.pairs {
-            if pair.pair_type != arc_work_model::PairType::Train {
-                continue;
-            }
-            {
-                row_input += "<td>";
-                row_input += &pair.input.image.to_html();
-                row_input += "</td>";
-            }
-            {
-                row_output += "<td>";
-                row_output += &pair.output.image.to_html();
-                row_output += "</td>";
-            }
-        }
-
-        // Traverse the `Test` pairs
-        for pair in &self.task.pairs {
-            if pair.pair_type != arc_work_model::PairType::Test {
-                continue;
-            }
-            {
-                row_input += "<td>";
-                row_input += &pair.input.image.to_html();
-                row_input += "</td>";
-            }
-            {
-                row_output += "<td>";
-                row_output += &pair.output.test_image.to_html();
-                row_output += "</td>";
-            }
-        }
-        row_input += "<td>Input</td></tr>";
-        row_output += "<td>Output</td></tr>";
-
-        // Table row with computed output
-        let mut row_predicted: String = "<tr>".to_string();
-        for computed_image in computed_images {
-            row_predicted += "<td>";
-            row_predicted += &computed_image.to_html();
-            row_predicted += "</td>";
-        }
-        row_predicted += "<td>Predicted</td></tr>";
-
-        // Table row with status text
-        let mut row_status: String = "<tr>".to_string();
-        for text in status_texts {
-            row_status += &format!("<td>{}</td>", text);
-        }
-        row_status += "</tr>";
-
-        let html = format!("<h2>{}</h2><table>{}{}{}{}</table>", self.task.id, row_input, row_output, row_predicted, row_status);
-        HtmlLog::html(html);
     }
 }
 

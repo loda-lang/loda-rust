@@ -1,12 +1,196 @@
-use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle};
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle, ImageProperty};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
+use std::collections::HashMap;
 
 #[allow(unused_imports)]
 use crate::arc::{HtmlLog, ImageToHTML};
 
 impl arc_work_model::Pair {
+    pub fn determine_if_objects_have_moved(&mut self) -> anyhow::Result<()> {
+        self.determine_if_output_size_is_the_same_as_one_of_the_objects()?;
+
+        // Future experiment:
+        // Detect splitviews, where there is a separator.
+        // Is the single color object is a rectangle that extends all the way to the edges. 
+        // Then it may be a separator line.
+        // What are the dimensions of the area left/right of the separator line.
+        // Does the output correspond to the area next to the rectangle.
+
+        // self.determine_if_objects_have_moved_inner()?;
+        Ok(())
+    }
+
+    /// Most of the time the output size is the same as the input size.
+    /// However when the output size is different than the input size. What is the reason for that?
+    /// 
+    /// This function checks if any of the input objects have the same size as the output size.
+    fn determine_if_output_size_is_the_same_as_one_of_the_objects(&mut self) -> anyhow::Result<()> {
+        let output_size: ImageSize = self.output.image.size();
+        let same_input_output_size: bool = self.input.image.size() == output_size;
+        if same_input_output_size {
+            return Ok(());
+        }
+
+        let sco_input = match &self.input.image_meta.single_color_object {
+            Some(sco) => sco,
+            None => return Ok(()),
+        };
+
+        // Traverse the rectangle objects
+        for sco_input_rect in &sco_input.rectangle_vec {
+            let color: u8 = sco_input_rect.color;
+            let size_normal: ImageSize = sco_input_rect.bounding_box.size();
+            let size_rotated: ImageSize = size_normal.rotate();
+
+            if size_normal == output_size {
+                let label = ActionLabel::OutputSizeIsTheSameAsBoundingBoxOfColor { color };
+                self.action_label_set.insert(label);
+            }
+            if size_rotated == output_size {
+                let label = ActionLabel::OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color };
+                self.action_label_set.insert(label);
+            }
+        }
+
+        // Traverse the sparse objects
+        for sco_input_sparse in &sco_input.sparse_vec {
+            let color: u8 = sco_input_sparse.color;
+            let size_normal: ImageSize = sco_input_sparse.bounding_box.size();
+            let size_rotated: ImageSize = size_normal.rotate();
+
+            if size_normal == output_size {
+                let label = ActionLabel::OutputSizeIsTheSameAsBoundingBoxOfColor { color };
+                self.action_label_set.insert(label);
+            }
+            if size_rotated == output_size {
+                let label = ActionLabel::OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color };
+                self.action_label_set.insert(label);
+            }
+        }
+
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn determine_if_objects_have_moved_inner(&mut self) -> anyhow::Result<()> {
+        let sco_input = match &self.input.image_meta.single_color_object {
+            Some(sco) => sco,
+            None => return Ok(()),
+        };
+        let sco_output = match &self.output.image_meta.single_color_object {
+            Some(sco) => sco,
+            None => return Ok(()),
+        };
+
+        let same_input_output_size: bool = self.input.image.size() == self.output.image.size();
+
+        println!("determine_if_objects_have_moved - pair {}", self.id);
+
+        // Compare input rectangles with output rectangles.
+        //
+        // Experiments
+        // Has same mass as one of the sparse objects
+        // Has the object lost mass
+        // Has the object gained mass
+        for sco_input_rect in &sco_input.rectangle_vec {
+            let size_normal: ImageSize = sco_input_rect.bounding_box.size();
+            let size_rotated: ImageSize = size_normal.rotate();
+            let x: i32 = sco_input_rect.bounding_box.min_x();
+            let y: i32 = sco_input_rect.bounding_box.min_y();
+
+            for sco_output_rect in &sco_output.rectangle_vec {
+                let size: ImageSize = sco_output_rect.bounding_box.size();
+                if size == size_normal {
+                    let move_x: i32 = sco_output_rect.bounding_box.min_x() - x;
+                    let move_y: i32 = sco_output_rect.bounding_box.min_y() - y;
+                    if move_x != 0 || move_y != 0 || !same_input_output_size {
+                        println!("color: {} -> {} rect normal: {:?} move {},{}", sco_input_rect.color, sco_output_rect.color, size_normal, move_x, move_y);
+                        // Does it preserve some property:
+                        // Is distance to right edge the same as in the original image
+                        // Is it mounted to the corner, nearest corner, farthest corner
+                        // Is it mounted to the edge, in a particular direction, nearest edge, farthest edge
+                        // Is it mounted to another object
+                        // Did it cross over a blue object on its path
+                    } else {
+                        println!("color: {} -> {} rect normal: {:?} no move", sco_input_rect.color, sco_output_rect.color, size_normal);
+                    }
+                } else {
+                    if size == size_rotated {
+                        println!("color: {} -> {} rect rotated: {:?}", sco_input_rect.color, sco_output_rect.color, size_rotated);
+                    } else {
+                        if sco_output_rect.mass == sco_input_rect.mass {
+                            println!("color: {} -> {} rect mass: {:?} changed shape", sco_input_rect.color, sco_output_rect.color, sco_input_rect.mass);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Compare input sparse objects with output sparse objects
+        // Ignoring the clusters that are contained within the sparse objects.
+        for sco_input_sparse in &sco_input.sparse_vec {
+            let size_normal: ImageSize = sco_input_sparse.bounding_box.size();
+            let x: i32 = sco_input_sparse.bounding_box.min_x();
+            let y: i32 = sco_input_sparse.bounding_box.min_y();
+            let input_mask: &Image = &sco_input_sparse.mask_cropped;
+
+            for sco_output_sparse in &sco_output.sparse_vec {
+                let output_mask: &Image = &sco_output_sparse.mask_cropped;
+
+                let size: ImageSize = sco_output_sparse.bounding_box.size();
+                if size == size_normal {
+                    if input_mask == output_mask {
+                        let move_x: i32 = sco_output_sparse.bounding_box.min_x() - x;
+                        let move_y: i32 = sco_output_sparse.bounding_box.min_y() - y;
+                        if move_x != 0 || move_y != 0 || !same_input_output_size {
+                            println!("color: {} -> {} sparse size_normal: {:?} move {},{}", sco_input_sparse.color, sco_output_sparse.color, size_normal, move_x, move_y);
+                            // relations.push(format!("color: {} -> {} sparse size_normal: {:?} move {},{}", sco_input_sparse.color, sco_output_sparse.color, size_normal, move_x, move_y));
+                            // graph neural network, triples (predicate subject object),
+                            // Does it preserve some property:
+                            // What makes this object special? 
+                            // Is it the background color, then maybe skip it.
+                            // Does it occur once or multiple times.
+                            // Is it a hollow box.
+                            // Is it a solid box.
+                            // Is it the mass the smallest/biggest/in-between.
+                            // How many holes does it have.
+                            // Are there multiple objects with the same shape.
+                            // Nearest color.
+                            // Is it centered inside the output image.
+                            // Is it centered inside another object.
+                            // Is distance to right edge the same as in the original image
+                            // Is it mounted to the corner, nearest corner, farthest corner
+                            // Is it mounted to the edge, in a particular direction, nearest edge, farthest edge
+                            // Is it mounted to another object
+                            // Did it cross over a blue object on its path
+                        } else {
+                            println!("color: {} -> {} sparse size_normal: {:?} no move", sco_input_sparse.color, sco_output_sparse.color, size_normal);
+                        }        
+                    }
+                }
+            }
+        }
+
+        // Identify landmarks in the input image or output image
+
+        // Compare clusters inside the sparse objects within input vs. output. 
+        // maybe using bloom filter
+        // with sco_output data. populate bloom filter with all objects transformed: normal, rotated, flipped, scale2, scale3, scale4.
+
+        // loop over all objects in sco_input
+        // if the object is in the bloom filter, then it's present in the output
+        // and loop over all the pixels to find its xy position
+        // save info about how much the object has moved
+        // save info about how the object is aligned to the edges
+        // save info about what direction the object moved
+
+        // Verify that all the pixels been accounted for. No objects forgotten or over counted.
+
+        Ok(())
+    }
+
     pub fn update_action_label_set(&mut self) {
         let width_input: u8 = self.input.image.width();
         let height_input: u8 = self.input.image.height();
@@ -67,17 +251,17 @@ impl arc_work_model::Pair {
                     self.action_label_set.insert(ActionLabel::InputImageIsPresentExactlyOnceInsideOutputImage);
                 }
                 if count >= 1 {
-                    for (color_count, color) in self.input.histogram.pairs_ordered_by_color() {
+                    for (color_count, color) in self.input.image_meta.histogram.pairs_ordered_by_color() {
                         if color_count == count as u32 {
                             self.action_label_set.insert(ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsColor { color });
                         }
                     }
-                    if let Some((_color, color_count)) = self.input.histogram.most_popular_pair_disallow_ambiguous() {
+                    if let Some((_color, color_count)) = self.input.image_meta.histogram.most_popular_pair_disallow_ambiguous() {
                         if color_count == count as u32 {
                             self.action_label_set.insert(ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsTheMostPopularColorOfInputImage);
                         }
                     }
-                    if let Some((_color, color_count)) = self.input.histogram.least_popular_pair_disallow_ambiguous() {
+                    if let Some((_color, color_count)) = self.input.image_meta.histogram.least_popular_pair_disallow_ambiguous() {
                         if color_count == count as u32 {
                             self.action_label_set.insert(ActionLabel::InputImageOccurInsideOutputImageSameNumberOfTimesAsTheLeastPopularColorOfInputImage);
                         }
@@ -86,7 +270,7 @@ impl arc_work_model::Pair {
             }
         }
 
-        if self.input.histogram == self.output.histogram {
+        if self.input.image_meta.histogram == self.output.image_meta.histogram {
             self.action_label_set.insert(ActionLabel::OutputImageHistogramEqualToInputImageHistogram);
         }
 
@@ -99,7 +283,7 @@ impl arc_work_model::Pair {
                 Some(value) => value,
                 None => break
             };
-            let most_popular_color: u8 = match self.input.histogram.most_popular_color() {
+            let most_popular_color: u8 = match self.input.image_meta.histogram.most_popular_color() {
                 Some(value) => value,
                 None => break
             };
@@ -246,8 +430,8 @@ impl arc_work_model::Pair {
         if input.size() != output.size() {
             return Ok(());
         }
-        let h0: &Histogram = &self.input.histogram;
-        let h1: &Histogram = &self.output.histogram;
+        let h0: &Histogram = &self.input.image_meta.histogram;
+        let h1: &Histogram = &self.output.image_meta.histogram;
         let mut h2: Histogram = h0.clone();
         h2.intersection_histogram(h1);
         for (_count, color) in h2.pairs_ordered_by_color() {
@@ -352,11 +536,11 @@ impl arc_work_model::Pair {
             let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color };
             self.action_label_set.insert(label);
         }
-        if self.input.histogram.most_popular_color() == Some(color) {
+        if self.input.image_meta.histogram.most_popular_color() == Some(color) {
             let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage;
             self.action_label_set.insert(label);
         }
-        if self.input.histogram.least_popular_color() == Some(color) {
+        if self.input.image_meta.histogram.least_popular_color() == Some(color) {
             let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage;
             self.action_label_set.insert(label);
         }
@@ -365,9 +549,9 @@ impl arc_work_model::Pair {
     }
 
     fn analyze_output_colors(&mut self) -> anyhow::Result<()> {
-        let mut histogram: Histogram = self.output.histogram.clone();
+        let mut histogram: Histogram = self.output.image_meta.histogram.clone();
         let output_histogram_unique_count: u16 = histogram.number_of_counters_greater_than_zero();
-        histogram.intersection_histogram(&self.input.histogram);
+        histogram.intersection_histogram(&self.input.image_meta.histogram);
         let intersection_count: u16 = histogram.number_of_counters_greater_than_zero();
 
         if output_histogram_unique_count <= (u8::MAX as u16) {
@@ -418,5 +602,18 @@ impl arc_work_model::Pair {
             }
         }
         None
+    }
+
+    /// Union of `input.image_meta.image_properties` with `input_output_image_properties`.
+    /// 
+    /// The `input.image_meta.image_properties` is available for all the pairs, both `train` and `test`.
+    /// 
+    /// The `input_output_image_properties` is only available for the `train` pairs.
+    /// For the `test` pairs there are no access to the `output` image, so these properties cannot be computed.
+    /// These have been computed by comparing `input` with `output`. Thus these properties only appear for the `train` pairs.
+    pub fn union_of_image_properties(&self) -> HashMap<ImageProperty, u8> {
+        let mut image_properties: HashMap<ImageProperty, u8> = self.input.image_meta.image_properties.clone();
+        image_properties.extend(&self.input_output_image_properties);
+        image_properties
     }
 }

@@ -21,10 +21,12 @@ impl Rectangle {
         Self { x, y, width, height }
     }
 
+    #[allow(dead_code)]
     pub fn x(&self) -> u8 {
         self.x
     }
 
+    #[allow(dead_code)]
     pub fn y(&self) -> u8 {
         self.y
     }

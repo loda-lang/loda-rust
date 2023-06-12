@@ -1,7 +1,7 @@
 use super::Image;
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
 pub enum ImageNeighbourDirection {
     Up,
     Down,

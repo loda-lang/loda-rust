@@ -13,8 +13,8 @@ mod tests {
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
-    use crate::arc::{ImageDrawRect, SingleColorObjects, SingleColorObjectClusterContainer};
-    use crate::arc::{MixMode, ImageMix, GravityDirection, ImageGravity, ImageSort, ImageSortMode};
+    use crate::arc::{ImageDrawRect, SingleColorObject, SingleColorObjectClusterContainer, ObjectsAndGravity, ObjectsAndGravityDirection};
+    use crate::arc::{MixMode, ImageMix, GravityDirection, ImageGravity, ImageSort, ImageSortMode, Color};
     use std::collections::HashMap;
     use regex::Regex;
 
@@ -3688,7 +3688,7 @@ mod tests {
         impl AnalyzeAndSolve for MySolution {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
-                println!("grid: {:?}", pair.input.grid);
+                println!("grid: {:?}", pair.input.image_meta.grid);
                 let result_image: Image = pair.input.image.clone();
                 Ok(result_image)
             }
@@ -3943,7 +3943,7 @@ mod tests {
                 let grid_color: u8 = grid_pattern.color;
                 let background_color: u8;
                 {
-                    let mut histogram: Histogram = pair.input.histogram.clone();
+                    let mut histogram: Histogram = pair.input.image_meta.histogram.clone();
                     histogram.set_counter_to_zero(grid_color);
                     background_color = match histogram.most_popular_color_disallow_ambiguous() {
                         Some(value) => value,
@@ -4088,7 +4088,7 @@ mod tests {
 
                 let background_color: u8;
                 {
-                    let histogram: Histogram = pair.input.histogram.clone();
+                    let histogram: Histogram = pair.input.image_meta.histogram.clone();
                     background_color = match histogram.most_popular_color_disallow_ambiguous() {
                         Some(value) => value,
                         None => {
@@ -4712,7 +4712,7 @@ mod tests {
                 let background_color: u8 = input.most_popular_color().expect("color");
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
 
-                let mut histogram: Histogram = pair.input.histogram.clone();
+                let mut histogram: Histogram = pair.input.image_meta.histogram.clone();
                 histogram.set_counter_to_zero(background_color);
                 histogram.set_counter_to_zero(noise_color);
                 if histogram.number_of_counters_greater_than_zero() != 1 {
@@ -4759,7 +4759,7 @@ mod tests {
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");                
                 let mask: Image = input.to_mask_where_color_is(noise_color);
                 
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
                 let mut result_image: Image = input.clone();
                 for object in &single_color_objects.sparse_vec {
                     if object.color != noise_color {
@@ -4888,7 +4888,7 @@ mod tests {
                 let input: &Image = &pair.input.image;
                 let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
 
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
 
                 let mut result_image: Image = Image::zero(input.width(), input.height());
                 for object in &single_color_objects.sparse_vec {
@@ -4986,7 +4986,7 @@ mod tests {
                 let input: &Image = &pair.input.image;
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
 
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
                 let mut result_image: Image = input.clone();
                 for object in &single_color_objects.sparse_vec {
                     if object.color != noise_color {
@@ -4994,7 +4994,7 @@ mod tests {
                     }
                     let rect: Rectangle = object.bounding_box;
                     result_image = result_image.draw_rect_border(rect.min_x(), rect.min_y(), rect.max_x(), rect.max_y(), 42)?;
-                    result_image = object.mask.select_from_image_and_color(&result_image, object.color)?;
+                    result_image = object.mask_uncropped.select_from_image_and_color(&result_image, object.color)?;
                 }
 
                 Ok(result_image)
@@ -5031,7 +5031,7 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
 
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
 
                 // Histogram of the isolated pixels
                 let mut isolated_pixels: Image = input.count_duplicate_pixels_in_neighbours()?;
@@ -5100,7 +5100,7 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
                 let background_color: u8 = task.input_histogram_intersection.most_popular_color_disallow_ambiguous().expect("color");
-                let single_color_objects: &SingleColorObjects = pair.input.single_color_objects.as_ref().expect("some");
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
 
                 let mut result_image: Image = input.clone();
                 for object in &single_color_objects.sparse_vec {
@@ -5892,6 +5892,57 @@ mod tests {
     #[test]
     fn test_1190000_puzzle_e9afcf9a_loda() {
         let result: String = run_advanced("e9afcf9a", PROGRAM_E9AFCF9A).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    mod solve_6a1e5592 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let single_color_objects: &SingleColorObject = pair.input.image_meta.single_color_object.as_ref().expect("some");
+
+                let mut found_enumerated_objects: Option<Image> = None;
+                for object in &single_color_objects.sparse_vec {
+                    if object.color != Color::Grey as u8 {
+                        continue;
+                    }
+                    let container: &SingleColorObjectClusterContainer = match &object.container4 {
+                        Some(value) => value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    found_enumerated_objects = Some(container.enumerated_clusters_uncropped.clone());
+                    break;
+                }
+
+                let enumerated_objects: Image = match found_enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("No enumerated objects found"));
+                    }
+                };
+
+                let solid_mask: Image = input.to_mask_where_color_is(Color::Red as u8);
+
+                let enumerated_objects_at_new_position: Image = ObjectsAndGravity::gravity(&enumerated_objects, &solid_mask, ObjectsAndGravityDirection::GravityUp)?;
+                let mut result_image = enumerated_objects_at_new_position.to_mask_where_color_is_different(0);
+                result_image = solid_mask.select_from_images(&result_image, &input)?;
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_1200000_puzzle_6a1e5592() {
+        let mut instance = solve_6a1e5592::MySolution {};
+        let result: String = run_analyze_and_solve("6a1e5592", &mut instance).expect("String");
         assert_eq!(result, "2 1");
     }
 }

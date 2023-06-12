@@ -22,6 +22,7 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{PathBuf, Path};
 use std::rc::Rc;
+use std::thread;
 use console::Style;
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use rand::SeedableRng;
@@ -36,7 +37,7 @@ use super::ExperimentWithConvolution;
 use super::ExperimentWithLogisticRegression;
 
 #[allow(unused_imports)]
-use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
+use super::{HtmlLog, ImageToHTML, ImageLabel, GridLabel};
 
 static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 
@@ -414,12 +415,16 @@ impl TraverseProgramsAndModels {
             if task.is_output_size_same_as_input_size() {
                 continue;
             }
+            // if !task.has_predicted_output_size_and_its_incorrect() {
+            //     continue;
+            // }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
             // }
             // if task.input_histogram_intersection.most_popular_color_disallow_ambiguous() == None {
             //     continue;
             // }
+            #[allow(unused_assignments)]
             let mut found: bool = false;
             found = true;
             // if task.has_removal_color() {
@@ -478,16 +483,16 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            // for input_label in &task.input_label_set_intersection {
-            //     match input_label {
+            // for image_label in &task.input_label_set_intersection {
+            //     match image_label {
             //         InputLabel::InputUnambiguousConnectivityWithAllColors => {
             //             found = true;
             //         },
             //         _ => {}
             //     }
             // }
-            // for input_label in &task.input_label_set_intersection {
-            //     match input_label {
+            // for image_label in &task.input_label_set_intersection {
+            //     match image_label {
             //         InputLabel::InputNoiseWithColor { color: _ } => {
             //             found = true;
             //         },
@@ -497,8 +502,8 @@ impl TraverseProgramsAndModels {
             //         _ => {}
             //     }
             // }
-            // for input_label in &task.input_label_set_intersection {
-            //     let grid_label: GridLabel = match input_label {
+            // for image_label in &task.input_label_set_intersection {
+            //     let grid_label: GridLabel = match image_label {
             //         InputLabel::InputGrid { label } => label.clone(),
             //         _ => continue
             //     };
@@ -1546,6 +1551,7 @@ impl TraverseProgramsAndModels {
     fn print_system_info() {
         println!("env::consts::ARCH: {}", std::env::consts::ARCH);
         println!("env::consts::OS: {}", std::env::consts::OS);
+        println!("thread::current(): {:?}", thread::current());
 
         const VERSION: &str = env!("CARGO_PKG_VERSION");
         let build_mode: &str;

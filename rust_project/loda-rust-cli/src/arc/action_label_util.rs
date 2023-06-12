@@ -1,4 +1,4 @@
-use super::{ActionLabel, ActionLabelSet, PropertyInput, PropertyOutput};
+use super::{ActionLabel, ActionLabelSet, ImageProperty, PropertyOutput};
 
 pub struct ActionLabelUtil;
 
@@ -9,10 +9,10 @@ impl ActionLabelUtil {
         for label in action_label_set {
             match label {
                 ActionLabel::OutputPropertyIsEqualToInputProperty { output, input } => {
-                    if *output == PropertyOutput::OutputWidth && *input == PropertyInput::InputWidth {
+                    if *output == PropertyOutput::OutputWidth && *input == ImageProperty::Width {
                         same_width = true;
                     }
-                    if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeight {
+                    if *output == PropertyOutput::OutputHeight && *input == ImageProperty::Height {
                         same_height = true;
                     }
                 },
@@ -28,10 +28,10 @@ impl ActionLabelUtil {
         for label in action_label_set {
             match label {
                 ActionLabel::OutputPropertyIsEqualToInputProperty { output, input } => {
-                    if *output == PropertyOutput::OutputWidth && *input == PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval {
+                    if *output == PropertyOutput::OutputWidth && *input == ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval {
                         same_width = true;
                     }
-                    if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval {
+                    if *output == PropertyOutput::OutputHeight && *input == ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval {
                         same_height = true;
                     }
                 },
@@ -53,14 +53,14 @@ mod tests {
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputWidth, 
-                input: PropertyInput::InputWidth 
+                input: ImageProperty::Width 
             };
             action_label_set.insert(label);
         }
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputHeight,
-                input: PropertyInput::InputHeight
+                input: ImageProperty::Height
             };
             action_label_set.insert(label);
         }
@@ -79,14 +79,14 @@ mod tests {
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputWidth, 
-                input: PropertyInput::InputHeight
+                input: ImageProperty::Height
             };
             action_label_set.insert(label);
         }
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputHeight,
-                input: PropertyInput::InputWidth
+                input: ImageProperty::Width
             };
             action_label_set.insert(label);
         }
@@ -105,14 +105,14 @@ mod tests {
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputWidth, 
-                input: PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval 
+                input: ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval 
             };
             action_label_set.insert(label);
         }
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputHeight,
-                input: PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval
+                input: ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval
             };
             action_label_set.insert(label);
         }
@@ -131,14 +131,14 @@ mod tests {
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputWidth, 
-                input: PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval
+                input: ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval
             };
             action_label_set.insert(label);
         }
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputHeight,
-                input: PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval
+                input: ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval
             };
             action_label_set.insert(label);
         }

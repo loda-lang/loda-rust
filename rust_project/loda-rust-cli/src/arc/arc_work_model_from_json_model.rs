@@ -1,5 +1,6 @@
 use super::arc_json_model;
 use super::arc_work_model;
+use super::arc_work_model::ImageMeta;
 use super::{Image, Histogram, ImageHistogram, ActionLabelSet};
 use std::collections::{HashMap, HashSet};
 
@@ -44,18 +45,13 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                 let buffer_input = arc_work_model::Input {
                     id: format!("{},input{},train", task_id, index),
                     image: pair.input.clone(),
-                    histogram: histogram_input,
-                    input_properties: HashMap::new(),
-                    input_label_set: HashSet::new(),
+                    image_meta: ImageMeta::new(),
                     input_objects: HashMap::new(),
-                    symmetry: None,
-                    grid: None,
                     repair_mask: None,
                     repaired_image: None,
                     grid_pattern: None,
                     enumerated_objects: None,
                     substitution_rule_applied: None,
-                    single_color_objects: None,
                     predicted_single_color_image: None,
                     removal_color: None,
                     most_popular_intersection_color: None,
@@ -65,7 +61,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     id: format!("{},output{},train", task_id, index),
                     image: pair.output.clone(),
                     test_image: Image::empty(),
-                    histogram: histogram_output,
+                    image_meta: ImageMeta::new(),
                 };
                 let result_pair = arc_work_model::Pair {
                     id: format!("{},pair{},train", task_id, index),
@@ -77,6 +73,8 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     action_label_set: ActionLabelSet::new(),
                     prediction_set: arc_work_model::PredictionSet::new(),
                     output_specification_vec: vec!(),
+                    input_output_image_label_set_intersection: HashSet::new(),
+                    input_output_image_properties: HashMap::new(),
                 };
                 result_pairs.push(result_pair);
             }
@@ -84,23 +82,16 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
         {
             let pairs: Vec<arc_json_model::ImagePair> = json_task.images_test()?;
             for (index, pair) in pairs.iter().enumerate() {
-                let histogram_input: Histogram = pair.input.histogram_all();
-                let histogram_output: Histogram = pair.output.histogram_all();
                 let buffer_input = arc_work_model::Input {
                     id: format!("{},input{},test", task_id, index),
                     image: pair.input.clone(),
-                    histogram: histogram_input,
-                    input_properties: HashMap::new(),
-                    input_label_set: HashSet::new(),
+                    image_meta: ImageMeta::new(),
                     input_objects: HashMap::new(),
-                    symmetry: None,
-                    grid: None,
                     repair_mask: None,
                     repaired_image: None,
                     grid_pattern: None,
                     enumerated_objects: None,
                     substitution_rule_applied: None,
-                    single_color_objects: None,
                     predicted_single_color_image: None,
                     removal_color: None,
                     most_popular_intersection_color: None,
@@ -110,7 +101,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     id: format!("{},output{},test", task_id, index),
                     image: Image::empty(),
                     test_image: pair.output.clone(),
-                    histogram: histogram_output,
+                    image_meta: ImageMeta::new(),
                 };
                 let result_pair = arc_work_model::Pair {
                     id: format!("{},pair{},test", task_id, index),
@@ -122,6 +113,8 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     action_label_set: ActionLabelSet::new(),
                     prediction_set: arc_work_model::PredictionSet::new(),
                     output_specification_vec: vec!(),
+                    input_output_image_label_set_intersection: HashSet::new(),
+                    input_output_image_properties: HashMap::new(),
                 };
                 result_pairs.push(result_pair);
             }
@@ -143,8 +136,11 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             removal_histogram_intersection,
             insert_histogram_intersection,
             input_properties_intersection: HashMap::new(),
+            input_output_properties_intersection: HashMap::new(),
             action_label_set_intersection: ActionLabelSet::new(),
-            input_label_set_intersection: HashSet::new(),
+            input_image_label_set_intersection: HashSet::new(),
+            output_image_label_set_intersection: HashSet::new(),
+            input_output_image_label_set_intersection: HashSet::new(),
             occur_in_solutions_csv: false,
         };
         task.populate()?;

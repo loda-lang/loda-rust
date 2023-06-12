@@ -1,12 +1,25 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry, Grid, GridPattern, SingleColorObjects, OutputSpecification};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, ImageProperty, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
 pub struct Output {
     pub id: String,
+
+    /// The `image` is only available for the `train` pairs.
+    /// 
+    /// The `image` is not available for the `test` pairs.
+    /// It's up to the solver to predict what the `image` should be for the `test` pairs.
     pub image: Image,
+
+    /// For the public ARC dataset, the expected output image is available. But is not available for the private ARC dataset.
+    /// When comparing if the prediction was correct, then it's the `test_image` that should be used.
+    /// However since it's not available for the private ARC dataset.
     pub test_image: Image,
-    pub histogram: Histogram,
+
+    /// The meta data that can be extracted from the `train` output image.
+    /// 
+    /// It's not available for the `test` pairs, and the fields are `None` or empty.
+    pub image_meta: ImageMeta,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -26,24 +39,33 @@ pub struct Object {
     pub object_label_set: HashSet<ObjectLabel>,
 }
 
+/// Data about the image.
+#[derive(Clone, Debug)]
+pub struct ImageMeta {
+    pub histogram: Histogram,
+
+    /// Computed values such as: is symmetric x, is symmetric y.
+    pub image_label_set: ImageLabelSet,
+
+    pub grid: Option<Grid>,
+
+    pub symmetry: Option<Symmetry>,
+    
+    pub single_color_object: Option<SingleColorObject>,
+
+    /// Computed values such as: number of unique colors, width of biggest object.
+    pub image_properties: HashMap<ImageProperty, u8>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Input {
     pub id: String,
     pub image: Image,
-    pub histogram: Histogram,
-    
-    /// Computed values such as: number of unique colors, width of biggest object.
-    pub input_properties: HashMap<PropertyInput, u8>,
-
-    /// Computed values such as: is symmetric x, is symmetric y.
-    pub input_label_set: InputLabelSet,
+    pub image_meta: ImageMeta,
 
     /// The identified objects
     pub input_objects: HashMap<ObjectType, Vec<Object>>,
 
-    pub symmetry: Option<Symmetry>,
-    pub grid: Option<Grid>,
-    
     pub repair_mask: Option<Image>,
     pub repaired_image: Option<Image>,
 
@@ -53,8 +75,6 @@ pub struct Input {
 
     pub substitution_rule_applied: Option<Image>,
     
-    pub single_color_objects: Option<SingleColorObjects>,
-
     pub predicted_single_color_image: Option<Image>,
 
     pub removal_color: Option<u8>,
@@ -112,6 +132,12 @@ pub struct Pair {
     pub action_label_set: ActionLabelSet,
     pub prediction_set: PredictionSet,
     pub output_specification_vec: Vec<OutputSpecification>,
+
+    /// What does the `input.image_meta.image_label_set` have in common with the `output.image_meta.image_label_set`.
+    pub input_output_image_label_set_intersection: ImageLabelSet,
+
+    /// Computed image properties, by comparing input with output.
+    pub input_output_image_properties: HashMap<ImageProperty, u8>,
 }
 
 #[derive(Clone, Debug)]
@@ -124,8 +150,22 @@ pub struct Task {
     pub output_histogram_intersection: Histogram,
     pub removal_histogram_intersection: Histogram,
     pub insert_histogram_intersection: Histogram,
-    pub input_properties_intersection: HashMap<PropertyInput, u8>,
-    pub input_label_set_intersection: InputLabelSet,
+
+    /// What do the `input` images have in common across the `train` and `test` pairs.
+    pub input_properties_intersection: HashMap<ImageProperty, u8>,
+
+    /// What do the `input` images and the `output` images have in common across the `train` pairs. Not available for the `test` pairs.
+    pub input_output_properties_intersection: HashMap<ImageProperty, u8>,
+
+    /// What do the `input` images have in common across the `train` and `test` pairs.
+    pub input_image_label_set_intersection: ImageLabelSet,
+
+    /// What do the `output` images have in common across the `train` pairs. Not available for the `test` pairs.
+    pub output_image_label_set_intersection: ImageLabelSet,
+
+    /// What do the `input` images and the `output` images have in common across the `train` pairs. Not available for the `test` pairs.
+    pub input_output_image_label_set_intersection: ImageLabelSet,
+
     pub action_label_set_intersection: ActionLabelSet,
     pub occur_in_solutions_csv: bool,
 }
