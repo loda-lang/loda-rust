@@ -761,11 +761,72 @@ impl SingleColorObject {
                 let mass: u16 = trimmed_mask.mask_count_nonzero();
                 let rect_area: u16 = (trimmed_mask.width() as u16) * (trimmed_mask.height() as u16);
                 if mass != rect_area {
-                    // It's not filled out entirely. It's not a square.
+                    // It's not filled out entirely. It's not a solid rectangle.
                     continue;
                 }
                 if trimmed_mask.width() != trimmed_mask.height() {
                     // Not a square.
+                    continue;
+                }
+                accumulated_mask = accumulated_mask.mix(&cluster.mask, MixMode::BooleanOr)?;
+            }
+
+            let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
+            result_image = result_image.overlay_with_position(&accumulated_mask, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+
+            return Ok(result_image);
+        }
+        Err(anyhow::anyhow!("Color not found"))
+    }
+
+    /// The objects that are non-square with the specified `color`.
+    /// 
+    /// The object must be a rectangle, without any holes. And the rectangle must not be square.
+    /// 
+    /// The `value=1` is when it's a non-square.
+    /// 
+    /// The `value=0` is where it's not satisfied.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn non_squares(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        for object in &self.rectangle_vec {
+            if object.color != color {
+                continue;
+            }
+            if object.is_square {
+                let mask: Image = object.mask.clone_zero();
+                return Ok(mask);
+            } else {
+                let mask: Image = object.mask.clone();
+                return Ok(mask);
+            }
+        }
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            let optional_container: Option<&SingleColorObjectClusterContainer> = match connectivity {
+                PixelConnectivity::Connectivity4 => object.container4.as_ref(),
+                PixelConnectivity::Connectivity8 => object.container8.as_ref(),
+            };
+            let container: &SingleColorObjectClusterContainer = match optional_container {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing container"));
+                }
+            };
+            let mut accumulated_mask: Image = Image::zero(object.bounding_box.width(), object.bounding_box.height());
+            for cluster in &container.cluster_vec {
+                let trimmed_mask: Image = cluster.mask.trim_color(0)?;
+                let mass: u16 = trimmed_mask.mask_count_nonzero();
+                let rect_area: u16 = (trimmed_mask.width() as u16) * (trimmed_mask.height() as u16);
+                if mass != rect_area {
+                    // It's not filled out entirely. It's not a solid rectangle.
+                    continue;
+                }
+                if trimmed_mask.width() == trimmed_mask.height() {
+                    // It's a square.
                     continue;
                 }
                 accumulated_mask = accumulated_mask.mix(&cluster.mask, MixMode::BooleanOr)?;
@@ -1684,4 +1745,63 @@ mod tests {
         let expected: Image = Image::try_create(4, 4, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
+
+    #[test]
+    fn test_160000_nonsquares_multiple_clusters() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 5, 0, 0, 0,
+            5, 5, 5, 0, 5, 0, 5, 0,
+            5, 5, 5, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 5, 5,
+            5, 5, 5, 0, 5, 0, 5, 5,
+            5, 0, 5, 0, 5, 0, 0, 5,
+            5, 5, 5, 0, 5, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(8, 7, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.non_squares(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 1, 0, 0, 0,
+            1, 1, 1, 0, 1, 0, 0, 0,
+            1, 1, 1, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_160001_nonsquares_one_cluster() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 5, 5, 5, 0,
+            0, 5, 5, 5, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.non_squares(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 1, 1, 1, 0,
+            0, 1, 1, 1, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
 }
