@@ -555,6 +555,21 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            // let mut lines = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // if let Some(sco) = &pair.input.image_meta.single_color_object {
+            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+            //     for connectivity in connectivity_vec {
+            //         for color in 0..=9 {
+            //             match sco.lines(color, connectivity) {
+            //                 Ok(image) => {
+            //                     lines.insert((color, connectivity), image);
+            //                 },
+            //                 Err(_) => {},
+            //             }
+            //         }
+            //     }
+            // }
+
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
@@ -1690,6 +1705,20 @@ impl ExperimentWithLogisticRegression {
                                 record.serialize_bool(is_box);
                             }
                         }
+
+                        // Lines worsens the prediction.
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let is_line: bool = match lines.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(0) > 0
+                        //             }
+                        //             None => false
+                        //         };
+                        //         record.serialize_bool(is_line);
+                        //     }
+                        // }
+
                         #[allow(unused_variables)]
                         let directions = [
                             ImageNeighbourDirection::Up,
