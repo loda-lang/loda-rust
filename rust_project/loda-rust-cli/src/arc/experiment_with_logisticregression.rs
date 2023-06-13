@@ -1636,6 +1636,12 @@ impl ExperimentWithLogisticRegression {
                     // push all the training pairs that have been rotated by 90 degrees.
                     // push all the training pairs that have been flipped.
                     //
+                    // draw lines between nearest clusters, with the same color as the cluster. for all 10 colors.
+                    // interior mass of the constructed objects.
+                    // histogram of the pixels inside the constructed objects.
+                    //
+                    // reversed color popularity, 3x3 convolution
+                    //
                     // when inside a single color object, what is the distance to the edge of the object, in all directions.
                     //
                     // when the image is splitted in half,
@@ -1647,6 +1653,9 @@ impl ExperimentWithLogisticRegression {
                     // cell2: is inside split area 2
                     // border01: is on the border between cell0 and cell1
                     // border12: is on the border between cell1 and cell2
+                    //
+                    // parent object id
+                    // child object id
                     //
                     // is solid object without holes
                     // hole is square/rectangle/sparse
