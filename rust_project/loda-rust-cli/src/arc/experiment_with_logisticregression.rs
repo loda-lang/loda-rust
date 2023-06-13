@@ -588,6 +588,15 @@ impl ExperimentWithLogisticRegression {
 
             let corners: Image = input.corners()?;
 
+            // let distance_to_corner1: Image = corners.to_mask_where_color_is(1)
+            //     .mask_distance(PixelConnectivity::Connectivity4)?;
+            // let distance_to_corner2: Image = corners.to_mask_where_color_is(2)
+            //     .mask_distance(PixelConnectivity::Connectivity4)?;
+            // let distance_to_corner3: Image = corners.to_mask_where_color_is(3)
+            //     .mask_distance(PixelConnectivity::Connectivity4)?;
+            // let distance_to_corner4: Image = corners.to_mask_where_color_is(4)
+            //     .mask_distance(PixelConnectivity::Connectivity4)?;
+
             let mut holecount_connectivity4 = HashMap::<u8, Image>::new();
             let mut holecount_connectivity8 = HashMap::<u8, Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
@@ -1679,6 +1688,18 @@ impl ExperimentWithLogisticRegression {
                     //         // record.serialize_color_complex(color2);
                     //         // record.serialize_color_complex(color3);
                     //     }
+                    // }
+
+                    // distance to the nearest corner. Worsens the predictions.
+                    // {
+                        // let distance1: u8 = distance_to_corner1.get(xx, yy).unwrap_or(255).min(3);
+                        // let distance2: u8 = distance_to_corner2.get(xx, yy).unwrap_or(255);
+                        // let distance3: u8 = distance_to_corner3.get(xx, yy).unwrap_or(255);
+                        // let distance4: u8 = distance_to_corner4.get(xx, yy).unwrap_or(255);
+                        // record.serialize_u8(distance1);
+                        // record.serialize_u8(distance2);
+                        // record.serialize_u8(distance3);
+                        // record.serialize_u8(distance4);
                     // }
 
                     // Future experiments
