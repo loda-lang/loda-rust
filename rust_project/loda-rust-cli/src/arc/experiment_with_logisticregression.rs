@@ -525,6 +525,21 @@ impl ExperimentWithLogisticRegression {
             //     }
             // }
 
+            let mut rectangles = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.rectangles(color, connectivity) {
+                            Ok(image) => {
+                                rectangles.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
             let mut boxes = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
@@ -1652,6 +1667,18 @@ impl ExperimentWithLogisticRegression {
                         //     }
                         // }
 
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_rectangle: bool = match rectangles.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                record.serialize_bool(is_rectangle);
+                            }
+                        }
+                        
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 let is_box: bool = match boxes.get(&(color, *connectivity)) {
