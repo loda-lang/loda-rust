@@ -1651,6 +1651,35 @@ impl ExperimentWithLogisticRegression {
                     //     record.serialize_bool(center == color3);
                     // }
 
+                    // shoot out rays in all directions. Worsens the predictions.
+                    // {
+                    //     for i in 1..3 {
+                    //         // let color0: u8 = input.get_wrap(xx - i, yy - i).unwrap_or(255);
+                    //         // let color1: u8 = input.get_wrap(xx + i, yy - i).unwrap_or(255);
+                    //         // let color2: u8 = input.get_wrap(xx - i, yy + i).unwrap_or(255);
+                    //         // let color3: u8 = input.get_wrap(xx + i, yy + i).unwrap_or(255);
+                    //         // let color0: u8 = input.get(xx - i, yy - i).unwrap_or(255);
+                    //         // let color1: u8 = input.get(xx + i, yy - i).unwrap_or(255);
+                    //         // let color2: u8 = input.get(xx - i, yy + i).unwrap_or(255);
+                    //         // let color3: u8 = input.get(xx + i, yy + i).unwrap_or(255);
+                    //         let color0: u8 = input.get(xx - i, yy).unwrap_or(255);
+                    //         let color1: u8 = input.get(xx + i, yy).unwrap_or(255);
+                    //         let color2: u8 = input.get(xx, yy - i).unwrap_or(255);
+                    //         let color3: u8 = input.get(xx, yy + i).unwrap_or(255);
+                    //         let all_same: bool = color0 < 10 && color0 == color1 && color0 == color2 && color0 == color3;
+                    //         // record.serialize_bool(all_same);
+                    //         let agree_color: u8 = if all_same { color0 } else { 255 };
+                    //         record.serialize_color_complex(agree_color);
+                    //         // record.serialize_bool(center == color0);
+                    //         // record.serialize_bool(center == color1);
+                    //         // record.serialize_bool(center == color2);
+                    //         // record.serialize_bool(center == color3);
+                    //         // record.serialize_color_complex(color0);
+                    //         // record.serialize_color_complex(color1);
+                    //         // record.serialize_color_complex(color2);
+                    //         // record.serialize_color_complex(color3);
+                    //     }
+                    // }
 
                     // Future experiments
                     // push all the training pairs that have been rotated by 90 degrees.
