@@ -495,20 +495,35 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
-            let mut squares_mask = HashMap::<(u8, PixelConnectivity), Image>::new();
+            let mut squares = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
                     for color in 0..=9 {
                         match sco.squares(color, connectivity) {
                             Ok(image) => {
-                                squares_mask.insert((color, connectivity), image);
+                                squares.insert((color, connectivity), image);
                             },
                             Err(_) => {},
                         }
                     }
                 }
             }
+
+            // let mut nonsquares = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // if let Some(sco) = &pair.input.image_meta.single_color_object {
+            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+            //     for connectivity in connectivity_vec {
+            //         for color in 0..=9 {
+            //             match sco.non_squares(color, connectivity) {
+            //                 Ok(image) => {
+            //                     nonsquares.insert((color, connectivity), image);
+            //                 },
+            //                 Err(_) => {},
+            //             }
+            //         }
+            //     }
+            // }
 
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
@@ -1599,7 +1614,7 @@ impl ExperimentWithLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
-                                let is_square: bool = match squares_mask.get(&(color, *connectivity)) {
+                                let is_square: bool = match squares.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(0) > 0
                                     }
@@ -1608,6 +1623,19 @@ impl ExperimentWithLogisticRegression {
                                 record.serialize_bool(is_square);
                             }
                         }
+
+                        // non-squares are worsening the prediction.
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let is_square: bool = match nonsquares.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(0) > 0
+                        //             }
+                        //             None => false
+                        //         };
+                        //         record.serialize_bool(is_square);
+                        //     }
+                        // }
 
                         #[allow(unused_variables)]
                         let directions = [
