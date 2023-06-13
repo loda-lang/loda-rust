@@ -1631,6 +1631,26 @@ impl ExperimentWithLogisticRegression {
                         record.serialize_bool(is_inside_bounding_box);
                     }
 
+                    // skewed pixel with x skewed or y skewed. Worsens the predictions.
+                    // {
+                    //     let color0: u8 = input.get_wrap(xx + yy, yy).unwrap_or(255);
+                    //     let color1: u8 = input.get_wrap(xx - yy, yy).unwrap_or(255);
+                    //     let color2: u8 = input.get_wrap(xx, yy + xx).unwrap_or(255);                        
+                    //     let color3: u8 = input.get_wrap(xx, yy - xx).unwrap_or(255);
+                    //     let color0: u8 = input.get(xx + yy, yy).unwrap_or(255);
+                    //     let color1: u8 = input.get(xx - yy, yy).unwrap_or(255);
+                    //     let color2: u8 = input.get(xx, yy + xx).unwrap_or(255);
+                    //     let color3: u8 = input.get(xx, yy - xx).unwrap_or(255);
+                    //     record.serialize_color_complex(color0);
+                    //     record.serialize_color_complex(color1);
+                    //     record.serialize_color_complex(color2);
+                    //     record.serialize_color_complex(color3);
+                    //     record.serialize_bool(center == color0);
+                    //     record.serialize_bool(center == color1);
+                    //     record.serialize_bool(center == color2);
+                    //     record.serialize_bool(center == color3);
+                    // }
+
 
                     // Future experiments
                     // push all the training pairs that have been rotated by 90 degrees.
@@ -1639,6 +1659,8 @@ impl ExperimentWithLogisticRegression {
                     // draw lines between nearest clusters, with the same color as the cluster. for all 10 colors.
                     // interior mass of the constructed objects.
                     // histogram of the pixels inside the constructed objects.
+                    //
+                    // shape complexity score. Sometimes it's the most complex object that is of interest.
                     //
                     // reversed color popularity, 3x3 convolution
                     //
