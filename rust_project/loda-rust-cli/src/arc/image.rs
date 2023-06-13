@@ -34,6 +34,30 @@ impl Image {
         Self::color(width, height, 0)
     }
 
+    /// Create an `Image` instance filled with a specific color.
+    /// 
+    /// Returns an `Image` with the same size as the current image.
+    #[allow(dead_code)]
+    pub fn clone_color(&self, color: u8) -> Self {
+        Self::color(self.width, self.height, color)
+    }
+
+    /// Create an `Image` instance filled with zeroes.
+    /// 
+    /// Returns an `Image` with the same size as the current image.
+    #[allow(dead_code)]
+    pub fn clone_zero(&self) -> Self {
+        self.clone_color(0)
+    }
+
+    /// Create an `Image` instance filled with ones.
+    /// 
+    /// Returns an `Image` with the same size as the current image.
+    #[allow(dead_code)]
+    pub fn clone_one(&self) -> Self {
+        self.clone_color(1)
+    }
+
     /// Create a `Image` instance without any checks of the data
     /// 
     /// It's up to the caller to ensure:
@@ -417,5 +441,19 @@ mod tests {
         // Assert
         let expected_images: Vec<Image> = vec![image0, image1, image2, image3];
         assert_eq!(expected_images, shuffled_images);
+    }
+
+    #[test]
+    fn test_80000_clone_color() {
+        // Arrange
+        let mut input = Image::zero(5, 3);
+        _ = input.set(2, 1, 1);
+
+        // Act
+        let actual: Image = input.clone_color(1);
+
+        // Assert
+        let expected = Image::color(5, 3, 1);
+        assert_eq!(expected, actual);
     }
 }
