@@ -525,6 +525,21 @@ impl ExperimentWithLogisticRegression {
             //     }
             // }
 
+            let mut boxes = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.boxes(color, connectivity) {
+                            Ok(image) => {
+                                boxes.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
@@ -1637,6 +1652,17 @@ impl ExperimentWithLogisticRegression {
                         //     }
                         // }
 
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_box: bool = match boxes.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                record.serialize_bool(is_box);
+                            }
+                        }
                         #[allow(unused_variables)]
                         let directions = [
                             ImageNeighbourDirection::Up,
