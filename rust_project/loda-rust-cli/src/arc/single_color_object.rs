@@ -1,4 +1,4 @@
-use super::{ImageFill, ConnectedComponent, PixelConnectivity, ImageOverlay, ImageObjectEnumerate, ImageTrim, ImageSymmetry};
+use super::{ImageFill, ConnectedComponent, PixelConnectivity, ImageOverlay, ImageObjectEnumerate, ImageTrim, ImageSymmetry, ImageReplaceColor};
 use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle, ImageMix, ImageSize, MixMode, ImageMaskCount, ImageCrop};
 
 /// A rectangle filled with a single solid color and no other colors are present inside the object.
@@ -962,7 +962,9 @@ impl SingleColorObject {
     /// 
     /// The smallest line is `2x1` pixels or `1x2` pixels.
     /// 
-    /// The `value=1` is when it's a line.
+    /// The `value=2` is when it's a line row of pixels with the specified color.
+    /// 
+    /// The `value=1` is when it's a line column of pixels with the specified color.
     /// 
     /// The `value=0` is where it's not satisfied.
     /// 
@@ -976,8 +978,11 @@ impl SingleColorObject {
             let size: ImageSize = object.bounding_box.size();
             let is_line_horizontal: bool = size.width >= 2 && size.height == 1;
             let is_line_vertical: bool = size.width == 1 && size.height >= 2;
-            let is_line = is_line_horizontal || is_line_vertical;
-            if is_line {
+            if is_line_horizontal {
+                let mask: Image = object.mask.replace_color(1, 2)?;
+                return Ok(mask);
+            }
+            if is_line_vertical {
                 let mask: Image = object.mask.clone();
                 return Ok(mask);
             } else {
@@ -1010,13 +1015,18 @@ impl SingleColorObject {
                 }
                 let is_line_horizontal: bool = trimmed_mask.width() >= 2 && trimmed_mask.height() == 1;
                 let is_line_vertical: bool = trimmed_mask.width() == 1 && trimmed_mask.height() >= 2;
-                let is_line = is_line_horizontal || is_line_vertical;
-                if !is_line {
-                    // It's not a line.
-                    continue;
+                let color: u8;
+                if is_line_horizontal {
+                    color = 2;
+                } else {
+                    if is_line_vertical {
+                        color = 1;
+                    } else {
+                        continue;
+                    }
                 }
     
-                accumulated_mask = accumulated_mask.mix(&cluster.mask, MixMode::BooleanOr)?;
+                accumulated_mask = cluster.mask.mix(&accumulated_mask, MixMode::PickColor1WhenColor0IsZero { color })?;
             }
 
             let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
@@ -2135,7 +2145,7 @@ mod tests {
             0, 0, 0, 0, 1, 0, 0, 0,
             0, 0, 0, 0, 1, 0, 0, 0,
             0, 0, 0, 0, 1, 0, 0, 0,
-            0, 0, 0, 0, 1, 0, 1, 1,
+            0, 0, 0, 0, 1, 0, 2, 2,
         ];
         let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
         assert_eq!(actual, expected);
@@ -2158,11 +2168,36 @@ mod tests {
         // Assert
         let expected_pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0,
-            0, 1, 1, 1, 0,
+            0, 2, 2, 2, 0,
             0, 0, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(5, 3, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 
+    #[test]
+    fn test_190002_lines_one_cluster() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 5, 0,
+            0, 5, 0,
+            0, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 4, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.lines(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(3, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
 }
