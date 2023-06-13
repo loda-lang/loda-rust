@@ -495,6 +495,21 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            let mut squares_mask = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.squares(color, connectivity) {
+                            Ok(image) => {
+                                squares_mask.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
@@ -1580,6 +1595,17 @@ impl ExperimentWithLogisticRegression {
                                 // record.serialize_split_zeros_ones(distance, 5);
                                 // record.serialize_split_zeros_ones(distance, 8);
                                 record.serialize_bool(distance % 2 == 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_square: bool = match squares_mask.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                record.serialize_bool(is_square);
                             }
                         }
 
