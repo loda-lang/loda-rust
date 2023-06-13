@@ -570,6 +570,38 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            // horizontal symmetry is worsening the prediction.
+            // let mut horizontal_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // if let Some(sco) = &pair.input.image_meta.single_color_object {
+            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+            //     for connectivity in connectivity_vec {
+            //         for color in 0..=9 {
+            //             match sco.horizontal_symmetry_mask(color, connectivity) {
+            //                 Ok(image) => {
+            //                     horizontal_symmetry.insert((color, connectivity), image);
+            //                 },
+            //                 Err(_) => {},
+            //             }
+            //         }
+            //     }
+            // }
+
+            // vertical symmetry is worsening the prediction.
+            // let mut vertical_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // if let Some(sco) = &pair.input.image_meta.single_color_object {
+            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+            //     for connectivity in connectivity_vec {
+            //         for color in 0..=9 {
+            //             match sco.vertical_symmetry_mask(color, connectivity) {
+            //                 Ok(image) => {
+            //                     vertical_symmetry.insert((color, connectivity), image);
+            //                 },
+            //                 Err(_) => {},
+            //             }
+            //         }
+            //     }
+            // }
+
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
@@ -1722,6 +1754,32 @@ impl ExperimentWithLogisticRegression {
                                 record.serialize_ternary(ternary);
                             }
                         }
+
+                        // horizontal symmetry is worsening the prediction.
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let is_symmetric: bool = match horizontal_symmetry.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(0) > 0
+                        //             }
+                        //             None => false
+                        //         };
+                        //         record.serialize_bool(is_symmetric);
+                        //     }
+                        // }
+
+                        // vertical symmetry is worsening the prediction.
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let is_symmetric: bool = match vertical_symmetry.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(0) > 0
+                        //             }
+                        //             None => false
+                        //         };
+                        //         record.serialize_bool(is_symmetric);
+                        //     }
+                        // }
 
                         #[allow(unused_variables)]
                         let directions = [
