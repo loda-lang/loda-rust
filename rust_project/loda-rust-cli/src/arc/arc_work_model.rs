@@ -141,6 +141,11 @@ pub struct Pair {
     pub input_output_image_label_set_intersection: ImageLabelSet,
 
     /// Computed image properties, by comparing input with output.
+    /// 
+    /// These properties are only available for the `train` pairs. 
+    /// 
+    /// These are not available for the `test` pairs, since you are supposed to predict the output.
+    /// So looking at the output is not allowed.
     pub input_output_image_properties: HashMap<ImageProperty, u8>,
 }
 
