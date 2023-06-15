@@ -556,21 +556,18 @@ impl arc_work_model::Task {
         for pair in &mut self.pairs {
 
             let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
-            // if self.id == "28bf18c6,task" {
-            //     HtmlLog::image(&image_mask);
-            // }
             {
                 let mass: u16 = image_mask.mask_count_zero();
                 if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
-                    pair.input_output_image_properties.insert(ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
             {
                 let mass: u16 = image_mask.mask_count_one();
                 if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
-                    pair.input_output_image_properties.insert(ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
 
@@ -583,12 +580,6 @@ impl arc_work_model::Task {
                     continue;
                 }
             };
-            // println!("number of objects: {} task: {}", object_images.len(), self.displayName);
-            // if self.id == "28bf18c6,task" {
-            //     for image in &object_images {
-            //         HtmlLog::image(image);
-            //     }
-            // }
             let mut mass_max: u16 = 0;
             let mut found_index_mass_max: Option<usize> = None;
             for (index, image) in object_images.iter().enumerate() {
@@ -602,12 +593,11 @@ impl arc_work_model::Task {
 
             if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
-                pair.input_output_image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
+                pair.input.image_meta.image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
             }
 
             if let Some(index) = found_index_mass_max {
                 if let Some(image) = object_images.get(index) {
-
                     let trimmed_image: Image = match image.trim_color(0) {
                         Ok(value) => value,
                         Err(_) => {
@@ -617,10 +607,8 @@ impl arc_work_model::Task {
                     
                     let width: u8 = trimmed_image.width();
                     let height: u8 = trimmed_image.height();
-                    // println!("biggest object: {}x{}", width, height);
-
-                    pair.input_output_image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor, width);
-                    pair.input_output_image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor, height);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor, width);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor, height);
                 }
             }
         }
