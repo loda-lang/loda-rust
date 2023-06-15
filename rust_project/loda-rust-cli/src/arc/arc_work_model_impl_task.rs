@@ -2302,6 +2302,19 @@ impl arc_work_model::Task {
         false
     }
 
+    /// Returns `true` only when all the pairs have a predicted output size.
+    /// 
+    /// If one or more pairs don't have a predicted output size, this returns `false`.
+    #[allow(dead_code)]
+    pub fn has_predicted_output_size(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.predicted_output_size().is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
     pub fn input_properties_intersection_union_input_output_properties_intersection(&self) -> HashMap<ImageProperty, u8> {
         let mut image_properties: HashMap<ImageProperty, u8> = self.input_properties_intersection.clone();
         image_properties.extend(&self.input_output_properties_intersection);

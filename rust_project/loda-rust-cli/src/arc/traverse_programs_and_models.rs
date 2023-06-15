@@ -418,6 +418,9 @@ impl TraverseProgramsAndModels {
             // if !task.has_predicted_output_size_and_its_incorrect() {
             //     continue;
             // }
+            // if task.has_predicted_output_size() {
+            //     continue;
+            // }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
             // }
