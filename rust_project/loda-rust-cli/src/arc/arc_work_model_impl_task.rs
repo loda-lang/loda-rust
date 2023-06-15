@@ -488,8 +488,8 @@ impl arc_work_model::Task {
                     Ok(image) => {
                         let mass: u16 = image.mask_count_one();
                         if mass == 0 {
-                            pair.input_output_image_properties.insert(ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
-                            pair.input_output_image_properties.insert(ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
+                            pair.input.image_meta.image_properties.insert(ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
+                            pair.input.image_meta.image_properties.insert(ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
                         }
                     },
                     Err(_) => {}
@@ -519,7 +519,7 @@ impl arc_work_model::Task {
 
             if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
-                pair.input_output_image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
+                pair.input.image_meta.image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
             }
 
             if let Some(index) = found_index_mass_max {
@@ -534,8 +534,8 @@ impl arc_work_model::Task {
                     
                     let width: u8 = trimmed_image.width();
                     let height: u8 = trimmed_image.height();
-                    pair.input_output_image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleColorRemoval, width);
-                    pair.input_output_image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleColorRemoval, height);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleColorRemoval, width);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleColorRemoval, height);
                 }
             }
         }
