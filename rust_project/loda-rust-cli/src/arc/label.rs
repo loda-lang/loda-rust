@@ -39,6 +39,8 @@ pub enum ImageProperty {
     HeightOfRemovedRectangleAfterSingleColorRemoval,
     MassOfAllNoisePixels,
     UniqueNoiseColorCount,
+    WidthAfterTrimBorderColor,
+    HeightAfterTrimBorderColor,
 
     // Ideas for more
     // NumberOfClusters,

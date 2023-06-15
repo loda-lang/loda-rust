@@ -533,6 +533,37 @@ impl arc_work_model::Task {
         }
     }
 
+    fn assign_input_properties_related_to_trim_with_border_color(&mut self) -> anyhow::Result<()> {
+        let mut found_colors = Histogram::new();
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::SingleBorderColor { color } => { found_colors.increment(*color); },
+                _ => {}
+            }
+        }
+        if found_colors.number_of_counters_greater_than_zero() > 1 {
+            // Multiple colors found, no consensus on what color is the border color
+            return Ok(());
+        }
+
+        let border_color: u8 = match found_colors.most_popular_color_disallow_ambiguous() {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        };
+                        
+        for pair in &mut self.pairs {
+            let image: Image = pair.input.image.trim_color(border_color)?;
+            if image.is_empty() {
+                continue;
+            }
+            pair.input.image_meta.image_properties.insert(ImageProperty::WidthAfterTrimBorderColor, image.width());
+            pair.input.image_meta.image_properties.insert(ImageProperty::HeightAfterTrimBorderColor, image.height());
+        }
+        Ok(())
+    }
+
     fn assign_input_properties_related_to_input_histogram_intersection(&mut self) {
         let removal_pairs: Vec<(u32,u8)> = self.input_histogram_intersection.pairs_descending();
         if removal_pairs.len() != 1 {
@@ -820,12 +851,13 @@ impl arc_work_model::Task {
         self.update_output_image_label_set_intersection();
         self.update_input_output_image_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
+        _ = self.assign_input_properties_related_to_trim_with_border_color();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
         _ = self.determine_if_objects_have_moved();
 
-        let input_properties: [ImageProperty; 27] = [
+        let input_properties: [ImageProperty; 29] = [
             ImageProperty::Width, 
             ImageProperty::WidthPlus1, 
             ImageProperty::WidthPlus2, 
@@ -853,6 +885,8 @@ impl arc_work_model::Task {
             ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval,
             ImageProperty::UniqueNoiseColorCount,
             ImageProperty::MassOfAllNoisePixels,
+            ImageProperty::WidthAfterTrimBorderColor,
+            ImageProperty::HeightAfterTrimBorderColor,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
