@@ -163,9 +163,6 @@ pub struct Task {
     /// What do the `input` images have in common across the `train` and `test` pairs.
     pub input_properties_intersection: HashMap<ImageProperty, u8>,
 
-    /// What do the `input` images and the `output` images have in common across the `train` pairs. Not available for the `test` pairs.
-    pub input_output_properties_intersection: HashMap<ImageProperty, u8>,
-
     /// What do the `input` images have in common across the `train` and `test` pairs.
     pub input_image_label_set_intersection: ImageLabelSet,
 

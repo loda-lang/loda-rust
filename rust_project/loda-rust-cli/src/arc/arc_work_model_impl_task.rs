@@ -380,14 +380,6 @@ impl arc_work_model::Task {
         self.input_properties_intersection = Self::intersection_of_multiple_image_property_hashmap(items);
     }
 
-    fn update_input_output_properties_intersection(&mut self) {
-        let mut items: Vec<&HashMap<ImageProperty, u8>> = vec!();
-        for pair in &mut self.pairs {
-            items.push(&pair.input_output_image_properties);
-        }
-        self.input_output_properties_intersection = Self::intersection_of_multiple_image_property_hashmap(items);
-    }
-
     fn intersection_of_multiple_image_label_set(label_set_vec: Vec<&ImageLabelSet>) -> ImageLabelSet {
         let mut image_label_set = ImageLabelSet::new();
         let mut is_first = true;
@@ -824,7 +816,6 @@ impl arc_work_model::Task {
         self.update_input_image_meta()?;
         self.update_output_image_meta()?;
         self.update_input_properties_intersection();
-        self.update_input_output_properties_intersection();
         self.update_input_image_label_set_intersection();
         self.update_output_image_label_set_intersection();
         self.update_input_output_image_label_set_intersection();
@@ -2301,11 +2292,5 @@ impl arc_work_model::Task {
             }
         }
         true
-    }
-
-    pub fn input_properties_intersection_union_input_output_properties_intersection(&self) -> HashMap<ImageProperty, u8> {
-        let mut image_properties: HashMap<ImageProperty, u8> = self.input_properties_intersection.clone();
-        image_properties.extend(&self.input_output_properties_intersection);
-        image_properties
     }
 }

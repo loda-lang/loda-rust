@@ -216,7 +216,7 @@ impl InspectTask {
         self.row_input_image += "</td>";
 
         self.row_input_properties += &td_begin;
-        self.row_input_properties += &Self::image_properties_to_html(&task.input_properties_intersection_union_input_output_properties_intersection());
+        self.row_input_properties += &Self::image_properties_to_html(&task.input_properties_intersection);
         self.row_input_properties += "</td>";
 
         self.row_input_labels += &td_begin;
