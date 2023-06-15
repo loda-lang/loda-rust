@@ -40,7 +40,9 @@ pub enum ImageProperty {
     MassOfAllNoisePixels,
     UniqueNoiseColorCount,
     WidthAfterTrimBorderColor,
+    WidthMinus2AfterTrimBorderColor,
     HeightAfterTrimBorderColor,
+    HeightMinus2AfterTrimBorderColor,
 
     // Ideas for more
     // NumberOfClusters,

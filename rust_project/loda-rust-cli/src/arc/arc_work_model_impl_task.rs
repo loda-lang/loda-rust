@@ -558,8 +558,16 @@ impl arc_work_model::Task {
             if image.is_empty() {
                 continue;
             }
-            pair.input.image_meta.image_properties.insert(ImageProperty::WidthAfterTrimBorderColor, image.width());
-            pair.input.image_meta.image_properties.insert(ImageProperty::HeightAfterTrimBorderColor, image.height());
+            let width: u8 = image.width();
+            let height: u8 = image.height();
+            pair.input.image_meta.image_properties.insert(ImageProperty::WidthAfterTrimBorderColor, width);
+            pair.input.image_meta.image_properties.insert(ImageProperty::HeightAfterTrimBorderColor, height);
+            if width > 2 {
+                pair.input.image_meta.image_properties.insert(ImageProperty::WidthMinus2AfterTrimBorderColor, width - 2);
+            }
+            if height > 2 {
+                pair.input.image_meta.image_properties.insert(ImageProperty::HeightMinus2AfterTrimBorderColor, height - 2);
+            }
         }
         Ok(())
     }
@@ -857,7 +865,7 @@ impl arc_work_model::Task {
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
         _ = self.determine_if_objects_have_moved();
 
-        let input_properties: [ImageProperty; 29] = [
+        let input_properties: [ImageProperty; 31] = [
             ImageProperty::Width, 
             ImageProperty::WidthPlus1, 
             ImageProperty::WidthPlus2, 
@@ -887,6 +895,8 @@ impl arc_work_model::Task {
             ImageProperty::MassOfAllNoisePixels,
             ImageProperty::WidthAfterTrimBorderColor,
             ImageProperty::HeightAfterTrimBorderColor,
+            ImageProperty::WidthMinus2AfterTrimBorderColor,
+            ImageProperty::HeightMinus2AfterTrimBorderColor,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
