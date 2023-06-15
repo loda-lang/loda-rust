@@ -73,6 +73,9 @@ pub struct SingleColorObjectSparse {
     pub connectivity48_identical: bool,
 
     // Future experiments:
+    // Shape type. L shape, T shape, + shape, I shape.
+    // Are there 4 corners pixels that are 1, and otherwise the rest are zeroes?
+    // Is it a box?
     // are container4 all single pixels?
     // Noise color for single pixel noise
     // histogram of areas between clusters.
