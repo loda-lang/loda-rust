@@ -42,7 +42,11 @@ pub struct Object {
 /// Data about the image.
 #[derive(Clone, Debug)]
 pub struct ImageMeta {
-    pub histogram: Histogram,
+    /// Histogram of all the pixels in the image.
+    pub histogram_all: Histogram,
+
+    /// Histogram of the pixels on the border of the image.
+    pub histogram_border: Histogram,
 
     /// Computed values such as: is symmetric x, is symmetric y.
     pub image_label_set: ImageLabelSet,

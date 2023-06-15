@@ -7,7 +7,8 @@ use std::collections::{HashSet, HashMap};
 impl arc_work_model::ImageMeta {
     pub fn new() -> Self {
         Self {
-            histogram: Histogram::new(),
+            histogram_all: Histogram::new(),
+            histogram_border: Histogram::new(),
             image_properties: HashMap::new(),
             image_label_set: HashSet::new(),
             grid: None,
@@ -17,7 +18,8 @@ impl arc_work_model::ImageMeta {
     }
 
     pub fn analyze(&mut self, image: &Image) -> anyhow::Result<()> {
-        self.histogram = image.histogram_all();
+        self.histogram_all = image.histogram_all();
+        self.histogram_border = image.histogram_border();
         self.update_image_properties(image);
         self.assign_grid(image)?;
         self.assign_symmetry(image)?;
@@ -28,7 +30,7 @@ impl arc_work_model::ImageMeta {
     }
 
     fn update_image_properties(&mut self, image: &Image) {
-        self.image_properties = Self::resolve_image_properties(image, &self.histogram);
+        self.image_properties = Self::resolve_image_properties(image, &self.histogram_all);
     }
 
     fn resolve_image_properties(image: &Image, histogram: &Histogram) -> HashMap<ImageProperty, u8> {
@@ -253,7 +255,7 @@ impl arc_work_model::ImageMeta {
     }
 
     fn assign_border_flood_fill(&mut self, image: &Image) -> anyhow::Result<()> {
-        for (_count, color) in self.histogram.pairs_ordered_by_color() {
+        for (_count, color) in self.histogram_all.pairs_ordered_by_color() {
             let mut filled: Image = image.clone();
             let mask_before: Image = filled.to_mask_where_color_is(color);
             filled.border_flood_fill(color, 255, PixelConnectivity::Connectivity4);

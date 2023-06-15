@@ -1514,7 +1514,7 @@ impl arc_work_model::Task {
         // In each pair, the color is the same as most popular color of the input
         if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsTheMostPopularColorOfInputImage) {
             for pair in self.pairs.iter_mut() {
-                let histogram: &Histogram = &pair.input.image_meta.histogram;
+                let histogram: &Histogram = &pair.input.image_meta.histogram_all;
                 if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
                     pair.input.removal_color = Some(color);
                 }
@@ -1653,7 +1653,7 @@ impl arc_work_model::Task {
                     predicted_color = color;
                 },
                 (None, true, false) => {
-                    if let Some(color) = pair.input.image_meta.histogram.most_popular_color() {
+                    if let Some(color) = pair.input.image_meta.histogram_all.most_popular_color() {
                         predicted_color = color;
                         // println!("predicted_color most popular: {}", color);
                     } else {
@@ -1661,7 +1661,7 @@ impl arc_work_model::Task {
                     }
                 },
                 (None, false, true) => {
-                    if let Some(color) = pair.input.image_meta.histogram.least_popular_color() {
+                    if let Some(color) = pair.input.image_meta.histogram_all.least_popular_color() {
                         predicted_color = color;
                         // println!("predicted_color least popular: {}", color);
                     } else {
