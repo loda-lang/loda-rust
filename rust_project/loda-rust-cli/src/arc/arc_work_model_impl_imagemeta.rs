@@ -24,6 +24,7 @@ impl arc_work_model::ImageMeta {
         self.assign_grid(image)?;
         self.assign_symmetry(image)?;
         self.assign_single_color_object(image)?;
+        self.assign_single_border_color()?;
         self.assign_border_flood_fill(image)?;
         self.assign_image_properties_about_noise_pixels()?;
         Ok(())
@@ -251,6 +252,21 @@ impl arc_work_model::ImageMeta {
         };
         self.image_label_set.extend(image_label_set);
         self.single_color_object = Some(single_color_object);
+        Ok(())
+    }
+
+    fn assign_single_border_color(&mut self) -> anyhow::Result<()> {
+        if self.histogram_border.number_of_counters_greater_than_zero() != 1 {
+            return Ok(());
+        }
+        let color: u8 = match self.histogram_border.most_popular_color() {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        };
+        let image_label = ImageLabel::SingleBorderColor { color };
+        self.image_label_set.insert(image_label);
         Ok(())
     }
 

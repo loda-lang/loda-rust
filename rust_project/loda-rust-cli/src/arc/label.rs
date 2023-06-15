@@ -167,6 +167,9 @@ pub enum ImageLabel {
     /// There are no isolated pixels.
     BorderFloodFillConnectivity4AllPixelsWithColor { color: u8 },
 
+    /// Only one color is used along all the borders in the image.
+    SingleBorderColor { color: u8 },
+
     // Ideas for more
     // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsAreMovedByTheSameOffsetWrapAround { offset_x: i32, offset_y: i32, background_color: u8 },
