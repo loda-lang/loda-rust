@@ -3,6 +3,23 @@ require_relative 'config'
 require 'open3'
 require 'json'
 
+# Copy an ARC task json file, but erase the output images from the `test` pairs.
+#
+# The erasing is done, to prevent cheating.
+# If the prediction algorithm could look at the output, then it could make awesome predictions.
+# Without the output images, then it's harder to cheat.
+def copy_task_without_test_output(source_task_json_path, destination_task_json_path)
+    json_string = IO.read(source_task_json_path)
+    json = JSON.parse(json_string)
+    test_pairs = json['test']
+    sizes = []
+    test_pairs.each do |pair|
+        pair['output'] = []
+    end
+    File.write(destination_task_json_path, JSON.dump(json))
+    sizes
+end
+
 # Extract the width/height of all the `test` output images.
 #
 # Returns an array of strings, example: `["10x14", "14x20", "14x15"]`.
@@ -29,7 +46,24 @@ def sizes_from_task(task_json_path)
     sizes
 end
 
+# Extract the predicted width/height of all the `test` output images.
+#
+# Returns an array of strings, example: `["10x14", "14x20", "14x15"]`.
+def predicted_sizes(json_string)
+    json = JSON.parse(json_string)
+    test_pairs = json['test']
+    sizes = []
+    test_pairs.each do |pair|
+        dict = pair['output']
+        width = dict['width'].to_i
+        height = dict['height'].to_i
+        sizes << "#{width}x#{height}"
+    end
+    sizes
+end
+
 OUTPUT_DIR = File.expand_path("data/arc_size")
+TEMP_PATH = File.join(OUTPUT_DIR, 'temp.json')
 
 LODA_RUST_EXECUTABLE = Config.instance.loda_rust_executable
 unless File.executable?(LODA_RUST_EXECUTABLE)
@@ -45,6 +79,11 @@ if File.directory?(OUTPUT_DIR)
     raise "The OUTPUT_DIR #{OUTPUT_DIR} already exist. Please delete it manually, and try again."
 end
 
+FileUtils.mkdir_p(OUTPUT_DIR)
+unless File.directory?(OUTPUT_DIR)
+    raise "unable to create dir: #{OUTPUT_DIR}"
+end
+
 Dir.chdir(ARC_REPOSITORY_DATA) do
     paths = Dir.glob("**/*.json")
 
@@ -55,19 +94,28 @@ Dir.chdir(ARC_REPOSITORY_DATA) do
         if index % 100 == 0
             puts "Progress: #{index} of #{paths.count}"
         end
+        
+        expected_sizes = sizes_from_task(path)
+        copy_task_without_test_output(path, TEMP_PATH)
+        
         output_path = File.join(OUTPUT_DIR, path)
         output_dirname = File.dirname(output_path)
         FileUtils.mkdir_p(output_dirname)
         unless File.directory?(output_dirname)
-            raise "unable to create dir"
+            raise "unable to create dir: #{output_dirname}"
         end
         
-        command = "#{LODA_RUST_EXECUTABLE} arc-size #{path}"
+        command = "#{LODA_RUST_EXECUTABLE} arc-size #{TEMP_PATH}"
         stdout_and_stderr, status = Open3.capture2e(command)
         output = stdout_and_stderr
-        
+
         if status.success?
-            IO.write(output_path, stdout_and_stderr.strip)
+            json = stdout_and_stderr.strip
+            IO.write(output_path, json)
+            predicted_sizes = predicted_sizes(json)
+            if predicted_sizes != expected_sizes
+                puts "bad prediction: #{predicted_sizes} != #{expected_sizes} for path: #{path}"
+            end
             next
         end
         if output.include?('Cannot predict the output sizes')
@@ -82,3 +130,5 @@ Dir.chdir(ARC_REPOSITORY_DATA) do
         end
     end
 end
+
+File.delete(TEMP_PATH) if File.exist?(TEMP_PATH)
