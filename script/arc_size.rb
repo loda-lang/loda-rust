@@ -19,7 +19,10 @@ end
 
 Dir.chdir(ARC_REPOSITORY_DATA) do
     paths = Dir.glob("**/*.json")
-    #paths = paths.first(5)
+
+    # Remove json files, that are not ARC tasks.
+    paths = paths.reject { |path| File.basename(path) == 'solution_notXORdinary.json' }
+    
     paths.each_with_index do |path, index|
         if index % 100 == 0
             puts "Progress: #{index} of #{paths.count}"
