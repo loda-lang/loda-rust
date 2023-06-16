@@ -5,7 +5,7 @@ extern crate log;
 
 extern crate env_logger;
 
-use std::str::FromStr;
+use std::{str::FromStr, path::PathBuf};
 use regex::Regex;
 use loda_rust_core::control::*;
 
@@ -178,6 +178,16 @@ async fn main() -> anyhow::Result<()> {
                 .about("ARC - AI experiments - Exploring what a model may be like.")
                 .hide(true)
         )
+        .subcommand(
+            Command::new("arc-size")
+                .about("Predict the output sizes of a single ARC task.")
+                .hide(true)
+                .arg(
+                    Arg::new("file")
+                        .help("Path to the task json file. Example: /home/arc-dataset/evaluation/0123abcd.json")
+                        .required(true)
+                )
+        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -334,6 +344,14 @@ async fn main() -> anyhow::Result<()> {
             SubcommandARC::run(SubcommandARCMode::ExperimentWithConvolution).expect("ok");
         });
         blocking_task.await?;
+        return Ok(());
+    }
+
+    if let Some(sub_m) = matches.subcommand_matches("arc-size") {
+        let path_raw: &str = sub_m.value_of("file").expect("path to a json file");
+        let json_file: PathBuf = PathBuf::from(path_raw);
+        let mode = SubcommandARCMode::PredictOutputSizesForSingleTask { json_file };
+        SubcommandARC::run(mode)?;
         return Ok(());
     }
 

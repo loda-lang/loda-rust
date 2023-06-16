@@ -116,6 +116,7 @@ mod single_color_object;
 mod single_color_object_satisfies_label;
 mod single_color_object_to_label;
 mod stack_strings;
+mod subcommand_arc_size;
 mod substitution_rule;
 mod symmetry;
 mod symmetry_to_label;
@@ -227,6 +228,7 @@ pub use single_color_object::{SingleColorObject, SingleColorObjectRectangle, Sin
 pub use single_color_object_satisfies_label::SingleColorObjectSatisfiesLabel;
 pub use single_color_object_to_label::SingleColorObjectToLabel;
 pub use stack_strings::StackStrings;
+pub use subcommand_arc_size::SubcommandARCSize;
 pub use substitution_rule::SubstitutionRule;
 pub use symmetry::Symmetry;
 pub use symmetry_to_label::SymmetryToLabel;
