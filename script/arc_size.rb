@@ -1,6 +1,33 @@
 #!/usr/bin/env ruby
 require_relative 'config'
 require 'open3'
+require 'json'
+
+# Extract the width/height of all the `test` output images.
+#
+# Returns an array of strings, example: `["10x14", "14x20", "14x15"]`.
+def sizes_from_task(task_json_path)
+    json_string = IO.read(task_json_path)
+    json = JSON.parse(json_string)
+    test_pairs = json['test']
+    sizes = []
+    test_pairs.each do |pair|
+        rows = pair['output']
+        columns_min = 255
+        columns_max = 0
+        rows.each do |row|
+            columns_max = [columns_max, row.count].max
+            columns_min = [columns_min, row.count].min
+        end
+        if columns_min != columns_max
+            raise "the columns are supposed to have the same length. #{task_json_path}"
+        end
+        width = columns_min
+        height = rows.count
+        sizes << "#{width}x#{height}"
+    end
+    sizes
+end
 
 OUTPUT_DIR = File.expand_path("data/arc_size")
 
