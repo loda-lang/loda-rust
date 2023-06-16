@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require_relative 'config'
+require 'open3'
 
 OUTPUT_DIR = File.expand_path("data/arc_size")
 
@@ -34,21 +35,23 @@ Dir.chdir(ARC_REPOSITORY_DATA) do
             raise "unable to create dir"
         end
         
-        output = `#{LODA_RUST_EXECUTABLE} arc-size #{path}`
-        output = output.strip
-        #p output
-        success = $?.success?
+        command = "#{LODA_RUST_EXECUTABLE} arc-size #{path}"
+        stdout_and_stderr, status = Open3.capture2e(command)
+        output = stdout_and_stderr
         
-        if success 
-            #p 'success'
-            IO.write(output_path, output)
-        else
-            puts "could not compute: #{path}"
+        if status.success?
+            IO.write(output_path, stdout_and_stderr.strip)
+            next
+        end
+        if output.include?('Cannot predict the output sizes')
+            output_path2 = output_path.gsub(/[.]json$/, '-error-cannot-predict.txt')
+            IO.write(output_path2, stdout_and_stderr)
+            next
+        end
+        begin
+            output_path2 = output_path.gsub(/[.]json$/, '-error-other.txt')
+            IO.write(output_path2, stdout_and_stderr)
+            next
         end
     end
 end
-
-#output = `#{LODA_RUST_EXECUTABLE} arc-size #{program_id}`
-#output = output.strip
-#success = $?.success?
-
