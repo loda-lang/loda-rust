@@ -348,9 +348,9 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if let Some(sub_m) = matches.subcommand_matches("arc-size") {
-        let path_raw: &str = sub_m.value_of("file").expect("path to a json file");
-        let json_file: PathBuf = PathBuf::from(path_raw);
-        let mode = SubcommandARCMode::PredictOutputSizesForSingleTask { json_file };
+        let path_raw: &str = sub_m.value_of("file").expect("path to task json file");
+        let task_json_file: PathBuf = PathBuf::from(path_raw);
+        let mode = SubcommandARCMode::PredictOutputSizesForSingleTask { task_json_file };
         SubcommandARC::run(mode)?;
         return Ok(());
     }

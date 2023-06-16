@@ -27,7 +27,7 @@ pub enum SubcommandARCMode {
     ExperimentWithConvolution,
 
     /// Predict the output sizes for a single ARC task.
-    PredictOutputSizesForSingleTask { json_file: PathBuf },
+    PredictOutputSizesForSingleTask { task_json_file: PathBuf },
 }
 
 pub struct SubcommandARC;
@@ -56,8 +56,8 @@ impl SubcommandARC {
             SubcommandARCMode::ExperimentWithConvolution => {
                 return TraverseProgramsAndModels::experiment_with_convolution();
             },
-            SubcommandARCMode::PredictOutputSizesForSingleTask { json_file } => {
-                return SubcommandARCSize::run(&json_file);
+            SubcommandARCMode::PredictOutputSizesForSingleTask { task_json_file } => {
+                return SubcommandARCSize::run(&task_json_file);
             },
         }
     }
