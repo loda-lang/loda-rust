@@ -21,6 +21,40 @@ def copy_task_without_test_output(source_task_json_path, destination_task_json_p
     File.write(destination_task_json_path, JSON.dump(json))
 end
 
+# Extract the width/height from an image.
+#
+# Returns a string, example: `"19x23"`.
+def size_from_json_image(rows)
+    columns_min = 255
+    columns_max = 0
+    rows.each do |row|
+        columns_max = [columns_max, row.count].max
+        columns_min = [columns_min, row.count].min
+    end
+    if columns_min != columns_max
+        raise "the columns are supposed to have the same length. #{task_json_path}"
+    end
+    width = columns_min
+    height = rows.count
+    "#{width}x#{height}"
+end
+
+def same_size_for_input_and_output_in_task(task_json_path)
+    json_string = IO.read(task_json_path)
+    json = JSON.parse(json_string)
+    sizes_input = []
+    sizes_output = []
+    json['train'].each do |pair|
+        sizes_input << size_from_json_image(pair['input'])
+        sizes_output << size_from_json_image(pair['output'])
+    end
+    json['test'].each do |pair|
+        sizes_input << size_from_json_image(pair['input'])
+        sizes_output << size_from_json_image(pair['output'])
+    end
+    sizes_input == sizes_output
+end
+
 # Extract the width/height of all the `test` output images.
 #
 # Returns an array of strings, example: `["10x14", "14x20", "14x15"]`.
@@ -31,18 +65,7 @@ def sizes_from_task(task_json_path)
     sizes = []
     test_pairs.each do |pair|
         rows = pair['output']
-        columns_min = 255
-        columns_max = 0
-        rows.each do |row|
-            columns_max = [columns_max, row.count].max
-            columns_min = [columns_min, row.count].min
-        end
-        if columns_min != columns_max
-            raise "the columns are supposed to have the same length. #{task_json_path}"
-        end
-        width = columns_min
-        height = rows.count
-        sizes << "#{width}x#{height}"
+        sizes << size_from_json_image(rows)
     end
     sizes
 end
@@ -90,6 +113,7 @@ count_ok_predictions = 0
 count_bad_predictions = 0
 count_cannot_predict = 0
 count_other_errors = 0
+count_same_size = 0
 Dir.chdir(ARC_REPOSITORY_DATA) do
     paths = Dir.glob("**/*.json")
 
@@ -99,6 +123,10 @@ Dir.chdir(ARC_REPOSITORY_DATA) do
     paths.each_with_index do |path, index|
         if index % 100 == 0
             puts "Progress: #{index} of #{paths.count}"
+        end
+        
+        if same_size_for_input_and_output_in_task(path)
+            count_same_size += 1
         end
         
         # What are the sizes of the output images for the test pairs.
@@ -157,4 +185,5 @@ puts "count_tasks: #{count_tasks}  The number of tasks processed."
 puts "count_ok_predictions: #{count_ok_predictions}  Predictions that matches with the actual data."
 puts "count_bad_predictions: #{count_bad_predictions}  Predictions that are different than the actual data."
 puts "count_cannot_predict: #{count_cannot_predict}  Unable to make a prediction. Insufficient data, lack of algorithms for predicting."
-puts "count_other_errors: #{count_other_errors}  Something else went wrong."
+puts "count_other_errors: #{count_other_errors}  Something went wrong."
+puts "count_same_size: #{count_same_size}  Number of tasks where input size and output size are the same."
