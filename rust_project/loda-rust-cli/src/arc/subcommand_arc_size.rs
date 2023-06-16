@@ -36,6 +36,9 @@ impl SubcommandARCSize {
                 continue;
             }
             let size: ImageSize = pair.predicted_output_size().expect("Expected an output size");
+            if size.is_empty() {
+                return Err(anyhow::anyhow!("Cannot predict the output sizes for this task."));
+            }
             let output_size: OutputSizeItem = OutputSizeItem {
                 width: size.width,
                 height: size.height,
