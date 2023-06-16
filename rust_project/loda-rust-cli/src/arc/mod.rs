@@ -218,7 +218,7 @@ pub use objects_unique_color_count::ObjectsUniqueColorCount;
 pub use output_specification::*;
 pub use pixel_connectivity::PixelConnectivity;
 pub use popular_objects::PopularObjects;
-pub use read_testdata::read_testdata;
+pub use read_testdata::{path_testdata, read_testdata};
 pub use rectangle::Rectangle;
 pub use register_arc_functions::register_arc_functions;
 pub use reverse_color_popularity::ReverseColorPopularity;
