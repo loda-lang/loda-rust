@@ -53,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     let matches = Command::new("loda-rust")
-        .version("0.0.1")
+        .version(env!("CARGO_PKG_VERSION"))
         .about("Experimental tool")
         .arg_required_else_help(true)
         .subcommand_required(true)
