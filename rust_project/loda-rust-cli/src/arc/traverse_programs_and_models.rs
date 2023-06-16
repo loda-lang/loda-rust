@@ -767,17 +767,10 @@ impl TraverseProgramsAndModels {
         debug!("will load {} task files", paths.len());
         let mut model_item_vec: ModelItemVec = vec!();
         for path in paths {
-            let json_task: arc_json_model::Task = match arc_json_model::Task::load_with_json_file(path) {
+            let task: Task = match Task::load_with_json_file(path) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("Ignoring file. Cannot parse arc_json_model file. path: {:?} error: {:?}", path, error);
-                    continue;
-                }
-            };
-            let task: Task = match Task::try_from(&json_task) {
-                Ok(value) => value,
-                Err(error) => {
-                    error!("Ignoring file. Cannot construct arc_work_model::Task from json model. path: {:?} error: {:?}", path, error);
+                    error!("Ignoring file. Problem in Task::load_with_json_file. path: {:?} error: {:?}", path, error);
                     continue;
                 }
             };

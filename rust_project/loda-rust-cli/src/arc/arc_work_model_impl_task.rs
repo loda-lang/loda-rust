@@ -1,10 +1,13 @@
 use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction, Pair};
+use super::arc_json_model;
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
 use super::{ImageLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, ImageProperty, PropertyOutput, ActionLabelUtil};
 use super::{OutputSpecification};
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
+use anyhow::Context;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 enum RulePriority {
@@ -14,6 +17,14 @@ enum RulePriority {
 }
 
 impl arc_work_model::Task {
+    pub fn load_with_json_file(path: &Path) -> anyhow::Result<Self> {
+        let json_task: arc_json_model::Task = arc_json_model::Task::load_with_json_file(path)
+            .with_context(|| format!("Unable to load arc_json_model::Task. path: {:?}", &path))?;
+        let task: Self = Self::try_from(&json_task)
+            .with_context(|| format!("Cannot construct arc_work_model::Task from json model. path: {:?}", &path))?;
+        Ok(task)
+    }
+
     #[allow(dead_code)]
     pub fn has_substitution_rule_applied(&self) -> bool {
         for pair in &self.pairs {
