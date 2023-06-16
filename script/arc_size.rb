@@ -85,6 +85,11 @@ unless File.directory?(OUTPUT_DIR)
     raise "unable to create dir: #{OUTPUT_DIR}"
 end
 
+count_tasks = 0
+count_ok_predictions = 0
+count_bad_predictions = 0
+count_cannot_predict = 0
+count_other_errors = 0
 Dir.chdir(ARC_REPOSITORY_DATA) do
     paths = Dir.glob("**/*.json")
 
@@ -114,27 +119,42 @@ Dir.chdir(ARC_REPOSITORY_DATA) do
         command = "#{LODA_RUST_EXECUTABLE} arc-size #{TEMP_PATH}"
         stdout_and_stderr, status = Open3.capture2e(command)
         output = stdout_and_stderr
+        count_tasks += 1
 
-        if status.success?
-            json = stdout_and_stderr.strip
-            IO.write(output_path, json)
-            predicted_sizes = predicted_sizes(json)
-            if predicted_sizes != expected_sizes
-                puts "bad prediction: #{predicted_sizes} != #{expected_sizes} for path: #{path}"
+        unless status.success?
+            if output.include?('Cannot predict the output sizes')
+                output_path2 = output_path.gsub(/[.]json$/, '-cannot-predict.txt')
+                IO.write(output_path2, stdout_and_stderr)
+                count_cannot_predict += 1
+                next
+            else
+                output_path2 = output_path.gsub(/[.]json$/, '-error.txt')
+                IO.write(output_path2, stdout_and_stderr)
+                count_other_errors += 1
+                next
             end
+        end
+        json = stdout_and_stderr.strip
+        predicted_sizes = predicted_sizes(json)
+        if predicted_sizes != expected_sizes
+            #puts "bad prediction: #{predicted_sizes} != #{expected_sizes} for path: #{path}"
+            output_path2 = output_path.gsub(/[.]json$/, '-bad-prediction.txt')
+            error_message = stdout_and_stderr + "\n\n--\nThis is a bad prediction!\nPredicted #{predicted_sizes}. But the actual size is #{expected_sizes}"
+            IO.write(output_path2, error_message)
+            count_bad_predictions += 1
             next
         end
-        if output.include?('Cannot predict the output sizes')
-            output_path2 = output_path.gsub(/[.]json$/, '-error-cannot-predict.txt')
-            IO.write(output_path2, stdout_and_stderr)
-            next
-        end
-        begin
-            output_path2 = output_path.gsub(/[.]json$/, '-error-other.txt')
-            IO.write(output_path2, stdout_and_stderr)
-            next
-        end
+        IO.write(output_path, json)
+        count_ok_predictions += 1
+        next
     end
 end
 
 File.delete(TEMP_PATH) if File.exist?(TEMP_PATH)
+
+puts
+puts "count_tasks: #{count_tasks}  The number of tasks processed."
+puts "count_ok_predictions: #{count_ok_predictions}  Predictions that matches with the actual data."
+puts "count_bad_predictions: #{count_bad_predictions}  Predictions that are different than the actual data."
+puts "count_cannot_predict: #{count_cannot_predict}  Unable to make a prediction. Insufficient data, lack of algorithms for predicting."
+puts "count_other_errors: #{count_other_errors}  Something else went wrong."
