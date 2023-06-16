@@ -14,6 +14,7 @@ class Config
     attr_reader :oeis_names_file
     attr_reader :loda_outlier_programs_repository
     attr_reader :loda_submitted_by
+    attr_reader :arc_repository_data
     
     def initialize
         rust_project_default_config = Config.pathname_to_default_config_toml_inside_rust_project
@@ -34,6 +35,7 @@ class Config
         @oeis_names_file = Config.resolve_path(dict, 'oeis_names_file', homedir)
         @loda_submitted_by = dict['loda_submitted_by']
         @loda_outlier_programs_repository = Config.resolve_path(dict, 'loda_outlier_programs_repository', homedir)
+        @arc_repository_data = Config.resolve_path(dict, 'arc_repository_data', homedir)
     end
     
     def self.pathname_to_default_config_toml_inside_rust_project
