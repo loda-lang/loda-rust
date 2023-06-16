@@ -49,9 +49,9 @@ loda_outlier_programs_repository = "$HOME/git/loda-outlier-programs"
 # When a program has been mined, then upload it to the loda-programs repository.
 miner_program_upload_endpoint = "http://api.loda-lang.org/miner/v1/programs"
 
-# Absolute path to the "ARC" repository "data" dir.
-# it can be cloned from https://github.com/fchollet/ARC
-arc_repository_data = "$HOME/git/ARC/data"
+# Absolute path to the dir containing the "ARC" datasets.
+# Local clone of this repo: https://github.com/neoneye/arc-dataset-collection
+arc_repository_data = "$HOME/git/arc-dataset-collection/dataset"
 
 # Absolute path to the "loda-arc-challenge" repository dir.
 # it can be cloned from https://github.com/neoneye/loda-arc-challenge
