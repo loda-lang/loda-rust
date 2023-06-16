@@ -36,12 +36,12 @@ impl SubcommandARCSize {
                 continue;
             }
             let size: ImageSize = pair.predicted_output_size().expect("Expected an output size");
-            let output: OutputItem = OutputItem {
+            let output_size: OutputSizeItem = OutputSizeItem {
                 width: size.width,
                 height: size.height,
             };
             let pair: PairItem = PairItem {
-                output: output,
+                output_size,
             };
             test_pair_vec.push(pair);
         }
@@ -53,14 +53,14 @@ impl SubcommandARCSize {
 }
 
 #[derive(Debug, Serialize)]
-struct OutputItem {
+struct OutputSizeItem {
     width: u8,
     height: u8,
 }
 
 #[derive(Debug, Serialize)]
 struct PairItem {
-    output: OutputItem,
+    output_size: OutputSizeItem,
 }
 
 #[derive(Debug, Serialize)]
@@ -83,7 +83,7 @@ mod tests {
         let actual: String = SubcommandARCSize::predict_output_sizes_of_task_format_as_json(&path).expect("string");
 
         // Assert
-        let expected = r#"{"test":[{"output":{"width":10,"height":10}},{"output":{"width":25,"height":25}}]}"#;
+        let expected = r#"{"test":[{"output_size":{"width":10,"height":10}},{"output_size":{"width":25,"height":25}}]}"#;
         assert_eq!(actual, expected);
     }
 
@@ -96,7 +96,7 @@ mod tests {
         let actual: String = SubcommandARCSize::predict_output_sizes_of_task_format_as_json(&path).expect("string");
 
         // Assert
-        let expected = r#"{"test":[{"output":{"width":3,"height":9}}]}"#;
+        let expected = r#"{"test":[{"output_size":{"width":3,"height":9}}]}"#;
         assert_eq!(actual, expected);
     }
 
@@ -109,7 +109,7 @@ mod tests {
         let actual: String = SubcommandARCSize::predict_output_sizes_of_task_format_as_json(&path).expect("string");
 
         // Assert
-        let expected = r#"{"test":[{"output":{"width":3,"height":3}}]}"#;
+        let expected = r#"{"test":[{"output_size":{"width":3,"height":3}}]}"#;
         assert_eq!(actual, expected);
     }
 

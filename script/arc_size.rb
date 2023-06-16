@@ -54,7 +54,7 @@ def predicted_sizes(json_string)
     test_pairs = json['test']
     sizes = []
     test_pairs.each do |pair|
-        dict = pair['output']
+        dict = pair['output_size']
         width = dict['width'].to_i
         height = dict['height'].to_i
         sizes << "#{width}x#{height}"
