@@ -9,15 +9,16 @@ require 'json'
 # If the prediction algorithm could look at the output, then it could make awesome predictions.
 # Without the output images, then it's harder to cheat.
 def copy_task_without_test_output(source_task_json_path, destination_task_json_path)
+    if source_task_json_path == destination_task_json_path
+        raise "the paths are supposed to be different. #{source_task_json_path}"
+    end
     json_string = IO.read(source_task_json_path)
     json = JSON.parse(json_string)
     test_pairs = json['test']
-    sizes = []
     test_pairs.each do |pair|
         pair['output'] = []
     end
     File.write(destination_task_json_path, JSON.dump(json))
-    sizes
 end
 
 # Extract the width/height of all the `test` output images.
@@ -95,9 +96,13 @@ Dir.chdir(ARC_REPOSITORY_DATA) do
             puts "Progress: #{index} of #{paths.count}"
         end
         
+        # What are the sizes of the output images for the test pairs.
         expected_sizes = sizes_from_task(path)
+        
+        # Make a copy of the task, but discard the output images for the test pairs.
         copy_task_without_test_output(path, TEMP_PATH)
         
+        # Create dirs if needed
         output_path = File.join(OUTPUT_DIR, path)
         output_dirname = File.dirname(output_path)
         FileUtils.mkdir_p(output_dirname)
@@ -105,6 +110,7 @@ Dir.chdir(ARC_REPOSITORY_DATA) do
             raise "unable to create dir: #{output_dirname}"
         end
         
+        # Make predictions about the output sizes
         command = "#{LODA_RUST_EXECUTABLE} arc-size #{TEMP_PATH}"
         stdout_and_stderr, status = Open3.capture2e(command)
         output = stdout_and_stderr
