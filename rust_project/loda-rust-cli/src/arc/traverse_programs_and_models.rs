@@ -60,11 +60,13 @@ static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 4;
 
 static ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS: u64 = 200;
 
+type ModelItemVec = Vec<Rc<RefCell<ModelItem>>>;
+
 pub struct TraverseProgramsAndModels {
     config: Config,
     arc_config: RunArcCompetitionConfig,
     context: GenomeMutateContext,
-    model_item_vec: Vec<Rc<RefCell<ModelItem>>>,
+    model_item_vec: ModelItemVec,
     program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     locked_instruction_hashset: HashSet<String>,
     dependency_manager: DependencyManager,
@@ -756,10 +758,15 @@ impl TraverseProgramsAndModels {
             .into_iter()
             .filter(Self::files_to_keep)
             .collect();
-        debug!("arc_repository_data. number of json files: {}", paths.len());
 
-        let mut model_item_vec: Vec<Rc<RefCell<ModelItem>>> = vec!();
-        for path in &paths {
+        self.model_item_vec = Self::load_models_with_task_paths(&paths)?;
+        Ok(())
+    }
+
+    fn load_models_with_task_paths(paths: &Vec<PathBuf>) -> anyhow::Result<ModelItemVec> {
+        debug!("will load {} task files", paths.len());
+        let mut model_item_vec: ModelItemVec = vec!();
+        for path in paths {
             let json_task: arc_json_model::Task = match arc_json_model::Task::load_with_json_file(path) {
                 Ok(value) => value,
                 Err(error) => {
@@ -784,8 +791,7 @@ impl TraverseProgramsAndModels {
         if model_item_vec.len() != paths.len() {
             error!("Skipped some models. paths.len()={}, but model_item_vec.len()={}", paths.len(), model_item_vec.len());
         }
-        self.model_item_vec = model_item_vec;
-        Ok(())
+        Ok(model_item_vec)
     }
 
     /// Load all `.asm` programs into memory
