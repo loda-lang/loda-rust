@@ -1203,6 +1203,12 @@ impl RunWithProgram {
                 status_texts.push("OK");
             }
         }
+
+        // Future experiment
+        // Some of the datasets have a few `train` pairs that cannot be computed.
+        // Some of the programs solves some of the `train` pairs, but solves the `test` pairs.
+        // Allow for 1 misprediction among the training pairs, when there are 3 or more training pairs.
+
         let all_train_pairs_are_correct: bool = (count_train_correct == count_train) && (count_train_incorrect == 0);
 
         // if count_train_correct >= 2 {

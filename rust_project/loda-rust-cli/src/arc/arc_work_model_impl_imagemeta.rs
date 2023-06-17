@@ -7,7 +7,8 @@ use std::collections::{HashSet, HashMap};
 impl arc_work_model::ImageMeta {
     pub fn new() -> Self {
         Self {
-            histogram: Histogram::new(),
+            histogram_all: Histogram::new(),
+            histogram_border: Histogram::new(),
             image_properties: HashMap::new(),
             image_label_set: HashSet::new(),
             grid: None,
@@ -17,18 +18,20 @@ impl arc_work_model::ImageMeta {
     }
 
     pub fn analyze(&mut self, image: &Image) -> anyhow::Result<()> {
-        self.histogram = image.histogram_all();
+        self.histogram_all = image.histogram_all();
+        self.histogram_border = image.histogram_border();
         self.update_image_properties(image);
         self.assign_grid(image)?;
         self.assign_symmetry(image)?;
         self.assign_single_color_object(image)?;
+        self.assign_single_border_color()?;
         self.assign_border_flood_fill(image)?;
         self.assign_image_properties_about_noise_pixels()?;
         Ok(())
     }
 
     fn update_image_properties(&mut self, image: &Image) {
-        self.image_properties = Self::resolve_image_properties(image, &self.histogram);
+        self.image_properties = Self::resolve_image_properties(image, &self.histogram_all);
     }
 
     fn resolve_image_properties(image: &Image, histogram: &Histogram) -> HashMap<ImageProperty, u8> {
@@ -252,8 +255,23 @@ impl arc_work_model::ImageMeta {
         Ok(())
     }
 
+    fn assign_single_border_color(&mut self) -> anyhow::Result<()> {
+        if self.histogram_border.number_of_counters_greater_than_zero() != 1 {
+            return Ok(());
+        }
+        let color: u8 = match self.histogram_border.most_popular_color() {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        };
+        let image_label = ImageLabel::SingleBorderColor { color };
+        self.image_label_set.insert(image_label);
+        Ok(())
+    }
+
     fn assign_border_flood_fill(&mut self, image: &Image) -> anyhow::Result<()> {
-        for (_count, color) in self.histogram.pairs_ordered_by_color() {
+        for (_count, color) in self.histogram_all.pairs_ordered_by_color() {
             let mut filled: Image = image.clone();
             let mask_before: Image = filled.to_mask_where_color_is(color);
             filled.border_flood_fill(color, 255, PixelConnectivity::Connectivity4);

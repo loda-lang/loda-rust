@@ -42,7 +42,11 @@ pub struct Object {
 /// Data about the image.
 #[derive(Clone, Debug)]
 pub struct ImageMeta {
-    pub histogram: Histogram,
+    /// Histogram of all the pixels in the image.
+    pub histogram_all: Histogram,
+
+    /// Histogram of the pixels on the border of the image.
+    pub histogram_border: Histogram,
 
     /// Computed values such as: is symmetric x, is symmetric y.
     pub image_label_set: ImageLabelSet,
@@ -137,6 +141,11 @@ pub struct Pair {
     pub input_output_image_label_set_intersection: ImageLabelSet,
 
     /// Computed image properties, by comparing input with output.
+    /// 
+    /// These properties are only available for the `train` pairs. 
+    /// 
+    /// These are not available for the `test` pairs, since you are supposed to predict the output.
+    /// So looking at the output is not allowed.
     pub input_output_image_properties: HashMap<ImageProperty, u8>,
 }
 
@@ -153,9 +162,6 @@ pub struct Task {
 
     /// What do the `input` images have in common across the `train` and `test` pairs.
     pub input_properties_intersection: HashMap<ImageProperty, u8>,
-
-    /// What do the `input` images and the `output` images have in common across the `train` pairs. Not available for the `test` pairs.
-    pub input_output_properties_intersection: HashMap<ImageProperty, u8>,
 
     /// What do the `input` images have in common across the `train` and `test` pairs.
     pub input_image_label_set_intersection: ImageLabelSet,

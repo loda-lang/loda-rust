@@ -6,7 +6,16 @@ pub enum ImageSplitDirection {
 }
 
 pub trait ImageSplit {
+    /// Split a big image into `N` smaller images.
+    /// 
+    /// The `spacing` parameter is allowed to be 0.
+    /// 
+    /// Returns `N` images.
     fn split(&self, number_of_parts: u8, spacing: u8, direction: ImageSplitDirection) -> anyhow::Result<Vec<Image>>;
+
+    // Future experiment:
+    // split and also return the separator images, sometimes these have a coloring that needs
+    // to be preserved in the output.
 }
 
 impl ImageSplit for Image {

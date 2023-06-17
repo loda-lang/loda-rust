@@ -34,6 +34,30 @@ impl Image {
         Self::color(width, height, 0)
     }
 
+    /// Create an `Image` instance filled with a specific color.
+    /// 
+    /// Returns an `Image` with the same size as the current image.
+    #[allow(dead_code)]
+    pub fn clone_color(&self, color: u8) -> Self {
+        Self::color(self.width, self.height, color)
+    }
+
+    /// Create an `Image` instance filled with zeroes.
+    /// 
+    /// Returns an `Image` with the same size as the current image.
+    #[allow(dead_code)]
+    pub fn clone_zero(&self) -> Self {
+        self.clone_color(0)
+    }
+
+    /// Create an `Image` instance filled with ones.
+    /// 
+    /// Returns an `Image` with the same size as the current image.
+    #[allow(dead_code)]
+    pub fn clone_one(&self) -> Self {
+        self.clone_color(1)
+    }
+
     /// Create a `Image` instance without any checks of the data
     /// 
     /// It's up to the caller to ensure:
@@ -72,7 +96,7 @@ impl Image {
         index_for_pixel(x, y, self.width, self.height)
     }
 
-    /// Get pixel value at coordinate (x, y).
+    /// Get pixel value at coordinate (x, y). No wrap around.
     /// 
     /// Idea for simplification. I rarely act on the `None` value.
     /// 
@@ -85,6 +109,27 @@ impl Image {
             return None;
         }
         Some(self.pixels[index])
+    }
+
+    /// Get pixel value with coordinate (x, y) wrapped around.
+    /// 
+    /// Returns `None` when the image is empty.
+    /// 
+    /// When the coordinate is outside the image, it will wrap around.
+    #[allow(dead_code)]
+    pub fn get_wrap(&self, x: i32, y: i32) -> Option<u8> {
+        if self.is_empty() {
+            return None;
+        }
+        let mut x_wrap: i32 = x % (self.width as i32);
+        if x_wrap < 0 {
+            x_wrap += self.width as i32;
+        }
+        let mut y_wrap: i32 = y % (self.height as i32);
+        if y_wrap < 0 {
+            y_wrap += self.height as i32;
+        }
+        self.get(x_wrap, y_wrap)
     }
 
     /// Set pixel value at coordinate (x, y).
@@ -211,7 +256,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_set_pixel_value_error() {
+    fn test_20002_set_pixel_value_error() {
         let mut bm = Image::zero(3, 2);
         // negative coordinates
         assert_eq!(bm.set(-1, 0, 0), None);
@@ -220,6 +265,44 @@ mod tests {
         // beyond width or height
         assert_eq!(bm.set(3, 0, 0), None);
         assert_eq!(bm.set(0, 2, 0), None);
+    }
+
+    #[test]
+    fn test_20003_get_wrap() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            11, 21, 31,
+            12, 22, 32,
+            13, 23, 33,
+            14, 24, 34,
+        ];
+        let image: Image = Image::create_raw(3, 4, pixels);
+
+        // Act & Assert
+        {
+            // negative x coordinate
+            assert_eq!(image.get_wrap(-1, 0), Some(31));
+            assert_eq!(image.get_wrap(-4, 0), Some(31));
+            assert_eq!(image.get_wrap(-7, 0), Some(31));
+        }
+        {
+            // negative y coordinate
+            assert_eq!(image.get_wrap(0, -1), Some(14));
+            assert_eq!(image.get_wrap(0, -5), Some(14));
+            assert_eq!(image.get_wrap(0, -9), Some(14));
+        }
+        {
+            // x coordinate beyond width
+            assert_eq!(image.get_wrap(3, 0), Some(11));
+            assert_eq!(image.get_wrap(6, 0), Some(11));
+            assert_eq!(image.get_wrap(9, 0), Some(11));
+        }
+        {
+            // y coordinate beyond height
+            assert_eq!(image.get_wrap(0, 4), Some(11));
+            assert_eq!(image.get_wrap(0, 8), Some(11));
+            assert_eq!(image.get_wrap(0, 12), Some(11));
+        }
     }
 
     #[test]
@@ -358,5 +441,19 @@ mod tests {
         // Assert
         let expected_images: Vec<Image> = vec![image0, image1, image2, image3];
         assert_eq!(expected_images, shuffled_images);
+    }
+
+    #[test]
+    fn test_80000_clone_color() {
+        // Arrange
+        let mut input = Image::zero(5, 3);
+        _ = input.set(2, 1, 1);
+
+        // Act
+        let actual: Image = input.clone_color(1);
+
+        // Assert
+        let expected = Image::color(5, 3, 1);
+        assert_eq!(expected, actual);
     }
 }

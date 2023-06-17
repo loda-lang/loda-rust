@@ -495,6 +495,113 @@ impl ExperimentWithLogisticRegression {
                 }
             }
 
+            let mut squares = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.squares(color, connectivity) {
+                            Ok(image) => {
+                                squares.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
+            // let mut nonsquares = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // if let Some(sco) = &pair.input.image_meta.single_color_object {
+            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+            //     for connectivity in connectivity_vec {
+            //         for color in 0..=9 {
+            //             match sco.non_squares(color, connectivity) {
+            //                 Ok(image) => {
+            //                     nonsquares.insert((color, connectivity), image);
+            //                 },
+            //                 Err(_) => {},
+            //             }
+            //         }
+            //     }
+            // }
+
+            let mut rectangles = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.rectangles(color, connectivity) {
+                            Ok(image) => {
+                                rectangles.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
+            let mut boxes = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.boxes(color, connectivity) {
+                            Ok(image) => {
+                                boxes.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
+            let mut lines = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in connectivity_vec {
+                    for color in 0..=9 {
+                        match sco.lines(color, connectivity) {
+                            Ok(image) => {
+                                lines.insert((color, connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
+            // horizontal symmetry is worsening the prediction.
+            // let mut horizontal_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // if let Some(sco) = &pair.input.image_meta.single_color_object {
+            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+            //     for connectivity in connectivity_vec {
+            //         for color in 0..=9 {
+            //             match sco.horizontal_symmetry_mask(color, connectivity) {
+            //                 Ok(image) => {
+            //                     horizontal_symmetry.insert((color, connectivity), image);
+            //                 },
+            //                 Err(_) => {},
+            //             }
+            //         }
+            //     }
+            // }
+
+            // vertical symmetry is worsening the prediction.
+            // let mut vertical_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // if let Some(sco) = &pair.input.image_meta.single_color_object {
+            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+            //     for connectivity in connectivity_vec {
+            //         for color in 0..=9 {
+            //             match sco.vertical_symmetry_mask(color, connectivity) {
+            //                 Ok(image) => {
+            //                     vertical_symmetry.insert((color, connectivity), image);
+            //                 },
+            //                 Err(_) => {},
+            //             }
+            //         }
+            //     }
+            // }
+
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
@@ -587,6 +694,15 @@ impl ExperimentWithLogisticRegression {
             }
 
             let corners: Image = input.corners()?;
+
+            // let distance_to_corner1: Image = corners.to_mask_where_color_is(1)
+            //     .mask_distance(PixelConnectivity::Connectivity4)?;
+            // let distance_to_corner2: Image = corners.to_mask_where_color_is(2)
+            //     .mask_distance(PixelConnectivity::Connectivity4)?;
+            // let distance_to_corner3: Image = corners.to_mask_where_color_is(3)
+            //     .mask_distance(PixelConnectivity::Connectivity4)?;
+            // let distance_to_corner4: Image = corners.to_mask_where_color_is(4)
+            //     .mask_distance(PixelConnectivity::Connectivity4)?;
 
             let mut holecount_connectivity4 = HashMap::<u8, Image>::new();
             let mut holecount_connectivity8 = HashMap::<u8, Image>::new();
@@ -1573,6 +1689,97 @@ impl ExperimentWithLogisticRegression {
                                 record.serialize_bool(distance % 2 == 0);
                             }
                         }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_square: bool = match squares.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                record.serialize_bool(is_square);
+                            }
+                        }
+
+                        // non-squares are worsening the prediction.
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let is_square: bool = match nonsquares.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(0) > 0
+                        //             }
+                        //             None => false
+                        //         };
+                        //         record.serialize_bool(is_square);
+                        //     }
+                        // }
+
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_rectangle: bool = match rectangles.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                record.serialize_bool(is_rectangle);
+                            }
+                        }
+                        
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_box: bool = match boxes.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                record.serialize_bool(is_box);
+                            }
+                        }
+
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let line_status: u8 = match lines.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0)
+                                    }
+                                    None => 0,
+                                };
+                                let ternary: i8 = match line_status {
+                                    1 => -1,
+                                    2 => 1,
+                                    _ => 0,
+                                };
+                                record.serialize_ternary(ternary);
+                            }
+                        }
+
+                        // horizontal symmetry is worsening the prediction.
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let is_symmetric: bool = match horizontal_symmetry.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(0) > 0
+                        //             }
+                        //             None => false
+                        //         };
+                        //         record.serialize_bool(is_symmetric);
+                        //     }
+                        // }
+
+                        // vertical symmetry is worsening the prediction.
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let is_symmetric: bool = match vertical_symmetry.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(0) > 0
+                        //             }
+                        //             None => false
+                        //         };
+                        //         record.serialize_bool(is_symmetric);
+                        //     }
+                        // }
 
                         #[allow(unused_variables)]
                         let directions = [
@@ -1631,10 +1838,84 @@ impl ExperimentWithLogisticRegression {
                         record.serialize_bool(is_inside_bounding_box);
                     }
 
+                    // skewed pixel with x skewed or y skewed. Worsens the predictions.
+                    // {
+                    //     let color0: u8 = input.get_wrap(xx + yy, yy).unwrap_or(255);
+                    //     let color1: u8 = input.get_wrap(xx - yy, yy).unwrap_or(255);
+                    //     let color2: u8 = input.get_wrap(xx, yy + xx).unwrap_or(255);                        
+                    //     let color3: u8 = input.get_wrap(xx, yy - xx).unwrap_or(255);
+                    //     let color0: u8 = input.get(xx + yy, yy).unwrap_or(255);
+                    //     let color1: u8 = input.get(xx - yy, yy).unwrap_or(255);
+                    //     let color2: u8 = input.get(xx, yy + xx).unwrap_or(255);
+                    //     let color3: u8 = input.get(xx, yy - xx).unwrap_or(255);
+                    //     record.serialize_color_complex(color0);
+                    //     record.serialize_color_complex(color1);
+                    //     record.serialize_color_complex(color2);
+                    //     record.serialize_color_complex(color3);
+                    //     record.serialize_bool(center == color0);
+                    //     record.serialize_bool(center == color1);
+                    //     record.serialize_bool(center == color2);
+                    //     record.serialize_bool(center == color3);
+                    // }
+
+                    // shoot out rays in all directions. Worsens the predictions.
+                    // {
+                    //     for i in 1..3 {
+                    //         // let color0: u8 = input.get_wrap(xx - i, yy - i).unwrap_or(255);
+                    //         // let color1: u8 = input.get_wrap(xx + i, yy - i).unwrap_or(255);
+                    //         // let color2: u8 = input.get_wrap(xx - i, yy + i).unwrap_or(255);
+                    //         // let color3: u8 = input.get_wrap(xx + i, yy + i).unwrap_or(255);
+                    //         // let color0: u8 = input.get(xx - i, yy - i).unwrap_or(255);
+                    //         // let color1: u8 = input.get(xx + i, yy - i).unwrap_or(255);
+                    //         // let color2: u8 = input.get(xx - i, yy + i).unwrap_or(255);
+                    //         // let color3: u8 = input.get(xx + i, yy + i).unwrap_or(255);
+                    //         let color0: u8 = input.get(xx - i, yy).unwrap_or(255);
+                    //         let color1: u8 = input.get(xx + i, yy).unwrap_or(255);
+                    //         let color2: u8 = input.get(xx, yy - i).unwrap_or(255);
+                    //         let color3: u8 = input.get(xx, yy + i).unwrap_or(255);
+                    //         let all_same: bool = color0 < 10 && color0 == color1 && color0 == color2 && color0 == color3;
+                    //         // record.serialize_bool(all_same);
+                    //         let agree_color: u8 = if all_same { color0 } else { 255 };
+                    //         record.serialize_color_complex(agree_color);
+                    //         // record.serialize_bool(center == color0);
+                    //         // record.serialize_bool(center == color1);
+                    //         // record.serialize_bool(center == color2);
+                    //         // record.serialize_bool(center == color3);
+                    //         // record.serialize_color_complex(color0);
+                    //         // record.serialize_color_complex(color1);
+                    //         // record.serialize_color_complex(color2);
+                    //         // record.serialize_color_complex(color3);
+                    //     }
+                    // }
+
+                    // distance to the nearest corner. Worsens the predictions.
+                    // {
+                        // let distance1: u8 = distance_to_corner1.get(xx, yy).unwrap_or(255).min(3);
+                        // let distance2: u8 = distance_to_corner2.get(xx, yy).unwrap_or(255);
+                        // let distance3: u8 = distance_to_corner3.get(xx, yy).unwrap_or(255);
+                        // let distance4: u8 = distance_to_corner4.get(xx, yy).unwrap_or(255);
+                        // record.serialize_u8(distance1);
+                        // record.serialize_u8(distance2);
+                        // record.serialize_u8(distance3);
+                        // record.serialize_u8(distance4);
+                    // }
 
                     // Future experiments
                     // push all the training pairs that have been rotated by 90 degrees.
                     // push all the training pairs that have been flipped.
+                    //
+                    // draw lines between nearest clusters, with the same color as the cluster. for all 10 colors.
+                    // interior mass of the constructed objects.
+                    // histogram of the pixels inside the constructed objects.
+                    //
+                    // shape complexity score. Sometimes it's the most complex object that is of interest.
+                    //
+                    // reversed color popularity, 3x3 convolution
+                    //
+                    // when inside a single color object, what is the distance to the edge of the object, in all directions.
+                    //
+                    // when the image is splitted in half,
+                    // is inside the left-side then it's -1, inside the separator then 0, inside the right-side: +1.
                     //
                     // when the image is splitted into multiple cells, example 3 cells:
                     // cell0: is inside split area 0
@@ -1642,6 +1923,10 @@ impl ExperimentWithLogisticRegression {
                     // cell2: is inside split area 2
                     // border01: is on the border between cell0 and cell1
                     // border12: is on the border between cell1 and cell2
+                    //
+                    // parent object id
+                    // child object id
+                    //
                     // is solid object without holes
                     // hole is square/rectangle/sparse
                     // object size, is biggest

@@ -499,7 +499,7 @@ mod tests {
         assert_eq!(config.miner_metrics_listen_port, 8090);
         assert_has_suffix(&config.loda_patterns_repository, "/git/loda-patterns")?;
         assert_has_suffix(&config.loda_outlier_programs_repository, "/git/loda-outlier-programs")?;
-        assert_has_suffix(&config.arc_repository_data, "/git/ARC/data")?;
+        assert_has_suffix(&config.arc_repository_data, "/git/arc-dataset-collection/dataset")?;
         assert_has_suffix(&config.loda_arc_challenge_repository, "/git/loda-arc-challenge")?;
         assert_eq!(config.miner_filter_mode, MinerFilterMode::New);
         assert_eq!(config.miner_cpu_strategy, MinerCPUStrategy::Max);
