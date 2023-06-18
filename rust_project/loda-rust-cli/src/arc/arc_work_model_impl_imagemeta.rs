@@ -1,4 +1,4 @@
-use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask, ImageProperty};
+use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask, ImageProperty, ImageExtractRowColumn};
 use super::{SingleColorObject, SingleColorObjectToLabel};
 use super::{Grid, GridToLabel};
 use super::{Symmetry, SymmetryToLabel};
@@ -26,6 +26,7 @@ impl arc_work_model::ImageMeta {
         self.assign_single_color_object(image)?;
         self.assign_single_border_color()?;
         self.assign_border_flood_fill(image)?;
+        self.assign_most_popular_border_color_is_present_on_all_edges(image)?;
         self.assign_image_properties_about_noise_pixels()?;
         Ok(())
     }
@@ -282,6 +283,29 @@ impl arc_work_model::ImageMeta {
             let image_label = ImageLabel::BorderFloodFillConnectivity4AllPixelsWithColor { color };
             self.image_label_set.insert(image_label);
         }
+        Ok(())
+    }
+
+    fn assign_most_popular_border_color_is_present_on_all_edges(&mut self, image: &Image) -> anyhow::Result<()> {
+        let border_color: u8 = match self.histogram_border.most_popular_color_disallow_ambiguous() {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        };
+        let row_top: Image = image.top_rows(1)?;
+        let row_bottom: Image = image.bottom_rows(1)?;
+        let column_left: Image = image.left_columns(1)?;
+        let column_right: Image = image.right_columns(1)?;
+        let edge_images: Vec::<Image> = vec![row_top, row_bottom, column_left, column_right];
+        for edge_image in &edge_images {
+            let edge_histogram: Histogram = edge_image.histogram_all();
+            if edge_histogram.get(border_color) == 0 {
+                return Ok(());
+            }
+        }
+        let image_label = ImageLabel::MostPopularBorderColorIsPresentOnAllEdges;
+        self.image_label_set.insert(image_label);
         Ok(())
     }
 

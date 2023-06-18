@@ -174,6 +174,17 @@ pub enum ImageLabel {
     /// Only one color is used along all the borders in the image.
     SingleBorderColor { color: u8 },
 
+    /// Every edge (top, bottom, left and right) are using the most popular border color.
+    /// 
+    /// There has to be at least 1 pixel on each edge.
+    /// 
+    /// The color is the most popular in the border histogram.
+    /// 
+    /// This may be the a sparse object that is touching all the edges.
+    /// 
+    /// If the input image only use 1 color for all pixels, then that object is touching all the edges.
+    MostPopularBorderColorIsPresentOnAllEdges,
+
     // Ideas for more
     // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsAreMovedByTheSameOffsetWrapAround { offset_x: i32, offset_y: i32, background_color: u8 },
