@@ -43,6 +43,8 @@ pub enum ImageProperty {
     WidthMinus2AfterTrimBorderColor,
     HeightAfterTrimBorderColor,
     HeightMinus2AfterTrimBorderColor,
+    WidthOfBiggestObjectIgnoringMostPopularBorderColor,
+    HeightOfBiggestObjectIgnoringMostPopularBorderColor,
 
     // Ideas for more
     // NumberOfClusters,
