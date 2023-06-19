@@ -655,11 +655,11 @@ impl arc_work_model::Task {
     }
 
     fn assign_input_properties_related_to_input_histogram_intersection(&mut self) {
-        let removal_pairs: Vec<(u32,u8)> = self.input_histogram_intersection.pairs_descending();
-        if removal_pairs.len() != 1 {
+        let histogram_pairs: Vec<(u32,u8)> = self.input_histogram_intersection.pairs_descending();
+        if histogram_pairs.len() != 1 {
             return;
         }
-        let background_color: u8 = match removal_pairs.first() {
+        let background_color: u8 = match histogram_pairs.first() {
             Some((_count, color)) => *color,
             None => {
                 return;
