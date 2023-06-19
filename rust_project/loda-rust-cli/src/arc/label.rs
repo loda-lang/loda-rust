@@ -46,9 +46,9 @@ pub enum ImageProperty {
     WidthOfBiggestObjectIgnoringMostPopularBorderColor,
     HeightOfBiggestObjectIgnoringMostPopularBorderColor,
     NumberOfClustersWithMostPopularIntersectionColor,
+    NumberOfClustersWithLeastPopularIntersectionColor,
 
     // Ideas for more
-    // NumberOfClusters,
     // NoisePixelsCountOutsideAnyObjects,
     // MaxNumberOfClustersInSparseSingleColorObject,
     // MaxWidthOfClustersInSparseSingleColorObject,

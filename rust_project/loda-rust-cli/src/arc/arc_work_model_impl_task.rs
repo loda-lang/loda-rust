@@ -654,7 +654,7 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    fn assign_input_properties_related_to_number_of_clusters(&mut self) -> anyhow::Result<()> {
+    fn assign_input_properties_related_to_number_of_clusters_with_most_popular_color(&mut self) -> anyhow::Result<()> {
         let mut unambiguous_connected: bool = false;
         for image_label in &self.input_image_label_set_intersection {
             match image_label {
@@ -696,6 +696,53 @@ impl arc_work_model::Task {
             };
 
             pair.input.image_meta.image_properties.insert(ImageProperty::NumberOfClustersWithMostPopularIntersectionColor, max_pixel_value);
+        }
+
+        Ok(())
+    }
+
+    fn assign_input_properties_related_to_number_of_clusters_with_least_popular_color(&mut self) -> anyhow::Result<()> {
+        let mut unambiguous_connected: bool = false;
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::UnambiguousConnectivityWithAllColors => {
+                    unambiguous_connected = true;
+                },
+                _ => {}
+            }
+        }
+        let is_satisfied: bool = unambiguous_connected;
+        if !is_satisfied {
+            return Err(anyhow::anyhow!("Preconditions are not satisfied"));
+        }
+        // At this point we know that:
+        // - it doesn't matter if we use connectivity 4 or 8, it yields the same single color objects.
+
+        let least_popular_color: u8 = match self.input_histogram_intersection.least_popular_color_disallow_ambiguous() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to determine least popular color, histogram is empty, or two or more colors have the same number of pixels"));
+            }
+        };
+
+        for pair in &mut self.pairs {
+
+            let sco: &SingleColorObject = match &pair.input.image_meta.single_color_object {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing single color object"));
+                }
+            };
+
+            let enumerated_clusters: Image = sco.enumerate_clusters(least_popular_color, PixelConnectivity::Connectivity4)?;
+            let max_pixel_value: u8 = match enumerated_clusters.minmax() {
+                Some(value) => value.1,
+                None => {
+                    continue;
+                }
+            };
+
+            pair.input.image_meta.image_properties.insert(ImageProperty::NumberOfClustersWithLeastPopularIntersectionColor, max_pixel_value);
         }
 
         Ok(())
@@ -990,13 +1037,14 @@ impl arc_work_model::Task {
         self.assign_input_properties_related_to_removal_histogram();
         _ = self.assign_input_properties_related_to_biggest_object_ignoring_most_popular_border_color();
         _ = self.assign_input_properties_related_to_trim_with_border_color();
-        _ = self.assign_input_properties_related_to_number_of_clusters();
+        _ = self.assign_input_properties_related_to_number_of_clusters_with_most_popular_color();
+        _ = self.assign_input_properties_related_to_number_of_clusters_with_least_popular_color();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
         _ = self.determine_if_objects_have_moved();
 
-        let input_properties: [ImageProperty; 34] = [
+        let input_properties: [ImageProperty; 35] = [
             ImageProperty::Width, 
             ImageProperty::WidthPlus1, 
             ImageProperty::WidthPlus2, 
@@ -1031,6 +1079,7 @@ impl arc_work_model::Task {
             ImageProperty::WidthOfBiggestObjectIgnoringMostPopularBorderColor,
             ImageProperty::HeightOfBiggestObjectIgnoringMostPopularBorderColor,
             ImageProperty::NumberOfClustersWithMostPopularIntersectionColor,
+            ImageProperty::NumberOfClustersWithLeastPopularIntersectionColor,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
