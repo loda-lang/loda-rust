@@ -45,6 +45,7 @@ pub enum ImageProperty {
     HeightMinus2AfterTrimBorderColor,
     WidthOfBiggestObjectIgnoringMostPopularBorderColor,
     HeightOfBiggestObjectIgnoringMostPopularBorderColor,
+    NumberOfClustersWithMostPopularIntersectionColor,
 
     // Ideas for more
     // NumberOfClusters,
