@@ -701,6 +701,30 @@ impl arc_work_model::Task {
         Ok(())
     }
 
+    fn assign_input_properties_related_to_cell_count(&mut self) -> anyhow::Result<()> {
+        for pair in &self.pairs {
+            if pair.input.grid_pattern.is_none() {
+                return Err(anyhow::anyhow!("One or more pairs have no grid pattern"));
+            }
+        }
+        // At this point we know that:
+        // - there is a grid.
+
+        for pair in &mut self.pairs {
+            let pattern: &GridPattern = match &pair.input.grid_pattern {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing grid pattern"));
+                }
+            };
+
+            pair.input.image_meta.image_properties.insert(ImageProperty::CellCountX, pattern.horizontal_cell_count);
+            pair.input.image_meta.image_properties.insert(ImageProperty::CellCountY, pattern.vertical_cell_count);
+        }
+
+        Ok(())
+    }
+
     fn assign_input_properties_related_to_number_of_clusters_with_least_popular_color(&mut self) -> anyhow::Result<()> {
         let mut unambiguous_connected: bool = false;
         for image_label in &self.input_image_label_set_intersection {
@@ -1035,16 +1059,18 @@ impl arc_work_model::Task {
         self.update_output_image_label_set_intersection();
         self.update_input_output_image_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
+        self.compute_input_grid_pattern()?;
         _ = self.assign_input_properties_related_to_biggest_object_ignoring_most_popular_border_color();
         _ = self.assign_input_properties_related_to_trim_with_border_color();
         _ = self.assign_input_properties_related_to_number_of_clusters_with_most_popular_color();
         _ = self.assign_input_properties_related_to_number_of_clusters_with_least_popular_color();
+        _ = self.assign_input_properties_related_to_cell_count();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
         _ = self.determine_if_objects_have_moved();
 
-        let input_properties: [ImageProperty; 35] = [
+        let input_properties: [ImageProperty; 37] = [
             ImageProperty::Width, 
             ImageProperty::WidthPlus1, 
             ImageProperty::WidthPlus2, 
@@ -1080,6 +1106,8 @@ impl arc_work_model::Task {
             ImageProperty::HeightOfBiggestObjectIgnoringMostPopularBorderColor,
             ImageProperty::NumberOfClustersWithMostPopularIntersectionColor,
             ImageProperty::NumberOfClustersWithLeastPopularIntersectionColor,
+            ImageProperty::CellCountX,
+            ImageProperty::CellCountY,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
@@ -1184,8 +1212,6 @@ impl arc_work_model::Task {
         self.assign_repair_mask();
 
         self.compute_input_repaired_image()?;
-
-        self.compute_input_grid_pattern()?;
 
         self.compute_input_enumerated_objects()?;
 
