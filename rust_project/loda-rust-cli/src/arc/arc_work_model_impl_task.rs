@@ -1,4 +1,4 @@
-use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle};
+use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle, Rectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction, Pair};
 use super::arc_json_model;
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
@@ -544,6 +544,77 @@ impl arc_work_model::Task {
         }
     }
 
+    fn assign_input_properties_related_to_biggest_object_ignoring_most_popular_border_color(&mut self) -> anyhow::Result<()> {
+        let mut most_popular_border_color_is_present_on_all_edges: bool = false;
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::MostPopularBorderColorIsPresentOnAllEdges => {
+                    most_popular_border_color_is_present_on_all_edges = true;
+                },
+                _ => {}
+            }
+        }
+        let is_satisfied: bool = most_popular_border_color_is_present_on_all_edges;
+        if !is_satisfied {
+            return Err(anyhow::anyhow!("Preconditions are not satisfied"));
+        }
+        // At this point we know that:
+        // - the most popular color is present on all edges.
+
+        for pair in &mut self.pairs {
+
+            let border_color: u8 = match pair.input.image_meta.histogram_border.most_popular_color_disallow_ambiguous() {
+                Some(color) => color,
+                None => {
+                    return Err(anyhow::anyhow!("Missing most popular color"));
+                }
+            };
+
+            let sco: &SingleColorObject = match &pair.input.image_meta.single_color_object {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing single color object"));
+                }
+            };
+
+            let mut count_ambiguious: u8 = 0;
+            let mut found_size: ImageSize = ImageSize::empty();
+            let mut found_area: u16 = 0;
+            for color in 0..=9 {
+                if color == border_color {
+                    continue;
+                }
+                let bounding_box: Rectangle = match sco.bounding_box(color) {
+                    Some(value) => value,
+                    None => {
+                        continue;
+                    }
+                };
+                let size: ImageSize = bounding_box.size();
+                let area: u16 = (size.width as u16) * (size.height as u16);
+                if area < found_area {
+                    continue;
+                }
+                if area == found_area {
+                    count_ambiguious += 1;
+                    continue;
+                }
+                found_size = size;
+                count_ambiguious = 0;
+                found_area = area;
+            }
+
+            if count_ambiguious > 0 {
+                continue;
+            }
+
+            pair.input.image_meta.image_properties.insert(ImageProperty::WidthOfBiggestObjectIgnoringMostPopularBorderColor, found_size.width);
+            pair.input.image_meta.image_properties.insert(ImageProperty::HeightOfBiggestObjectIgnoringMostPopularBorderColor, found_size.height);
+        }
+
+        Ok(())
+    }
+
     fn assign_input_properties_related_to_trim_with_border_color(&mut self) -> anyhow::Result<()> {
         let mut found_colors = Histogram::new();
         for image_label in &self.input_image_label_set_intersection {
@@ -870,13 +941,14 @@ impl arc_work_model::Task {
         self.update_output_image_label_set_intersection();
         self.update_input_output_image_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
+        _ = self.assign_input_properties_related_to_biggest_object_ignoring_most_popular_border_color();
         _ = self.assign_input_properties_related_to_trim_with_border_color();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
         _ = self.determine_if_objects_have_moved();
 
-        let input_properties: [ImageProperty; 31] = [
+        let input_properties: [ImageProperty; 33] = [
             ImageProperty::Width, 
             ImageProperty::WidthPlus1, 
             ImageProperty::WidthPlus2, 
@@ -908,6 +980,8 @@ impl arc_work_model::Task {
             ImageProperty::HeightAfterTrimBorderColor,
             ImageProperty::WidthMinus2AfterTrimBorderColor,
             ImageProperty::HeightMinus2AfterTrimBorderColor,
+            ImageProperty::WidthOfBiggestObjectIgnoringMostPopularBorderColor,
+            ImageProperty::HeightOfBiggestObjectIgnoringMostPopularBorderColor,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
