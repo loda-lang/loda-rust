@@ -326,6 +326,7 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // OutputSizeIsTheSameAsObjectAtPosition { position: Top/Bottom/Left/Right },
     // NoMovementInDirectionX,
     // NoMovementInDirectionY,
     // ObjectsOnlyMoveInDirectionX,

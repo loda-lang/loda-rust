@@ -2171,6 +2171,14 @@ impl arc_work_model::Task {
         if !self.has_enumerated_objects() {
             self.reset_input_enumerated_objects();
         }
+
+        // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_based_on_unambiguous_connectivity();
+
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            self.reset_input_enumerated_objects();
+        }
         Ok(())
     }
 
@@ -2307,6 +2315,50 @@ impl arc_work_model::Task {
             };
             let object_images_sorted: Vec<Image> = ObjectsSortByProperty::sort_by_mass_descending(&object_images)?;
             let enumerated_objects: Image = Image::object_enumerate(&object_images_sorted)?;
+            pair.input.enumerated_objects = Some(enumerated_objects);
+        }
+
+        Ok(())
+    }
+
+    fn compute_input_enumerated_objects_based_on_unambiguous_connectivity(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        let most_popular_color: u8 = match self.input_histogram_intersection.most_popular_color_disallow_ambiguous() {
+            Some(color) => color,
+            None => {
+                return Err(anyhow::anyhow!("No agreement on a single color"));
+            }
+        };
+
+        let mut unambiguous_connected: bool = false;
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::UnambiguousConnectivityWithAllColors => {
+                    unambiguous_connected = true;
+                },
+                _ => {}
+            }
+        }
+        let is_satisfied: bool = unambiguous_connected;
+        if !is_satisfied {
+            return Err(anyhow::anyhow!("Preconditions are not satisfied"));
+        }
+        // At this point we know that:
+        // - it doesn't matter if we use connectivity 4 or 8, it yields the same single color objects.
+        // - there is a popular color that all all the inputs agree on, sometimes it's the background color.
+
+        for pair in &mut self.pairs {
+            let ignore_mask: Image = pair.input.image.to_mask_where_color_is(most_popular_color);
+
+            let result = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity4, &pair.input.image, &ignore_mask);
+            let object_images: Vec<Image> = match result {
+                Ok(images) => images,
+                Err(_) => continue
+            };
+            let enumerated_objects: Image = Image::object_enumerate(&object_images)?;
             pair.input.enumerated_objects = Some(enumerated_objects);
         }
 
