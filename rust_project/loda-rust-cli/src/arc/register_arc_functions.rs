@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere, ImageDrawRect, ImageMaskCount, GeneratePattern};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere, ImageDrawRect, ImageMaskCount, GeneratePattern, ObjectsAndPosition, ObjectsAndPositionMode};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity, GravityDirection, ImageCountUniqueColors};
@@ -4036,6 +4036,67 @@ impl UnofficialFunction for ObjectsAndMassGroup2MassDifferentFunction {
     }
 }
 
+enum ObjectsAndPositionFunctionMode {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
+struct ObjectsAndPositionFunction {
+    id: u32,
+    mode: ObjectsAndPositionFunctionMode,
+}
+
+impl ObjectsAndPositionFunction {
+    fn new(id: u32, mode: ObjectsAndPositionFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ObjectsAndPositionFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ObjectsAndPositionFunctionMode::Top => "Mask of top-most object".to_string(),
+            ObjectsAndPositionFunctionMode::Bottom => "Mask of bottom-most object".to_string(),
+            ObjectsAndPositionFunctionMode::Left => "Mask of left-most object".to_string(),
+            ObjectsAndPositionFunctionMode::Right => "Mask of right-most object".to_string(),
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is enumerated objects
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let enumerated_objects: Image = input0_uint.to_image()?;
+
+        let mode: ObjectsAndPositionMode = match self.mode {
+            ObjectsAndPositionFunctionMode::Top => ObjectsAndPositionMode::Top,
+            ObjectsAndPositionFunctionMode::Bottom => ObjectsAndPositionMode::Bottom,
+            ObjectsAndPositionFunctionMode::Left => ObjectsAndPositionMode::Left,
+            ObjectsAndPositionFunctionMode::Right => ObjectsAndPositionMode::Right,
+        };
+
+        let output_image: Image = ObjectsAndPosition::run(&enumerated_objects, mode)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -4290,4 +4351,10 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Objects and mass
     register_function!(ObjectsAndMassGroup3SmallMediumBigFunction::new(104200));
     register_function!(ObjectsAndMassGroup2MassDifferentFunction::new(104201));
+
+    // Objects and position
+    register_function!(ObjectsAndPositionFunction::new(104210, ObjectsAndPositionFunctionMode::Top));
+    register_function!(ObjectsAndPositionFunction::new(104211, ObjectsAndPositionFunctionMode::Bottom));
+    register_function!(ObjectsAndPositionFunction::new(104212, ObjectsAndPositionFunctionMode::Left));
+    register_function!(ObjectsAndPositionFunction::new(104213, ObjectsAndPositionFunctionMode::Right));
 }

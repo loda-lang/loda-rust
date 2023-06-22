@@ -213,7 +213,7 @@ pub use object_with_different_color::ObjectWithDifferentColor;
 pub use object_with_smallest_value::ObjectWithSmallestValue;
 pub use objects_and_gravity::{ObjectsAndGravity, ObjectsAndGravityDirection};
 pub use objects_and_mass::ObjectsAndMass;
-pub use objects_and_position::ObjectsAndPosition;
+pub use objects_and_position::{ObjectsAndPosition, ObjectsAndPositionMode};
 pub use objects_measure_mass::ObjectsMeasureMass;
 pub use objects_sort_by_property::ObjectsSortByProperty;
 pub use objects_to_grid::{ObjectsToGrid, ObjectsToGridMode};
