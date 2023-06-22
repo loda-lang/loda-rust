@@ -4036,6 +4036,47 @@ impl UnofficialFunction for ObjectsAndMassGroup2MassDifferentFunction {
     }
 }
 
+struct BigObjectsFunction {
+    id: u32,
+}
+
+impl BigObjectsFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for BigObjectsFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Object ids of the biggest objects.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is enumerated objects
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let enumerated_objects: Image = input0_uint.to_image()?;
+
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects)?;
+        let output_image: Image = oam.big_objects()?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 enum ObjectsAndPositionFunctionMode {
     Top,
     Bottom,
@@ -4351,6 +4392,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Objects and mass
     register_function!(ObjectsAndMassGroup3SmallMediumBigFunction::new(104200));
     register_function!(ObjectsAndMassGroup2MassDifferentFunction::new(104201));
+    register_function!(BigObjectsFunction::new(104202));
 
     // Objects and position
     register_function!(ObjectsAndPositionFunction::new(104210, ObjectsAndPositionFunctionMode::Top));
