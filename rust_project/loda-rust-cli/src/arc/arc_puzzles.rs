@@ -6009,4 +6009,42 @@ mod tests {
         let result: String = run_advanced("TopBottom2D6", PROGRAM_TOPBOTTOM2D6).expect("String");
         assert_eq!(result, "4 3");
     }
+
+    const PROGRAM_EXTRACTOBJECTS1: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,110 ; address of vector[0].EnumeratedObjects
+    mov $84,114 ; address of vector[0].InputMostPopularColor
+    lps $80
+        mov $10,$$84 ; most popular color
+
+        mov $0,$$83 ; enumerated objects
+        f11 $0,104202 ; Object ids of the biggest objects.
+  
+        ; $0 = mask of bottom-most object
+        mov $1,$10 ; fill color
+        mov $2,$$81 ; input image
+        f31 $0,102130 ; Pick pixels from color and image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.
+
+        mov $1,$10 ; the color to be trimmed
+        f21 $0,101161 ; trim with color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+        add $84,100
+    lpe
+    ";
+
+    #[test]
+    fn test_1230000_puzzle_extractobjects1_loda() {
+        let result: String = run_advanced("ExtractObjects1", PROGRAM_EXTRACTOBJECTS1).expect("String");
+        // There is a problem with the last `test` pair. Here the output has 2 foreground colors and a background color. 3 colors in total.
+        // All the output images have a single foreground color with an optional background color.
+        // The `enumerated_objects` contains a multi colored object.
+        // where the `enumerated_objects` should be enumerating the single colored objects.
+        assert_eq!(result.contains("3 2 - test"), true);
+    }
 }
