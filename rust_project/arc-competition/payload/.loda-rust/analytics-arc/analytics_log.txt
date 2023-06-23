@@ -1,5 +1,5 @@
 BatchProgramAnalyzer
-number of program files successfully analyzed: 224
+number of program files successfully analyzed: 233
 number of program files that could not be loaded: 0
 number of program files that was ignored: 0
 
@@ -10,26 +10,26 @@ AnalyzeIndirectMemoryAccess
 number of programs that uses indirect memory access: 1
 
 AnalyzeInstructionConstant
-number of constants processed unsuccessful: 734
-number of constants processed successful: 1512
+number of constants processed unsuccessful: 764
+number of constants processed successful: 1574
 number of items in histogram: 50
 
 AnalyzeInstructionNgram
 unigram: 24, bigram: 76, trigram: 159, skipgram: 88
 
 AnalyzeSourceNgram
-unigram: 79, bigram: 351, trigram: 756, skipgram: 392
+unigram: 79, bigram: 360, trigram: 783, skipgram: 406
 
 AnalyzeLineNgram
-unigram: 512, bigram: 924, trigram: 1168, skipgram: 1024, ignore count: 36
+unigram: 520, bigram: 954, trigram: 1211, skipgram: 1054, ignore count: 37
 
 AnalyzeTargetNgram
-unigram: 45, bigram: 231, trigram: 463, skipgram: 301
+unigram: 45, bigram: 232, trigram: 469, skipgram: 303
 
 AnalyzeProgramComplexity
 optimize: 0, dontoptimize: 1, optimize/total: 0.0%
 
 AnalyzeProgramModified
-timestamps: 224
+timestamps: 233
 
-subcommand_analytics finished, elapsed: 49 ms
+subcommand_analytics finished, elapsed: 57 ms

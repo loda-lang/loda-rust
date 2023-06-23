@@ -10,7 +10,7 @@ pub trait ImageMaskSolidGround {
     /// 
     /// Returns an image with the same size.
     /// 
-    /// The usecase is gravity. When an object is moving down the ground, and the goal is to
+    /// The usecase is gravity. When an object is moving down to the ground, and the goal is to
     /// maximize the number of pixels where the object is touching the ground,
     /// and leave as few pixels untouched.
     /// It's a bad candidate position if there are several pixels untouched and another object 
