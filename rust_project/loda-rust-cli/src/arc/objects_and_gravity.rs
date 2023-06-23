@@ -4,7 +4,7 @@
 use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageMaskBoolean, Rectangle, ImageCrop, PixelConnectivity, ImageMaskGrow, ImageCompare, ImageMaskSolidGround};
 
 #[allow(unused_imports)]
-use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
+use super::{HtmlLog, ImageToHTML, ImageLabel, GridLabel};
 
 static VERBOSE_GRAVITY: bool = false;
 

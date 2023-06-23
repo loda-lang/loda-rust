@@ -41,7 +41,11 @@ pub struct SingleColorObjectSparse {
     pub color: u8,
 
     /// This image has the same size as the original image.
-    pub mask: Image,
+    pub mask_uncropped: Image,
+
+    /// This image has been cropped to the bounding box.
+    #[allow(dead_code)]
+    pub mask_cropped: Image,
 
     /// Bounding box of the mask
     pub bounding_box: Rectangle,
@@ -88,8 +92,9 @@ impl SingleColorObjectSparse {
         if verbose {
             println!("SingleColorObjectSparse.create: color: {} mask: {:?} rect: {:?}", color, mask, rect);
         }
-        let cropped_object: Image = image.crop(rect)?;
-        let mut histogram: Histogram = cropped_object.histogram_all();
+        let mask_cropped: Image = mask.crop(rect)?;
+        let image_cropped: Image = image.crop(rect)?;
+        let mut histogram: Histogram = image_cropped.histogram_all();
         let mass_object: u16 = histogram.get(color).min(u16::MAX as u32) as u16;
         histogram.set_counter_to_zero(color);
         let mass_non_object: u16 = histogram.sum().min(u16::MAX as u32) as u16;
@@ -98,7 +103,8 @@ impl SingleColorObjectSparse {
         }
         let mut instance = SingleColorObjectSparse {
             color,
-            mask,
+            mask_uncropped: mask,
+            mask_cropped,
             bounding_box: rect,
             mass_object,
             mass_non_object,
@@ -156,7 +162,7 @@ impl SingleColorObjectSparse {
     /// The `connectivity` parameter is for choosing between 4-connected and 8-connected.
     fn analyze(&mut self, connectivity: PixelConnectivity) -> anyhow::Result<()> {
         // Objects that is not the background
-        let cropped_mask: Image = self.mask.crop(self.bounding_box)?;
+        let cropped_mask: Image = self.mask_uncropped.crop(self.bounding_box)?;
         let ignore_mask: Image = cropped_mask.invert_mask();
 
         let blank = Image::zero(cropped_mask.width(), cropped_mask.height());
@@ -209,12 +215,12 @@ impl SingleColorObjectSparse {
         }
 
         // The holes
-        let mut holes_mask_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
+        let mut holes_mask_uncropped: Image = Image::zero(self.mask_uncropped.width(), self.mask_uncropped.height());
         holes_mask_uncropped = holes_mask_uncropped.overlay_with_position(&accumulated_holes_mask, self.bounding_box.min_x(), self.bounding_box.min_y())?;
 
         // Enumerate the clusters
         let enumerated_clusters: Image = Image::object_enumerate(&object_mask_vec)?;
-        let mut enumerated_clusters_uncropped: Image = Image::zero(self.mask.width(), self.mask.height());
+        let mut enumerated_clusters_uncropped: Image = Image::zero(self.mask_uncropped.width(), self.mask_uncropped.height());
         enumerated_clusters_uncropped = enumerated_clusters_uncropped.overlay_with_position(&enumerated_clusters, self.bounding_box.min_x(), self.bounding_box.min_y())?;
 
         let container = SingleColorObjectClusterContainer {
@@ -257,16 +263,18 @@ pub struct SingleColorObjectCluster {
     // shape of each hole. square, non-square, rectangular, other.
     // color of each hole. same, different.
     // shape of cluster
+    // corner with irregularity, regularity
+    // edge with irregularity, regularity
 }
 
 #[derive(Clone, Debug)]
-pub struct SingleColorObjects {
+pub struct SingleColorObject {
     pub image_size: ImageSize,
     pub rectangle_vec: Vec<SingleColorObjectRectangle>,
     pub sparse_vec: Vec<SingleColorObjectSparse>,
 }
 
-impl SingleColorObjects {
+impl SingleColorObject {
     pub fn find_objects(image: &Image) -> anyhow::Result<Self> {
         if image.is_empty() {
             return Err(anyhow::anyhow!("The image must be 1x1 or bigger"));
@@ -318,7 +326,7 @@ impl SingleColorObjects {
             result_mask = result_mask.mix(&object.mask, MixMode::Plus)?;
         }
         for object in &self.sparse_vec {
-            result_mask = result_mask.mix(&object.mask, MixMode::Plus)?;
+            result_mask = result_mask.mix(&object.mask_uncropped, MixMode::Plus)?;
         }
         let actual_mass: u16 = result_mask.mask_count_one();
         let expected_mass: u16 = (self.image_size.width as u16) * (self.image_size.height as u16);
@@ -338,6 +346,16 @@ impl SingleColorObjects {
     /// 
     /// Returns `None` when the all colors have an area with `mass > 1`. And thus no single pixels can be identified.
     pub fn single_pixel_noise_color(&self) -> Option<u8> {
+        let histogram: Histogram = self.single_pixel_noise_histogram();
+        histogram.most_popular_color_disallow_ambiguous()
+    }
+
+    /// Histogram of the noise pixels.
+    /// 
+    /// The noise pixels are isolated lonely pixels with a mass of 1 pixel.
+    /// 
+    /// Returns an empty histogram when all colors have an area with `mass > 1`. And thus no single pixels can be identified.
+    pub fn single_pixel_noise_histogram(&self) -> Histogram {
         let mut histogram: Histogram = Histogram::new();
         for object in &self.rectangle_vec {
             if object.mass == 1 {
@@ -388,7 +406,7 @@ impl SingleColorObjects {
             // the clusters are separated by 1 or more pixels, so there is a high chance that it's noise.
             histogram.increment_by(object.color, object.mass_object as u32);
         }
-        histogram.most_popular_color_disallow_ambiguous()
+        histogram
     }
 
     /// Extracts the `mass` from all objects. Clamp the `mass` to a maximum of 255.
@@ -542,22 +560,33 @@ impl SingleColorObjects {
         0
     }
 
-    /// Check if the coordinate is inside the bounding box.
-    #[allow(dead_code)]
-    pub fn is_inside_bounding_box(&self, color: u8, x: i32, y: i32) -> bool {
+    /// Bounding box of the specified `color`.
+    pub fn bounding_box(&self, color: u8) -> Option<Rectangle> {
         for object in &self.rectangle_vec {
             if object.color != color {
                 continue;
             }
-            return object.bounding_box.is_inside(x, y);
+            return Some(object.bounding_box);
         }
         for object in &self.sparse_vec {
             if object.color != color {
                 continue;
             }
-            return object.bounding_box.is_inside(x, y);
+            return Some(object.bounding_box);
         }
-        false
+        None
+    }
+
+    /// Check if the coordinate is inside the bounding box.
+    #[allow(dead_code)]
+    pub fn is_inside_bounding_box(&self, color: u8, x: i32, y: i32) -> bool {
+        let bounding_box: Rectangle = match self.bounding_box(color) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+        bounding_box.is_inside(x, y)
     }
 
     /// Mask of the objects with the specified `color`, where the object is horizontal symmetric.
@@ -707,7 +736,7 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let actual: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
 
         // Assert
         assert_eq!(actual.rectangle_vec.len(), 6);
@@ -724,7 +753,7 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let actual: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
 
         // Assert
         assert_eq!(actual.rectangle_vec.len(), 2);
@@ -738,7 +767,7 @@ mod tests {
             1, 0, 0,
         ];
         let expected_mask: Image = Image::try_create(3, 2, expected_pixels).expect("image");
-        assert_eq!(object.mask, expected_mask);
+        assert_eq!(object.mask_uncropped, expected_mask);
 
         assert_eq!(object.mass_object, 2);
         assert_eq!(object.mass_non_object, 4);
@@ -750,6 +779,46 @@ mod tests {
             histogram.increment(3);
             histogram.increment(3);
             assert_eq!(object.histogram_non_object, histogram);
+        }
+    }
+
+    #[test]
+    fn test_20001_object_sparse_mask_uncropped_and_mask_cropped() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            3, 3, 3, 3, 3,
+            3, 5, 3, 3, 3,
+            3, 3, 3, 5, 3,
+            3, 3, 3, 3, 3,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        assert_eq!(actual.rectangle_vec.len(), 0);
+        assert_eq!(actual.sparse_vec.len(), 2);
+        let object: &SingleColorObjectSparse = actual.sparse_vec.last().expect("1 instance");
+        assert_eq!(object.color, 5);
+        assert_eq!(object.bounding_box, Rectangle::new(1, 1, 3, 2));
+
+        // Assert
+        {
+            let expected_pixels: Vec<u8> = vec![
+                0, 0, 0, 0, 0,
+                0, 1, 0, 0, 0,
+                0, 0, 0, 1, 0,
+                0, 0, 0, 0, 0,
+            ];
+            let expected_mask: Image = Image::try_create(5, 4, expected_pixels).expect("image");
+            assert_eq!(object.mask_uncropped, expected_mask);
+        }
+        {
+            let expected_pixels: Vec<u8> = vec![
+                1, 0, 0,
+                0, 0, 1,
+            ];
+            let expected_mask: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+            assert_eq!(object.mask_cropped, expected_mask);
         }
     }
 
@@ -769,7 +838,7 @@ mod tests {
         let input: Image = Image::try_create(9, 8, pixels).expect("image");
         
         // Act
-        let actual: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let actual: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
 
         // Assert
         assert_eq!(actual.rectangle_vec.len(), 0);
@@ -831,7 +900,32 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_single_pixel_noise_color_from_rectangle_object() {
+    fn test_40000_single_pixel_noise_histogram() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 0, 0, 5, 5, 5, 5,
+            7, 4, 7, 0, 0, 5, 5, 5, 4,
+            7, 7, 7, 0, 0, 5, 5, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+            8, 8, 8, 8, 8, 3, 8, 5, 5,
+            8, 4, 8, 8, 8, 8, 8, 5, 5,
+            8, 8, 8, 8, 8, 8, 8, 5, 5,
+        ];
+        let input: Image = Image::try_create(9, 7, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Histogram = objects.single_pixel_noise_histogram();
+
+        // Assert
+        let mut expected = Histogram::new();
+        expected.increment_by(4, 3);
+        expected.increment_by(3, 1);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_50000_single_pixel_noise_color_from_rectangle_object() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 0, 5, 5, 5, 5,
@@ -843,7 +937,7 @@ mod tests {
             9, 8, 8, 8, 8, 8, 8, 5, 5,
         ];
         let input: Image = Image::try_create(9, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Option<u8> = objects.single_pixel_noise_color();
@@ -853,7 +947,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_single_pixel_noise_color_from_sparse_object() {
+    fn test_50001_single_pixel_noise_color_from_sparse_object() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 0, 5, 5, 5, 5,
@@ -865,7 +959,7 @@ mod tests {
             9, 8, 8, 8, 8, 8, 8, 5, 5,
         ];
         let input: Image = Image::try_create(9, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Option<u8> = objects.single_pixel_noise_color();
@@ -875,7 +969,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_single_pixel_noise_color_from_sparse_object_ambiguous() {
+    fn test_50002_single_pixel_noise_color_from_sparse_object_ambiguous() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 0, 5, 5, 5, 5,
@@ -887,7 +981,7 @@ mod tests {
             9, 8, 8, 8, 8, 8, 8, 5, 5,
         ];
         let input: Image = Image::try_create(9, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Option<u8> = objects.single_pixel_noise_color();
@@ -897,7 +991,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40003_single_pixel_noise_color_from_sparse_object_ignore_diagonal() {
+    fn test_50003_single_pixel_noise_color_from_sparse_object_ignore_diagonal() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 0, 5, 3, 5, 3,
@@ -909,7 +1003,7 @@ mod tests {
             9, 8, 8, 8, 8, 8, 8, 5, 5,
         ];
         let input: Image = Image::try_create(9, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Option<u8> = objects.single_pixel_noise_color();
@@ -919,7 +1013,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_mass_as_image_connectivity4() {
+    fn test_60000_mass_as_image_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 0, 5,
@@ -931,7 +1025,7 @@ mod tests {
             7, 8, 7, 8, 8, 8,
         ];
         let input: Image = Image::try_create(6, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.mass_as_image(PixelConnectivity::Connectivity4).expect("image");
@@ -951,7 +1045,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_mass_as_image_connectivity4() {
+    fn test_60001_mass_as_image_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             8, 8, 5, 8,
@@ -959,7 +1053,7 @@ mod tests {
             8, 8, 8, 8,
         ];
         let input: Image = Image::try_create(4, 3, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.mass_as_image(PixelConnectivity::Connectivity4).expect("image");
@@ -975,7 +1069,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_holes_mask_connectivity4() {
+    fn test_70000_holes_mask_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 0, 0,
@@ -987,7 +1081,7 @@ mod tests {
             5, 5, 5, 5, 8, 8,
         ];
         let input: Image = Image::try_create(6, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.holes_mask(5, PixelConnectivity::Connectivity4).expect("image");
@@ -1007,7 +1101,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70000_holecount_image_connectivity4() {
+    fn test_80000_holecount_image_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 0, 0,
@@ -1019,7 +1113,7 @@ mod tests {
             5, 5, 5, 5, 8, 8,
         ];
         let input: Image = Image::try_create(6, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.holecount_image(5, PixelConnectivity::Connectivity4).expect("image");
@@ -1039,7 +1133,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70001_holecount_image_connectivity4() {
+    fn test_80001_holecount_image_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 7, 0,
@@ -1050,7 +1144,7 @@ mod tests {
             7, 7, 7, 0, 7, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.holecount_image(3, PixelConnectivity::Connectivity4).expect("image");
@@ -1069,7 +1163,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80000_filled_holes_mask_connectivity4() {
+    fn test_90000_filled_holes_mask_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 7, 0,
@@ -1080,7 +1174,7 @@ mod tests {
             7, 7, 7, 0, 7, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.filled_holes_mask(3, PixelConnectivity::Connectivity4).expect("image");
@@ -1099,7 +1193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80001_filled_holes_mask_connectivity4() {
+    fn test_90001_filled_holes_mask_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 0, 7, 0,
@@ -1110,7 +1204,7 @@ mod tests {
             7, 7, 7, 0, 7, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.filled_holes_mask(7, PixelConnectivity::Connectivity4).expect("image");
@@ -1129,7 +1223,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80002_filled_holes_mask_connectivity4() {
+    fn test_90002_filled_holes_mask_connectivity4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 3, 3, 3, 0,
@@ -1141,7 +1235,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.filled_holes_mask(3, PixelConnectivity::Connectivity4).expect("image");
@@ -1161,7 +1255,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90000_corner_classification() {
+    fn test_100000_corner_classification() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 7, 0, 7,
@@ -1169,7 +1263,7 @@ mod tests {
             0, 0, 0, 7, 0, 7,
         ];
         let input: Image = Image::try_create(6, 3, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act + Assert
         {
@@ -1186,7 +1280,7 @@ mod tests {
     }
 
     #[test]
-    fn test_100000_is_inside_bounding_box() {
+    fn test_110000_bounding_box() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 7, 0, 7,
@@ -1194,7 +1288,25 @@ mod tests {
             0, 0, 0, 7, 0, 7,
         ];
         let input: Image = Image::try_create(6, 3, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act + Assert
+        assert_eq!(objects.bounding_box(0), Some(Rectangle::new(0, 0, 6, 3)));
+        assert_eq!(objects.bounding_box(6), Some(Rectangle::new(1, 1, 1, 1)));
+        assert_eq!(objects.bounding_box(7), Some(Rectangle::new(3, 0, 3, 3)));
+        assert_eq!(objects.bounding_box(9), None);
+    }
+
+    #[test]
+    fn test_110001_is_inside_bounding_box() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 7, 0, 7,
+            0, 6, 0, 0, 7, 0,
+            0, 0, 0, 7, 0, 7,
+        ];
+        let input: Image = Image::try_create(6, 3, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act + Assert
         {
@@ -1223,7 +1335,7 @@ mod tests {
     }
 
     #[test]
-    fn test_110000_horizontal_symmetry_mask1() {
+    fn test_120000_horizontal_symmetry_mask1() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 7, 7, 0, 0, 0, 0, 0,
@@ -1235,7 +1347,7 @@ mod tests {
             0, 0, 0, 0, 3, 3, 3, 0,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.horizontal_symmetry_mask(3, PixelConnectivity::Connectivity4).expect("image");
@@ -1255,7 +1367,7 @@ mod tests {
     }
 
     #[test]
-    fn test_110001_horizontal_symmetry_mask2() {
+    fn test_120001_horizontal_symmetry_mask2() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 7, 7, 0, 0,
@@ -1263,7 +1375,7 @@ mod tests {
             0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(5, 3, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.horizontal_symmetry_mask(7, PixelConnectivity::Connectivity4).expect("image");
@@ -1279,7 +1391,7 @@ mod tests {
     }
 
     #[test]
-    fn test_110002_horizontal_symmetry_mask3() {
+    fn test_120002_horizontal_symmetry_mask3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 5, 0, 0, 0, 0,
@@ -1291,7 +1403,7 @@ mod tests {
             0, 5, 5, 5, 5, 0, 0, 5,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.horizontal_symmetry_mask(5, PixelConnectivity::Connectivity8).expect("image");
@@ -1311,7 +1423,7 @@ mod tests {
     }
 
     #[test]
-    fn test_120000_vertical_symmetry_mask1() {
+    fn test_130000_vertical_symmetry_mask1() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 7, 7, 0, 0, 0, 0, 3,
@@ -1323,7 +1435,7 @@ mod tests {
             0, 0, 0, 0, 3, 3, 3, 0,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.vertical_symmetry_mask(3, PixelConnectivity::Connectivity4).expect("image");
@@ -1343,7 +1455,7 @@ mod tests {
     }
 
     #[test]
-    fn test_120001_vertical_symmetry_mask2() {
+    fn test_130001_vertical_symmetry_mask2() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 7, 7, 0, 0,
@@ -1351,7 +1463,7 @@ mod tests {
             0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(5, 3, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.vertical_symmetry_mask(7, PixelConnectivity::Connectivity4).expect("image");
@@ -1367,7 +1479,7 @@ mod tests {
     }
 
     #[test]
-    fn test_120002_vertical_symmetry_mask3() {
+    fn test_130002_vertical_symmetry_mask3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 5, 5, 0, 0, 7,
@@ -1379,7 +1491,7 @@ mod tests {
             5, 0, 0, 0, 0, 0, 5, 5,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.vertical_symmetry_mask(5, PixelConnectivity::Connectivity8).expect("image");
@@ -1399,7 +1511,7 @@ mod tests {
     }
 
     #[test]
-    fn test_130000_enumerate_clusters_rectangle() {
+    fn test_140000_enumerate_clusters_rectangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -1408,7 +1520,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 4, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.enumerate_clusters(5, PixelConnectivity::Connectivity4).expect("image");
@@ -1425,7 +1537,7 @@ mod tests {
     }
 
     #[test]
-    fn test_130001_enumerate_clusters_sparse() {
+    fn test_140001_enumerate_clusters_sparse() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 5, 0, 0, 0,
@@ -1437,7 +1549,7 @@ mod tests {
             0, 0, 5, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 7, pixels).expect("image");
-        let objects: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
         
         // Act
         let actual: Image = objects.enumerate_clusters(5, PixelConnectivity::Connectivity4).expect("image");
@@ -1455,5 +1567,4 @@ mod tests {
         let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
-
 }

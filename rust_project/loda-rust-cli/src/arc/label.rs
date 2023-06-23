@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-/// Properties about the input image. These properties all have value `u8`.
+/// Properties about the `input` image, or the `output` image. These properties all have value `u8`.
 /// 
 /// These properties are used for reasoning about what the size of the output image may be.
 /// Usually it's the width and height of the input image that is being used.
@@ -9,49 +9,52 @@ use std::collections::HashSet;
 /// Extreme values in the range `[31..255]`, occur frequently. These are not filtered out.
 /// It's rare that extreme values are being used for computing the output size.
 /// 
-/// All the `PropertyInput` values can be computed for a `test pair` without accessing the output image.
+/// All the `ImageProperty` values can be computed for a `test pair` without accessing the output image.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum PropertyInput {
-    InputWidth,
-    InputWidthPlus1,
-    InputWidthPlus2,
-    InputWidthMinus1,
-    InputWidthMinus2,
-    InputHeight,
-    InputHeightPlus1,
-    InputHeightPlus2,
-    InputHeightMinus1,
-    InputHeightMinus2,
-    InputBiggestValueThatDividesWidthAndHeight,
-    InputUniqueColorCount,
-    InputUniqueColorCountMinus1,
-    InputNumberOfPixelsWithMostPopularColor,
-    InputNumberOfPixelsWith2ndMostPopularColor,
-    InputWidthOfPrimaryObjectAfterSingleColorRemoval,
-    InputHeightOfPrimaryObjectAfterSingleColorRemoval,
-    InputMassOfPrimaryObjectAfterSingleColorRemoval,
-    InputWidthOfPrimaryObjectAfterSingleIntersectionColor,
-    InputHeightOfPrimaryObjectAfterSingleIntersectionColor,
-    InputMassOfPrimaryObjectAfterSingleIntersectionColor,
-    InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor,
-    InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
-    InputWidthOfRemovedRectangleAfterSingleColorRemoval,
-    InputHeightOfRemovedRectangleAfterSingleColorRemoval,
+pub enum ImageProperty {
+    Width,
+    WidthPlus1,
+    WidthPlus2,
+    WidthMinus1,
+    WidthMinus2,
+    Height,
+    HeightPlus1,
+    HeightPlus2,
+    HeightMinus1,
+    HeightMinus2,
+    BiggestValueThatDividesWidthAndHeight,
+    UniqueColorCount,
+    UniqueColorCountMinus1,
+    NumberOfPixelsWithMostPopularColor,
+    NumberOfPixelsWith2ndMostPopularColor,
+    WidthOfPrimaryObjectAfterSingleColorRemoval,
+    HeightOfPrimaryObjectAfterSingleColorRemoval,
+    MassOfPrimaryObjectAfterSingleColorRemoval,
+    WidthOfPrimaryObjectAfterSingleIntersectionColor,
+    HeightOfPrimaryObjectAfterSingleIntersectionColor,
+    MassOfPrimaryObjectAfterSingleIntersectionColor,
+    NumberOfPixelsCorrespondingToTheSingleIntersectionColor,
+    NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
+    WidthOfRemovedRectangleAfterSingleColorRemoval,
+    HeightOfRemovedRectangleAfterSingleColorRemoval,
+    MassOfAllNoisePixels,
+    UniqueNoiseColorCount,
 
     // Ideas for more
-    // InputNoisePixelsCount,
-    // InputNoisePixelsCountOutsideAnyObjects,
-    // InputMaxNumberOfClustersInSparseSingleColorObject,
-    // InputMaxWidthOfClustersInSparseSingleColorObject,
-    // InputMaxHeightOfClustersInSparseSingleColorObject,
-    // InputMaxNoisePixelsInsideAnotherObject,
-    // InputPrimaryObjectInteriorMass,
-    // InputPrimaryObjectCornerCount,
-    // InputCellCountHorizontal,
-    // InputCellCountVertical,
-    // InputUniqueColorCountAfterRemoval
+    // NumberOfClusters,
+    // NoisePixelsCountOutsideAnyObjects,
+    // MaxNumberOfClustersInSparseSingleColorObject,
+    // MaxWidthOfClustersInSparseSingleColorObject,
+    // MaxHeightOfClustersInSparseSingleColorObject,
+    // MaxNoisePixelsInsideAnotherObject,
+    // PrimaryObjectInteriorMass,
+    // PrimaryObjectCornerCount,
+    // CellCountHorizontal,
+    // CellCountVertical,
+    // UniqueColorCountAfterRemoval
     // Number of 1px lines horizontal
     // Number of 1px lines vertical
+    // Number of corners in primary object
 }
 
 /// Does the image contain symmetric patterns
@@ -119,50 +122,50 @@ pub enum SingleColorObjectSparseLabel {
     SparseWithSomeColor,
 }
 
-/// Properties about the input image.
+/// Properties used for both the input image and the output image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum InputLabel {
-    InputSymmetry { label: SymmetryLabel },
-    InputGrid { label: GridLabel },
-    InputSingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },
-    InputSingleColorObjectSparse { label: SingleColorObjectSparseLabel },
+pub enum ImageLabel {
+    Symmetry { label: SymmetryLabel },
+    Grid { label: GridLabel },
+    SingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },
+    SingleColorObjectSparse { label: SingleColorObjectSparseLabel },
 
     /// Isolated noise pixels that each have `mass=1`.
     /// 
     /// A noise pixel may be connected diagonally with another noise pixel,
     /// however bigger diagonal shapes are suppressed.
     ///
-    /// When all the training pairs agree on the same noise color,
+    /// When all the images agree on the same noise color,
     /// then that color may have some meaning.
-    InputNoiseWithColor { color: u8 },
+    NoiseWithColor { color: u8 },
 
     /// Isolated noise pixels that each have `mass=1`.
     /// 
     /// A noise pixel may be connected diagonally with another noise pixel,
     /// however bigger diagonal shapes are suppressed.
     ///
-    /// Each of the training pair have its own noise color,
+    /// Each of the images have its own noise color,
     /// then that color may have some meaning.
-    InputNoiseWithSomeColor,
+    NoiseWithSomeColor,
 
     /// Both `PixelConnectivity4` and `PixelConnectivity8` yields the same child objects for a particular `color`.
     /// 
-    /// When segmenting the input image into connected components, then the masks are the same
+    /// When segmenting the image into connected components, then the masks are the same
     /// for the `4 connected` pixels as the `8 connected` pixels.
-    InputUnambiguousConnectivityWithColor { color: u8 },
+    UnambiguousConnectivityWithColor { color: u8 },
 
     /// Both `PixelConnectivity4` and `PixelConnectivity8` yields the same child objects for all the colors in the input image.
     /// 
-    /// When segmenting the input image into connected components, then the masks are the same
+    /// When segmenting the image into connected components, then the masks are the same
     /// for the `4 connected` pixels as the `8 connected` pixels.
-    InputUnambiguousConnectivityWithAllColors,
+    UnambiguousConnectivityWithAllColors,
 
     /// Doing flood fill along the border, and the mask of the color is still the same.
     /// 
     /// The color is touching the edges, and all pixels of this color is reachable.
     /// 
     /// There are no isolated pixels.
-    InputBorderFloodFillConnectivity4AllPixelsWithColor { color: u8 },
+    BorderFloodFillConnectivity4AllPixelsWithColor { color: u8 },
 
     // Ideas for more
     // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
@@ -180,18 +183,18 @@ pub enum InputLabel {
     // LeastPopularObjectInteriorColorConnectivity4 { color: u8 },
     // MostPopularObjectOutlineColorConnectivity4 { color: u8 },
     // LeastPopularObjectOutlineColorConnectivity4 { color: u8 },
-    // InputImageIsSingleColorObjectsMaybeWithBackgroundColor,
-    // InputImageIsSingleColorObjectsWithBackgroundColor,
-    // InputImageIsSingleColorObjectsWithoutBackgroundColor,
+    // ImageIsSingleColorObjectsMaybeWithBackgroundColor,
+    // ImageIsSingleColorObjectsWithBackgroundColor,
+    // ImageIsSingleColorObjectsWithoutBackgroundColor,
     // AllObjectsHaveTheSameSize,
     // AllSingleColorObjectsHaveTheSameSize { label: SingleColorObjectLabel },
-    // InputColorThatDoesNotOccurInTheIntersection { color: u8 },
-    // InputUniqueColors { color: Vec<u8> },
-    // InputAspectRatio { width: u8, height: u8 },
-    // InputContainsOneOrMoreBoxes,
+    // ColorThatDoesNotOccurInTheIntersection { color: u8 },
+    // UniqueColors { color: Vec<u8> },
+    // AspectRatio { width: u8, height: u8 },
+    // ContainsOneOrMoreBoxes,
 }
 
-pub type InputLabelSet = HashSet<InputLabel>;
+pub type ImageLabelSet = HashSet<ImageLabel>;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum ObjectLabel {
@@ -236,15 +239,17 @@ pub enum ImageCorner {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ActionLabel {
-    OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: PropertyInput },
-    OutputPropertyIsInputPropertyMultipliedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
-    OutputPropertyIsInputPropertyMultipliedBySomeScale { output: PropertyOutput, input: PropertyInput },
-    OutputPropertyIsInputPropertyMultipliedByInputSize { output: PropertyOutput, input: PropertyInput },
-    OutputPropertyIsInputPropertyDividedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
-    OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: PropertyInput },
-    OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: PropertyInput },
+    OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: ImageProperty },
+    OutputPropertyIsInputPropertyMultipliedBy { output: PropertyOutput, input: ImageProperty, scale: u8 },
+    OutputPropertyIsInputPropertyMultipliedBySomeScale { output: PropertyOutput, input: ImageProperty },
+    OutputPropertyIsInputPropertyMultipliedByInputSize { output: PropertyOutput, input: ImageProperty },
+    OutputPropertyIsInputPropertyDividedBy { output: PropertyOutput, input: ImageProperty, scale: u8 },
+    OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: ImageProperty },
+    OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: ImageProperty },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
     OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObjectRectangleLabel },
+    OutputSizeIsTheSameAsBoundingBoxOfColor { color: u8 },
+    OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color: u8 },
     
     OutputImageIsSymmetricX,
     OutputImageIsSymmetricY,
@@ -297,6 +302,14 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // NoMovementInDirectionX,
+    // NoMovementInDirectionY,
+    // ObjectsOnlyMoveInDirectionX,
+    // ObjectsOnlyMoveInDirectionY,
+    // CropWhenFinishedDrawingInsideSingleColorObjectWithColor { color: u8 },
+    // OutputImageCropOutSingleColorObject { color: u8 },
+    // OutputSizeIsTheSameAsBoundingBoxOfSingleColorObject { color: u8 },
+    // OutputSizeIsTheSameAsHoleInSingleColorObject { color: u8 },
     // OutputSizeIsTheSameAsInputSmallestSingleColorObjectRectangle,
     // OutputSizeIsTheSameAsInputSmallestSingleColorObjectSquare,
     // OutputSizeIsTheSameAsInputSmallestSingleColorObjectNonSquare,
@@ -344,7 +357,7 @@ mod tests {
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputHeight,
-                input: PropertyInput::InputHeight
+                input: ImageProperty::Height
             };
             set0.insert(label);
         }
@@ -353,7 +366,7 @@ mod tests {
         {
             let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputHeight,
-                input: PropertyInput::InputHeight
+                input: ImageProperty::Height
             };
             set1.insert(label);
         }
@@ -361,7 +374,7 @@ mod tests {
         let set2: ActionLabelSet = set0.intersection(&set1).map(|l| l.clone()).collect();
         let expected_label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
             output: PropertyOutput::OutputHeight,
-            input: PropertyInput::InputHeight
+            input: ImageProperty::Height
         };
         assert_eq!(set2.contains(&expected_label), true);
     }

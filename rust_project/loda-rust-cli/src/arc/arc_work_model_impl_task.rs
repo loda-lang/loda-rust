@@ -1,8 +1,8 @@
-use super::{arc_work_model, GridLabel, GridPattern, InspectTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObjects, SingleColorObjectRectangle};
-use super::arc_work_model::{Input, PairType, Object, Prediction};
+use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle};
+use super::arc_work_model::{Input, PairType, Object, Prediction, Pair};
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
-use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
+use super::{ImageLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, ImageProperty, PropertyOutput, ActionLabelUtil};
 use super::{OutputSpecification};
 use std::collections::{HashMap, HashSet};
 
@@ -73,10 +73,21 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    fn update_input_properties_for_all_pairs(&mut self) -> anyhow::Result<()> {
+    fn update_input_image_meta(&mut self) -> anyhow::Result<()> {
         for pair in &mut self.pairs {
-            pair.input.update_input_properties();
-            pair.input.update_input_label_set()?;
+            pair.input.update_image_meta()?;
+        }
+        Ok(())
+    }
+
+    fn update_output_image_meta(&mut self) -> anyhow::Result<()> {
+        for pair in &mut self.pairs {
+            // Only the `train` pair has an output image.
+            // The `test` pair has no output image.
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
+            pair.output.update_image_meta()?;
         }
         Ok(())
     }
@@ -176,7 +187,7 @@ impl arc_work_model::Task {
 
         // proceed only if all the pairs have a repair color
         for pair in &mut self.pairs {
-            if let Some(symmetry) = &pair.input.symmetry {
+            if let Some(symmetry) = &pair.input.image_meta.symmetry {
                 if symmetry.repair_color.is_none() {
                     // One or more of the pairs is missing a repair color
                     return;
@@ -187,7 +198,7 @@ impl arc_work_model::Task {
         // create attention mask with the repair color.
         for pair in &mut self.pairs {
             let color: u8;
-            if let Some(symmetry) = &pair.input.symmetry {
+            if let Some(symmetry) = &pair.input.image_meta.symmetry {
                 if let Some(repair_color) = symmetry.repair_color {
                     color = repair_color;
                 } else {
@@ -331,26 +342,23 @@ impl arc_work_model::Task {
         }
     }
 
-    fn update_input_properties_intersection(&mut self) {
-        let mut input_properties_intersection: HashMap<PropertyInput, u8> = HashMap::new();
+    fn intersection_of_multiple_image_property_hashmap(items: Vec<&HashMap<ImageProperty, u8>>) -> HashMap<ImageProperty, u8> {
+        let mut intersection: HashMap<ImageProperty, u8> = HashMap::new();
         let mut is_first = true;
-        for pair in &mut self.pairs {
-            if pair.pair_type == PairType::Test {
-                continue;
-            }
+        for item in items {
             if is_first {
-                input_properties_intersection = pair.input.input_properties.clone();
+                intersection = item.clone();
                 is_first = false;
                 continue;
             }
 
-            // Intersection between `input_properties_intersection` and `pair.input.input_properties`.
-            let mut keys_for_removal: HashSet<PropertyInput> = HashSet::new();
-            for key in input_properties_intersection.keys() {
+            // Schedule everything to be removed from the intersection
+            let mut keys_for_removal: HashSet<ImageProperty> = HashSet::new();
+            for key in intersection.keys() {
                 keys_for_removal.insert(*key);
             }
-            for (key, value) in &pair.input.input_properties {
-                if let Some(other_value) = input_properties_intersection.get(key) {
+            for (key, value) in item {
+                if let Some(other_value) = intersection.get(key) {
                     if *value == *other_value {
                         // Both hashmaps agree about the key and value. This is a keeper.
                         keys_for_removal.remove(key);
@@ -358,27 +366,95 @@ impl arc_work_model::Task {
                 }
             }
             for key in &keys_for_removal {
-                input_properties_intersection.remove(key);
+                intersection.remove(key);
             }
         }
-        self.input_properties_intersection = input_properties_intersection;
+        intersection
     }
 
-    fn update_input_label_set_intersection(&mut self) {
-        let mut input_label_set = InputLabelSet::new();
+    fn update_input_properties_intersection(&mut self) {
+        let mut items: Vec<&HashMap<ImageProperty, u8>> = vec!();
+        for pair in &mut self.pairs {
+            items.push(&pair.input.image_meta.image_properties);
+        }
+        self.input_properties_intersection = Self::intersection_of_multiple_image_property_hashmap(items);
+    }
+
+    fn update_input_output_properties_intersection(&mut self) {
+        let mut items: Vec<&HashMap<ImageProperty, u8>> = vec!();
+        for pair in &mut self.pairs {
+            items.push(&pair.input_output_image_properties);
+        }
+        self.input_output_properties_intersection = Self::intersection_of_multiple_image_property_hashmap(items);
+    }
+
+    fn intersection_of_multiple_image_label_set(label_set_vec: Vec<&ImageLabelSet>) -> ImageLabelSet {
+        let mut image_label_set = ImageLabelSet::new();
         let mut is_first = true;
+        for label_set in label_set_vec {
+            if is_first {
+                image_label_set = label_set.clone();
+                is_first = false;
+                continue;
+            }
+            image_label_set = image_label_set.intersection(label_set).map(|l| l.clone()).collect();
+        }
+        image_label_set
+    }
+
+    fn update_input_image_label_set_intersection(&mut self) {
+        let mut image_label_set_vec: Vec<&ImageLabelSet> = Vec::new();
+        for pair in &self.pairs {
+            // Traverse both `train` and `test` pairs.
+            // Since we are allowed to look at the `test` pair input images.
+            image_label_set_vec.push(&pair.input.image_meta.image_label_set);
+        }
+        self.input_image_label_set_intersection = Self::intersection_of_multiple_image_label_set(image_label_set_vec);
+    }
+
+    fn update_output_image_label_set_intersection(&mut self) {
+        let mut image_label_set_vec: Vec<&ImageLabelSet> = Vec::new();
+        for pair in &self.pairs {
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
+            image_label_set_vec.push(&pair.output.image_meta.image_label_set);
+        }
+        self.output_image_label_set_intersection = Self::intersection_of_multiple_image_label_set(image_label_set_vec);
+    }
+
+    fn update_input_output_image_label_set_intersection(&mut self) {
+        // Pair wise intersection
         for pair in &mut self.pairs {
             if pair.pair_type != PairType::Train {
                 continue;
             }
-            if is_first {
-                input_label_set = pair.input.input_label_set.clone();
-                is_first = false;
+            let image_label_set_vec: Vec<&ImageLabelSet> = vec![
+                &pair.input.image_meta.image_label_set,
+                &pair.output.image_meta.image_label_set
+            ];
+            pair.input_output_image_label_set_intersection = Self::intersection_of_multiple_image_label_set(image_label_set_vec);
+        }
+
+        // Intersection of all pairs
+        let mut image_label_set_vec: Vec<&ImageLabelSet> = Vec::new();
+        for pair in &self.pairs {
+            if pair.pair_type != PairType::Train {
                 continue;
             }
-            input_label_set = input_label_set.intersection(&pair.input.input_label_set).map(|l| l.clone()).collect();
+            image_label_set_vec.push(&pair.input_output_image_label_set_intersection);
         }
-        self.input_label_set_intersection = input_label_set;
+        self.input_output_image_label_set_intersection = Self::intersection_of_multiple_image_label_set(image_label_set_vec);
+    }
+
+    fn determine_if_objects_have_moved(&mut self) -> anyhow::Result<()> {
+        for pair in &mut self.pairs {
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
+            pair.determine_if_objects_have_moved()?;            
+        }
+        Ok(())
     }
 
     fn assign_action_labels_for_output_for_train(&mut self) {
@@ -412,8 +488,8 @@ impl arc_work_model::Task {
                     Ok(image) => {
                         let mass: u16 = image.mask_count_one();
                         if mass == 0 {
-                            pair.input.input_properties.insert(PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
-                            pair.input.input_properties.insert(PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
+                            pair.input_output_image_properties.insert(ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
+                            pair.input_output_image_properties.insert(ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
                         }
                     },
                     Err(_) => {}
@@ -443,7 +519,7 @@ impl arc_work_model::Task {
 
             if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
-                pair.input.input_properties.insert(PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
+                pair.input_output_image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
             }
 
             if let Some(index) = found_index_mass_max {
@@ -458,8 +534,8 @@ impl arc_work_model::Task {
                     
                     let width: u8 = trimmed_image.width();
                     let height: u8 = trimmed_image.height();
-                    pair.input.input_properties.insert(PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval, width);
-                    pair.input.input_properties.insert(PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval, height);
+                    pair.input_output_image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleColorRemoval, width);
+                    pair.input_output_image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleColorRemoval, height);
                 }
             }
         }
@@ -487,14 +563,14 @@ impl arc_work_model::Task {
                 let mass: u16 = image_mask.mask_count_zero();
                 if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
-                    pair.input.input_properties.insert(PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
+                    pair.input_output_image_properties.insert(ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
             {
                 let mass: u16 = image_mask.mask_count_one();
                 if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
-                    pair.input.input_properties.insert(PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
+                    pair.input_output_image_properties.insert(ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
 
@@ -526,7 +602,7 @@ impl arc_work_model::Task {
 
             if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
-                pair.input.input_properties.insert(PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
+                pair.input_output_image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
             }
 
             if let Some(index) = found_index_mass_max {
@@ -543,8 +619,8 @@ impl arc_work_model::Task {
                     let height: u8 = trimmed_image.height();
                     // println!("biggest object: {}x{}", width, height);
 
-                    pair.input.input_properties.insert(PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor, width);
-                    pair.input.input_properties.insert(PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor, height);
+                    pair.input_output_image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor, width);
+                    pair.input_output_image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor, height);
                 }
             }
         }
@@ -553,9 +629,9 @@ impl arc_work_model::Task {
     /// Extract `Vec<SingleColorObjectLabel>` from `input_label_set_intersection`.
     fn single_color_object_labels_from_input(&self) -> Vec<SingleColorObjectRectangleLabel> {
         let mut single_color_object_labels = Vec::<SingleColorObjectRectangleLabel>::new();
-        for input_label in &self.input_label_set_intersection {
-            let single_color_object_label: SingleColorObjectRectangleLabel = match input_label {
-                InputLabel::InputSingleColorObjectRectangle { label } => label.clone(),
+        for image_label in &self.input_image_label_set_intersection {
+            let single_color_object_label: SingleColorObjectRectangleLabel = match image_label {
+                ImageLabel::SingleColorObjectRectangle { label } => label.clone(),
                 _ => continue
             };
             single_color_object_labels.push(single_color_object_label);
@@ -658,7 +734,7 @@ impl arc_work_model::Task {
     fn assign_output_size_for_single_color_objects_with_label(&mut self, single_color_object_label: &SingleColorObjectRectangleLabel, execute: bool) -> anyhow::Result<()> {
         let mut predicted_sizes = HashMap::<usize, ImageSize>::new();
         for (pair_index, pair) in self.pairs.iter().enumerate() {
-            let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
+            let single_color_objects: &SingleColorObject = match &pair.input.image_meta.single_color_object {
                 Some(value) => value,
                 None => {
                     return Err(anyhow::anyhow!("All input pairs must have some single_color_objects"));
@@ -719,6 +795,8 @@ impl arc_work_model::Task {
         // Future experiment: 
         // if the object sizes varies a lot and it corresponds with the output size then it's a strong connection.
         // Assign a confidence score to the predicted size.
+        //
+        // Reject `Prediction::OutputSize` when it contains a 0. All the output images are supposed to be 1x1 or bigger.
 
         for (pair_index, pair) in self.pairs.iter_mut().enumerate() {
             let predicted_size: ImageSize = match predicted_sizes.get(&pair_index) {
@@ -755,40 +833,47 @@ impl arc_work_model::Task {
     }
 
     fn assign_labels(&mut self) -> anyhow::Result<()> {
-        self.update_input_properties_for_all_pairs()?;
+        self.update_input_image_meta()?;
+        self.update_output_image_meta()?;
         self.update_input_properties_intersection();
-        self.update_input_label_set_intersection();
+        self.update_input_output_properties_intersection();
+        self.update_input_image_label_set_intersection();
+        self.update_output_image_label_set_intersection();
+        self.update_input_output_image_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
+        _ = self.determine_if_objects_have_moved();
 
-        let input_properties: [PropertyInput; 25] = [
-            PropertyInput::InputWidth, 
-            PropertyInput::InputWidthPlus1, 
-            PropertyInput::InputWidthPlus2, 
-            PropertyInput::InputWidthMinus1, 
-            PropertyInput::InputWidthMinus2, 
-            PropertyInput::InputHeight,
-            PropertyInput::InputHeightPlus1,
-            PropertyInput::InputHeightPlus2,
-            PropertyInput::InputHeightMinus1,
-            PropertyInput::InputHeightMinus2,
-            PropertyInput::InputBiggestValueThatDividesWidthAndHeight,
-            PropertyInput::InputUniqueColorCount,
-            PropertyInput::InputUniqueColorCountMinus1,
-            PropertyInput::InputNumberOfPixelsWithMostPopularColor,
-            PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor,
-            PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval,
-            PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval,
-            PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval,
-            PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor,
-            PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor,
-            PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor,
-            PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor,
-            PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
-            PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval,
-            PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval,
+        let input_properties: [ImageProperty; 27] = [
+            ImageProperty::Width, 
+            ImageProperty::WidthPlus1, 
+            ImageProperty::WidthPlus2, 
+            ImageProperty::WidthMinus1, 
+            ImageProperty::WidthMinus2, 
+            ImageProperty::Height,
+            ImageProperty::HeightPlus1,
+            ImageProperty::HeightPlus2,
+            ImageProperty::HeightMinus1,
+            ImageProperty::HeightMinus2,
+            ImageProperty::BiggestValueThatDividesWidthAndHeight,
+            ImageProperty::UniqueColorCount,
+            ImageProperty::UniqueColorCountMinus1,
+            ImageProperty::NumberOfPixelsWithMostPopularColor,
+            ImageProperty::NumberOfPixelsWith2ndMostPopularColor,
+            ImageProperty::WidthOfPrimaryObjectAfterSingleColorRemoval,
+            ImageProperty::HeightOfPrimaryObjectAfterSingleColorRemoval,
+            ImageProperty::MassOfPrimaryObjectAfterSingleColorRemoval,
+            ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor,
+            ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor,
+            ImageProperty::MassOfPrimaryObjectAfterSingleIntersectionColor,
+            ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor,
+            ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
+            ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval,
+            ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval,
+            ImageProperty::UniqueNoiseColorCount,
+            ImageProperty::MassOfAllNoisePixels,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
@@ -802,8 +887,10 @@ impl arc_work_model::Task {
             let width_output: u8 = pair.output.image.width();
             let height_output: u8 = pair.output.image.height();
 
+            let combined_image_properties: HashMap<ImageProperty, u8> = pair.union_of_image_properties();
+
             for input_property in &input_properties {
-                let input_value_option: Option<&u8> = pair.input.input_properties.get(input_property);
+                let input_value_option: Option<&u8> = combined_image_properties.get(input_property);
                 let input_value: u8 = match input_value_option {
                     Some(value) => *value,
                     None => {
@@ -902,7 +989,7 @@ impl arc_work_model::Task {
     fn input_properties_intersection_get_unique_color_count(&self) -> Option<u8> {
         for (input_property, property_value) in &self.input_properties_intersection {
             match *input_property {
-                PropertyInput::InputUniqueColorCount => {
+                ImageProperty::UniqueColorCount => {
                     return Some(*property_value);
                 },
                 _ => {}
@@ -915,7 +1002,7 @@ impl arc_work_model::Task {
     /// 
     /// These functions are nearly identical, and I think they can be merged.
     /// `output_size_rules_for()` 
-    /// `predict_output_size_for_output_property_and_input()`
+    /// `predict_output_size_for_output_property_and_pair()`
     /// so it's the same computation that is taking place.
     fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<(RulePriority, String)> {
         let mut rules: Vec<(RulePriority, String)> = vec!();
@@ -935,18 +1022,18 @@ impl arc_work_model::Task {
                     }
                     let s = format!("{:?} = {:?}", output, input);
                     let mut priority = RulePriority::Medium;
-                    if *output == PropertyOutput::OutputWidth && *input == PropertyInput::InputWidth {
+                    if *output == PropertyOutput::OutputWidth && *input == ImageProperty::Width {
                         priority = RulePriority::Simple;
                     }
-                    if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeight {
+                    if *output == PropertyOutput::OutputHeight && *input == ImageProperty::Height {
                         priority = RulePriority::Simple;
                     }
-                    if *input == PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor {
+                    if *input == ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor {
                         if self.input_properties_intersection_get_unique_color_count() == Some(2) {
                             priority = RulePriority::Simple;
                         }
                     }
-                    if *input == PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor {
+                    if *input == ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor {
                         if self.input_properties_intersection_get_unique_color_count() == Some(2) {
                             priority = RulePriority::Simple;
                         }
@@ -1036,6 +1123,26 @@ impl arc_work_model::Task {
             return rules_pretty;
         }
 
+        // OutputSizeIsTheSameAsBoundingBoxOfColor
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputSizeIsTheSameAsBoundingBoxOfColor { color } => {
+                    return format!("OutputSizeIsTheSameAsBoundingBoxOfColor {}", color);
+                },
+                _ => {}
+            }
+        }
+
+        // OutputSizeIsTheSameAsRotatedBoundingBoxOfColor
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color } => {
+                    return format!("OutputSizeIsTheSameAsRotatedBoundingBoxOfColor {}", color);
+                },
+                _ => {}
+            }
+        }
+
         "Undecided".to_string()
     }
 
@@ -1043,12 +1150,12 @@ impl arc_work_model::Task {
     /// 
     /// These functions are nearly identical, and I think they can be merged.
     /// `output_size_rules_for()` 
-    /// `predict_output_size_for_output_property_and_input()`
+    /// `predict_output_size_for_output_property_and_pair()`
     /// so it's the same computation that is taking place.
-    fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &Input) -> Vec<(RulePriority, u8)> {
+    fn predict_output_size_for_output_property_and_pair(&self, property_output: &PropertyOutput, pair: &Pair) -> Vec<(RulePriority, u8)> {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
-        let dict: &HashMap<PropertyInput, u8> = &buffer_input.input_properties;
+        let dict: HashMap<ImageProperty, u8> = pair.union_of_image_properties();
         for label in &self.action_label_set_intersection {
             match label {
                 ActionLabel::OutputPropertyIsConstant { output, value } => {
@@ -1069,18 +1176,18 @@ impl arc_work_model::Task {
                         }
                     };
                     let mut priority = RulePriority::Medium;
-                    if *output == PropertyOutput::OutputWidth && *input == PropertyInput::InputWidth {
+                    if *output == PropertyOutput::OutputWidth && *input == ImageProperty::Width {
                         priority = RulePriority::Simple;
                     }
-                    if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeight {
+                    if *output == PropertyOutput::OutputHeight && *input == ImageProperty::Height {
                         priority = RulePriority::Simple;
                     }
-                    if *input == PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor {
+                    if *input == ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor {
                         if self.input_properties_intersection_get_unique_color_count() == Some(2) {
                             priority = RulePriority::Simple;
                         }
                     }
-                    if *input == PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor {
+                    if *input == ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor {
                         if self.input_properties_intersection_get_unique_color_count() == Some(2) {
                             priority = RulePriority::Simple;
                         }
@@ -1118,8 +1225,8 @@ impl arc_work_model::Task {
                         }
                     };
                     let input_size: u8 = match property_output {
-                        PropertyOutput::OutputWidth => buffer_input.image.width(),
-                        PropertyOutput::OutputHeight => buffer_input.image.height()
+                        PropertyOutput::OutputWidth => pair.input.image.width(),
+                        PropertyOutput::OutputHeight => pair.input.image.height()
                     };
                     let computed_value: u32 = (input_value as u32) * (input_size as u32);
                     if computed_value > (u8::MAX as u32) {
@@ -1194,12 +1301,12 @@ impl arc_work_model::Task {
         Err(anyhow::anyhow!("found no object with object_label: {:?}", object_label))
     }
 
-    pub fn predict_output_size_for_input(&self, input: &Input) -> anyhow::Result<ImageSize> {
+    pub fn predict_output_size_for_pair(&self, pair: &Pair) -> anyhow::Result<ImageSize> {
         for label in &self.action_label_set_intersection {
             // Future experiments: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
             match label {
                 ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
-                    match self.size_of_object(input, object_label) {
+                    match self.size_of_object(&pair.input, object_label) {
                         Ok(value) => {
                             return Ok(value);
                         },
@@ -1218,7 +1325,7 @@ impl arc_work_model::Task {
         let mut found_width: Option<u8> = None;
         let mut found_height: Option<u8> = None;
         for output_property in &output_properties {
-            let rules: Vec<(RulePriority, u8)> = self.predict_output_size_for_output_property_and_input(output_property, input);
+            let rules: Vec<(RulePriority, u8)> = self.predict_output_size_for_output_property_and_pair(output_property, pair);
 
             // pick the simplest rule
             let value: u8 = match rules.first() {
@@ -1250,10 +1357,38 @@ impl arc_work_model::Task {
                 };
                 return Ok(instance);
             },
-            _ => {
-                return Err(anyhow::anyhow!("Undecided"));
+            _ => {}
+        }
+
+        // OutputSizeIsTheSameAsBoundingBoxOfColor
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputSizeIsTheSameAsBoundingBoxOfColor { color } => {
+                    if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        if let Some(rect) = sco.bounding_box(*color) {
+                            return Ok(rect.size());
+                        }
+                    }
+                },
+                _ => {}
             }
         }
+
+        // OutputSizeIsTheSameAsRotatedBoundingBoxOfColor
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputSizeIsTheSameAsRotatedBoundingBoxOfColor { color } => {
+                    if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        if let Some(rect) = sco.bounding_box(*color) {
+                            return Ok(rect.size().rotate());
+                        }
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        Err(anyhow::anyhow!("Undecided"))
     }
 
     fn assign_predicted_output_size(&mut self) {
@@ -1265,7 +1400,7 @@ impl arc_work_model::Task {
 
         let mut predicted_size_dict = HashMap::<usize, ImageSize>::new();
         for (index, pair) in self.pairs.iter().enumerate() {
-            let predicted_size: ImageSize = match self.predict_output_size_for_input(&pair.input) {
+            let predicted_size: ImageSize = match self.predict_output_size_for_pair(pair) {
                 Ok(value) => value,
                 Err(_error) => {
                     // Idea: Flag the pair as being undecided.
@@ -1379,7 +1514,7 @@ impl arc_work_model::Task {
         // In each pair, the color is the same as most popular color of the input
         if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsTheMostPopularColorOfInputImage) {
             for pair in self.pairs.iter_mut() {
-                let histogram: &Histogram = &pair.input.histogram;
+                let histogram: &Histogram = &pair.input.image_meta.histogram;
                 if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
                     pair.input.removal_color = Some(color);
                 }
@@ -1402,13 +1537,13 @@ impl arc_work_model::Task {
 
     fn assign_single_pixel_noise_color(&mut self) -> anyhow::Result<()> {
         let mut found = false;
-        for input_label in &self.input_label_set_intersection {
-            match input_label {
-                InputLabel::InputNoiseWithColor { color: _ } => {
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::NoiseWithColor { color: _ } => {
                     found = true;
                     break;
                 },
-                InputLabel::InputNoiseWithSomeColor => {
+                ImageLabel::NoiseWithSomeColor => {
                     found = true;
                     break;
                 },
@@ -1419,7 +1554,7 @@ impl arc_work_model::Task {
             return Ok(());
         }
         for pair in self.pairs.iter_mut() {
-            let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
+            let single_color_objects: &SingleColorObject = match &pair.input.image_meta.single_color_object {
                 Some(value) => value,
                 None => {
                     continue;
@@ -1448,6 +1583,24 @@ impl arc_work_model::Task {
     }
 
     fn assign_predicted_output_palette(&mut self) {
+        // Comparing the output histogram "intersection" with "union". 
+        // If it’s identical, then there is strong agreement on what color to use.
+        {
+            let mut histogram: Histogram = self.output_histogram_intersection.clone();
+            histogram.intersection_histogram(&self.output_histogram_union);
+            let count: u16 = histogram.number_of_counters_greater_than_zero();
+            let same1: bool = count == self.output_histogram_intersection.number_of_counters_greater_than_zero();
+            let same2: bool = count == self.output_histogram_union.number_of_counters_greater_than_zero();
+            if same1 && same2 {
+                // All the training pairs agree on using the same color palette.
+                // Assign these predictions to all the pairs.
+                for pair in self.pairs.iter_mut() {
+                    pair.prediction_set.insert(arc_work_model::Prediction::OutputPalette { histogram: histogram.clone() });
+                }
+                return;
+            }
+        }
+
         let mut predicted_histogram_dict = HashMap::<usize, Histogram>::new();
         for (index, pair) in self.pairs.iter().enumerate() {
             let predicted_histogram: Histogram = match self.predict_output_palette_for_input(&pair.input) {
@@ -1500,7 +1653,7 @@ impl arc_work_model::Task {
                     predicted_color = color;
                 },
                 (None, true, false) => {
-                    if let Some(color) = pair.input.histogram.most_popular_color() {
+                    if let Some(color) = pair.input.image_meta.histogram.most_popular_color() {
                         predicted_color = color;
                         // println!("predicted_color most popular: {}", color);
                     } else {
@@ -1508,7 +1661,7 @@ impl arc_work_model::Task {
                     }
                 },
                 (None, false, true) => {
-                    if let Some(color) = pair.input.histogram.least_popular_color() {
+                    if let Some(color) = pair.input.image_meta.histogram.least_popular_color() {
                         predicted_color = color;
                         // println!("predicted_color least popular: {}", color);
                     } else {
@@ -1538,9 +1691,9 @@ impl arc_work_model::Task {
         let mut repair_diagonal_a: bool = false;
         let mut repair_diagonal_b: bool = false;
 
-        for input_label in &self.input_label_set_intersection {
-            match input_label {
-                InputLabel::InputSymmetry { label } => {
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::Symmetry { label } => {
                     match label {
                         SymmetryLabel::HorizontalWithMismatches => {
                             repair_horizontal = true;
@@ -1589,7 +1742,7 @@ impl arc_work_model::Task {
 
     fn compute_input_repaired_image_execute(&mut self) -> anyhow::Result<()> {
         for (_index, pair) in self.pairs.iter_mut().enumerate() {
-            let (symmetry, repair_mask) = match (&pair.input.symmetry, &pair.input.repair_mask) {
+            let (symmetry, repair_mask) = match (&pair.input.image_meta.symmetry, &pair.input.repair_mask) {
                 (Some(a), Some(b)) => (a, b),
                 _ => {
                     return Err(anyhow::anyhow!("symmetry and repair_mask"));
@@ -1617,9 +1770,9 @@ impl arc_work_model::Task {
         let mut prio3_grid_count: usize = 0;
         let mut prio3_grid_color: u8 = u8::MAX;
 
-        for input_label in &self.input_label_set_intersection {
-            match input_label {
-                InputLabel::InputGrid { label } => {
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::Grid { label } => {
                     match label {
                         GridLabel::GridColor { color } => {
                             prio1_grid_with_specific_color = true;
@@ -1654,7 +1807,7 @@ impl arc_work_model::Task {
             let grid_color: u8 = prio1_grid_color;
             let mut success = true;
             for pair in self.pairs.iter_mut() {
-                let grid = match &pair.input.grid {
+                let grid = match &pair.input.image_meta.grid {
                     Some(value) => value.clone(),
                     None => {
                         // One or more of the grids are not initialized, aborting.
@@ -1687,7 +1840,7 @@ impl arc_work_model::Task {
         if prio2_grid_with_some_color {
             let mut success = true;
             for pair in self.pairs.iter_mut() {
-                let grid = match &pair.input.grid {
+                let grid = match &pair.input.image_meta.grid {
                     Some(value) => value.clone(),
                     None => {
                         // One or more of the grids are not initialized, aborting.
@@ -1720,7 +1873,7 @@ impl arc_work_model::Task {
             let grid_color: u8 = prio3_grid_color;
             let mut success = true;
             for pair in self.pairs.iter_mut() {
-                let grid = match &pair.input.grid {
+                let grid = match &pair.input.image_meta.grid {
                     Some(value) => value.clone(),
                     None => {
                         // One or more of the grids are not initialized, aborting.
@@ -1864,16 +2017,16 @@ impl arc_work_model::Task {
             match *action {
                 ActionLabel::OutputPropertyIsEqualToInputProperty { output: _, input } => {
                     match input {
-                        PropertyInput::InputWidth => {
+                        ImageProperty::Width => {
                             simple_explanation_for_width = true;
                         },
-                        PropertyInput::InputHeight => {
+                        ImageProperty::Height => {
                             simple_explanation_for_height = true;
                         },
-                        PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor => {
+                        ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor => {
                             depends_on_object_width = true;
                         },
-                        PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor => {
+                        ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor => {
                             depends_on_object_height = true;
                         },
                         _ => {}
@@ -2117,5 +2270,41 @@ impl arc_work_model::Task {
     #[allow(dead_code)]
     pub fn is_output_size_same_as_removed_rectangle_after_single_color_removal(&self) -> bool {
         ActionLabelUtil::is_output_size_same_as_removed_rectangle_after_single_color_removal(&self.action_label_set_intersection)
+    }
+
+    /// Detect if the predicted size was incorrect.
+    /// 
+    /// This uses the expected output of the `test` pair. So don't use this for making predictions.
+    /// In ARC's hidden dataset, there are no access to the expected output.
+    /// Nor in the real world. 
+    #[allow(dead_code)]
+    pub fn has_predicted_output_size_and_its_incorrect(&self) -> bool {
+        for pair in &self.pairs {
+            let predicted_size: ImageSize = match pair.predicted_output_size() {
+                Some(value) => value,
+                None => {
+                    return false;
+                }
+            };
+            match pair.pair_type {
+                PairType::Train => {
+                    if predicted_size != pair.output.image.size() {
+                        return true;
+                    }
+                },
+                PairType::Test => {
+                    if predicted_size != pair.output.test_image.size() {
+                        return true;
+                    }
+                },
+            }
+        }
+        false
+    }
+
+    pub fn input_properties_intersection_union_input_output_properties_intersection(&self) -> HashMap<ImageProperty, u8> {
+        let mut image_properties: HashMap<ImageProperty, u8> = self.input_properties_intersection.clone();
+        image_properties.extend(&self.input_output_properties_intersection);
+        image_properties
     }
 }

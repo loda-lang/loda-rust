@@ -1,5 +1,5 @@
 use super::arc_work_model;
-use super::{InputLabelSet, ActionLabelSet, PropertyInput};
+use super::{ImageLabelSet, ActionLabelSet, ImageProperty};
 use super::{HtmlLog, ImageToHTML};
 use std::collections::HashMap;
 
@@ -10,6 +10,8 @@ pub struct InspectTask {
     row_input_properties: String,
     row_input_labels: String,
     row_output_image: String,
+    row_output_labels: String,
+    row_input_output_labels: String,
     row_action_colors: String,
     row_action_labels: String,
     row_predictions: String,
@@ -24,6 +26,8 @@ impl InspectTask {
             row_input_properties: "<tr><td>Input properties</td>".to_string(),
             row_input_labels: "<tr><td>Input labels</td>".to_string(),
             row_output_image: "<tr><td>Output image</td>".to_string(),
+            row_output_labels: "<tr><td>Output labels</td>".to_string(),
+            row_input_output_labels: "<tr><td>Input Output labels intersection</td>".to_string(),
             row_action_colors: "<tr><td>Action colors</td>".to_string(),
             row_action_labels: "<tr><td>Action labels</td>".to_string(),
             row_predictions: "<tr><td>Predictions</td>".to_string(),
@@ -40,8 +44,8 @@ impl InspectTask {
         format!("<ul class='without_bullets'>{}</ul>", label_vec.join(""))
     }
 
-    fn input_label_set_to_html(input_label_set: &InputLabelSet) -> String {
-        let mut label_vec: Vec<String> = input_label_set.iter().map(|label| format!("{:?}", label)).collect();
+    fn image_label_set_to_html(image_label_set: &ImageLabelSet) -> String {
+        let mut label_vec: Vec<String> = image_label_set.iter().map(|label| format!("{:?}", label)).collect();
         if label_vec.is_empty() {
             return "empty".to_string();
         }
@@ -50,8 +54,8 @@ impl InspectTask {
         format!("<ul class='without_bullets'>{}</ul>", label_vec.join(""))
     }
 
-    fn input_properties_to_html(input_properties: &HashMap<PropertyInput, u8>) -> String {
-        let mut items: Vec<String> = input_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
+    fn image_properties_to_html(image_properties: &HashMap<ImageProperty, u8>) -> String {
+        let mut items: Vec<String> = image_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
         if items.is_empty() {
             return "empty".to_string();
         }
@@ -103,12 +107,12 @@ impl InspectTask {
         }
         {
             self.row_input_properties += "<td>";
-            self.row_input_properties += &Self::input_properties_to_html(&pair.input.input_properties);
+            self.row_input_properties += &Self::image_properties_to_html(&pair.union_of_image_properties());
             self.row_input_properties += "</td>";
         }
         {
             self.row_input_labels += "<td>";
-            self.row_input_labels += &Self::input_label_set_to_html(&pair.input.input_label_set);
+            self.row_input_labels += &Self::image_label_set_to_html(&pair.input.image_meta.image_label_set);
             self.row_input_labels += "</td>";
         }
         {
@@ -122,6 +126,16 @@ impl InspectTask {
                 },
             };
             self.row_output_image += "</td>";
+        }
+        {
+            self.row_output_labels += "<td>";
+            self.row_output_labels += &Self::image_label_set_to_html(&pair.output.image_meta.image_label_set);
+            self.row_output_labels += "</td>";
+        }
+        {
+            self.row_input_output_labels += "<td>";
+            self.row_input_output_labels += &Self::image_label_set_to_html(&pair.input_output_image_label_set_intersection);
+            self.row_input_output_labels += "</td>";
         }
         {
             self.row_action_colors += "<td>Removal<br>";
@@ -202,11 +216,11 @@ impl InspectTask {
         self.row_input_image += "</td>";
 
         self.row_input_properties += &td_begin;
-        self.row_input_properties += &Self::input_properties_to_html(&task.input_properties_intersection);
+        self.row_input_properties += &Self::image_properties_to_html(&task.input_properties_intersection_union_input_output_properties_intersection());
         self.row_input_properties += "</td>";
 
         self.row_input_labels += &td_begin;
-        self.row_input_labels += &Self::input_label_set_to_html(&task.input_label_set_intersection);
+        self.row_input_labels += &Self::image_label_set_to_html(&task.input_image_label_set_intersection);
         self.row_input_labels += "</td>";
 
         self.row_output_image += &td_begin;
@@ -229,6 +243,14 @@ impl InspectTask {
             }
         }
         self.row_output_image += "</td>";
+
+        self.row_output_labels += &td_begin;
+        self.row_output_labels += &Self::image_label_set_to_html(&task.output_image_label_set_intersection);
+        self.row_output_labels += "</td>";
+
+        self.row_input_output_labels += &td_begin;
+        self.row_input_output_labels += &Self::image_label_set_to_html(&task.input_output_image_label_set_intersection);
+        self.row_input_output_labels += "</td>";
 
         self.row_action_colors += &td_begin;
         self.row_action_colors += "Removal<br>";
@@ -267,6 +289,8 @@ impl InspectTask {
         self.row_input_properties += "</tr>";
         self.row_input_labels += "</tr>";
         self.row_output_image += "</tr>";
+        self.row_output_labels += "</tr>";
+        self.row_input_output_labels += "</tr>";
         self.row_action_colors += "</tr>";
         self.row_action_labels += "</tr>";
         self.row_predictions += "</tr>";
@@ -284,14 +308,16 @@ impl InspectTask {
 
         let thead: String = format!("<thead>{}</thead>", self.row_title);
         let tbody: String = format!(
-            "<tbody>{}{}{}{}{}{}{}</tbody>",
+            "<tbody>{}{}{}{}{}{}{}{}{}</tbody>",
             self.row_input_image, 
+            self.row_output_image, 
+            self.row_predictions,
+            self.row_action_colors,
             self.row_input_properties, 
             self.row_input_labels, 
-            self.row_output_image, 
-            self.row_action_colors,
+            self.row_output_labels, 
+            self.row_input_output_labels, 
             self.row_action_labels,
-            self.row_predictions
         );
 
         let table: String = format!(

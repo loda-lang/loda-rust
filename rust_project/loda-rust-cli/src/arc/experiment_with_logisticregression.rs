@@ -13,8 +13,8 @@
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ObjectsUniqueColorCount, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise};
-use super::{ActionLabel, InputLabel, ImageMaskDistance};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise};
+use super::{ActionLabel, ImageLabel, ImageMaskDistance};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
 use super::human_readable_utc_timestamp;
@@ -62,6 +62,7 @@ impl Record {
         self.values.push(v);
     }
 
+    #[allow(dead_code)]
     fn serialize_f64(&mut self, value: f64) {
         self.values.push(value);
     }
@@ -70,6 +71,7 @@ impl Record {
         self.values.push(value as f64);
     }
 
+    #[allow(dead_code)]
     fn serialize_color_onehot(&mut self, color: u8) {
         self.serialize_complex(color as u16, 10);
     }
@@ -247,9 +249,9 @@ impl ExperimentWithLogisticRegression {
         }
 
         let mut input_unambiguous_connectivity_histogram: Histogram = Histogram::new();
-        for label in &task.input_label_set_intersection {
+        for label in &task.input_image_label_set_intersection {
             match label {
-                InputLabel::InputUnambiguousConnectivityWithColor { color } => {
+                ImageLabel::UnambiguousConnectivityWithColor { color } => {
                     input_unambiguous_connectivity_histogram.increment(*color);
                 },
                 _ => {}
@@ -304,7 +306,7 @@ impl ExperimentWithLogisticRegression {
 
             let mut image_mass_connectivity4: Image = Image::zero(width, height);
             let mut image_mass_connectivity8: Image = Image::zero(width, height);
-            if let Some(sco) = &pair.input.single_color_objects {
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
                 if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity4) {
                     image_mass_connectivity4 = image_mass_connectivity4.overlay_with_position(&image, 0, 0)?;
                 }
@@ -342,7 +344,7 @@ impl ExperimentWithLogisticRegression {
             }
 
             let mut enumerated_clusters = HashMap::<(u8, PixelConnectivity), Image>::new();
-            if let Some(sco) = &pair.input.single_color_objects {
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
                     for color in 0..=9 {
@@ -357,7 +359,7 @@ impl ExperimentWithLogisticRegression {
             }
 
             let mut enumerated_clusters_filled_holes_mask = HashMap::<(u8, PixelConnectivity), Image>::new();
-            if let Some(sco) = &pair.input.single_color_objects {
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
                     for color in 0..=9 {
@@ -497,9 +499,17 @@ impl ExperimentWithLogisticRegression {
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
             let mut image_neighbour_right: Image = Image::color(width, height, 255);
+            #[allow(unused_variables)]
+            #[allow(unused_assignments)]
             let mut image_neighbour_upleft: Image = Image::color(width, height, 255);
+            #[allow(unused_variables)]
+            #[allow(unused_assignments)]
             let mut image_neighbour_upright: Image = Image::color(width, height, 255);
+            #[allow(unused_variables)]
+            #[allow(unused_assignments)]
             let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
+            #[allow(unused_variables)]
+            #[allow(unused_assignments)]
             let mut image_neighbour_downright: Image = Image::color(width, height, 255);
             if let Some(color) = most_popular_color {
                 let ignore_mask: Image = input.to_mask_where_color_is(color);
@@ -555,7 +565,7 @@ impl ExperimentWithLogisticRegression {
 
             let mut holes_connectivity4 = HashMap::<u8, Image>::new();
             let mut holes_connectivity8 = HashMap::<u8, Image>::new();
-            if let Some(sco) = &pair.input.single_color_objects {
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
                 for color in 0..=9 {
                     let image: Image = match sco.holes_mask(color, PixelConnectivity::Connectivity4) {
                         Ok(value) => value,
@@ -580,7 +590,7 @@ impl ExperimentWithLogisticRegression {
 
             let mut holecount_connectivity4 = HashMap::<u8, Image>::new();
             let mut holecount_connectivity8 = HashMap::<u8, Image>::new();
-            if let Some(sco) = &pair.input.single_color_objects {
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
                 for color in 0..=9 {
                     let image: Image = match sco.holecount_image(color, PixelConnectivity::Connectivity4) {
                         Ok(value) => value,
@@ -603,7 +613,7 @@ impl ExperimentWithLogisticRegression {
 
             // let mut horizontal_symmetry_connectivity4 = HashMap::<u8, Image>::new();
             // let mut horizontal_symmetry_connectivity8 = HashMap::<u8, Image>::new();
-            // if let Some(sco) = &pair.input.single_color_objects {
+            // if let Some(sco) = &pair.input.image_meta.single_color_object {
             //     for color in 0..=9 {
             //         let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity4) {
             //             Ok(value) => value,
@@ -626,7 +636,7 @@ impl ExperimentWithLogisticRegression {
 
             // let mut vertical_symmetry_connectivity4 = HashMap::<u8, Image>::new();
             // let mut vertical_symmetry_connectivity8 = HashMap::<u8, Image>::new();
-            // if let Some(sco) = &pair.input.single_color_objects {
+            // if let Some(sco) = &pair.input.image_meta.single_color_object {
             //     for color in 0..=9 {
             //         let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity4) {
             //             Ok(value) => value,
@@ -1290,8 +1300,10 @@ impl ExperimentWithLogisticRegression {
                     //     }
                     // }
 
+                    #[allow(unused_variables)]
+                    #[allow(unused_assignments)]
                     let mut inside_bounding_box: bool = false;
-                    if let Some(sco) = &pair.input.single_color_objects {
+                    if let Some(sco) = &pair.input.image_meta.single_color_object {
                         if sco.is_inside_bounding_box(center, xx, yy) {
                             inside_bounding_box = true;
                         }
@@ -1501,6 +1513,7 @@ impl ExperimentWithLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
+                                #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance1.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -1512,6 +1525,7 @@ impl ExperimentWithLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
+                                #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance2.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -1523,6 +1537,7 @@ impl ExperimentWithLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
+                                #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance3.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -1534,6 +1549,7 @@ impl ExperimentWithLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
+                                #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance4.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -1558,6 +1574,7 @@ impl ExperimentWithLogisticRegression {
                             }
                         }
 
+                        #[allow(unused_variables)]
                         let directions = [
                             ImageNeighbourDirection::Up,
                             ImageNeighbourDirection::Down,
@@ -1608,7 +1625,7 @@ impl ExperimentWithLogisticRegression {
 
                     for color in 0..=9 {
                         let mut is_inside_bounding_box: bool = false;
-                        if let Some(sco) = &pair.input.single_color_objects {
+                        if let Some(sco) = &pair.input.image_meta.single_color_object {
                             is_inside_bounding_box = sco.is_inside_bounding_box(color, xx, yy);
                         }
                         record.serialize_bool(is_inside_bounding_box);

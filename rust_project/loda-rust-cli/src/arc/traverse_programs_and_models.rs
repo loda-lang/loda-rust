@@ -37,7 +37,7 @@ use super::ExperimentWithConvolution;
 use super::ExperimentWithLogisticRegression;
 
 #[allow(unused_imports)]
-use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
+use super::{HtmlLog, ImageToHTML, ImageLabel, GridLabel};
 
 static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 
@@ -415,6 +415,9 @@ impl TraverseProgramsAndModels {
             if task.is_output_size_same_as_input_size() {
                 continue;
             }
+            // if !task.has_predicted_output_size_and_its_incorrect() {
+            //     continue;
+            // }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
             // }
@@ -480,16 +483,16 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            // for input_label in &task.input_label_set_intersection {
-            //     match input_label {
+            // for image_label in &task.input_label_set_intersection {
+            //     match image_label {
             //         InputLabel::InputUnambiguousConnectivityWithAllColors => {
             //             found = true;
             //         },
             //         _ => {}
             //     }
             // }
-            // for input_label in &task.input_label_set_intersection {
-            //     match input_label {
+            // for image_label in &task.input_label_set_intersection {
+            //     match image_label {
             //         InputLabel::InputNoiseWithColor { color: _ } => {
             //             found = true;
             //         },
@@ -499,8 +502,8 @@ impl TraverseProgramsAndModels {
             //         _ => {}
             //     }
             // }
-            // for input_label in &task.input_label_set_intersection {
-            //     let grid_label: GridLabel = match input_label {
+            // for image_label in &task.input_label_set_intersection {
+            //     let grid_label: GridLabel = match image_label {
             //         InputLabel::InputGrid { label } => label.clone(),
             //         _ => continue
             //     };
