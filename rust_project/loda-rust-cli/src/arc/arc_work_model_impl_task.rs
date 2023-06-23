@@ -1,10 +1,13 @@
 use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction, Pair};
+use super::arc_json_model;
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
 use super::{ImageLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, ImageProperty, PropertyOutput, ActionLabelUtil};
 use super::{OutputSpecification};
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
+use anyhow::Context;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 enum RulePriority {
@@ -14,6 +17,14 @@ enum RulePriority {
 }
 
 impl arc_work_model::Task {
+    pub fn load_with_json_file(path: &Path) -> anyhow::Result<Self> {
+        let json_task: arc_json_model::Task = arc_json_model::Task::load_with_json_file(path)
+            .with_context(|| format!("Unable to load arc_json_model::Task. path: {:?}", &path))?;
+        let task: Self = Self::try_from(&json_task)
+            .with_context(|| format!("Cannot construct arc_work_model::Task from json model. path: {:?}", &path))?;
+        Ok(task)
+    }
+
     #[allow(dead_code)]
     pub fn has_substitution_rule_applied(&self) -> bool {
         for pair in &self.pairs {
@@ -380,14 +391,6 @@ impl arc_work_model::Task {
         self.input_properties_intersection = Self::intersection_of_multiple_image_property_hashmap(items);
     }
 
-    fn update_input_output_properties_intersection(&mut self) {
-        let mut items: Vec<&HashMap<ImageProperty, u8>> = vec!();
-        for pair in &mut self.pairs {
-            items.push(&pair.input_output_image_properties);
-        }
-        self.input_output_properties_intersection = Self::intersection_of_multiple_image_property_hashmap(items);
-    }
-
     fn intersection_of_multiple_image_label_set(label_set_vec: Vec<&ImageLabelSet>) -> ImageLabelSet {
         let mut image_label_set = ImageLabelSet::new();
         let mut is_first = true;
@@ -488,8 +491,8 @@ impl arc_work_model::Task {
                     Ok(image) => {
                         let mass: u16 = image.mask_count_one();
                         if mass == 0 {
-                            pair.input_output_image_properties.insert(ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
-                            pair.input_output_image_properties.insert(ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
+                            pair.input.image_meta.image_properties.insert(ImageProperty::WidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
+                            pair.input.image_meta.image_properties.insert(ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
                         }
                     },
                     Err(_) => {}
@@ -519,7 +522,7 @@ impl arc_work_model::Task {
 
             if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
-                pair.input_output_image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
+                pair.input.image_meta.image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
             }
 
             if let Some(index) = found_index_mass_max {
@@ -534,11 +537,50 @@ impl arc_work_model::Task {
                     
                     let width: u8 = trimmed_image.width();
                     let height: u8 = trimmed_image.height();
-                    pair.input_output_image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleColorRemoval, width);
-                    pair.input_output_image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleColorRemoval, height);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleColorRemoval, width);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleColorRemoval, height);
                 }
             }
         }
+    }
+
+    fn assign_input_properties_related_to_trim_with_border_color(&mut self) -> anyhow::Result<()> {
+        let mut found_colors = Histogram::new();
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::SingleBorderColor { color } => { found_colors.increment(*color); },
+                _ => {}
+            }
+        }
+        if found_colors.number_of_counters_greater_than_zero() > 1 {
+            // Multiple colors found, no consensus on what color is the border color
+            return Ok(());
+        }
+
+        let border_color: u8 = match found_colors.most_popular_color_disallow_ambiguous() {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        };
+                        
+        for pair in &mut self.pairs {
+            let image: Image = pair.input.image.trim_color(border_color)?;
+            if image.is_empty() {
+                continue;
+            }
+            let width: u8 = image.width();
+            let height: u8 = image.height();
+            pair.input.image_meta.image_properties.insert(ImageProperty::WidthAfterTrimBorderColor, width);
+            pair.input.image_meta.image_properties.insert(ImageProperty::HeightAfterTrimBorderColor, height);
+            if width > 2 {
+                pair.input.image_meta.image_properties.insert(ImageProperty::WidthMinus2AfterTrimBorderColor, width - 2);
+            }
+            if height > 2 {
+                pair.input.image_meta.image_properties.insert(ImageProperty::HeightMinus2AfterTrimBorderColor, height - 2);
+            }
+        }
+        Ok(())
     }
 
     fn assign_input_properties_related_to_input_histogram_intersection(&mut self) {
@@ -556,21 +598,18 @@ impl arc_work_model::Task {
         for pair in &mut self.pairs {
 
             let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
-            // if self.id == "28bf18c6,task" {
-            //     HtmlLog::image(&image_mask);
-            // }
             {
                 let mass: u16 = image_mask.mask_count_zero();
                 if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
-                    pair.input_output_image_properties.insert(ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::NumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
             {
                 let mass: u16 = image_mask.mask_count_one();
                 if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
-                    pair.input_output_image_properties.insert(ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::NumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
 
@@ -583,12 +622,6 @@ impl arc_work_model::Task {
                     continue;
                 }
             };
-            // println!("number of objects: {} task: {}", object_images.len(), self.displayName);
-            // if self.id == "28bf18c6,task" {
-            //     for image in &object_images {
-            //         HtmlLog::image(image);
-            //     }
-            // }
             let mut mass_max: u16 = 0;
             let mut found_index_mass_max: Option<usize> = None;
             for (index, image) in object_images.iter().enumerate() {
@@ -602,12 +635,11 @@ impl arc_work_model::Task {
 
             if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
-                pair.input_output_image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
+                pair.input.image_meta.image_properties.insert(ImageProperty::MassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
             }
 
             if let Some(index) = found_index_mass_max {
                 if let Some(image) = object_images.get(index) {
-
                     let trimmed_image: Image = match image.trim_color(0) {
                         Ok(value) => value,
                         Err(_) => {
@@ -617,10 +649,8 @@ impl arc_work_model::Task {
                     
                     let width: u8 = trimmed_image.width();
                     let height: u8 = trimmed_image.height();
-                    // println!("biggest object: {}x{}", width, height);
-
-                    pair.input_output_image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor, width);
-                    pair.input_output_image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor, height);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::WidthOfPrimaryObjectAfterSingleIntersectionColor, width);
+                    pair.input.image_meta.image_properties.insert(ImageProperty::HeightOfPrimaryObjectAfterSingleIntersectionColor, height);
                 }
             }
         }
@@ -836,17 +866,17 @@ impl arc_work_model::Task {
         self.update_input_image_meta()?;
         self.update_output_image_meta()?;
         self.update_input_properties_intersection();
-        self.update_input_output_properties_intersection();
         self.update_input_image_label_set_intersection();
         self.update_output_image_label_set_intersection();
         self.update_input_output_image_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
+        _ = self.assign_input_properties_related_to_trim_with_border_color();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
         _ = self.determine_if_objects_have_moved();
 
-        let input_properties: [ImageProperty; 27] = [
+        let input_properties: [ImageProperty; 31] = [
             ImageProperty::Width, 
             ImageProperty::WidthPlus1, 
             ImageProperty::WidthPlus2, 
@@ -874,6 +904,10 @@ impl arc_work_model::Task {
             ImageProperty::HeightOfRemovedRectangleAfterSingleColorRemoval,
             ImageProperty::UniqueNoiseColorCount,
             ImageProperty::MassOfAllNoisePixels,
+            ImageProperty::WidthAfterTrimBorderColor,
+            ImageProperty::HeightAfterTrimBorderColor,
+            ImageProperty::WidthMinus2AfterTrimBorderColor,
+            ImageProperty::HeightMinus2AfterTrimBorderColor,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
@@ -1514,7 +1548,7 @@ impl arc_work_model::Task {
         // In each pair, the color is the same as most popular color of the input
         if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsTheMostPopularColorOfInputImage) {
             for pair in self.pairs.iter_mut() {
-                let histogram: &Histogram = &pair.input.image_meta.histogram;
+                let histogram: &Histogram = &pair.input.image_meta.histogram_all;
                 if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
                     pair.input.removal_color = Some(color);
                 }
@@ -1653,7 +1687,7 @@ impl arc_work_model::Task {
                     predicted_color = color;
                 },
                 (None, true, false) => {
-                    if let Some(color) = pair.input.image_meta.histogram.most_popular_color() {
+                    if let Some(color) = pair.input.image_meta.histogram_all.most_popular_color() {
                         predicted_color = color;
                         // println!("predicted_color most popular: {}", color);
                     } else {
@@ -1661,7 +1695,7 @@ impl arc_work_model::Task {
                     }
                 },
                 (None, false, true) => {
-                    if let Some(color) = pair.input.image_meta.histogram.least_popular_color() {
+                    if let Some(color) = pair.input.image_meta.histogram_all.least_popular_color() {
                         predicted_color = color;
                         // println!("predicted_color least popular: {}", color);
                     } else {
@@ -2302,9 +2336,16 @@ impl arc_work_model::Task {
         false
     }
 
-    pub fn input_properties_intersection_union_input_output_properties_intersection(&self) -> HashMap<ImageProperty, u8> {
-        let mut image_properties: HashMap<ImageProperty, u8> = self.input_properties_intersection.clone();
-        image_properties.extend(&self.input_output_properties_intersection);
-        image_properties
+    /// Returns `true` only when all the pairs have a predicted output size.
+    /// 
+    /// If one or more pairs don't have a predicted output size, this returns `false`.
+    #[allow(dead_code)]
+    pub fn has_predicted_output_size(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.predicted_output_size().is_none() {
+                return false;
+            }
+        }
+        true
     }
 }

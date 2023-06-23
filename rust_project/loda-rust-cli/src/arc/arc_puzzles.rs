@@ -3943,7 +3943,7 @@ mod tests {
                 let grid_color: u8 = grid_pattern.color;
                 let background_color: u8;
                 {
-                    let mut histogram: Histogram = pair.input.image_meta.histogram.clone();
+                    let mut histogram: Histogram = pair.input.image_meta.histogram_all.clone();
                     histogram.set_counter_to_zero(grid_color);
                     background_color = match histogram.most_popular_color_disallow_ambiguous() {
                         Some(value) => value,
@@ -4088,7 +4088,7 @@ mod tests {
 
                 let background_color: u8;
                 {
-                    let histogram: Histogram = pair.input.image_meta.histogram.clone();
+                    let histogram: Histogram = pair.input.image_meta.histogram_all.clone();
                     background_color = match histogram.most_popular_color_disallow_ambiguous() {
                         Some(value) => value,
                         None => {
@@ -4712,7 +4712,7 @@ mod tests {
                 let background_color: u8 = input.most_popular_color().expect("color");
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
 
-                let mut histogram: Histogram = pair.input.image_meta.histogram.clone();
+                let mut histogram: Histogram = pair.input.image_meta.histogram_all.clone();
                 histogram.set_counter_to_zero(background_color);
                 histogram.set_counter_to_zero(noise_color);
                 if histogram.number_of_counters_greater_than_zero() != 1 {

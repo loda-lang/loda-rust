@@ -59,6 +59,9 @@ impl FloodFill {
             return;
         }
         let value: u8 = image.get(x, y).unwrap_or(255);
+        if value == to_color {
+            return;
+        }
         if value != from_color {
             return;
         }
@@ -74,6 +77,9 @@ impl FloodFill {
             return;
         }
         let value: u8 = image.get(x, y).unwrap_or(255);
+        if value == to_color {
+            return;
+        }
         if value != from_color {
             return;
         }
@@ -221,6 +227,32 @@ mod tests {
     }
 
     #[test]
+    fn test_10003_flood_fill4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5, 5, 5,
+            5, 0, 0, 0, 5,
+            5, 0, 0, 0, 5,
+            5, 5, 5, 5, 5,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let mut output: Image = input.clone();
+        output.flood_fill(2, 1, 0, 0, PixelConnectivity::Connectivity4);
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 5, 5, 5, 5,
+            5, 0, 0, 0, 5,
+            5, 0, 0, 0, 5,
+            5, 5, 5, 5, 5,
+        ];
+        let expected = Image::create_raw(5, 4, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
     fn test_20000_flood_fill8() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -243,6 +275,32 @@ mod tests {
             5, 3, 3, 3, 3, 0,
         ];
         let expected = Image::create_raw(6, 4, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_20001_flood_fill8() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5, 5, 5,
+            5, 0, 0, 0, 5,
+            5, 0, 0, 0, 5,
+            5, 5, 5, 5, 5,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let mut output: Image = input.clone();
+        output.flood_fill(2, 1, 0, 0, PixelConnectivity::Connectivity8);
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 5, 5, 5, 5,
+            5, 0, 0, 0, 5,
+            5, 0, 0, 0, 5,
+            5, 5, 5, 5, 5,
+        ];
+        let expected = Image::create_raw(5, 4, expected_pixels);
         assert_eq!(output, expected);
     }
 

@@ -1,4 +1,4 @@
-use super::{ImageFill, ConnectedComponent, PixelConnectivity, ImageOverlay, ImageObjectEnumerate, ImageTrim, ImageSymmetry};
+use super::{ImageFill, ConnectedComponent, PixelConnectivity, ImageOverlay, ImageObjectEnumerate, ImageTrim, ImageSymmetry, ImageReplaceColor};
 use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle, ImageMix, ImageSize, MixMode, ImageMaskCount, ImageCrop};
 
 /// A rectangle filled with a single solid color and no other colors are present inside the object.
@@ -73,6 +73,9 @@ pub struct SingleColorObjectSparse {
     pub connectivity48_identical: bool,
 
     // Future experiments:
+    // Shape type. L shape, T shape, + shape, I shape.
+    // Are there 4 corners pixels that are 1, and otherwise the rest are zeroes?
+    // Is it a box?
     // are container4 all single pixels?
     // Noise color for single pixel noise
     // histogram of areas between clusters.
@@ -716,6 +719,323 @@ impl SingleColorObject {
 
             let enumerated_clusters: Image = Image::object_enumerate(&object_mask_vec)?;
             return Ok(enumerated_clusters);
+        }
+        Err(anyhow::anyhow!("Color not found"))
+    }
+
+    /// The objects that are squares with the specified `color`.
+    /// 
+    /// The `value=1` is when there is a square.
+    /// 
+    /// The `value=0` is where there is no square.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn squares(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        for object in &self.rectangle_vec {
+            if object.color != color {
+                continue;
+            }
+            if object.is_square {
+                let mask: Image = object.mask.clone();
+                return Ok(mask);
+            } else {
+                let mask: Image = object.mask.clone_zero();
+                return Ok(mask);
+            }
+        }
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            let optional_container: Option<&SingleColorObjectClusterContainer> = match connectivity {
+                PixelConnectivity::Connectivity4 => object.container4.as_ref(),
+                PixelConnectivity::Connectivity8 => object.container8.as_ref(),
+            };
+            let container: &SingleColorObjectClusterContainer = match optional_container {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing container"));
+                }
+            };
+            let mut accumulated_mask: Image = Image::zero(object.bounding_box.width(), object.bounding_box.height());
+            for cluster in &container.cluster_vec {
+                let trimmed_mask: Image = cluster.mask.trim_color(0)?;
+                let mass: u16 = trimmed_mask.mask_count_nonzero();
+                let rect_area: u16 = (trimmed_mask.width() as u16) * (trimmed_mask.height() as u16);
+                if mass != rect_area {
+                    // It's not filled out entirely. It's not a solid rectangle.
+                    continue;
+                }
+                if trimmed_mask.width() != trimmed_mask.height() {
+                    // Not a square.
+                    continue;
+                }
+                accumulated_mask = accumulated_mask.mix(&cluster.mask, MixMode::BooleanOr)?;
+            }
+
+            let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
+            result_image = result_image.overlay_with_position(&accumulated_mask, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+
+            return Ok(result_image);
+        }
+        Err(anyhow::anyhow!("Color not found"))
+    }
+
+    /// The objects that are non-square with the specified `color`.
+    /// 
+    /// The object must be a rectangle, without any holes. And the rectangle must not be square.
+    /// 
+    /// The `value=1` is when it's a non-square.
+    /// 
+    /// The `value=0` is where it's not satisfied.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn non_squares(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        for object in &self.rectangle_vec {
+            if object.color != color {
+                continue;
+            }
+            if object.is_square {
+                let mask: Image = object.mask.clone_zero();
+                return Ok(mask);
+            } else {
+                let mask: Image = object.mask.clone();
+                return Ok(mask);
+            }
+        }
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            let optional_container: Option<&SingleColorObjectClusterContainer> = match connectivity {
+                PixelConnectivity::Connectivity4 => object.container4.as_ref(),
+                PixelConnectivity::Connectivity8 => object.container8.as_ref(),
+            };
+            let container: &SingleColorObjectClusterContainer = match optional_container {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing container"));
+                }
+            };
+            let mut accumulated_mask: Image = Image::zero(object.bounding_box.width(), object.bounding_box.height());
+            for cluster in &container.cluster_vec {
+                let trimmed_mask: Image = cluster.mask.trim_color(0)?;
+                let mass: u16 = trimmed_mask.mask_count_nonzero();
+                let rect_area: u16 = (trimmed_mask.width() as u16) * (trimmed_mask.height() as u16);
+                if mass != rect_area {
+                    // It's not filled out entirely. It's not a solid rectangle.
+                    continue;
+                }
+                if trimmed_mask.width() == trimmed_mask.height() {
+                    // It's a square.
+                    continue;
+                }
+                accumulated_mask = accumulated_mask.mix(&cluster.mask, MixMode::BooleanOr)?;
+            }
+
+            let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
+            result_image = result_image.overlay_with_position(&accumulated_mask, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+
+            return Ok(result_image);
+        }
+        Err(anyhow::anyhow!("Color not found"))
+    }
+
+    /// The objects that are rectangles with the specified `color`.
+    /// 
+    /// The object must be a solid rectangle, without any holes. Doesn't matter if it's square or non-square.
+    /// 
+    /// The `value=1` is when it's a rectangle.
+    /// 
+    /// The `value=0` is where it's not satisfied.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn rectangles(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        for object in &self.rectangle_vec {
+            if object.color != color {
+                continue;
+            }
+            let mask: Image = object.mask.clone();
+            return Ok(mask);
+        }
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            let optional_container: Option<&SingleColorObjectClusterContainer> = match connectivity {
+                PixelConnectivity::Connectivity4 => object.container4.as_ref(),
+                PixelConnectivity::Connectivity8 => object.container8.as_ref(),
+            };
+            let container: &SingleColorObjectClusterContainer = match optional_container {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing container"));
+                }
+            };
+            let mut accumulated_mask: Image = Image::zero(object.bounding_box.width(), object.bounding_box.height());
+            for cluster in &container.cluster_vec {
+                let trimmed_mask: Image = cluster.mask.trim_color(0)?;
+                let mass: u16 = trimmed_mask.mask_count_nonzero();
+                let rect_area: u16 = (trimmed_mask.width() as u16) * (trimmed_mask.height() as u16);
+                if mass != rect_area {
+                    // It's not filled out entirely. It's not a solid rectangle.
+                    continue;
+                }
+                accumulated_mask = accumulated_mask.mix(&cluster.mask, MixMode::BooleanOr)?;
+            }
+
+            let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
+            result_image = result_image.overlay_with_position(&accumulated_mask, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+
+            return Ok(result_image);
+        }
+        Err(anyhow::anyhow!("Color not found"))
+    }
+
+    /// The objects that are boxes with the specified `color`.
+    /// 
+    /// The object must be a rectangle, that has its mass in the outer line. A 1 pixel thick border.
+    /// 
+    /// The smallest box is `3x3` pixels. Here the hole is `1x1` pixel.
+    /// 
+    /// The `value=1` is when it's a box.
+    /// 
+    /// The `value=0` is where it's not satisfied.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn boxes(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        for object in &self.rectangle_vec {
+            if object.color != color {
+                continue;
+            }
+            // Return zero, since a solid rectangle has no hole.
+            let mask: Image = object.mask.clone_zero();
+            return Ok(mask);
+        }
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            let optional_container: Option<&SingleColorObjectClusterContainer> = match connectivity {
+                PixelConnectivity::Connectivity4 => object.container4.as_ref(),
+                PixelConnectivity::Connectivity8 => object.container8.as_ref(),
+            };
+            let container: &SingleColorObjectClusterContainer = match optional_container {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing container"));
+                }
+            };
+            let mut accumulated_mask: Image = Image::zero(object.bounding_box.width(), object.bounding_box.height());
+            for cluster in &container.cluster_vec {
+                let trimmed_mask: Image = cluster.mask.trim_color(0)?;
+                if trimmed_mask.width() < 3 || trimmed_mask.height() < 3 {
+                    // It's too small to be a box.
+                    continue;
+                }
+                let histogram: Histogram = trimmed_mask.histogram_border();
+                if histogram.number_of_counters_greater_than_zero() > 1 {
+                    // There are gaps in the outline, it's not a solid box.
+                    continue;
+                }
+                let mass_outline: u32 = histogram.sum();
+                let mass: u16 = trimmed_mask.mask_count_nonzero();
+                if mass as u32 != mass_outline {
+                    // There is stuff inside the box. It's not a 1px thick box.
+                    continue;
+                }
+                accumulated_mask = accumulated_mask.mix(&cluster.mask, MixMode::BooleanOr)?;
+            }
+
+            let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
+            result_image = result_image.overlay_with_position(&accumulated_mask, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+
+            return Ok(result_image);
+        }
+        Err(anyhow::anyhow!("Color not found"))
+    }
+
+    /// The objects that are lines with the specified `color`.
+    /// 
+    /// The object must be a rectangle, that is 1 pixel thick, and 2 or more pixels long.
+    /// 
+    /// The smallest line is `2x1` pixels or `1x2` pixels.
+    /// 
+    /// The `value=2` is when it's a line row of pixels with the specified color.
+    /// 
+    /// The `value=1` is when it's a line column of pixels with the specified color.
+    /// 
+    /// The `value=0` is where it's not satisfied.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn lines(&self, color: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        for object in &self.rectangle_vec {
+            if object.color != color {
+                continue;
+            }
+            let size: ImageSize = object.bounding_box.size();
+            let is_line_horizontal: bool = size.width >= 2 && size.height == 1;
+            let is_line_vertical: bool = size.width == 1 && size.height >= 2;
+            if is_line_horizontal {
+                let mask: Image = object.mask.replace_color(1, 2)?;
+                return Ok(mask);
+            }
+            if is_line_vertical {
+                let mask: Image = object.mask.clone();
+                return Ok(mask);
+            } else {
+                let mask: Image = object.mask.clone_zero();
+                return Ok(mask);
+            }
+        }
+        for object in &self.sparse_vec {
+            if object.color != color {
+                continue;
+            }
+            let optional_container: Option<&SingleColorObjectClusterContainer> = match connectivity {
+                PixelConnectivity::Connectivity4 => object.container4.as_ref(),
+                PixelConnectivity::Connectivity8 => object.container8.as_ref(),
+            };
+            let container: &SingleColorObjectClusterContainer = match optional_container {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing container"));
+                }
+            };
+            let mut accumulated_mask: Image = Image::zero(object.bounding_box.width(), object.bounding_box.height());
+            for cluster in &container.cluster_vec {
+                let trimmed_mask: Image = cluster.mask.trim_color(0)?;
+                let mass: u16 = trimmed_mask.mask_count_nonzero();
+                let rect_area: u16 = (trimmed_mask.width() as u16) * (trimmed_mask.height() as u16);
+                if mass != rect_area {
+                    // It's not filled out entirely. It's not a solid rectangle.
+                    continue;
+                }
+                let is_line_horizontal: bool = trimmed_mask.width() >= 2 && trimmed_mask.height() == 1;
+                let is_line_vertical: bool = trimmed_mask.width() == 1 && trimmed_mask.height() >= 2;
+                let color: u8;
+                if is_line_horizontal {
+                    color = 2;
+                } else {
+                    if is_line_vertical {
+                        color = 1;
+                    } else {
+                        continue;
+                    }
+                }
+    
+                accumulated_mask = cluster.mask.mix(&accumulated_mask, MixMode::PickColor1WhenColor0IsZero { color })?;
+            }
+
+            let mut result_image: Image = Image::zero(self.image_size.width, self.image_size.height);
+            result_image = result_image.overlay_with_position(&accumulated_mask, object.bounding_box.min_x(), object.bounding_box.min_y())?;
+
+            return Ok(result_image);
         }
         Err(anyhow::anyhow!("Color not found"))
     }
@@ -1565,6 +1885,322 @@ mod tests {
             0, 0, 4, 0, 0, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_150000_squares_multiple_clusters() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 5, 0, 0, 0,
+            5, 5, 0, 0, 5, 0, 5, 0,
+            5, 5, 0, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 5, 5,
+            5, 5, 5, 0, 5, 0, 5, 5,
+            5, 5, 5, 0, 5, 0, 0, 0,
+            5, 5, 5, 0, 5, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(8, 7, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.squares(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 0, 0, 0, 0, 1, 0,
+            1, 1, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 1, 1,
+            1, 1, 1, 0, 0, 0, 1, 1,
+            1, 1, 1, 0, 0, 0, 0, 0,
+            1, 1, 1, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_150001_squares_one_cluster() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 5, 5, 0,
+            0, 5, 5, 0,
+            0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.squares(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 1, 1, 0,
+            0, 1, 1, 0,
+            0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(4, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_160000_nonsquares_multiple_clusters() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 5, 0, 0, 0,
+            5, 5, 5, 0, 5, 0, 5, 0,
+            5, 5, 5, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 5, 5,
+            5, 5, 5, 0, 5, 0, 5, 5,
+            5, 0, 5, 0, 5, 0, 0, 5,
+            5, 5, 5, 0, 5, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(8, 7, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.non_squares(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 1, 0, 0, 0,
+            1, 1, 1, 0, 1, 0, 0, 0,
+            1, 1, 1, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_160001_nonsquares_one_cluster() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 5, 5, 5, 0,
+            0, 5, 5, 5, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.non_squares(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 1, 1, 1, 0,
+            0, 1, 1, 1, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_170000_rectangles_multiple_clusters() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 5, 0, 0, 0,
+            5, 5, 5, 0, 5, 0, 5, 0,
+            5, 5, 5, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 5, 5,
+            5, 5, 5, 0, 5, 0, 5, 5,
+            5, 0, 5, 0, 5, 0, 0, 0,
+            5, 5, 5, 0, 5, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(8, 7, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.rectangles(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 1, 0, 0, 0,
+            1, 1, 1, 0, 1, 0, 1, 0,
+            1, 1, 1, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 1, 1,
+            0, 0, 0, 0, 1, 0, 1, 1,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_170001_rectangles_one_cluster() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 5, 5, 5, 0,
+            0, 5, 5, 5, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.rectangles(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 1, 1, 1, 0,
+            0, 1, 1, 1, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_180000_boxes_multiple_clusters() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 0, 0, 0, 0, 5, 0, 0, 0,
+            5, 5, 0, 0, 0, 5, 0, 5, 0, 0,
+            5, 5, 0, 5, 0, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            5, 5, 5, 0, 5, 5, 5, 5, 5, 5,
+            5, 0, 5, 0, 5, 5, 0, 0, 5, 5,
+            5, 5, 5, 0, 5, 5, 5, 5, 5, 5,
+        ];
+        let input: Image = Image::try_create(10, 7, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.boxes(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(10, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_180001_boxes_one_cluster() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 5, 5, 5, 0,
+            0, 5, 5, 5, 0,
+            0, 5, 5, 5, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.boxes(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_190000_lines_multiple_clusters() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 5, 0, 0, 0,
+            5, 5, 5, 0, 5, 0, 5, 0,
+            5, 5, 5, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 5, 0,
+            5, 5, 5, 0, 5, 0, 5, 5,
+            5, 0, 5, 0, 5, 0, 0, 0,
+            5, 5, 5, 0, 5, 0, 5, 5,
+        ];
+        let input: Image = Image::try_create(8, 7, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.lines(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 2, 2,
+        ];
+        let expected: Image = Image::try_create(8, 7, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_190001_lines_one_cluster() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 5, 5, 5, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.lines(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 2, 2, 2, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_190002_lines_one_cluster() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 5, 0,
+            0, 5, 0,
+            0, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 4, pixels).expect("image");
+        let objects: SingleColorObject = SingleColorObject::find_objects(&input).expect("ColorIsObject");
+        
+        // Act
+        let actual: Image = objects.lines(5, PixelConnectivity::Connectivity4).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 1, 0,
+            0, 1, 0,
+            0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(3, 4, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }

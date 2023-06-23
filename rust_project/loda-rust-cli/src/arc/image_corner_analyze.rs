@@ -16,6 +16,9 @@ pub trait ImageCornerAnalyze {
     /// 
     /// Uses `255` as the padding color.
     fn corners(&self) -> anyhow::Result<Image>;
+
+    // Future experiment
+    // Is the corner on the on the contour of a single color object, or on the inside of the single color object?
 }
 
 impl ImageCornerAnalyze for Image {

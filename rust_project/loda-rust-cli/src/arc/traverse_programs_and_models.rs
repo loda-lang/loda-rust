@@ -1,4 +1,4 @@
-use super::{arc_json_model, ActionLabel};
+use super::ActionLabel;
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
@@ -60,11 +60,13 @@ static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 4;
 
 static ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS: u64 = 200;
 
+type ModelItemVec = Vec<Rc<RefCell<ModelItem>>>;
+
 pub struct TraverseProgramsAndModels {
     config: Config,
     arc_config: RunArcCompetitionConfig,
     context: GenomeMutateContext,
-    model_item_vec: Vec<Rc<RefCell<ModelItem>>>,
+    model_item_vec: ModelItemVec,
     program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     locked_instruction_hashset: HashSet<String>,
     dependency_manager: DependencyManager,
@@ -418,6 +420,9 @@ impl TraverseProgramsAndModels {
             // if !task.has_predicted_output_size_and_its_incorrect() {
             //     continue;
             // }
+            // if task.has_predicted_output_size() {
+            //     continue;
+            // }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
             // }
@@ -753,21 +758,19 @@ impl TraverseProgramsAndModels {
             .into_iter()
             .filter(Self::files_to_keep)
             .collect();
-        debug!("arc_repository_data. number of json files: {}", paths.len());
 
-        let mut model_item_vec: Vec<Rc<RefCell<ModelItem>>> = vec!();
-        for path in &paths {
-            let json_task: arc_json_model::Task = match arc_json_model::Task::load_with_json_file(path) {
+        self.model_item_vec = Self::load_models_with_task_paths(&paths)?;
+        Ok(())
+    }
+
+    fn load_models_with_task_paths(paths: &Vec<PathBuf>) -> anyhow::Result<ModelItemVec> {
+        debug!("will load {} task files", paths.len());
+        let mut model_item_vec: ModelItemVec = vec!();
+        for path in paths {
+            let task: Task = match Task::load_with_json_file(path) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("Ignoring file. Cannot parse arc_json_model file. path: {:?} error: {:?}", path, error);
-                    continue;
-                }
-            };
-            let task: Task = match Task::try_from(&json_task) {
-                Ok(value) => value,
-                Err(error) => {
-                    error!("Ignoring file. Cannot construct arc_work_model::Task from json model. path: {:?} error: {:?}", path, error);
+                    error!("Ignoring file. Problem in Task::load_with_json_file. path: {:?} error: {:?}", path, error);
                     continue;
                 }
             };
@@ -781,8 +784,7 @@ impl TraverseProgramsAndModels {
         if model_item_vec.len() != paths.len() {
             error!("Skipped some models. paths.len()={}, but model_item_vec.len()={}", paths.len(), model_item_vec.len());
         }
-        self.model_item_vec = model_item_vec;
-        Ok(())
+        Ok(model_item_vec)
     }
 
     /// Load all `.asm` programs into memory
