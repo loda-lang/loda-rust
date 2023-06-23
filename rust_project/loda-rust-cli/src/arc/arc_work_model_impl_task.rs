@@ -654,12 +654,130 @@ impl arc_work_model::Task {
         Ok(())
     }
 
+    fn assign_input_properties_related_to_number_of_clusters_with_most_popular_color(&mut self) -> anyhow::Result<()> {
+        let mut unambiguous_connected: bool = false;
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::UnambiguousConnectivityWithAllColors => {
+                    unambiguous_connected = true;
+                },
+                _ => {}
+            }
+        }
+        let is_satisfied: bool = unambiguous_connected;
+        if !is_satisfied {
+            return Err(anyhow::anyhow!("Preconditions are not satisfied"));
+        }
+        // At this point we know that:
+        // - it doesn't matter if we use connectivity 4 or 8, it yields the same single color objects.
+
+        let most_popular_color: u8 = match self.input_histogram_intersection.most_popular_color_disallow_ambiguous() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to determine most popular color, histogram is empty, or two or more colors have the same number of pixels"));
+            }
+        };
+
+        for pair in &mut self.pairs {
+
+            let sco: &SingleColorObject = match &pair.input.image_meta.single_color_object {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing single color object"));
+                }
+            };
+
+            let enumerated_clusters: Image = sco.enumerate_clusters(most_popular_color, PixelConnectivity::Connectivity4)?;
+            let max_pixel_value: u8 = match enumerated_clusters.minmax() {
+                Some(value) => value.1,
+                None => {
+                    continue;
+                }
+            };
+
+            pair.input.image_meta.image_properties.insert(ImageProperty::NumberOfClustersWithMostPopularIntersectionColor, max_pixel_value);
+        }
+
+        Ok(())
+    }
+
+    fn assign_input_properties_related_to_cell_count(&mut self) -> anyhow::Result<()> {
+        for pair in &self.pairs {
+            if pair.input.grid_pattern.is_none() {
+                return Err(anyhow::anyhow!("One or more pairs have no grid pattern"));
+            }
+        }
+        // At this point we know that:
+        // - there is a grid.
+
+        for pair in &mut self.pairs {
+            let pattern: &GridPattern = match &pair.input.grid_pattern {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing grid pattern"));
+                }
+            };
+
+            pair.input.image_meta.image_properties.insert(ImageProperty::CellCountX, pattern.horizontal_cell_count);
+            pair.input.image_meta.image_properties.insert(ImageProperty::CellCountY, pattern.vertical_cell_count);
+        }
+
+        Ok(())
+    }
+
+    fn assign_input_properties_related_to_number_of_clusters_with_least_popular_color(&mut self) -> anyhow::Result<()> {
+        let mut unambiguous_connected: bool = false;
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::UnambiguousConnectivityWithAllColors => {
+                    unambiguous_connected = true;
+                },
+                _ => {}
+            }
+        }
+        let is_satisfied: bool = unambiguous_connected;
+        if !is_satisfied {
+            return Err(anyhow::anyhow!("Preconditions are not satisfied"));
+        }
+        // At this point we know that:
+        // - it doesn't matter if we use connectivity 4 or 8, it yields the same single color objects.
+
+        let least_popular_color: u8 = match self.input_histogram_intersection.least_popular_color_disallow_ambiguous() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to determine least popular color, histogram is empty, or two or more colors have the same number of pixels"));
+            }
+        };
+
+        for pair in &mut self.pairs {
+
+            let sco: &SingleColorObject = match &pair.input.image_meta.single_color_object {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing single color object"));
+                }
+            };
+
+            let enumerated_clusters: Image = sco.enumerate_clusters(least_popular_color, PixelConnectivity::Connectivity4)?;
+            let max_pixel_value: u8 = match enumerated_clusters.minmax() {
+                Some(value) => value.1,
+                None => {
+                    continue;
+                }
+            };
+
+            pair.input.image_meta.image_properties.insert(ImageProperty::NumberOfClustersWithLeastPopularIntersectionColor, max_pixel_value);
+        }
+
+        Ok(())
+    }
+
     fn assign_input_properties_related_to_input_histogram_intersection(&mut self) {
-        let removal_pairs: Vec<(u32,u8)> = self.input_histogram_intersection.pairs_descending();
-        if removal_pairs.len() != 1 {
+        let histogram_pairs: Vec<(u32,u8)> = self.input_histogram_intersection.pairs_descending();
+        if histogram_pairs.len() != 1 {
             return;
         }
-        let background_color: u8 = match removal_pairs.first() {
+        let background_color: u8 = match histogram_pairs.first() {
             Some((_count, color)) => *color,
             None => {
                 return;
@@ -941,14 +1059,18 @@ impl arc_work_model::Task {
         self.update_output_image_label_set_intersection();
         self.update_input_output_image_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
+        self.compute_input_grid_pattern()?;
         _ = self.assign_input_properties_related_to_biggest_object_ignoring_most_popular_border_color();
         _ = self.assign_input_properties_related_to_trim_with_border_color();
+        _ = self.assign_input_properties_related_to_number_of_clusters_with_most_popular_color();
+        _ = self.assign_input_properties_related_to_number_of_clusters_with_least_popular_color();
+        _ = self.assign_input_properties_related_to_cell_count();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
         _ = self.determine_if_objects_have_moved();
 
-        let input_properties: [ImageProperty; 33] = [
+        let input_properties: [ImageProperty; 37] = [
             ImageProperty::Width, 
             ImageProperty::WidthPlus1, 
             ImageProperty::WidthPlus2, 
@@ -982,6 +1104,10 @@ impl arc_work_model::Task {
             ImageProperty::HeightMinus2AfterTrimBorderColor,
             ImageProperty::WidthOfBiggestObjectIgnoringMostPopularBorderColor,
             ImageProperty::HeightOfBiggestObjectIgnoringMostPopularBorderColor,
+            ImageProperty::NumberOfClustersWithMostPopularIntersectionColor,
+            ImageProperty::NumberOfClustersWithLeastPopularIntersectionColor,
+            ImageProperty::CellCountX,
+            ImageProperty::CellCountY,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
@@ -1086,8 +1212,6 @@ impl arc_work_model::Task {
         self.assign_repair_mask();
 
         self.compute_input_repaired_image()?;
-
-        self.compute_input_grid_pattern()?;
 
         self.compute_input_enumerated_objects()?;
 
@@ -2047,6 +2171,14 @@ impl arc_work_model::Task {
         if !self.has_enumerated_objects() {
             self.reset_input_enumerated_objects();
         }
+
+        // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_based_on_unambiguous_connectivity();
+
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            self.reset_input_enumerated_objects();
+        }
         Ok(())
     }
 
@@ -2183,6 +2315,50 @@ impl arc_work_model::Task {
             };
             let object_images_sorted: Vec<Image> = ObjectsSortByProperty::sort_by_mass_descending(&object_images)?;
             let enumerated_objects: Image = Image::object_enumerate(&object_images_sorted)?;
+            pair.input.enumerated_objects = Some(enumerated_objects);
+        }
+
+        Ok(())
+    }
+
+    fn compute_input_enumerated_objects_based_on_unambiguous_connectivity(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        let most_popular_color: u8 = match self.input_histogram_intersection.most_popular_color_disallow_ambiguous() {
+            Some(color) => color,
+            None => {
+                return Err(anyhow::anyhow!("No agreement on a single color"));
+            }
+        };
+
+        let mut unambiguous_connected: bool = false;
+        for image_label in &self.input_image_label_set_intersection {
+            match image_label {
+                ImageLabel::UnambiguousConnectivityWithAllColors => {
+                    unambiguous_connected = true;
+                },
+                _ => {}
+            }
+        }
+        let is_satisfied: bool = unambiguous_connected;
+        if !is_satisfied {
+            return Err(anyhow::anyhow!("Preconditions are not satisfied"));
+        }
+        // At this point we know that:
+        // - it doesn't matter if we use connectivity 4 or 8, it yields the same single color objects.
+        // - there is a popular color that all all the inputs agree on, sometimes it's the background color.
+
+        for pair in &mut self.pairs {
+            let ignore_mask: Image = pair.input.image.to_mask_where_color_is(most_popular_color);
+
+            let result = ConnectedComponent::find_objects_with_ignore_mask(PixelConnectivity::Connectivity4, &pair.input.image, &ignore_mask);
+            let object_images: Vec<Image> = match result {
+                Ok(images) => images,
+                Err(_) => continue
+            };
+            let enumerated_objects: Image = Image::object_enumerate(&object_images)?;
             pair.input.enumerated_objects = Some(enumerated_objects);
         }
 

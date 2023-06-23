@@ -45,9 +45,13 @@ pub enum ImageProperty {
     HeightMinus2AfterTrimBorderColor,
     WidthOfBiggestObjectIgnoringMostPopularBorderColor,
     HeightOfBiggestObjectIgnoringMostPopularBorderColor,
+    NumberOfClustersWithMostPopularIntersectionColor,
+    NumberOfClustersWithLeastPopularIntersectionColor,
+    CellCountX,
+    CellCountY,
 
     // Ideas for more
-    // NumberOfClusters,
+    // UniqueColorCountIgnoringTheMostPopularIntersectionColor,
     // NoisePixelsCountOutsideAnyObjects,
     // MaxNumberOfClustersInSparseSingleColorObject,
     // MaxWidthOfClustersInSparseSingleColorObject,
@@ -322,6 +326,7 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // OutputSizeIsTheSameAsObjectAtPosition { position: Top/Bottom/Left/Right },
     // NoMovementInDirectionX,
     // NoMovementInDirectionY,
     // ObjectsOnlyMoveInDirectionX,

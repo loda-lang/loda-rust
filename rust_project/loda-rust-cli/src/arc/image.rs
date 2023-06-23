@@ -149,6 +149,26 @@ impl Image {
         self.pixels = other.pixels;
     }
 
+    /// Get the lowest and highest pixel values in the image.
+    /// 
+    /// If the image is empty, it returns `None`.
+    pub fn minmax(&self) -> Option<(u8,u8)> {
+        if self.is_empty() {
+            return None;
+        }
+        let mut min_value: u8 = u8::MAX;
+        let mut max_value: u8 = 0;
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let pixel_value: u8 = self.get(x as i32, y as i32).unwrap_or(255);
+                min_value = min_value.min(pixel_value);
+                max_value = max_value.max(pixel_value);
+            }
+        }
+        Some((min_value, max_value))
+    }
+
+    /// Formatting of the pixels that is easy for a human to read.
     pub fn human_readable(&self) -> String {
         let mut s = String::new();
         for y in 0..self.height {
@@ -455,5 +475,17 @@ mod tests {
         // Assert
         let expected = Image::color(5, 3, 1);
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_90000_minmax() {
+        {
+            let image = Image::create_raw(2, 3, vec![5, 4, 9, 5, 42, 9]);
+            assert_eq!(image.minmax(), Some((4, 42)));
+        }
+        {
+            let image = Image::empty();
+            assert_eq!(image.minmax(), None);
+        }
     }
 }
