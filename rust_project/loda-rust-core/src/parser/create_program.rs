@@ -2,7 +2,6 @@ use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
 use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, Program, LOOP_RANGE_MAX_BITS};
 use crate::execute::node_calc::*;
-use crate::execute::node_clear::*;
 use crate::execute::node_loop_constant::*;
 use crate::execute::node_loop_register::*;
 use crate::execute::node_loop_simple::*;
@@ -71,15 +70,6 @@ impl Instruction {
         }
         Ok(())
     }
-}
-
-fn create_node_clear(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
-    instruction.expect_two_parameters()?;
-    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
-    let node = NodeClear::new(parameter0.clone(), parameter1.clone());
-    let node_wrapped = Box::new(node);
-    return Ok(node_wrapped);
 }
 
 fn create_node_seq(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
@@ -445,10 +435,6 @@ impl CreateProgram {
                 },
                 InstructionId::Compare => {
                     let node = self.create_node_calc(&instruction)?;
-                    program.push_boxed(node);
-                },
-                InstructionId::Clear => {
-                    let node = create_node_clear(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Max => {

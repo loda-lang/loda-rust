@@ -154,7 +154,6 @@ impl AnalyzeSourceNgram {
                 InstructionId::EvalSequence | 
                 InstructionId::LoopBegin | 
                 InstructionId::LoopEnd |
-                InstructionId::Clear |
                 InstructionId::UnofficialFunction { .. } |
                 InstructionId::UnofficialLoopBeginSubtract => {
                     words.push("NONE".to_string());

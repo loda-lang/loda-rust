@@ -168,7 +168,6 @@ impl Genome {
                 InstructionId::EvalSequence | 
                 InstructionId::LoopBegin | 
                 InstructionId::LoopEnd |
-                InstructionId::Clear |
                 InstructionId::UnofficialFunction { .. } |
                 InstructionId::UnofficialLoopBeginSubtract => {
                     continue;
@@ -222,7 +221,6 @@ impl Genome {
                 InstructionId::EvalSequence | 
                 InstructionId::LoopBegin | 
                 InstructionId::LoopEnd |
-                InstructionId::Clear |
                 InstructionId::UnofficialFunction { .. } |
                 InstructionId::UnofficialLoopBeginSubtract => {
                     continue;
@@ -297,7 +295,6 @@ impl Genome {
                 InstructionId::EvalSequence | 
                 InstructionId::LoopBegin | 
                 InstructionId::LoopEnd |
-                InstructionId::Clear |
                 InstructionId::UnofficialFunction { .. } |
                 InstructionId::UnofficialLoopBeginSubtract => {
                     continue;
@@ -354,7 +351,6 @@ impl Genome {
             match genome_item.instruction_id() {
                 InstructionId::LoopBegin | 
                 InstructionId::LoopEnd |
-                InstructionId::Clear |
                 InstructionId::UnofficialFunction { .. } |
                 InstructionId::UnofficialLoopBeginSubtract => {
                     continue;
@@ -398,7 +394,6 @@ impl Genome {
             match genome_item.instruction_id() {
                 InstructionId::LoopBegin | 
                 InstructionId::LoopEnd |
-                InstructionId::Clear |
                 InstructionId::UnofficialFunction { .. } |
                 InstructionId::UnofficialLoopBeginSubtract => {
                     continue;
@@ -468,7 +463,6 @@ impl Genome {
                 InstructionId::EvalSequence | 
                 InstructionId::LoopBegin | 
                 InstructionId::LoopEnd |
-                InstructionId::Clear |
                 InstructionId::UnofficialFunction { .. } |
                 InstructionId::UnofficialLoopBeginSubtract => {
                     continue;
@@ -1141,7 +1135,6 @@ impl Genome {
                 InstructionId::EvalSequence | 
                 InstructionId::LoopBegin | 
                 InstructionId::LoopEnd |
-                InstructionId::Clear |
                 InstructionId::UnofficialFunction { .. } |
                 InstructionId::UnofficialLoopBeginSubtract => {
                     continue;
@@ -1191,7 +1184,6 @@ impl Genome {
                 InstructionId::EvalSequence | 
                 InstructionId::LoopBegin | 
                 InstructionId::LoopEnd |
-                InstructionId::Clear |
                 InstructionId::UnofficialFunction { .. } |
                 InstructionId::UnofficialLoopBeginSubtract => {
                     continue;

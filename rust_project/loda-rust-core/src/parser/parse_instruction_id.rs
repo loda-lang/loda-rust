@@ -24,7 +24,6 @@ impl ParseInstructionId for InstructionId {
         match input {
             "add" => Ok(Self::Add),
             "bin" => Ok(Self::Binomial),
-            "clr" => Ok(Self::Clear),
             "cmp" => Ok(Self::Compare),
             "dif" => Ok(Self::DivideIf),
             "div" => Ok(Self::Divide),

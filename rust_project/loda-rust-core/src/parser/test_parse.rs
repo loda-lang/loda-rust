@@ -55,63 +55,6 @@ mod tests {
     div $0,2
     "#;
 
-    const INPUT_A002624: &str = r#"
-    ; A002624: Expansion of (1-x)^(-3) * (1-x^2)^(-2).
-    ; 1,3,8,16,30,50,80,120,175,245,336,448,588,756,960
-    
-    mov $12,$0
-    mov $14,$0
-    add $14,1
-    lpb $14
-      clr $0,12
-      mov $0,$12
-      sub $14,1
-      sub $0,$14
-      mov $9,$0
-      mov $11,$0
-      add $11,1
-      lpb $11
-        mov $0,$9
-        sub $11,1
-        sub $0,$11
-        mov $6,$0
-        add $6,4
-        div $6,2
-        bin $6,2
-        add $10,$6
-      lpe
-      add $13,$10
-    lpe
-    mov $0,$13
-    "#;
-
-    const INPUT_A002791: &str = r#"
-    ; A002791: a(n) = Sum_{d|n, d <= 4} d^2 + 4*Sum_{d|n, d>4} d.
-    ; 1,5,10,21,21,38,29,53,46,65,45,102,53,89,90,117,69,146,77,161
-
-    add $0,1
-    mov $2,$0
-    lpb $0
-      mov $3,$2
-      clr $8,$0
-      mov $26,$0
-      cmp $26,0
-      add $0,$26
-      dif $3,$0
-      cmp $3,$2
-      cmp $3,0
-      mul $3,$0
-      sub $0,1
-      add $1,$3
-      sub $3,18
-      add $11,$1
-    lpe
-    sub $11,$3
-    mov $1,$11
-    sub $1,17
-    mov $0,$1
-    "#;
-
     const INPUT_A007958: &str = r#"
     ; A007958: Even numbers with at least one odd digit.
     ; 10,12,14,16,18,30,32,34,36,38,50,52,54,56,58,70,72
@@ -305,27 +248,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10006_clear_memory_range_with_constant() {
-        let program: Program = parse(INPUT_A002624).expect("program");
-        let runner = ProgramRunner::new(
-            ProgramId::ProgramOEIS(2624),
-            program
-        );
-        assert_eq!(runner.inspect(10), "1,3,8,16,30,50,80,120,175,245");
-    }
-
-    #[test]
-    fn test_10007_clear_memory_range_with_register() {
-        let program: Program = parse(INPUT_A002791).expect("program");
-        let runner = ProgramRunner::new(
-            ProgramId::ProgramOEIS(2791),
-            program
-        );
-        assert_eq!(runner.inspect(15), "1,5,10,21,21,38,29,53,46,65,45,102,53,89,90");
-    }
-
-    #[test]
-    fn test_10008_use_of_power_instruction() {
+    fn test_10006_use_of_power_instruction() {
         let program: Program = parse(INPUT_A284429).expect("program");
         let runner = ProgramRunner::new(
             ProgramId::ProgramOEIS(284429),
@@ -335,7 +258,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10009_use_of_loop_with_contant_greater_than_one() {
+    fn test_10007_use_of_loop_with_contant_greater_than_one() {
         let program: Program = parse(INPUT_A007958).expect("program");
         let runner = ProgramRunner::new(
             ProgramId::ProgramOEIS(7958),
@@ -345,7 +268,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10010_use_of_loop_with_range_length_from_register1() {
+    fn test_10008_use_of_loop_with_range_length_from_register1() {
         let program: Program = parse(INPUT_A253472).expect("program");
         let runner = ProgramRunner::new(
             ProgramId::ProgramOEIS(253472),
@@ -355,7 +278,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10011_use_of_loop_with_range_length_from_register2() {
+    fn test_10009_use_of_loop_with_range_length_from_register2() {
         let program: Program = parse(INPUT_A206735).expect("program");
         let runner = ProgramRunner::new(
             ProgramId::ProgramOEIS(206735),

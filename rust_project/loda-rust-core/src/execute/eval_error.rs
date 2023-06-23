@@ -42,9 +42,6 @@ pub enum EvalError {
     /// Stuck in a loop that takes way too long time to compute
     LoopCountExceededLimit,
 
-    /// Clear instruction with a too high value
-    ClearRangeLengthExceedsLimit,
-
     /// Using way too many cpu cycles
     StepCountExceededLimit,
 
@@ -91,8 +88,6 @@ impl fmt::Display for EvalError {
                 write!(f, "Loop range length exceeded limit"),
             Self::LoopCountExceededLimit => 
                 write!(f, "Loop count exceeded limit, stuck in a loop that takes way too long time to compute"),
-            Self::ClearRangeLengthExceedsLimit => 
-                write!(f, "Instruction 'clr' range length exceeded limit"),
             Self::StepCountExceededLimit => 
                 write!(f, "Step count exceeded limit, using way too many cpu cycles"),
             Self::CannotGetAddressOfConstant => 

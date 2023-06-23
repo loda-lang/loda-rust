@@ -498,49 +498,21 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_instruction_clr_with_constant() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
-        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-        assert_eq!(runner.inspect(4), "100,0,0,103");
-    }
-
-    #[test]
-    fn test_60001_instruction_clr_with_direct() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
-        let runner: Rc::<ProgramRunner> = dm.load(2).unwrap();
-        assert_eq!(runner.inspect(4), "100,0,0,103");
-    }
-
-    #[test]
-    fn test_60002_instruction_clr_with_indirect() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
-        let runner: Rc::<ProgramRunner> = dm.load(3).unwrap();
-        assert_eq!(runner.inspect(4), "100,0,0,103");
-    }
-
-    #[test]
-    fn test_60003_instruction_clr_with_indirect() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
-        let runner: Rc::<ProgramRunner> = dm.load(4).unwrap();
-        assert_eq!(runner.inspect(4), "100,0,0,103");
-    }
-
-    #[test]
-    fn test_70001_instruction_lpb_with_parametertype_indirect1() {
+    fn test_60000_instruction_lpb_with_parametertype_indirect1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_lpb_with_parametertype_indirect1");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.inspect(10), "5,5,5,5,5,5,5,5,5,5");
     }
 
     #[test]
-    fn test_70002_instruction_lpb_with_parametertype_indirect2() {
+    fn test_60001_instruction_lpb_with_parametertype_indirect2() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_lpb_with_parametertype_indirect2");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.inspect(10), "5,5,5,5,5,5,5,5,5,5");
     }
     
     #[test]
-    fn test_70003_instruction_lpb_with_range_direct() {
+    fn test_60002_instruction_lpb_with_range_direct() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_lpb_with_range_direct");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.inspect(10), "5,5,5,5,5,5,5,5,5,5");
