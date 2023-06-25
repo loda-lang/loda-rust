@@ -1,7 +1,7 @@
 //! The `loda-rust arc` subcommands, perform experiments with the `Abstraction and Reasoning Corpus`.
 use std::path::PathBuf;
 
-use crate::arc::{SubcommandARCSize, TraverseProgramsAndModels};
+use crate::arc::{SubcommandARCSize, SubcommandARCWeb, TraverseProgramsAndModels};
 
 #[derive(Debug)]
 pub enum SubcommandARCMode {
@@ -60,5 +60,9 @@ impl SubcommandARC {
                 return SubcommandARCSize::run(&task_json_file);
             },
         }
+    }
+
+    pub async fn run_web_server() -> anyhow::Result<()> {
+        SubcommandARCWeb::run_web_server().await
     }
 }
