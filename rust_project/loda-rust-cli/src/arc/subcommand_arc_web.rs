@@ -27,9 +27,12 @@ impl SubcommandARCWeb {
     /// This starts a web server, where a human can explore the ARC data.
     pub async fn run_web_server() -> anyhow::Result<()> {
         println!("Starting the web server...");
+        let e = env!("CARGO_MANIFEST_DIR");
+        let dir_static: String = format!("{}/web/static/", e);
+
         let mut app = tide::new();
         app.at("/").get(demo1);
-        app.at("/static").serve_dir("loda-rust-cli/web/static/")?;
+        app.at("/static").serve_dir(&dir_static)?;
         app.listen("127.0.0.1:8090").await?;
 
         Ok(())
