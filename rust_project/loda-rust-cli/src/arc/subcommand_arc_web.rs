@@ -1,3 +1,9 @@
+use std::path::PathBuf;
+
+use crate::common::find_json_files_recursively;
+use crate::config::Config;
+use super::arc_work_model::{PairType, Task};
+use super::ImageSize;
 use lazy_static::lazy_static;
 use tera::Tera;
 use tide::http::mime;
@@ -19,28 +25,115 @@ lazy_static! {
     };
 }
 
-pub struct SubcommandARCWeb;
+#[derive(Clone)]
+struct State {
+    config: Config,
+}
+
+pub struct SubcommandARCWeb {
+    config: Config,
+}
 
 impl SubcommandARCWeb {
+    fn new() -> anyhow::Result<Self> {
+        let config = Config::load();
+        let instance = Self {
+            config,
+        };
+        Ok(instance)
+    }
+
+    pub async fn run_web_server() -> anyhow::Result<()> {
+        let instance = Self::new()?;
+        instance.run_web_server_inner().await?;
+        Ok(())
+    }
+
     /// The `arc-web` subcommand when invoked from the command line.
     /// 
     /// This starts a web server, where a human can explore the ARC data.
-    pub async fn run_web_server() -> anyhow::Result<()> {
+    async fn run_web_server_inner(&self) -> anyhow::Result<()> {
         println!("Starting the web server...");
         let e = env!("CARGO_MANIFEST_DIR");
         let dir_static: String = format!("{}/web/static/", e);
 
-        let mut app = tide::new();
+        let mut app = tide::with_state(State {
+            config: self.config.clone(),
+        });
         app.at("/").get(demo1);
-        app.at("/task/:taskid").get(get_task);
+        app.at("/task/:taskname").get(Self::get_task);
         app.at("/static").serve_dir(&dir_static)?;
         app.listen("127.0.0.1:8090").await?;
 
         Ok(())
     }
+
+    async fn get_task(req: Request<State>) -> tide::Result {
+        let config: &Config = &req.state().config;
+        let taskname: &str = req.param("taskname").unwrap_or("world");
+        let find_filename: String = format!("{}.json", taskname);
+    
+        let repo_path: PathBuf = config.arc_repository_data();
+        let all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
+        debug!("all_json_paths: {:?}", all_json_paths.len());
+
+        let found_path: Option<PathBuf> = all_json_paths
+            .into_iter()
+            .find(|path| {
+                if let Some(filename) = path.file_name() {
+                    if filename.to_string_lossy() == find_filename {
+                        debug!("found the task. path: {:?}", path);
+                        return true;
+                    }
+                }
+                false
+            });
+
+        let task_json_file: PathBuf = match found_path {
+            Some(value) => value,
+            None => {
+                let response = tide::Response::builder(404)
+                    .body("cannot find the task.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+        debug!("task_json_file: {:?}", task_json_file);
+
+        let task: Task = match Task::load_with_json_file(&task_json_file) {
+            Ok(value) => value,
+            Err(_error) => {
+                let response = tide::Response::builder(500)
+                    .body("unable to load the task.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+
+        let html: String = match task.inspect_to_html() {
+            Ok(value) => value,
+            Err(_error) => {
+                let response = tide::Response::builder(500)
+                    .body("unable to inspect the task.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+
+        let response = Response::builder(200)
+            .body(html)
+            .content_type(mime::HTML)
+            .build();
+    
+        Ok(response)
+    }
+
 }
 
-async fn demo1(mut _req: Request<()>) -> tide::Result {
+async fn demo1(mut _req: Request<State>) -> tide::Result {
     println!("demo1");
 
     let mut context_pixel_center = tera::Context::new();
@@ -98,19 +191,6 @@ async fn demo1(mut _req: Request<()>) -> tide::Result {
 
     let body: String = TEMPLATES.render("side_by_side.html", &context2).unwrap();
 
-    let response = Response::builder(200)
-        .body(body)
-        .content_type(mime::HTML)
-        .build();
-
-    Ok(response)
-}
-
-async fn get_task(req: Request<()>) -> tide::Result {
-    println!("get_task");
-    let taskid: &str = req.param("taskid").unwrap_or("world");
-
-    let body = format!("Hello, world! {}", taskid);
     let response = Response::builder(200)
         .body(body)
         .content_type(mime::HTML)
