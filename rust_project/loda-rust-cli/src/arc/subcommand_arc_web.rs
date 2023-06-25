@@ -32,6 +32,7 @@ impl SubcommandARCWeb {
 
         let mut app = tide::new();
         app.at("/").get(demo1);
+        app.at("/task/:taskid").get(get_task);
         app.at("/static").serve_dir(&dir_static)?;
         app.listen("127.0.0.1:8090").await?;
 
@@ -97,6 +98,19 @@ async fn demo1(mut _req: Request<()>) -> tide::Result {
 
     let body: String = TEMPLATES.render("side_by_side.html", &context2).unwrap();
 
+    let response = Response::builder(200)
+        .body(body)
+        .content_type(mime::HTML)
+        .build();
+
+    Ok(response)
+}
+
+async fn get_task(req: Request<()>) -> tide::Result {
+    println!("get_task");
+    let taskid: &str = req.param("taskid").unwrap_or("world");
+
+    let body = format!("Hello, world! {}", taskid);
     let response = Response::builder(200)
         .body(body)
         .content_type(mime::HTML)
