@@ -44,7 +44,6 @@ impl SuggestInstruction {
             };
             if instruction_id == InstructionId::LoopBegin ||
                 instruction_id == InstructionId::LoopEnd ||
-                instruction_id == InstructionId::Clear ||
                 instruction_id == InstructionId::EvalSequence {
                 // Don't suggest these instructions
                 continue;

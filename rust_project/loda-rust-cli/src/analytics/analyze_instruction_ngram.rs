@@ -45,14 +45,13 @@ type HistogramSkipgramKey = (String,String);
 /// 3405;dif
 /// 3160;gcd
 /// 1188;min
-/// 30;clr
 /// ```
 /// 
 /// Learnings from this unigram with LODA programs:
 /// 
 /// Learning A: The `mov` instruction is the most used instruction.
 /// 
-/// Learning B: The `clr` instruction is the least used instruction.
+/// Learning B: The `min` instruction is the least used instruction.
 /// 
 /// ---
 /// 

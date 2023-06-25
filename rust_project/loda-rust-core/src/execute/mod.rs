@@ -1,6 +1,5 @@
 //! Instruction execution.
 mod check_value;
-mod create_error;
 mod eval_error;
 mod node;
 mod node_loop_shared;
@@ -26,7 +25,6 @@ mod semantic_power;
 mod semantic_simple;
 
 use check_value::*;
-pub use create_error::CreateError;
 pub use program::Program;
 pub use program_id::ProgramId;
 pub use program_runner::ProgramRunner;
@@ -53,7 +51,6 @@ pub use semantic_simple::{SemanticSimpleConfig, SemanticSimpleError};
 
 pub mod compiletime_error;
 pub mod node_calc;
-pub mod node_clear;
 pub mod node_loop_constant;
 pub mod node_loop_register;
 pub mod node_loop_simple;
