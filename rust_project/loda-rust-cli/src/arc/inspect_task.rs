@@ -18,6 +18,29 @@ pub struct InspectTask {
 }
 
 impl InspectTask {
+    fn task(task: &arc_work_model::Task) -> anyhow::Result<Self> {
+        let mut instance = Self::new();
+
+        for pair in &task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Train {
+                continue;
+            }
+            instance.push_pair(pair)?;
+        }
+
+        instance.push_column_analysis(task)?;
+
+        for pair in &task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Test {
+                continue;
+            }
+            instance.push_pair(pair)?;
+        }
+
+        instance.end_of_row();
+        Ok(instance)
+    }
+
     fn new() -> Self {
         Self {
             row_colgroup: "<colgroup><col>".to_string(),
@@ -336,28 +359,14 @@ impl InspectTask {
         html
     }
 
-    pub fn inspect(task: &arc_work_model::Task) -> anyhow::Result<()> {
-        let mut instance = Self::new();
-
-        for pair in &task.pairs {
-            if pair.pair_type != arc_work_model::PairType::Train {
-                continue;
-            }
-            instance.push_pair(pair)?;
-        }
-
-        instance.push_column_analysis(task)?;
-
-        for pair in &task.pairs {
-            if pair.pair_type != arc_work_model::PairType::Test {
-                continue;
-            }
-            instance.push_pair(pair)?;
-        }
-
-        instance.end_of_row();
-
+    pub fn inspect_to_html(task: &arc_work_model::Task) -> anyhow::Result<String> {
+        let instance: InspectTask = InspectTask::task(task)?;
         let html: String = instance.to_html(task);
+        Ok(html)
+    }
+
+    pub fn inspect(task: &arc_work_model::Task) -> anyhow::Result<()> {
+        let html: String = InspectTask::inspect_to_html(task)?;
         HtmlLog::html(html);
         Ok(())
     }
