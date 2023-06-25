@@ -23,7 +23,7 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
-use super::{Image, ImageCompare, ImagePadding, ImageSize, ImageMaskCount};
+use super::Image;
 use petgraph::{stable_graph::NodeIndex, visit::EdgeRef};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -250,7 +250,7 @@ mod tests {
 
         // Act
         let image_index0: NodeIndex = instance.add_image(&image0).expect("NodeIndex");
-        let image_index1: NodeIndex = instance.add_image(&image1).expect("NodeIndex");
+        let _image_index1: NodeIndex = instance.add_image(&image1).expect("NodeIndex");
 
         // Future experiment
         // compare both images, update metadata
