@@ -21,7 +21,6 @@ mod convolution3x3_with_mask;
 mod convolution5x5_special;
 mod convolution_with_program;
 mod experiment_with_convolution;
-mod experiment_with_petgraph;
 mod export_tasks;
 mod generate_pattern;
 mod grid;
@@ -243,3 +242,6 @@ mod experiment_with_logisticregression;
 
 #[cfg(feature = "linfa")]
 pub use experiment_with_logisticregression::ExperimentWithLogisticRegression;
+
+#[cfg(feature = "petgraph")]
+mod experiment_with_petgraph;

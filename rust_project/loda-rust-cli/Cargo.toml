@@ -13,6 +13,7 @@ path = "src/main.rs"
 
 [features]
 linfa = ["dep:linfa", "dep:linfa-logistic", "dep:linfa-preprocessing", "dep:ndarray"]
+petgraph = ["dep:petgraph"]
 
 [dependencies]
 loda-rust-core = { path = "../loda-rust-core" }
@@ -52,7 +53,7 @@ ndarray = { version = "0.15", optional = true }
 linfa = { version = "0.6.1", optional = true }
 linfa-logistic = { version = "*", optional = true }
 linfa-preprocessing = { version = "*", optional = true }
-petgraph = "0.6.3"
+petgraph = { version = "0.6.3", optional = true }
 
 [dev-dependencies]
 tempfile = "3.3.0"
