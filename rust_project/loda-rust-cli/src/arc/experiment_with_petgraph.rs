@@ -27,7 +27,7 @@ use super::Image;
 use petgraph::{stable_graph::NodeIndex, visit::EdgeRef};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-enum NodeData {
+pub enum NodeData {
     Image { width: u8, height: u8 },
     Pixel,
     Color { color: u8 },
@@ -51,7 +51,7 @@ enum NodeData {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-enum PixelNeighborEdgeType {
+pub enum PixelNeighborEdgeType {
     Up,
     Down,
     Left,
@@ -63,7 +63,7 @@ enum PixelNeighborEdgeType {
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-enum EdgeData {
+pub enum EdgeData {
     Link,
     PixelNeighbor { edge_type: PixelNeighborEdgeType },
     // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
@@ -72,13 +72,13 @@ enum EdgeData {
 }
 
 #[allow(dead_code)]
-struct ExperimentWithPetgraph {
+pub struct ExperimentWithPetgraph {
     graph: petgraph::Graph<NodeData, EdgeData>,
 }
 
 impl ExperimentWithPetgraph {
     #[allow(dead_code)]
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             graph: petgraph::Graph::new(),
         }
@@ -86,7 +86,7 @@ impl ExperimentWithPetgraph {
 
     /// Returns the `NodeIndex` of the created image node.
     #[allow(dead_code)]
-    fn add_image(&mut self, image: &Image) -> anyhow::Result<NodeIndex> {
+    pub fn add_image(&mut self, image: &Image) -> anyhow::Result<NodeIndex> {
         let node_image = NodeData::Image { width: image.width(), height: image.height() };
         let image_index: NodeIndex = self.graph.add_node(node_image);
 
@@ -150,7 +150,7 @@ impl ExperimentWithPetgraph {
 
     /// Generates an image from the graph for the given `NodeIndex`.
     #[allow(dead_code)]
-    fn to_image(&self, image_index: NodeIndex) -> anyhow::Result<Image> {
+    pub fn to_image(&self, image_index: NodeIndex) -> anyhow::Result<Image> {
         let node: NodeData = self.graph[image_index];
         let (width, height) = match node {
             NodeData::Image { width, height } => { (width, height) },

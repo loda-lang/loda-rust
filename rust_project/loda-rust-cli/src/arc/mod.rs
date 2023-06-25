@@ -247,3 +247,6 @@ pub use experiment_with_logisticregression::ExperimentWithLogisticRegression;
 
 #[cfg(feature = "petgraph")]
 mod experiment_with_petgraph;
+
+#[cfg(feature = "petgraph")]
+pub use experiment_with_petgraph::*;
