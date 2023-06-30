@@ -60,11 +60,41 @@ impl SubcommandARCWeb {
             tera: tera_arc,
         });
         app.at("/").get(demo1);
+        app.at("/task").get(Self::get_task_list);
         app.at("/task/:taskname").get(Self::get_task);
         app.at("/static").serve_dir(&dir_static)?;
         app.listen("127.0.0.1:8090").await?;
 
         Ok(())
+    }
+
+    async fn get_task_list(req: Request<State>) -> tide::Result {
+        let config: &Config = &req.state().config;
+        let tera: &Tera = &req.state().tera;
+    
+        let repo_path: PathBuf = config.arc_repository_data();
+        let all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
+        debug!("all_json_paths: {:?}", all_json_paths.len());
+
+        let mut task_list = String::new();
+        for path in &all_json_paths {
+            let task_name: String = match path.file_stem() {
+                Some(value) => String::from(value.to_string_lossy()),
+                None => continue,
+            };
+            task_list.push_str(&format!("<li><a href=\"/task/{}\">{}</a></li>\n", task_name, task_name));
+        }
+
+        let mut context = tera::Context::new();
+        context.insert("task_list", &task_list);
+        let html: String = tera.render("page_task_list.html", &context).unwrap();
+    
+        let response = Response::builder(200)
+            .body(html)
+            .content_type(mime::HTML)
+            .build();
+    
+        Ok(response)
     }
 
     async fn get_task(req: Request<State>) -> tide::Result {
