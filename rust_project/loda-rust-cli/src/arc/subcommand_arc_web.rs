@@ -312,14 +312,26 @@ impl SubcommandARCWeb {
             center_color = "missing".to_string();
         }
         context_pixel_center.insert("color", &center_color);
+        context_pixel_center.insert("href", "#");
         let pixel_center: String = tera.render("wrap_pixel.html", &context_pixel_center).unwrap();
     
         let mut context_pixel_mock1 = tera::Context::new();
+        let href: String;
+        match found_pixel_neighbor_right {
+            Some(node_index) => {
+                href = format!("/task/662c240a/graph/{}", node_index.index());
+            },
+            None => {
+                href = "#".to_string();
+            }
+        }
         context_pixel_mock1.insert("color", "3");
+        context_pixel_mock1.insert("href", &href);
         let pixel_mock1: String = tera.render("wrap_pixel.html", &context_pixel_mock1).unwrap();
     
         let mut context_pixel_mock2 = tera::Context::new();
         context_pixel_mock2.insert("color", "4");
+        context_pixel_mock2.insert("href", "/task/662c240a/graph/5");
         let pixel_mock2: String = tera.render("wrap_pixel.html", &context_pixel_mock2).unwrap();
     
         let mut context_edge_horizontal = tera::Context::new();
@@ -381,14 +393,17 @@ async fn demo1(req: Request<State>) -> tide::Result {
 
     let mut context_pixel_center = tera::Context::new();
     context_pixel_center.insert("color", "2");
+    context_pixel_center.insert("href", "#");
     let pixel_center: String = tera.render("wrap_pixel.html", &context_pixel_center).unwrap();
 
     let mut context_pixel_mock1 = tera::Context::new();
     context_pixel_mock1.insert("color", "3");
+    context_pixel_mock1.insert("href", "/task/662c240a/graph/5");
     let pixel_mock1: String = tera.render("wrap_pixel.html", &context_pixel_mock1).unwrap();
 
     let mut context_pixel_mock2 = tera::Context::new();
     context_pixel_mock2.insert("color", "4");
+    context_pixel_mock2.insert("href", "/task/662c240a/graph/5");
     let pixel_mock2: String = tera.render("wrap_pixel.html", &context_pixel_mock2).unwrap();
 
     let mut context_edge_horizontal = tera::Context::new();
