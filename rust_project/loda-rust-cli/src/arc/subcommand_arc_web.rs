@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 #[cfg(feature = "petgraph")]
-use super::{ExperimentWithPetgraph, NodeData};
+use super::{ExperimentWithPetgraph, NodeData, EdgeData, PixelNeighborEdgeType};
 
 #[cfg(feature = "petgraph")]
 use petgraph::{stable_graph::NodeIndex, visit::EdgeRef};
@@ -257,31 +257,116 @@ impl SubcommandARCWeb {
         };
         println!("image_node_index: {:?}", image_node_index);
 
-        let g = instance.graph();
+        let graph = instance.graph();
 
         let node_index = NodeIndex::new(node_id_usize);
 
-        let node: &NodeData = &g[node_index];
-        println!("node: {:?}", node);
+        let pixel_node: &NodeData = &graph[node_index];
+        println!("node: {:?}", pixel_node);
 
-        let inspect_html: String = match task.inspect_to_html() {
-            Ok(value) => value,
-            Err(_error) => {
+        match pixel_node {
+            NodeData::Pixel => {},
+            _ => {
                 let response = tide::Response::builder(500)
-                    .body("unable to inspect the task.")
+                    .body("The node is not a pixel")
                     .content_type("text/plain; charset=utf-8")
                     .build();
                 return Ok(response);
             }
-        };
+        }
 
-        let mut context = tera::Context::new();
-        context.insert("inspect_html", &inspect_html);
-        context.insert("task_id", task_id);
-        let html: String = tera.render("page_inspect_task.html", &context).unwrap();
+        let mut found_x: Option<u8> = None;
+        let mut found_y: Option<u8> = None;
+        let mut found_color: Option<u8> = None;
+        let mut found_pixel_neighbor_right: Option<NodeIndex> = None;
+        for edge_pixel in graph.edges(node_index) {
+            let child_index: NodeIndex = edge_pixel.target();
+            let child_node: NodeData = graph[child_index];
+            match child_node {
+                NodeData::PositionX { x } => { found_x = Some(x); },
+                NodeData::PositionY { y } => { found_y = Some(y); },
+                NodeData::Color { color } => { found_color = Some(color); },
+                _ => {}
+            }
+
+            match edge_pixel.weight() {
+                EdgeData::PixelNeighbor { edge_type } => {
+                    println!("edge_type: {:?}", edge_type);
+                    match edge_type {
+                        PixelNeighborEdgeType::Right => { 
+                            println!("edge_type: {:?}  node id: {:?}", edge_type, child_index);
+                            found_pixel_neighbor_right = Some(child_index); 
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {},
+            }
+        }
+
+        let mut context_pixel_center = tera::Context::new();
+        let center_color: String;
+        if let Some(color) = found_color {
+            center_color = format!("{}", color);
+        } else {
+            center_color = "missing".to_string();
+        }
+        context_pixel_center.insert("color", &center_color);
+        let pixel_center: String = tera.render("wrap_pixel.html", &context_pixel_center).unwrap();
     
+        let mut context_pixel_mock1 = tera::Context::new();
+        context_pixel_mock1.insert("color", "3");
+        let pixel_mock1: String = tera.render("wrap_pixel.html", &context_pixel_mock1).unwrap();
+    
+        let mut context_pixel_mock2 = tera::Context::new();
+        context_pixel_mock2.insert("color", "4");
+        let pixel_mock2: String = tera.render("wrap_pixel.html", &context_pixel_mock2).unwrap();
+    
+        let mut context_edge_horizontal = tera::Context::new();
+        context_edge_horizontal.insert("key", "value");
+        let edge_horizontal: String = tera.render("edge_horizontal.html", &context_edge_horizontal).unwrap();
+    
+        let mut context_edge_vertical = tera::Context::new();
+        context_edge_vertical.insert("key", "value");
+        let edge_vertical: String = tera.render("edge_vertical.html", &context_edge_vertical).unwrap();
+    
+        let mut context_edge_diagonal_a = tera::Context::new();
+        context_edge_diagonal_a.insert("key", "value");
+        let edge_diagonal_a: String = tera.render("edge_diagonal_a.html", &context_edge_diagonal_a).unwrap();
+    
+        let mut context_edge_diagonal_b = tera::Context::new();
+        context_edge_diagonal_b.insert("key", "value");
+        let edge_diagonal_b: String = tera.render("edge_diagonal_b.html", &context_edge_diagonal_b).unwrap();
+    
+        let mut context = tera::Context::new();
+        context.insert("pixel_center", &pixel_center);
+        context.insert("pixel_top", &pixel_mock1);
+        context.insert("pixel_bottom", &pixel_mock1);
+        context.insert("pixel_left", &pixel_mock1);
+        context.insert("pixel_right", &pixel_mock1);
+        context.insert("pixel_topleft", &pixel_mock2);
+        context.insert("pixel_topright", &pixel_mock2);
+        context.insert("pixel_bottomleft", &pixel_mock2);
+        context.insert("pixel_bottomright", &pixel_mock2);
+        context.insert("edge_left_center", &edge_horizontal);
+        context.insert("edge_center_right", &edge_horizontal);
+        context.insert("edge_center_top", &edge_vertical);
+        context.insert("edge_center_bottom", &edge_vertical);
+        context.insert("edge_center_topleft", &edge_diagonal_a);
+        context.insert("edge_center_topright", &edge_diagonal_b);
+        context.insert("edge_center_bottomleft", &edge_diagonal_b);
+        context.insert("edge_center_bottomright", &edge_diagonal_a);
+    
+        let pretty_pixel: String = tera.render("inspect_pixel.html", &context).unwrap();
+    
+        let mut context2 = tera::Context::new();
+        context2.insert("left_side", &pretty_pixel);
+        context2.insert("right_side", "hi");
+    
+        let body: String = tera.render("side_by_side.html", &context2).unwrap();
+        
         let response = Response::builder(200)
-            .body(html)
+            .body(body)
             .content_type(mime::HTML)
             .build();
     
