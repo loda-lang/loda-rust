@@ -84,6 +84,11 @@ impl ExperimentWithPetgraph {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn graph(&self) -> &petgraph::Graph<NodeData, EdgeData> {
+        &self.graph
+    }
+
     /// Returns the `NodeIndex` of the created image node.
     #[allow(dead_code)]
     pub fn add_image(&mut self, image: &Image) -> anyhow::Result<NodeIndex> {
