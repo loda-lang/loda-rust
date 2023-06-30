@@ -61,7 +61,7 @@ impl SubcommandARCWeb {
         });
         app.at("/").get(demo1);
         app.at("/task").get(Self::get_task_list);
-        app.at("/task/:taskname").get(Self::get_task);
+        app.at("/task/:task_id").get(Self::get_task_with_id);
         app.at("/static").serve_dir(&dir_static)?;
         app.listen("127.0.0.1:8090").await?;
 
@@ -97,11 +97,11 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
-    async fn get_task(req: Request<State>) -> tide::Result {
+    async fn get_task_with_id(req: Request<State>) -> tide::Result {
         let config: &Config = &req.state().config;
         let tera: &Tera = &req.state().tera;
-        let taskname: &str = req.param("taskname").unwrap_or("world");
-        let find_filename: String = format!("{}.json", taskname);
+        let task_id: &str = req.param("task_id").unwrap_or("world");
+        let find_filename: String = format!("{}.json", task_id);
     
         let repo_path: PathBuf = config.arc_repository_data();
         let all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
@@ -155,7 +155,7 @@ impl SubcommandARCWeb {
 
         let mut context = tera::Context::new();
         context.insert("inspect_html", &inspect_html);
-        context.insert("task_id", taskname);
+        context.insert("task_id", task_id);
         let html: String = tera.render("page_inspect_task.html", &context).unwrap();
     
         let response = Response::builder(200)
