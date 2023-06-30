@@ -1,7 +1,7 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
 use super::arc_work_model::{PairType, Task};
-use super::ImageSize;
+use super::{Image, ImageSize};
 use tera::Tera;
 use tide::http::mime;
 use tide::{Request, Response};
@@ -12,7 +12,7 @@ use std::sync::Arc;
 use super::{ExperimentWithPetgraph, NodeData, EdgeData, PixelNeighborEdgeType};
 
 #[cfg(feature = "petgraph")]
-use petgraph::{stable_graph::NodeIndex, visit::EdgeRef};
+use petgraph::{Graph, stable_graph::NodeIndex, visit::EdgeRef};
 
 #[derive(Clone)]
 struct State {
@@ -178,8 +178,6 @@ impl SubcommandARCWeb {
 
     #[cfg(feature = "petgraph")]
     async fn get_node(req: Request<State>) -> tide::Result {
-        use crate::arc::Image;
-
         let config: &Config = &req.state().config;
         let tera: &Tera = &req.state().tera;
         let task_id: &str = req.param("task_id").unwrap_or("world");
@@ -257,7 +255,7 @@ impl SubcommandARCWeb {
         };
         println!("image_node_index: {:?}", image_node_index);
 
-        let graph = instance.graph();
+        let graph: &Graph<NodeData, EdgeData> = instance.graph();
 
         let node_index = NodeIndex::new(node_id_usize);
 
@@ -304,30 +302,15 @@ impl SubcommandARCWeb {
             }
         }
 
-        let mut context_pixel_center = tera::Context::new();
-        let center_color: String;
-        if let Some(color) = found_color {
-            center_color = format!("{}", color);
-        } else {
-            center_color = "missing".to_string();
-        }
-        context_pixel_center.insert("color", &center_color);
-        context_pixel_center.insert("href", "#");
-        let pixel_center: String = tera.render("wrap_pixel.html", &context_pixel_center).unwrap();
+        let mut center_wrap_pixel = WrapPixel::default();
+        center_wrap_pixel.color = found_color;
+        let pixel_center: String = tera.render("wrap_pixel.html", &center_wrap_pixel.to_context()).unwrap();
     
-        let mut context_pixel_mock1 = tera::Context::new();
-        let href: String;
-        match found_pixel_neighbor_right {
-            Some(node_index) => {
-                href = format!("/task/662c240a/graph/{}", node_index.index());
-            },
-            None => {
-                href = "#".to_string();
-            }
-        }
-        context_pixel_mock1.insert("color", "3");
-        context_pixel_mock1.insert("href", &href);
-        let pixel_mock1: String = tera.render("wrap_pixel.html", &context_pixel_mock1).unwrap();
+        let mut right_wrap_pixel = WrapPixel::default();
+        right_wrap_pixel.task_id = Some(task_id.to_string());
+        right_wrap_pixel.node_index = found_pixel_neighbor_right;
+        right_wrap_pixel.load(&graph);
+        let pixel_mock1: String = tera.render("wrap_pixel.html", &right_wrap_pixel.to_context()).unwrap();
     
         let mut context_pixel_mock2 = tera::Context::new();
         context_pixel_mock2.insert("color", "4");
@@ -385,6 +368,59 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
+}
+
+#[cfg(feature = "petgraph")]
+#[derive(Clone, Debug, Default)]
+struct WrapPixel {
+    color: Option<u8>,
+    x: Option<u8>,
+    y: Option<u8>,
+    task_id: Option<String>,
+    node_index: Option<NodeIndex>,
+}
+
+impl WrapPixel {
+    fn load(&mut self, graph: &Graph<NodeData, EdgeData>) {
+        let node_index: NodeIndex = match self.node_index {
+            Some(node_index) => node_index.clone(),
+            None => return,
+        };
+        for edge_pixel in graph.edges(node_index) {
+            let child_index: NodeIndex = edge_pixel.target();
+            let child_node: NodeData = graph[child_index];
+            match child_node {
+                NodeData::PositionX { x } => { self.x = Some(x); },
+                NodeData::PositionY { y } => { self.y = Some(y); },
+                NodeData::Color { color } => { self.color = Some(color); },
+                _ => {}
+            }
+        }
+    }
+
+    fn to_context(&self) -> tera::Context {
+        let color: String;
+        if let Some(value) = self.color {
+            color = format!("{}", value);
+        } else {
+            color = "missing".to_string();
+        }
+
+        let href: String;
+        match (&self.task_id, &self.node_index) {
+            (Some(task_id), Some(node_index)) => {
+                href = format!("/task/{}/graph/{}", task_id, node_index.index());
+            },
+            _ => {
+                href = "#".to_string();
+            }
+        }
+
+        let mut context = tera::Context::new();
+        context.insert("color", &color);
+        context.insert("href", &href);
+        context
+    }
 }
 
 async fn demo1(req: Request<State>) -> tide::Result {
