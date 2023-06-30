@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+    <meta name="robots" content="noindex">
+    <title>Task {{task_id}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="format-detection" content="telephone=no">
+    <link media="all" rel="stylesheet" type="text/css" href="/static/page_inspect_task.css">
+</head>
+
+<body>
+    <header class="titlebar-container">
+    <div class="titlebar-item titlebar-item-left">
+        <!-- button -->
+    </div>
+    
+    <div class="titlebar-item titlebar-item-center">Task {{task_id}}</div>
+    
+    <div class="titlebar-item titlebar-item-right">
+        <!-- button -->
+    </div>
+    </header>
+    
+    <main id="main-outer">
+    <div id="main-inner">{{inspect_html|safe}}</div>
+    </main>
+    
+    <footer id="page-footer">
+    <div id="page-footer-item0" class="page-footer-item">
+        <!-- footer -->
+    </div>
+    <div id="page-footer-item1" class="page-footer-item">
+        <!-- footer -->
+    </div>
+    </footer>
+</body>
+</html>

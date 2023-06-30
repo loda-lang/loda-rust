@@ -1,33 +1,17 @@
-use std::path::PathBuf;
-
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
 use super::arc_work_model::{PairType, Task};
 use super::ImageSize;
-use lazy_static::lazy_static;
 use tera::Tera;
 use tide::http::mime;
 use tide::{Request, Response};
-
-lazy_static! {
-    pub static ref TEMPLATES: Tera = {
-        let e = env!("CARGO_MANIFEST_DIR");
-        let dir: String = format!("{}/web/templates/arc/**/*.html", e);
-        let mut tera = match Tera::new(&dir) {
-            Ok(t) => t,
-            Err(e) => {
-                println!("Parsing error(s): {}", e);
-                ::std::process::exit(1);
-            }
-        };
-        tera.autoescape_on(vec![".html"]);
-        tera
-    };
-}
+use std::path::PathBuf;
+use std::sync::Arc;
 
 #[derive(Clone)]
 struct State {
     config: Config,
+    tera: Arc<Tera>,
 }
 
 pub struct SubcommandARCWeb {
@@ -43,22 +27,37 @@ impl SubcommandARCWeb {
         Ok(instance)
     }
 
+    /// The `arc-web` subcommand when invoked from the command line.
+    /// 
+    /// This starts a web server, where a human can explore the ARC data.
     pub async fn run_web_server() -> anyhow::Result<()> {
         let instance = Self::new()?;
         instance.run_web_server_inner().await?;
         Ok(())
     }
 
-    /// The `arc-web` subcommand when invoked from the command line.
-    /// 
-    /// This starts a web server, where a human can explore the ARC data.
     async fn run_web_server_inner(&self) -> anyhow::Result<()> {
         println!("Starting the web server...");
         let e = env!("CARGO_MANIFEST_DIR");
         let dir_static: String = format!("{}/web/static/", e);
 
+        let tera_arc: Arc<Tera>;
+        {
+            let dir: String = format!("{}/web/templates/arc/**/*.html", e);
+            let mut tera = match Tera::new(&dir) {
+                Ok(t) => t,
+                Err(e) => {
+                    println!("Parsing error(s): {}", e);
+                    ::std::process::exit(1);
+                }
+            };
+            tera.autoescape_on(vec![".html"]);
+            tera_arc = Arc::new(tera);
+        }
+
         let mut app = tide::with_state(State {
             config: self.config.clone(),
+            tera: tera_arc,
         });
         app.at("/").get(demo1);
         app.at("/task/:taskname").get(Self::get_task);
@@ -70,6 +69,7 @@ impl SubcommandARCWeb {
 
     async fn get_task(req: Request<State>) -> tide::Result {
         let config: &Config = &req.state().config;
+        let tera: &Tera = &req.state().tera;
         let taskname: &str = req.param("taskname").unwrap_or("world");
         let find_filename: String = format!("{}.json", taskname);
     
@@ -112,7 +112,7 @@ impl SubcommandARCWeb {
             }
         };
 
-        let html: String = match task.inspect_to_html() {
+        let inspect_html: String = match task.inspect_to_html() {
             Ok(value) => value,
             Err(_error) => {
                 let response = tide::Response::builder(500)
@@ -123,6 +123,11 @@ impl SubcommandARCWeb {
             }
         };
 
+        let mut context = tera::Context::new();
+        context.insert("inspect_html", &inspect_html);
+        context.insert("task_id", taskname);
+        let html: String = tera.render("page_inspect_task.html", &context).unwrap();
+    
         let response = Response::builder(200)
             .body(html)
             .content_type(mime::HTML)
@@ -133,36 +138,37 @@ impl SubcommandARCWeb {
 
 }
 
-async fn demo1(mut _req: Request<State>) -> tide::Result {
+async fn demo1(mut req: Request<State>) -> tide::Result {
     println!("demo1");
+    let tera: &Tera = &req.state().tera;
 
     let mut context_pixel_center = tera::Context::new();
     context_pixel_center.insert("color", "2");
-    let pixel_center: String = TEMPLATES.render("wrap_pixel.html", &context_pixel_center).unwrap();
+    let pixel_center: String = tera.render("wrap_pixel.html", &context_pixel_center).unwrap();
 
     let mut context_pixel_mock1 = tera::Context::new();
     context_pixel_mock1.insert("color", "3");
-    let pixel_mock1: String = TEMPLATES.render("wrap_pixel.html", &context_pixel_mock1).unwrap();
+    let pixel_mock1: String = tera.render("wrap_pixel.html", &context_pixel_mock1).unwrap();
 
     let mut context_pixel_mock2 = tera::Context::new();
     context_pixel_mock2.insert("color", "4");
-    let pixel_mock2: String = TEMPLATES.render("wrap_pixel.html", &context_pixel_mock2).unwrap();
+    let pixel_mock2: String = tera.render("wrap_pixel.html", &context_pixel_mock2).unwrap();
 
     let mut context_edge_horizontal = tera::Context::new();
     context_edge_horizontal.insert("key", "value");
-    let edge_horizontal: String = TEMPLATES.render("edge_horizontal.html", &context_edge_horizontal).unwrap();
+    let edge_horizontal: String = tera.render("edge_horizontal.html", &context_edge_horizontal).unwrap();
 
     let mut context_edge_vertical = tera::Context::new();
     context_edge_vertical.insert("key", "value");
-    let edge_vertical: String = TEMPLATES.render("edge_vertical.html", &context_edge_vertical).unwrap();
+    let edge_vertical: String = tera.render("edge_vertical.html", &context_edge_vertical).unwrap();
 
     let mut context_edge_diagonal_a = tera::Context::new();
     context_edge_diagonal_a.insert("key", "value");
-    let edge_diagonal_a: String = TEMPLATES.render("edge_diagonal_a.html", &context_edge_diagonal_a).unwrap();
+    let edge_diagonal_a: String = tera.render("edge_diagonal_a.html", &context_edge_diagonal_a).unwrap();
 
     let mut context_edge_diagonal_b = tera::Context::new();
     context_edge_diagonal_b.insert("key", "value");
-    let edge_diagonal_b: String = TEMPLATES.render("edge_diagonal_b.html", &context_edge_diagonal_b).unwrap();
+    let edge_diagonal_b: String = tera.render("edge_diagonal_b.html", &context_edge_diagonal_b).unwrap();
 
     let mut context = tera::Context::new();
     context.insert("pixel_center", &pixel_center);
@@ -183,13 +189,13 @@ async fn demo1(mut _req: Request<State>) -> tide::Result {
     context.insert("edge_center_bottomleft", &edge_diagonal_b);
     context.insert("edge_center_bottomright", &edge_diagonal_a);
 
-    let pretty_pixel: String = TEMPLATES.render("inspect_pixel.html", &context).unwrap();
+    let pretty_pixel: String = tera.render("inspect_pixel.html", &context).unwrap();
 
     let mut context2 = tera::Context::new();
     context2.insert("left_side", &pretty_pixel);
     context2.insert("right_side", "hi");
 
-    let body: String = TEMPLATES.render("side_by_side.html", &context2).unwrap();
+    let body: String = tera.render("side_by_side.html", &context2).unwrap();
 
     let response = Response::builder(200)
         .body(body)
