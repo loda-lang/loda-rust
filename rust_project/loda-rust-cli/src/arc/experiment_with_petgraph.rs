@@ -40,6 +40,8 @@ pub enum NodeData {
     // PairOutputImage,
     // PositionReverseX { x: u8 },
     // PositionReverseY { y: u8 },
+    // ImageWall { side: ImageWallSide },
+    // ImageCorner { corner: ImageCornerType },
     // PixelColumn,
     // PixelRow,
     // Object,
