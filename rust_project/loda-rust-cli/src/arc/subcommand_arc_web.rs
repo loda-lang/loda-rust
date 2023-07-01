@@ -373,21 +373,24 @@ impl SubcommandARCWeb {
         let pixel_downright: String = tera.render("wrap_pixel.html", &downright_wrap_pixel.to_context()).unwrap();
 
         let mut context_edge_horizontal = tera::Context::new();
-        context_edge_horizontal.insert("key", "value");
-        let edge_horizontal: String = tera.render("edge_horizontal.html", &context_edge_horizontal).unwrap();
+        context_edge_horizontal.insert("htmlcharacter", "&#x22EF;");
+        context_edge_horizontal.insert("infoid", "edgexyz");
+        let edge_horizontal: String = tera.render("wrap_edge.html", &context_edge_horizontal).unwrap();
     
         let mut context_edge_vertical = tera::Context::new();
-        context_edge_vertical.insert("key", "value");
+        context_edge_vertical.insert("htmlcharacter", "&#x22EE;");
         context_edge_vertical.insert("infoid", "edgexyz");
-        let edge_vertical: String = tera.render("edge_vertical.html", &context_edge_vertical).unwrap();
+        let edge_vertical: String = tera.render("wrap_edge.html", &context_edge_vertical).unwrap();
     
         let mut context_edge_diagonal_a = tera::Context::new();
-        context_edge_diagonal_a.insert("key", "value");
-        let edge_diagonal_a: String = tera.render("edge_diagonal_a.html", &context_edge_diagonal_a).unwrap();
+        context_edge_diagonal_a.insert("htmlcharacter", "&#x22F1;");
+        context_edge_diagonal_a.insert("infoid", "edgexyz");
+        let edge_diagonal_a: String = tera.render("wrap_edge.html", &context_edge_diagonal_a).unwrap();
     
         let mut context_edge_diagonal_b = tera::Context::new();
-        context_edge_diagonal_b.insert("key", "value");
-        let edge_diagonal_b: String = tera.render("edge_diagonal_b.html", &context_edge_diagonal_b).unwrap();
+        context_edge_diagonal_b.insert("htmlcharacter", "&#x22F0;");
+        context_edge_diagonal_b.insert("infoid", "edgexyz");
+        let edge_diagonal_b: String = tera.render("wrap_edge.html", &context_edge_diagonal_b).unwrap();
     
         let mut context = tera::Context::new();
         context.insert("pixel_center", &pixel_center);
@@ -569,20 +572,24 @@ async fn demo1(req: Request<State>) -> tide::Result {
     let pixel_mock2: String = tera.render("wrap_pixel.html", &context_pixel_mock2).unwrap();
 
     let mut context_edge_horizontal = tera::Context::new();
-    context_edge_horizontal.insert("key", "value");
-    let edge_horizontal: String = tera.render("edge_horizontal.html", &context_edge_horizontal).unwrap();
+    context_edge_horizontal.insert("htmlcharacter", "&#x22EF;");
+    context_edge_horizontal.insert("infoid", "edgexyz");
+    let edge_horizontal: String = tera.render("wrap_edge.html", &context_edge_horizontal).unwrap();
 
     let mut context_edge_vertical = tera::Context::new();
-    context_edge_vertical.insert("key", "value");
-    let edge_vertical: String = tera.render("edge_vertical.html", &context_edge_vertical).unwrap();
+    context_edge_vertical.insert("htmlcharacter", "&#x22EE;");
+    context_edge_vertical.insert("infoid", "edgexyz");
+    let edge_vertical: String = tera.render("wrap_edge.html", &context_edge_vertical).unwrap();
 
     let mut context_edge_diagonal_a = tera::Context::new();
-    context_edge_diagonal_a.insert("key", "value");
-    let edge_diagonal_a: String = tera.render("edge_diagonal_a.html", &context_edge_diagonal_a).unwrap();
+    context_edge_diagonal_a.insert("htmlcharacter", "&#x22F1;");
+    context_edge_diagonal_a.insert("infoid", "edgexyz");
+    let edge_diagonal_a: String = tera.render("wrap_edge.html", &context_edge_diagonal_a).unwrap();
 
     let mut context_edge_diagonal_b = tera::Context::new();
-    context_edge_diagonal_b.insert("key", "value");
-    let edge_diagonal_b: String = tera.render("edge_diagonal_b.html", &context_edge_diagonal_b).unwrap();
+    context_edge_diagonal_b.insert("htmlcharacter", "&#x22F0;");
+    context_edge_diagonal_b.insert("infoid", "edgexyz");
+    let edge_diagonal_b: String = tera.render("wrap_edge.html", &context_edge_diagonal_b).unwrap();
 
     let mut context = tera::Context::new();
     context.insert("pixel_center", &pixel_center);
