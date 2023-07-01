@@ -1,7 +1,11 @@
 <td>
     <a 
         class="symbol_{{ color }} pixel"
+
+        {% if infoid %}
         data-infoid="{{ infoid }}"
+        {% endif %}
+
         onmouseover="pixelOnMouseOver(this)"
         onmouseout="pixelOnMouseOut(this)"
         href="{{ href }}"

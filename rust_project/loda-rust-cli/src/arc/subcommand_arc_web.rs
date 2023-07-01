@@ -408,10 +408,31 @@ impl SubcommandARCWeb {
         context.insert("edge_center_downright", &edge_diagonal_a);
     
         let pretty_pixel: String = tera.render("inspect_pixel.html", &context).unwrap();
+
+        let info_center: String = tera.render("info_pixel.html", &center_wrap_pixel.to_info_context()).unwrap();
+        let info_up: String = tera.render("info_pixel.html", &up_wrap_pixel.to_info_context()).unwrap();
+        let info_down: String = tera.render("info_pixel.html", &down_wrap_pixel.to_info_context()).unwrap();
+        let info_left: String = tera.render("info_pixel.html", &left_wrap_pixel.to_info_context()).unwrap();
+        let info_right: String = tera.render("info_pixel.html", &right_wrap_pixel.to_info_context()).unwrap();
+        let info_upleft: String = tera.render("info_pixel.html", &upleft_wrap_pixel.to_info_context()).unwrap();
+        let info_upright: String = tera.render("info_pixel.html", &upright_wrap_pixel.to_info_context()).unwrap();
+        let info_downleft: String = tera.render("info_pixel.html", &downleft_wrap_pixel.to_info_context()).unwrap();
+        let info_downright: String = tera.render("info_pixel.html", &downright_wrap_pixel.to_info_context()).unwrap();
     
+        let mut info_divs = String::new();
+        info_divs += &info_center;
+        info_divs += &info_up;
+        info_divs += &info_down;
+        info_divs += &info_left;
+        info_divs += &info_right;
+        info_divs += &info_upleft;
+        info_divs += &info_upright;
+        info_divs += &info_downleft;
+        info_divs += &info_downright;
+
         let mut context2 = tera::Context::new();
         context2.insert("left_side", &pretty_pixel);
-        context2.insert("right_side", "hi");
+        context2.insert("right_side", &info_divs);
     
         let body: String = tera.render("side_by_side.html", &context2).unwrap();
         
@@ -453,6 +474,15 @@ impl WrapPixel {
         }
     }
 
+    fn infoid(&self) -> Option<String> {
+        let node_index: &NodeIndex = match &self.node_index {
+            Some(value) => value,
+            None => return None,
+        };
+        let s = format!("pixel{}", node_index.index());
+        Some(s)
+    }
+
     fn to_context(&self) -> tera::Context {
         let color: String;
         if let Some(value) = self.color {
@@ -474,7 +504,41 @@ impl WrapPixel {
         let mut context = tera::Context::new();
         context.insert("color", &color);
         context.insert("href", &href);
-        context.insert("infoid", "pixel1");
+        if let Some(infoid) = self.infoid() {
+            context.insert("infoid", &infoid);
+        }
+        context
+    }
+
+    fn to_info_context(&self) -> tera::Context {
+        let color: String;
+        if let Some(value) = self.color {
+            color = format!("{}", value);
+        } else {
+            color = "missing".to_string();
+        }
+
+        let x: String;
+        if let Some(value) = self.x {
+            x = format!("{}", value);
+        } else {
+            x = "missing".to_string();
+        }
+
+        let y: String;
+        if let Some(value) = self.y {
+            y = format!("{}", value);
+        } else {
+            y = "missing".to_string();
+        }
+
+        let mut context = tera::Context::new();
+        context.insert("color", &color);
+        context.insert("x", &x);
+        context.insert("y", &y);
+        if let Some(infoid) = self.infoid() {
+            context.insert("infoid", &infoid);
+        }
         context
     }
 }
