@@ -56,10 +56,10 @@ pub enum PixelNeighborEdgeType {
     Down,
     Left,
     Right,
-    // UpLeft,
-    // UpRight,
-    // DownLeft,
-    // DownRight,
+    UpLeft,
+    UpRight,
+    DownLeft,
+    DownRight,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -147,6 +147,38 @@ impl ExperimentWithPetgraph {
                 let index1: NodeIndex = indexes_pixels[address1];
                 self.graph.add_edge(index1, index0, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::Up });
                 self.graph.add_edge(index0, index1, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::Down });
+            }
+        }
+
+        // Establish `UpLeft` and `DownRight` edges between neighbor pixels.
+        for y in 1..image.height() {
+            for x in 1..image.width() {
+                let x0: u8 = x - 1;
+                let x1: u8 = x;
+                let y0: u8 = y - 1;
+                let y1: u8 = y;
+                let address0: usize = (y0 as usize) * (image.width() as usize) + (x0 as usize);
+                let address1: usize = (y1 as usize) * (image.width() as usize) + (x1 as usize);
+                let index0: NodeIndex = indexes_pixels[address0];
+                let index1: NodeIndex = indexes_pixels[address1];
+                self.graph.add_edge(index1, index0, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::UpLeft });
+                self.graph.add_edge(index0, index1, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::DownRight });
+            }
+        }
+
+        // Establish `DownLeft` and `UpRight` edges between neighbor pixels.
+        for y in 1..image.height() {
+            for x in 1..image.width() {
+                let x0: u8 = x - 1;
+                let x1: u8 = x;
+                let y0: u8 = y - 1;
+                let y1: u8 = y;
+                let address0: usize = (y1 as usize) * (image.width() as usize) + (x0 as usize);
+                let address1: usize = (y0 as usize) * (image.width() as usize) + (x1 as usize);
+                let index0: NodeIndex = indexes_pixels[address0];
+                let index1: NodeIndex = indexes_pixels[address1];
+                self.graph.add_edge(index1, index0, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::DownLeft });
+                self.graph.add_edge(index0, index1, EdgeData::PixelNeighbor { edge_type: PixelNeighborEdgeType::UpRight });
             }
         }
 
