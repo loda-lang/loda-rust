@@ -16,24 +16,6 @@ body {
     display: flex;
     flex-direction: column;
 }
-#overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
-    background-color: rgba(171, 171, 171, 0.81);
-}
-#overlay-message {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    font-size: 50px;
-    color: rgb(0, 0, 0);
-    transform: translate(-50%,-50%);
-    -ms-transform: translate(-50%,-50%);
-}
 #page-footer {
     border-top: 1px solid var(--loda-grid);
     padding: 10px;
@@ -130,82 +112,11 @@ body {
     background-color: #eaeaea;
     border: 1px solid rgb(34, 34, 34);
 }
-#output-interactive-ui {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    border-bottom: 1px solid var(--loda-grid);
-}
-#graph-scaling,
-#output-count {
-    display: flex;
-}
-#output-interactive-ui .selected,
-#output-interactive-ui .not-selected {
-    font-weight: normal;
-    border: none;
-    color: rgb(77, 73, 73);
-    background-color: transparent;
-    padding: 10px 18px;
-    text-align: center;
-    text-decoration: none;
-    font-size: 16px;
-    margin: 0;
-}
-#output-interactive-ui .selected {
-    text-decoration: underline;
-}
-#output-interactive-ui .not-selected:hover {
-    background-color: #e8e8e8;
-}
-#output-interactive-ui .not-selected:active {
-    background-color: #d3d3d3;
-}
-#output-interactive-ui #graph-scaling button {
-    border-right: 1px solid var(--loda-grid);
-}
-#output-interactive-ui #output-count button {
-    border-left: 1px solid var(--loda-grid);
-}
 .page-footer-item {
     flex: 1;
 }
 #page-footer-item1 {
     text-align: center;
-}
-.copy-program-link-to-clipboard-tooltip-area {
-    position: relative;
-    display: inline-block;
-}
-.copy-program-link-to-clipboard-tooltip-area .tooltiptext {
-    visibility: hidden;
-    width: 140px;
-    background-color: #555;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px;
-    position: absolute;
-    z-index: 4;
-    bottom: 150%;
-    left: 50%;
-    margin-left: -75px;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-.copy-program-link-to-clipboard-tooltip-area .tooltiptext::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #555 transparent transparent transparent;
-}
-.copy-program-link-to-clipboard-tooltip-area:hover .tooltiptext {
-    visibility: visible;
-    opacity: 1;
 }
 
 #main-outer {
@@ -223,92 +134,6 @@ body {
     border-left: 1px solid var(--loda-grid);
     box-sizing: border-box;
     overflow-y: scroll;
-}
-
-#output-rows {
-    display: grid;
-    grid-template-columns: minmax(auto, max-content) minmax(25%, auto);
-}
-
-.output-row-col0,
-.output-row-col1 {
-    border-bottom: 1px solid #ccc;
-}
-
-.output-row-col0 {
-    padding-top: 0.25em;
-    padding-left: 0.5em;
-    padding-right: 1em;
-    color: #ccc;
-    font-size: small;
-}
-
-.error-message.output-row-col0,
-.error-message.output-row-col1 {
-    background-color: rgb(252, 148, 148);
-}
-
-.error-message.output-row-col0 {
-    color: rgb(129, 129, 129);
-}
-
-#output-bottom-row {
-    padding-top: 0.25em;
-    padding-left: 0.5em;
-    padding-bottom: 0.25em;
-    color: #ccc;
-    font-size: small;
-}
-
-#arc-output1 {
-    font-family: monospace;
-    white-space: pre;
-}
-  
-.arc-output-container {
-    display: grid;
-    grid-template-columns: minmax(auto, max-content) minmax(25%, auto);
-
-}
-.arc-output-container .col0, 
-.arc-output-container .col1 {
-    padding: 8px;
-    border-top: 1px solid #ccc;
-    font-family: monospace;
-  white-space: pre;
-}
-
-.arc-output-container .col1 {
-    border-left: 1px solid #ccc;
-}
-
-.arc-output-container .text01 {
-    padding: 8px;
-    border-top: 1px solid #ccc;
-}
-
-.cell-group {
-    overflow: auto;
-}
-
-.cell-br {
-    clear: both; 
-    float: left; 
-    display: block; 
-    position: relative;
-}
-
-.compare {
-    display: flex;
-    column-gap: 20px;
-}
-
-.compare-item0 {
-
-}
-
-.compare-item1 {
-
 }
 
 .themearc.model.row {
