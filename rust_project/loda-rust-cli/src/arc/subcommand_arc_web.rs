@@ -409,26 +409,26 @@ impl SubcommandARCWeb {
     
         let pretty_pixel: String = tera.render("inspect_pixel.html", &context).unwrap();
 
-        let info_center: String = tera.render("info_pixel.html", &center_wrap_pixel.to_info_context()).unwrap();
-        let info_up: String = tera.render("info_pixel.html", &up_wrap_pixel.to_info_context()).unwrap();
-        let info_down: String = tera.render("info_pixel.html", &down_wrap_pixel.to_info_context()).unwrap();
-        let info_left: String = tera.render("info_pixel.html", &left_wrap_pixel.to_info_context()).unwrap();
-        let info_right: String = tera.render("info_pixel.html", &right_wrap_pixel.to_info_context()).unwrap();
-        let info_upleft: String = tera.render("info_pixel.html", &upleft_wrap_pixel.to_info_context()).unwrap();
-        let info_upright: String = tera.render("info_pixel.html", &upright_wrap_pixel.to_info_context()).unwrap();
-        let info_downleft: String = tera.render("info_pixel.html", &downleft_wrap_pixel.to_info_context()).unwrap();
-        let info_downright: String = tera.render("info_pixel.html", &downright_wrap_pixel.to_info_context()).unwrap();
+        let info_pixel_center: String = tera.render("info_pixel.html", &center_wrap_pixel.to_info_context()).unwrap();
+        let info_pixel_up: String = tera.render("info_pixel.html", &up_wrap_pixel.to_info_context()).unwrap();
+        let info_pixel_down: String = tera.render("info_pixel.html", &down_wrap_pixel.to_info_context()).unwrap();
+        let info_pixel_left: String = tera.render("info_pixel.html", &left_wrap_pixel.to_info_context()).unwrap();
+        let info_pixel_right: String = tera.render("info_pixel.html", &right_wrap_pixel.to_info_context()).unwrap();
+        let info_pixel_upleft: String = tera.render("info_pixel.html", &upleft_wrap_pixel.to_info_context()).unwrap();
+        let info_pixel_upright: String = tera.render("info_pixel.html", &upright_wrap_pixel.to_info_context()).unwrap();
+        let info_pixel_downleft: String = tera.render("info_pixel.html", &downleft_wrap_pixel.to_info_context()).unwrap();
+        let info_pixel_downright: String = tera.render("info_pixel.html", &downright_wrap_pixel.to_info_context()).unwrap();
     
         let mut info_divs = String::new();
-        info_divs += &info_center;
-        info_divs += &info_up;
-        info_divs += &info_down;
-        info_divs += &info_left;
-        info_divs += &info_right;
-        info_divs += &info_upleft;
-        info_divs += &info_upright;
-        info_divs += &info_downleft;
-        info_divs += &info_downright;
+        info_divs += &info_pixel_center;
+        info_divs += &info_pixel_up;
+        info_divs += &info_pixel_down;
+        info_divs += &info_pixel_left;
+        info_divs += &info_pixel_right;
+        info_divs += &info_pixel_upleft;
+        info_divs += &info_pixel_upright;
+        info_divs += &info_pixel_downleft;
+        info_divs += &info_pixel_downright;
 
         let mut context2 = tera::Context::new();
         context2.insert("left_side", &pretty_pixel);
