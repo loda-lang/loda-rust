@@ -242,3 +242,6 @@ mod experiment_with_logisticregression;
 
 #[cfg(feature = "linfa")]
 pub use experiment_with_logisticregression::ExperimentWithLogisticRegression;
+
+#[cfg(feature = "petgraph")]
+mod experiment_with_petgraph;
