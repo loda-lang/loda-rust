@@ -445,7 +445,7 @@ impl SubcommandARCWeb {
         context2.insert("left_side", &pretty_pixel);
         context2.insert("right_side", &info_divs);
     
-        let body: String = tera.render("side_by_side.html", &context2).unwrap();
+        let body: String = tera.render("page_graph.html", &context2).unwrap();
         
         let response = Response::builder(200)
             .body(body)
@@ -618,7 +618,7 @@ async fn demo1(req: Request<State>) -> tide::Result {
     context2.insert("left_side", &pretty_pixel);
     context2.insert("right_side", "hi");
 
-    let body: String = tera.render("side_by_side.html", &context2).unwrap();
+    let body: String = tera.render("page_graph.html", &context2).unwrap();
 
     let response = Response::builder(200)
         .body(body)
