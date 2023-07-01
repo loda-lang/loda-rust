@@ -83,8 +83,10 @@ impl SubcommandARCWeb {
         let tera: &Tera = &req.state().tera;
     
         let repo_path: PathBuf = config.arc_repository_data();
-        let all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
+        let mut all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
         debug!("all_json_paths: {:?}", all_json_paths.len());
+
+        alphanumeric_sort::sort_path_slice(&mut all_json_paths);
 
         let mut task_list = String::new();
         for path in &all_json_paths {
