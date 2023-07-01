@@ -71,6 +71,7 @@ pub enum EdgeData {
     // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
+    // IsTouchingAnotherObject { edge_type: PixelNeighborEdgeType },
 }
 
 #[allow(dead_code)]
