@@ -273,27 +273,27 @@ impl SubcommandARCWeb {
             }
         }
 
-        let mut found_x: Option<u8> = None;
-        let mut found_y: Option<u8> = None;
-        let mut found_color: Option<u8> = None;
-        let mut found_pixel_neighbor_right: Option<NodeIndex> = None;
+        let mut node_index_up: Option<NodeIndex> = None;
+        let mut node_index_down: Option<NodeIndex> = None;
+        let mut node_index_left: Option<NodeIndex> = None;
+        let mut node_index_right: Option<NodeIndex> = None;
         for edge_pixel in graph.edges(node_index) {
             let child_index: NodeIndex = edge_pixel.target();
-            let child_node: NodeData = graph[child_index];
-            match child_node {
-                NodeData::PositionX { x } => { found_x = Some(x); },
-                NodeData::PositionY { y } => { found_y = Some(y); },
-                NodeData::Color { color } => { found_color = Some(color); },
-                _ => {}
-            }
 
             match edge_pixel.weight() {
                 EdgeData::PixelNeighbor { edge_type } => {
-                    println!("edge_type: {:?}", edge_type);
                     match edge_type {
+                        PixelNeighborEdgeType::Up => { 
+                            node_index_up = Some(child_index); 
+                        },
+                        PixelNeighborEdgeType::Down => { 
+                            node_index_down = Some(child_index); 
+                        },
+                        PixelNeighborEdgeType::Left => { 
+                            node_index_left = Some(child_index); 
+                        },
                         PixelNeighborEdgeType::Right => { 
-                            println!("edge_type: {:?}  node id: {:?}", edge_type, child_index);
-                            found_pixel_neighbor_right = Some(child_index); 
+                            node_index_right = Some(child_index); 
                         },
                         _ => {}
                     }
@@ -303,18 +303,36 @@ impl SubcommandARCWeb {
         }
 
         let mut center_wrap_pixel = WrapPixel::default();
-        center_wrap_pixel.color = found_color;
+        center_wrap_pixel.task_id = Some(task_id.to_string());
+        center_wrap_pixel.node_index = Some(node_index);
+        center_wrap_pixel.load(&graph);
         let pixel_center: String = tera.render("wrap_pixel.html", &center_wrap_pixel.to_context()).unwrap();
     
+        let mut up_wrap_pixel = WrapPixel::default();
+        up_wrap_pixel.task_id = Some(task_id.to_string());
+        up_wrap_pixel.node_index = node_index_up;
+        up_wrap_pixel.load(&graph);
+        let pixel_up: String = tera.render("wrap_pixel.html", &up_wrap_pixel.to_context()).unwrap();
+
+        let mut down_wrap_pixel = WrapPixel::default();
+        down_wrap_pixel.task_id = Some(task_id.to_string());
+        down_wrap_pixel.node_index = node_index_down;
+        down_wrap_pixel.load(&graph);
+        let pixel_down: String = tera.render("wrap_pixel.html", &down_wrap_pixel.to_context()).unwrap();
+
+        let mut left_wrap_pixel = WrapPixel::default();
+        left_wrap_pixel.task_id = Some(task_id.to_string());
+        left_wrap_pixel.node_index = node_index_left;
+        left_wrap_pixel.load(&graph);
+        let pixel_left: String = tera.render("wrap_pixel.html", &left_wrap_pixel.to_context()).unwrap();
+
         let mut right_wrap_pixel = WrapPixel::default();
         right_wrap_pixel.task_id = Some(task_id.to_string());
-        right_wrap_pixel.node_index = found_pixel_neighbor_right;
+        right_wrap_pixel.node_index = node_index_right;
         right_wrap_pixel.load(&graph);
-        let pixel_mock1: String = tera.render("wrap_pixel.html", &right_wrap_pixel.to_context()).unwrap();
-    
-        let mut context_pixel_mock2 = tera::Context::new();
-        context_pixel_mock2.insert("color", "4");
-        context_pixel_mock2.insert("href", "/task/662c240a/graph/5");
+        let pixel_right: String = tera.render("wrap_pixel.html", &right_wrap_pixel.to_context()).unwrap();
+
+        let context_pixel_mock2 = WrapPixel::default().to_context();
         let pixel_mock2: String = tera.render("wrap_pixel.html", &context_pixel_mock2).unwrap();
     
         let mut context_edge_horizontal = tera::Context::new();
@@ -335,22 +353,22 @@ impl SubcommandARCWeb {
     
         let mut context = tera::Context::new();
         context.insert("pixel_center", &pixel_center);
-        context.insert("pixel_top", &pixel_mock1);
-        context.insert("pixel_bottom", &pixel_mock1);
-        context.insert("pixel_left", &pixel_mock1);
-        context.insert("pixel_right", &pixel_mock1);
-        context.insert("pixel_topleft", &pixel_mock2);
-        context.insert("pixel_topright", &pixel_mock2);
-        context.insert("pixel_bottomleft", &pixel_mock2);
-        context.insert("pixel_bottomright", &pixel_mock2);
+        context.insert("pixel_up", &pixel_up);
+        context.insert("pixel_down", &pixel_down);
+        context.insert("pixel_left", &pixel_left);
+        context.insert("pixel_right", &pixel_right);
+        context.insert("pixel_upleft", &pixel_mock2);
+        context.insert("pixel_upright", &pixel_mock2);
+        context.insert("pixel_downleft", &pixel_mock2);
+        context.insert("pixel_downright", &pixel_mock2);
         context.insert("edge_left_center", &edge_horizontal);
         context.insert("edge_center_right", &edge_horizontal);
-        context.insert("edge_center_top", &edge_vertical);
-        context.insert("edge_center_bottom", &edge_vertical);
-        context.insert("edge_center_topleft", &edge_diagonal_a);
-        context.insert("edge_center_topright", &edge_diagonal_b);
-        context.insert("edge_center_bottomleft", &edge_diagonal_b);
-        context.insert("edge_center_bottomright", &edge_diagonal_a);
+        context.insert("edge_center_up", &edge_vertical);
+        context.insert("edge_center_down", &edge_vertical);
+        context.insert("edge_center_upleft", &edge_diagonal_a);
+        context.insert("edge_center_upright", &edge_diagonal_b);
+        context.insert("edge_center_downleft", &edge_diagonal_b);
+        context.insert("edge_center_downright", &edge_diagonal_a);
     
         let pretty_pixel: String = tera.render("inspect_pixel.html", &context).unwrap();
     
@@ -460,22 +478,22 @@ async fn demo1(req: Request<State>) -> tide::Result {
 
     let mut context = tera::Context::new();
     context.insert("pixel_center", &pixel_center);
-    context.insert("pixel_top", &pixel_mock1);
-    context.insert("pixel_bottom", &pixel_mock1);
+    context.insert("pixel_up", &pixel_mock1);
+    context.insert("pixel_down", &pixel_mock1);
     context.insert("pixel_left", &pixel_mock1);
     context.insert("pixel_right", &pixel_mock1);
-    context.insert("pixel_topleft", &pixel_mock2);
-    context.insert("pixel_topright", &pixel_mock2);
-    context.insert("pixel_bottomleft", &pixel_mock2);
-    context.insert("pixel_bottomright", &pixel_mock2);
+    context.insert("pixel_upleft", &pixel_mock2);
+    context.insert("pixel_upright", &pixel_mock2);
+    context.insert("pixel_downleft", &pixel_mock2);
+    context.insert("pixel_downright", &pixel_mock2);
     context.insert("edge_left_center", &edge_horizontal);
     context.insert("edge_center_right", &edge_horizontal);
-    context.insert("edge_center_top", &edge_vertical);
-    context.insert("edge_center_bottom", &edge_vertical);
-    context.insert("edge_center_topleft", &edge_diagonal_a);
-    context.insert("edge_center_topright", &edge_diagonal_b);
-    context.insert("edge_center_bottomleft", &edge_diagonal_b);
-    context.insert("edge_center_bottomright", &edge_diagonal_a);
+    context.insert("edge_center_up", &edge_vertical);
+    context.insert("edge_center_down", &edge_vertical);
+    context.insert("edge_center_upleft", &edge_diagonal_a);
+    context.insert("edge_center_upright", &edge_diagonal_b);
+    context.insert("edge_center_downleft", &edge_diagonal_b);
+    context.insert("edge_center_downright", &edge_diagonal_a);
 
     let pretty_pixel: String = tera.render("inspect_pixel.html", &context).unwrap();
 
