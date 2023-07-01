@@ -1,3 +1,9 @@
 <td>
-    <a class="symbol_{{ color }} pixel" onmouseover="hoverPixel(this)" onmouseout="normalPixel(this)" href="{{ href }}">{{ color }}</a>
+    <a 
+        class="symbol_{{ color }} pixel"
+        data-infoid="{{ infoid }}"
+        onmouseover="pixelOnMouseOver(this)"
+        onmouseout="pixelOnMouseOut(this)"
+        href="{{ href }}"
+    >{{ color }}</a>
 </td>

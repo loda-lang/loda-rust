@@ -474,6 +474,7 @@ impl WrapPixel {
         let mut context = tera::Context::new();
         context.insert("color", &color);
         context.insert("href", &href);
+        context.insert("infoid", "pixel1");
         context
     }
 }

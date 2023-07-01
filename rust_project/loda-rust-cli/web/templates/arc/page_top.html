@@ -9,12 +9,22 @@
     <link media="all" rel="stylesheet" type="text/css" href="/static/arc_color.css">
     <link media="all" rel="stylesheet" type="text/css" href="/static/inspect_pixel.css">
     <script>
-        function hoverPixel(x) {
+        function pixelOnMouseOver(element) {
+          const infoid = element.dataset.infoid;
+          // console.log("pixelOnMouseOver", element, infoid);
+          const el2 = document.getElementById(infoid);
+          el2.hidden = false;
+
           const el = document.getElementById("info-panel");
           el.innerText = "pixel";
         }
         
-        function normalPixel(x) {
+        function pixelOnMouseOut(element) {
+          const infoid = element.dataset.infoid;
+          // console.log("pixelOnMouseOut", element, infoid);
+          const el2 = document.getElementById(infoid);
+          el2.hidden = true;
+
           const el = document.getElementById("info-panel");
           el.innerText = "edge";
         }
