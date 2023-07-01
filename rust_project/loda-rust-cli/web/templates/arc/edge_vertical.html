@@ -1,5 +1,14 @@
 <td class="edge">
-    <div class="dot">
+    <div 
+        class="dot"
+
+        {% if infoid %}
+        data-infoid="{{ infoid }}"
+        {% endif %}
+
+        onmouseover="edgeOnMouseOver(this)"
+        onmouseout="edgeOnMouseOut(this)"
+    >
         &#x22EE;
     </div>
 </td>

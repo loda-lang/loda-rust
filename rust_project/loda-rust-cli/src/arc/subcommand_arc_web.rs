@@ -378,6 +378,7 @@ impl SubcommandARCWeb {
     
         let mut context_edge_vertical = tera::Context::new();
         context_edge_vertical.insert("key", "value");
+        context_edge_vertical.insert("infoid", "edgexyz");
         let edge_vertical: String = tera.render("edge_vertical.html", &context_edge_vertical).unwrap();
     
         let mut context_edge_diagonal_a = tera::Context::new();
@@ -418,7 +419,11 @@ impl SubcommandARCWeb {
         let info_pixel_upright: String = tera.render("info_pixel.html", &upright_wrap_pixel.to_info_context()).unwrap();
         let info_pixel_downleft: String = tera.render("info_pixel.html", &downleft_wrap_pixel.to_info_context()).unwrap();
         let info_pixel_downright: String = tera.render("info_pixel.html", &downright_wrap_pixel.to_info_context()).unwrap();
-    
+
+        let mut context_edge1 = tera::Context::new();
+        context_edge1.insert("infoid", "edgexyz");
+        let info_edge1: String = tera.render("info_edge.html", &context_edge1).unwrap();
+
         let mut info_divs = String::new();
         info_divs += &info_pixel_center;
         info_divs += &info_pixel_up;
@@ -429,6 +434,7 @@ impl SubcommandARCWeb {
         info_divs += &info_pixel_upright;
         info_divs += &info_pixel_downleft;
         info_divs += &info_pixel_downright;
+        info_divs += &info_edge1;
 
         let mut context2 = tera::Context::new();
         context2.insert("left_side", &pretty_pixel);
