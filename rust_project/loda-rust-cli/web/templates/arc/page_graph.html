@@ -1,50 +1,44 @@
 <!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
     <meta name="robots" content="noindex">
-    <title>Developer</title>
+    <title>Graph task_id</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="format-detection" content="telephone=no">
+    <link media="all" rel="stylesheet" type="text/css" href="/static/page_inspect_task.css">
     <link media="all" rel="stylesheet" type="text/css" href="/static/arc_color.css">
     <link media="all" rel="stylesheet" type="text/css" href="/static/inspect_pixel.css">
-    <script>
-        function pixelOnMouseOver(element) {
-          const infoid = element.dataset.infoid;
-          // console.log("pixelOnMouseOver", element, infoid);
-          const el2 = document.getElementById(infoid);
-          el2.style.display = "block";
-        }
-        
-        function pixelOnMouseOut(element) {
-          const infoid = element.dataset.infoid;
-          // console.log("pixelOnMouseOut", element, infoid);
-          const el2 = document.getElementById(infoid);
-          el2.style.display = "none";
-        }
-
-        function edgeOnMouseOver(element) {
-          const infoid = element.dataset.infoid;
-          // console.log("edgeOnMouseOver", element, infoid);
-          const el2 = document.getElementById(infoid);
-          el2.style.display = "block";
-        }
-        
-        function edgeOnMouseOut(element) {
-          const infoid = element.dataset.infoid;
-          // console.log("edgeOnMouseOut", element, infoid);
-          const el2 = document.getElementById(infoid);
-          el2.style.display = "none";
-        }
-    </script>
+    <script src="/static/page_graph.js"></script>
 </head>
 
 <body>
-
-<div class="splitviewcontainer">
-    <div class="splitviewcolumn splitviewcolumnleft">{{left_side|safe}}</div>
-    <div class="splitviewcolumn splitviewcolumnright">{{right_side|safe}}</div>
-</div>
-
+    <header class="titlebar-container">
+    <div class="titlebar-item titlebar-item-left">
+        <!-- button -->
+    </div>
+    
+    <div class="titlebar-item titlebar-item-center">Task task_id</div>
+    
+    <div class="titlebar-item titlebar-item-right">
+        <!-- button -->
+    </div>
+    </header>
+    
+    <main id="main-outer">
+    <div id="main-inner">
+      <div class="splitviewcontainer">
+        <div class="splitviewcolumn splitviewcolumnleft">{{left_side|safe}}</div>
+        <div class="splitviewcolumn splitviewcolumnright">{{right_side|safe}}</div>
+      </div>  
+    </div>
+    </main>
+    
+    <footer id="page-footer">
+    <div id="page-footer-item0" class="page-footer-item">
+        <!-- footer -->
+    </div>
+    <div id="page-footer-item1" class="page-footer-item">
+        <!-- footer -->
+    </div>
+    </footer>
 </body>
 </html>
