@@ -239,14 +239,16 @@ impl SubcommandARCWeb {
             }
         };
 
-        let mut image = Image::empty();
+        let mut image_input = Image::empty();
+        let mut image_output = Image::empty();
         for pair in &task.pairs {
-            image = pair.input.image.clone();
+            image_input = pair.input.image.clone();
+            image_output = pair.output.image.clone();
             break;
         }
         let mut instance = ExperimentWithPetgraph::new();
 
-        let image_node_index = match instance.add_image(&image) {
+        let image_input_node_index = match instance.add_image(&image_input) {
             Ok(value) => value,
             Err(error) => {
                 debug!("error: {:?}", error);
@@ -257,7 +259,20 @@ impl SubcommandARCWeb {
                 return Ok(response);
             }
         };
-        println!("image_node_index: {:?}", image_node_index);
+        println!("image_input_node_index: {:?}", image_input_node_index);
+
+        let image_output_node_index = match instance.add_image(&image_output) {
+            Ok(value) => value,
+            Err(error) => {
+                debug!("error: {:?}", error);
+                let response = tide::Response::builder(500)
+                    .body("unable to populate graph.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+        println!("image_output_node_index: {:?}", image_output_node_index);
 
         let graph: &Graph<NodeData, EdgeData> = instance.graph();
 
@@ -267,7 +282,9 @@ impl SubcommandARCWeb {
         println!("node: {:?}", pixel_node);
 
         match pixel_node {
-            NodeData::Pixel => {},
+            NodeData::Pixel => {
+                return Self::format_pixel(graph, node_index, task_id, tera);
+            },
             _ => {
                 let response = tide::Response::builder(500)
                     .body("The node is not a pixel")
@@ -276,7 +293,9 @@ impl SubcommandARCWeb {
                 return Ok(response);
             }
         }
+    }
 
+    fn format_pixel(graph: &Graph<NodeData, EdgeData>, node_index: NodeIndex, task_id: &str, tera: &Tera) -> tide::Result {
         let mut node_index_up: Option<NodeIndex> = None;
         let mut node_index_down: Option<NodeIndex> = None;
         let mut node_index_left: Option<NodeIndex> = None;
