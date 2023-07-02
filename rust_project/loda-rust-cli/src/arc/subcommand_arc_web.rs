@@ -283,19 +283,14 @@ impl SubcommandARCWeb {
 
         match node {
             NodeData::Pixel => {
-                return Self::format_pixel(graph, node_index, task_id, tera);
+                return Self::page_graph_pixel(graph, node_index, task_id, tera);
             },
             _ => {
-                let mut context_node = tera::Context::new();
-                context_node.insert("inspect_data", &format!("{:?}", node));
-                let inspected_node: String = tera.render("inspect_node.html", &context_node).unwrap();
-        
                 let mut context2 = tera::Context::new();
-                context2.insert("left_side", "emtpy");
-                context2.insert("right_side", &inspected_node);
+                context2.insert("inspect_data", &format!("{:?}", node));
                 context2.insert("task_id", &task_id);
                 context2.insert("task_href", &format!("/task/{}", task_id));
-                let body: String = tera.render("page_graph.html", &context2).unwrap();
+                let body: String = tera.render("page_graph_node.html", &context2).unwrap();
                 
                 let response = Response::builder(200)
                     .body(body)
@@ -306,7 +301,7 @@ impl SubcommandARCWeb {
         }
     }
 
-    fn format_pixel(graph: &Graph<NodeData, EdgeData>, node_index: NodeIndex, task_id: &str, tera: &Tera) -> tide::Result {
+    fn page_graph_pixel(graph: &Graph<NodeData, EdgeData>, node_index: NodeIndex, task_id: &str, tera: &Tera) -> tide::Result {
         let mut node_index_up: Option<NodeIndex> = None;
         let mut node_index_down: Option<NodeIndex> = None;
         let mut node_index_left: Option<NodeIndex> = None;
@@ -478,7 +473,7 @@ impl SubcommandARCWeb {
         context2.insert("right_side", &info_divs);
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
-        let body: String = tera.render("page_graph.html", &context2).unwrap();
+        let body: String = tera.render("page_graph_pixel.html", &context2).unwrap();
         
         let response = Response::builder(200)
             .body(body)
@@ -652,7 +647,7 @@ async fn demo1(req: Request<State>) -> tide::Result {
     context2.insert("right_side", "hi");
     context2.insert("task_id", "demo1");
     context2.insert("task_href", "#");
-    let body: String = tera.render("page_graph.html", &context2).unwrap();
+    let body: String = tera.render("page_graph_pixel.html", &context2).unwrap();
 
     let response = Response::builder(200)
         .body(body)
