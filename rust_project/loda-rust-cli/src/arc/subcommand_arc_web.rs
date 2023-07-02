@@ -277,6 +277,13 @@ impl SubcommandARCWeb {
         let graph: &Graph<NodeData, EdgeData> = instance.graph();
 
         let node_index = NodeIndex::new(node_id_usize);
+        if node_id_usize >= graph.node_count() {
+            let response = tide::Response::builder(500)
+                .body("node_index out of bounds. The graph doesn't have that many nodes.")
+                .content_type("text/plain; charset=utf-8")
+                .build();
+            return Ok(response);
+        }
 
         let node: &NodeData = &graph[node_index];
         println!("node: {:?}", node);
