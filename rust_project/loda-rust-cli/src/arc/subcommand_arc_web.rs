@@ -278,17 +278,28 @@ impl SubcommandARCWeb {
 
         let node_index = NodeIndex::new(node_id_usize);
 
-        let pixel_node: &NodeData = &graph[node_index];
-        println!("node: {:?}", pixel_node);
+        let node: &NodeData = &graph[node_index];
+        println!("node: {:?}", node);
 
-        match pixel_node {
+        match node {
             NodeData::Pixel => {
                 return Self::format_pixel(graph, node_index, task_id, tera);
             },
             _ => {
-                let response = tide::Response::builder(500)
-                    .body("The node is not a pixel")
-                    .content_type("text/plain; charset=utf-8")
+                let mut context_node = tera::Context::new();
+                context_node.insert("inspect_data", &format!("{:?}", node));
+                let inspected_node: String = tera.render("inspect_node.html", &context_node).unwrap();
+        
+                let mut context2 = tera::Context::new();
+                context2.insert("left_side", "emtpy");
+                context2.insert("right_side", &inspected_node);
+                context2.insert("task_id", &task_id);
+                context2.insert("task_href", &format!("/task/{}", task_id));
+                let body: String = tera.render("page_graph.html", &context2).unwrap();
+                
+                let response = Response::builder(200)
+                    .body(body)
+                    .content_type(mime::HTML)
                     .build();
                 return Ok(response);
             }
