@@ -5,6 +5,14 @@
     box-sizing:border-box;
 }
 
+.inspect_pixel {
+    border-collapse: collapse;
+}
+
+.inspect_pixel td {
+    padding: 0;
+}
+
 .pixel {
     width: 100px;
     height: 100px;
@@ -19,10 +27,7 @@
 }
 
 .edge {
-    width: 60px;
-    height: 60px;
     text-align: center;
-    vertical-align: middle;
 }
 
 .dot {
@@ -30,10 +35,18 @@
     width: 60px;
     border-radius: 50%;
     display: inline-block;
-    line-height: 60px;
-    text-align: center;
     font-size: 40px;
     color: #a9a9a9;
+    position: relative;
+    margin: 5px;
+}
+
+.dotinner {
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .edge:hover .dot {
