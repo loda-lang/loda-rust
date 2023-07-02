@@ -93,3 +93,7 @@ ul.without_bullets {
     padding-left: 0;
     margin-right: 0.5em;
 }
+
+#main-inner {
+    padding: 0.5em;
+}
