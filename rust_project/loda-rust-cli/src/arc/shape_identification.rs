@@ -106,12 +106,14 @@ enum ShapeType {
 
     /// Shape `⅄`, similar to an uppercase `A` symbol or an upside down `Y` symbol
     /// 
+    /// https://en.wikipedia.org/wiki/Voiced_palatal_lateral_approximant
+    /// 
     /// ````
     /// 0, 1, 0
     /// 1, 1, 1
     /// 1, 0, 1
     /// ```
-    A,
+    TurnedY,
 
     /// Shape `⊻`, similar to an uppercase `K` symbol that have been rotated clockwise 90 degrees
     /// 
@@ -201,7 +203,7 @@ impl ShapeType {
             Self::HUppercase => "H",
             Self::HLowercase => "h",
             Self::X => "X",
-            Self::A => "⅄",
+            Self::TurnedY => "⅄",
             Self::RotatedK => "⊻",
             Self::TurnedV => "⋀",
             Self::Diagonal2 => "▞",
@@ -741,7 +743,7 @@ impl ShapeIdentification {
             
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
-                shape.primary = ShapeType::A;
+                shape.primary = ShapeType::TurnedY;
                 let size_min: u8 = mask2.width().min(mask2.height());
                 let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
@@ -1710,7 +1712,7 @@ mod tests {
     }
 
     #[test]
-    fn test_170000_a() {
+    fn test_170000_turned_y() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 0,
@@ -1727,7 +1729,7 @@ mod tests {
     }
 
     #[test]
-    fn test_170001_a() {
+    fn test_170001_turned_y() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 1,
@@ -1744,7 +1746,7 @@ mod tests {
     }
 
     #[test]
-    fn test_170002_a() {
+    fn test_170002_turned_y() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -1763,7 +1765,7 @@ mod tests {
     }
 
     #[test]
-    fn test_170003_a() {
+    fn test_170003_turned_y() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
