@@ -8,13 +8,20 @@ enum ShapeType {
     Square,
     Rectangle,
     Box,
+
+    /// A shape like an `L` symbol
     L,
+
+    // A shape like an upside down `T` symbol
+    // https://en.wikipedia.org/wiki/Up_tack
+    UpTack,
+
     Unclassified,
 
     // Future experiments
-    // T shape
     // cross
     // U shape
+    // H shape
     // diagonal line
 }
 
@@ -26,6 +33,7 @@ impl ShapeType {
             Self::Rectangle => "rectangle",
             Self::Box => "box",
             Self::L => "L",
+            Self::UpTack => "⊥",
             Self::Unclassified => "unclassified",
         }
     }
@@ -129,17 +137,17 @@ impl ShapeIdentification {
             return Ok(shape);
         }
 
-        let l_image: Image = Image::try_create(2, 2, vec![
-            1, 0,
-            1, 1,
-        ])?;
-
         if mask3.size() == ImageSize::new(2, 2) {
-            let rot_cw_90: Image = l_image.rotate_cw()?;
+            let shape_image: Image = Image::try_create(2, 2, vec![
+                1, 0,
+                1, 1,
+            ])?;
+    
+            let rot_cw_90: Image = shape_image.rotate_cw()?;
             let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
             let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
 
-            let is_same: bool = mask3 == l_image;
+            let is_same: bool = mask3 == shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             let is_rot_cw_180: bool = mask3 == rot_cw_180;
             let is_rot_cw_270: bool = mask3 == rot_cw_270;
@@ -147,6 +155,38 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::L;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = is_rot_cw_90;
+                shape.rotated_cw_180 = is_rot_cw_180;
+                shape.rotated_cw_270 = is_rot_cw_270;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                shape.flip_xy = true;
+                return Ok(shape);
+            }
+        }
+
+        if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
+            let shape_image: Image = Image::try_create(3, 2, vec![
+                0, 1, 0,
+                1, 1, 1,
+            ])?;
+    
+            let rot_cw_90: Image = shape_image.rotate_cw()?;
+            let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
+            let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
+
+            let is_same: bool = mask3 == shape_image;
+            let is_rot_cw_90: bool = mask3 == rot_cw_90;
+            let is_rot_cw_180: bool = mask3 == rot_cw_180;
+            let is_rot_cw_270: bool = mask3 == rot_cw_270;
+            
+            if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::UpTack;
                 let size_min: u8 = mask2.width().min(mask2.height());
                 let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
@@ -351,6 +391,76 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "L");
+    }
+
+    #[test]
+    fn test_50000_uptack() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1,
+            1, 1, 1,
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+        ];
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⊥");
+    }
+
+    #[test]
+    fn test_50001_uptack() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            0, 1, 1, 0,
+            1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⊥");
+    }
+
+    #[test]
+    fn test_50002_uptack() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0,
+            1, 1, 1, 1,
+            1, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⊥");
+    }
+
+    #[test]
+    fn test_50003_uptack() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1,
+            1, 1,
+            0, 1,
+        ];
+        let input: Image = Image::try_create(2, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⊥");
     }
 
 }
