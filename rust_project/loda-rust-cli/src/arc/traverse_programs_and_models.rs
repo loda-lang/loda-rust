@@ -60,6 +60,8 @@ static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 4;
 
 static ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS: u64 = 200;
 
+static ARC_COMPETITION_NUMBER_OF_MUTATIONS: u64 = 1;
+
 type ModelItemVec = Vec<Rc<RefCell<ModelItem>>>;
 
 pub struct TraverseProgramsAndModels {
@@ -1580,7 +1582,7 @@ impl TraverseProgramsAndModels {
 
         // When processing the hidden ARC dataset, I suspect most of the solutions are found 
         // without doing any mutation of existing solutions.
-        let try_mutate_existing_solutions = false;
+        let try_mutate_existing_solutions = true;
 
         let number_of_programs_to_generate: usize = 3;
 
@@ -1590,6 +1592,7 @@ impl TraverseProgramsAndModels {
         println!("try_existing_solutions: {}", try_existing_solutions);
         println!("try_logistic_regression: {}", try_logistic_regression);
         println!("try_mutate_existing_solutions: {}", try_mutate_existing_solutions);
+        println!("ARC_COMPETITION_NUMBER_OF_MUTATIONS: {}", ARC_COMPETITION_NUMBER_OF_MUTATIONS);
 
         println!("initial random seed: {}", ARC_COMPETITION_INITIAL_RANDOM_SEED);
         println!("ignore programs taking longer than millis: {}", ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS);
@@ -1776,6 +1779,10 @@ impl TraverseProgramsAndModels {
             // loop until all puzzles have been solved
             let mut mutation_index: u64 = 0;
             loop {
+                if mutation_index >= ARC_COMPETITION_NUMBER_OF_MUTATIONS {
+                    println!("{} - Terminating due to maximum number of mutations.", human_readable_utc_timestamp());
+                    break;
+                }
                 if runner.plan.scheduled_model_item_vec.is_empty() {
                     println!("{} - It seems all the puzzles have been solved.", human_readable_utc_timestamp());
                     break;
