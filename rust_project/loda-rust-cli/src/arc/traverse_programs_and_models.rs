@@ -1573,12 +1573,23 @@ impl TraverseProgramsAndModels {
         // This may be a solution to one of the hidden puzzles.
         // However it's slow, so it's disabled while developing, where we only want to explore mutations.
         let try_existing_solutions = true;
+
+        // The logistic regression has not solved any of the tasks in the hidden ARC dataset.
+        // so no point in having it enabled.
         let try_logistic_regression = false;
+
+        // When processing the hidden ARC dataset, I suspect most of the solutions are found 
+        // without doing any mutation of existing solutions.
+        let try_mutate_existing_solutions = false;
 
         let number_of_programs_to_generate: usize = 3;
 
         println!("{} - Start of program", human_readable_utc_timestamp());
         Self::print_system_info();
+
+        println!("try_existing_solutions: {}", try_existing_solutions);
+        println!("try_logistic_regression: {}", try_logistic_regression);
+        println!("try_mutate_existing_solutions: {}", try_mutate_existing_solutions);
 
         println!("initial random seed: {}", ARC_COMPETITION_INITIAL_RANDOM_SEED);
         println!("ignore programs taking longer than millis: {}", ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS);
@@ -1761,31 +1772,33 @@ impl TraverseProgramsAndModels {
             }
         }
 
-        // loop until all puzzles have been solved
-        let mut mutation_index: u64 = 0;
-        loop {
-            if runner.plan.scheduled_model_item_vec.is_empty() {
-                println!("{} - It seems all the puzzles have been solved.", human_readable_utc_timestamp());
-                break;
+        if try_mutate_existing_solutions {
+            // loop until all puzzles have been solved
+            let mut mutation_index: u64 = 0;
+            loop {
+                if runner.plan.scheduled_model_item_vec.is_empty() {
+                    println!("{} - It seems all the puzzles have been solved.", human_readable_utc_timestamp());
+                    break;
+                }
+                if state.terminate_due_to_timeout {
+                    println!("{} - Terminating due to timeout.", human_readable_utc_timestamp());
+                    break;
+                }
+                println!("{} - Mutation: {}", human_readable_utc_timestamp(), mutation_index);
+    
+                // Create new mutated programs in every iteration
+                runner.plan.scheduled_program_item_vec = self.create_mutations_of_all_programs(
+                    mutation_index, 
+                    number_of_programs_to_generate, 
+                    &mut bloom
+                );
+    
+                // Evaluate all puzzles with all candidate programs
+                runner.run_one_batch(&mut state)?;
+                self.transfer_discovered_programs(&mut state)?;
+                
+                mutation_index += 1;
             }
-            if state.terminate_due_to_timeout {
-                println!("{} - Terminating due to timeout.", human_readable_utc_timestamp());
-                break;
-            }
-            println!("{} - Mutation: {}", human_readable_utc_timestamp(), mutation_index);
-
-            // Create new mutated programs in every iteration
-            runner.plan.scheduled_program_item_vec = self.create_mutations_of_all_programs(
-                mutation_index, 
-                number_of_programs_to_generate, 
-                &mut bloom
-            );
-
-            // Evaluate all puzzles with all candidate programs
-            runner.run_one_batch(&mut state)?;
-            self.transfer_discovered_programs(&mut state)?;
-            
-            mutation_index += 1;
         }
         println!("{} - Executable elapsed: {}.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
 
