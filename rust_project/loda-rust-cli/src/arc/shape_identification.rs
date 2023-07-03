@@ -166,15 +166,23 @@ enum ShapeType {
     /// ```
     SkewTetromino,
 
+    /// Shape `◣`
+    /// 
+    /// ````
+    /// 1, 0, 0
+    /// 1, 1, 0
+    /// 1, 1, 1
+    /// ```
+    LowerLeftTriangle,
+
     Unclassified,
 
     // Future experiments
     // string representation of the shape
-    // ◣ Lower Left Triangle
-    // ◆ Diamond
-    // pyramid
     // dashed line
     // checker board
+    // ◆ Diamond
+    // pyramid
 }
 
 impl ShapeType {
@@ -199,6 +207,7 @@ impl ShapeType {
             Self::Diagonal2 => "▞",
             Self::Diagonal3 => "⋰",
             Self::SkewTetromino => "skew",
+            Self::LowerLeftTriangle => "◣",
             Self::Unclassified => "unclassified",
         }
     }
@@ -766,6 +775,39 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::RotatedK;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = is_rot_cw_90;
+                shape.rotated_cw_180 = is_rot_cw_180;
+                shape.rotated_cw_270 = is_rot_cw_270;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                shape.flip_xy = true;
+                return Ok(shape);
+            }
+        }
+
+        if mask3.size() == ImageSize::new(3, 3) {
+            let shape_image: Image = Image::try_create(3, 3, vec![
+                1, 0, 0,
+                1, 1, 0,
+                1, 1, 1,
+            ])?;
+    
+            let rot_cw_90: Image = shape_image.rotate_cw()?;
+            let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
+            let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
+
+            let is_same: bool = mask3 == shape_image;
+            let is_rot_cw_90: bool = mask3 == rot_cw_90;
+            let is_rot_cw_180: bool = mask3 == rot_cw_180;
+            let is_rot_cw_270: bool = mask3 == rot_cw_270;
+            
+            if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::LowerLeftTriangle;
                 let size_min: u8 = mask2.width().min(mask2.height());
                 let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
@@ -1815,4 +1857,74 @@ mod tests {
         assert_eq!(actual.to_string(), "⊻");
     }
 
+    #[test]
+    fn test_190000_lower_left_triangle() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 0, 0,
+            1, 1, 0, 0, 0, 0,
+            1, 1, 1, 1, 0, 0,
+            1, 1, 1, 1, 0, 0,
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(6, 6, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "◣");
+    }
+
+    #[test]
+    fn test_190001_lower_left_triangle() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1,
+            1, 1, 1, 0,
+            1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "◣");
+    }
+
+    #[test]
+    fn test_190002_lower_left_triangle() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1,
+            0, 1, 1, 1,
+            0, 0, 0, 1,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "◣");
+    }
+
+    #[test]
+    fn test_190003_lower_left_triangle() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 1,
+            0, 1, 1, 1,
+            1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "◣");
+    }
 }
