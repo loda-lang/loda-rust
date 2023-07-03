@@ -5,19 +5,54 @@ use std::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ShapeType {
     Empty,
+
+    /// ````
+    /// 1,
+    /// ```
     Square,
+
+    /// ````
+    /// 1, 1,
+    /// ```
     Rectangle,
+
+    /// ````
+    /// 1, 1, 1,
+    /// 1, 0, 1,
+    /// 1, 1, 1,
+    /// ```
     Box,
 
+    /// A shape like a `+` symbol
+    /// ````
+    /// 0, 1, 0,
+    /// 1, 1, 1,
+    /// 0, 1, 0,
+    /// ```
+    Plus,
+
+    /// A shape like a `O` symbol
+    /// ````
+    /// 0, 1, 0,
+    /// 1, 0, 1,
+    /// 0, 1, 0,
+    /// ```
+    O,
+
     /// A shape like an `L` symbol
+    /// ````
+    /// 1, 0,
+    /// 1, 1,
+    /// ```
     L,
 
     // A shape like an upside down `T` symbol
     // https://en.wikipedia.org/wiki/Up_tack
+    /// ````
+    /// 0, 1, 0,
+    /// 1, 1, 1,
+    /// ```
     UpTack,
-
-    /// A shape like a `+` symbol
-    Plus,
 
     /// A shape like an `U` symbol with 4 pixels. Asymmetric.
     /// ````
@@ -37,8 +72,8 @@ enum ShapeType {
 
     // Future experiments
     // V shape
-    // pyramid
     // I or H shape
+    // pyramid
     // diagonal cross
     // diagonal line
     // ◣ Lower Left Triangle
@@ -52,9 +87,10 @@ impl ShapeType {
             Self::Square => "square",
             Self::Rectangle => "rectangle",
             Self::Box => "box",
+            Self::Plus => "+",
+            Self::O => "O",
             Self::L => "L",
             Self::UpTack => "⊥",
-            Self::Plus => "+",
             Self::U4 => "U4",
             Self::U5 => "U5",
             Self::Unclassified => "unclassified",
@@ -172,6 +208,28 @@ impl ShapeIdentification {
         if mask3 == plus_image {
             let mut shape = ShapeIdentification::default();
             shape.primary = ShapeType::Plus;
+            let size_min: u8 = mask2.width().min(mask2.height());
+            let size_max: u8 = mask2.width().max(mask2.height());
+            shape.width = Some(size_max);
+            shape.height = Some(size_min);
+            shape.rotated_cw_90 = true;
+            shape.rotated_cw_180 = true;
+            shape.rotated_cw_270 = true;
+            shape.flip_x = true;
+            shape.flip_y = true;
+            shape.flip_xy = true;
+            return Ok(shape);
+        }
+
+        let o_image: Image = Image::try_create(3, 3, vec![
+            0, 1, 0,
+            1, 0, 1,
+            0, 1, 0,
+        ])?;
+
+        if mask3 == o_image {
+            let mut shape = ShapeIdentification::default();
+            shape.primary = ShapeType::O;
             let size_min: u8 = mask2.width().min(mask2.height());
             let size_max: u8 = mask2.width().max(mask2.height());
             shape.width = Some(size_max);
@@ -483,7 +541,44 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_l_shape() {
+    fn test_50000_o_shape() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            1, 0, 0, 1,
+            1, 0, 0, 1,
+            1, 0, 0, 1,
+            0, 1, 1, 0,
+        ];
+        let input: Image = Image::try_create(4, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "O");
+    }
+
+    #[test]
+    fn test_50001_o_shape() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 1, 0, 0,
+            0, 0, 1, 1, 0, 0,
+            1, 1, 0, 0, 1, 1,
+            0, 0, 1, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "O");
+    }
+
+    #[test]
+    fn test_60000_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -501,7 +596,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_l_shape() {
+    fn test_60001_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0,
@@ -519,7 +614,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50002_l_shape() {
+    fn test_60002_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1,
@@ -537,7 +632,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50003_l_shape() {
+    fn test_60003_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -554,7 +649,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_uptack() {
+    fn test_70000_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -573,7 +668,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60001_uptack() {
+    fn test_70001_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -590,7 +685,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60002_uptack() {
+    fn test_70002_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0,
@@ -607,7 +702,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60003_uptack() {
+    fn test_70003_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1,
@@ -624,7 +719,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70000_u5() {
+    fn test_80000_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -643,7 +738,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70001_u5() {
+    fn test_80001_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
@@ -659,9 +754,8 @@ mod tests {
         assert_eq!(actual.to_string(), "U5");
     }
 
-
     #[test]
-    fn test_70002_u5() {
+    fn test_80002_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -678,7 +772,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70003_u5() {
+    fn test_80003_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1,
@@ -695,7 +789,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80000_u4() {
+    fn test_90000_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0,
@@ -714,7 +808,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80001_u4() {
+    fn test_90001_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1,
@@ -733,7 +827,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80002_u4() {
+    fn test_90002_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
@@ -750,7 +844,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80003_u4() {
+    fn test_90003_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
@@ -767,7 +861,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80004_u4() {
+    fn test_90004_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -784,7 +878,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80005_u4() {
+    fn test_90005_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1,
@@ -801,7 +895,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80006_u4() {
+    fn test_90006_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0,
@@ -818,7 +912,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80007_u4() {
+    fn test_90007_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1,
