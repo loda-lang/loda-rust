@@ -8,6 +8,8 @@ pub trait ImageSymmetry {
     fn flip_y(&self) -> anyhow::Result<Image>;
     
     /// Reverse both the `x-axis` and the `y-axis`.
+    /// 
+    /// This is the same as rotating 180 degrees.
     fn flip_xy(&self) -> anyhow::Result<Image>;
 
     /// Flip over the diagonal so that the `top-left` corner and the `bottom-right` corner changes place.
