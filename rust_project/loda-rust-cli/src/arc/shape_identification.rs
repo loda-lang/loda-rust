@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry};
+use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, ImageHistogram, Histogram, CenterOfMass};
 use std::fmt;
 
 #[allow(dead_code)]
@@ -232,10 +232,11 @@ impl Default for ShapeType {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct ShapeIdentification {
     primary: ShapeType,
     secondary: Option<ShapeType>,
+    compacted_image: Option<Image>,
     width: Option<u8>,
     height: Option<u8>,
     rotated_cw_90: bool,
@@ -842,9 +843,71 @@ impl ShapeIdentification {
             }
         }
 
-        let shape = ShapeIdentification::default();
+        let mask4: Image = Self::normalize(&mask3)?;
+        let mut shape = ShapeIdentification::default();
+        shape.primary = ShapeType::Unclassified;
+        shape.width = Some(size_max);
+        shape.height = Some(size_min);
+        shape.compacted_image = Some(mask4);
         Ok(shape)
     }
+
+    /// The intention is to always yield the same image, no matter if the input is rotated or flipped.
+    /// 
+    /// - First transform the image so it's always in landscape orientation.
+    /// - The most massive side is resting on the floor.
+    /// - If there is a tie, the prefer object towards the left side.
+    /// - If there is a tie, then sort using the raw pixel data.
+    fn normalize(image_with_unknown_orientation: &Image) -> anyhow::Result<Image> {
+        // Correct orientation
+        let landscape_image: Image;
+        if image_with_unknown_orientation.width() < image_with_unknown_orientation.height() {
+            landscape_image = image_with_unknown_orientation.rotate_cw()?;
+        } else {
+            landscape_image = image_with_unknown_orientation.clone();
+        }
+
+        // Transformations of the image
+        let mut images: Vec<Image> = Vec::new();
+        {
+            let image: Image = landscape_image.flip_x()?;
+            images.push(image);
+        }
+        {
+            let image: Image = landscape_image.flip_y()?;
+            images.push(image);
+        }
+        {
+            let image: Image = landscape_image.flip_xy()?;
+            images.push(image);
+        }
+        images.push(landscape_image);
+
+        // Obtain center of mass for each image
+        let mut y_x_image_vec: Vec<(i32, u32, Image)> = Vec::new();
+        for image in images {
+            let scale: u32 = 10000;
+            if let Some((x, y)) = image.center_of_mass(scale) {
+                // println!("x: {}, y: {} {:?}", x, y, image);
+                let inverted_y: i32 = - (y.min(i32::MAX as u32) as i32);
+                y_x_image_vec.push((inverted_y, x, image));
+            }
+        }
+
+        // Sort by center of mass, y first, then x, then image data
+        y_x_image_vec.sort();
+
+        // println!("SORTED");
+        // for (y, x, image) in &y_x_image_vec {
+        //     println!("x: {}, y: {} {:?}", x, y, image);
+        // }
+
+        // Pick the first image
+        let image0: &Image = &y_x_image_vec[0].2;
+
+        Ok(image0.clone())
+    }
+
 }
 
 impl fmt::Display for ShapeIdentification {
@@ -2018,5 +2081,138 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "𐐢");
+    }
+
+    #[test]
+    fn test_210000_unclassified() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 1,
+            1, 0, 0, 1,
+            1, 0, 0, 0,
+            0, 0, 0, 1,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "unclassified");
+
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+            1, 1, 0, 1,
+        ];
+        let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual.compacted_image, Some(expected_compact));
+    }
+
+    fn transform(input: &Image, mode: u8) -> anyhow::Result<Image> {
+        let output: Image = match mode {
+            0 => input.clone(),
+            1 => input.flip_x()?,
+            2 => input.flip_y()?,
+            3 => input.rotate_cw()?,
+            4 => input.rotate_ccw()?,
+            _ => return Err(anyhow::anyhow!("invalid mode")),
+        };
+        Ok(output)
+    }
+
+    fn transformed_images(input: &Image) -> anyhow::Result<Vec<Image>> {
+        let mut images: Vec<Image> = Vec::new();
+        for mode in 0..=4 {
+            images.push(transform(&input, mode)?);
+        }
+        Ok(images)
+    }
+
+    #[test]
+    fn test_300000_normalize() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 1,
+            1, 0, 0, 1,
+            1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
+
+        // Act
+        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
+            ShapeIdentification::normalize(i).expect("ok")
+        ).collect();
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 1,
+            1, 0, 0, 1,
+            1, 1, 1, 0,
+        ];
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        for actual in actual_vec {
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn test_300001_normalize() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1,
+            1, 1, 0,
+            0, 0, 1,
+            0, 1, 0,
+        ];
+        let input: Image = Image::try_create(3, 4, pixels).expect("image");
+        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
+
+        // Act
+        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
+            ShapeIdentification::normalize(i).expect("ok")
+        ).collect();
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 0, 0,
+            1, 1, 0, 1,
+            1, 0, 1, 0,
+        ];
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        for actual in actual_vec {
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn test_300002_normalize() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1,
+            1, 1, 0,
+            0, 0, 1,
+            0, 1, 0,
+            1, 0, 1,
+        ];
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
+
+        // Act
+        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
+            ShapeIdentification::normalize(i).expect("ok")
+        ).collect();
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 0, 0, 1,
+            1, 1, 0, 1, 0,
+            1, 0, 1, 0, 1,
+        ];
+        let expected: Image = Image::try_create(5, 3, expected_pixels).expect("image");
+        for actual in actual_vec {
+            assert_eq!(actual, expected);
+        }
     }
 }
