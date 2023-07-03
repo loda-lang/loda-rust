@@ -42,6 +42,14 @@ enum ShapeType {
     /// ```
     O,
 
+    /// Shape `X`
+    /// ````
+    /// 1, 0, 1,
+    /// 0, 1, 0,
+    /// 1, 0, 1,
+    /// ```
+    X,
+
     /// Shape `L`
     /// ````
     /// 1, 0,
@@ -105,6 +113,7 @@ impl ShapeType {
             Self::U4 => "U4",
             Self::U5 => "U5",
             Self::I => "I",
+            Self::X => "X",
             Self::Unclassified => "unclassified",
         }
     }
@@ -189,70 +198,102 @@ impl ShapeIdentification {
             }
         }
 
-        let box_image: Image = Image::try_create(3, 3, vec![
-            1, 1, 1,
-            1, 0, 1,
-            1, 1, 1,
-        ])?;
+        if mask3.size() == ImageSize::new(3, 3) {
+            let shape_image: Image = Image::try_create(3, 3, vec![
+                1, 1, 1,
+                1, 0, 1,
+                1, 1, 1,
+            ])?;
 
-        if mask3 == box_image {
-            let mut shape = ShapeIdentification::default();
-            shape.primary = ShapeType::Box;
-            let size_min: u8 = mask2.width().min(mask2.height());
-            let size_max: u8 = mask2.width().max(mask2.height());
-            shape.width = Some(size_max);
-            shape.height = Some(size_min);
-            shape.rotated_cw_90 = true;
-            shape.rotated_cw_180 = true;
-            shape.rotated_cw_270 = true;
-            shape.flip_x = true;
-            shape.flip_y = true;
-            shape.flip_xy = true;
-            return Ok(shape);
+            if mask3 == shape_image {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::Box;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = true;
+                shape.rotated_cw_180 = true;
+                shape.rotated_cw_270 = true;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                shape.flip_xy = true;
+                return Ok(shape);
+            }
         }
 
-        let plus_image: Image = Image::try_create(3, 3, vec![
-            0, 1, 0,
-            1, 1, 1,
-            0, 1, 0,
-        ])?;
+        if mask3.size() == ImageSize::new(3, 3) {
+            let shape_image: Image = Image::try_create(3, 3, vec![
+                0, 1, 0,
+                1, 1, 1,
+                0, 1, 0,
+            ])?;
 
-        if mask3 == plus_image {
-            let mut shape = ShapeIdentification::default();
-            shape.primary = ShapeType::Plus;
-            let size_min: u8 = mask2.width().min(mask2.height());
-            let size_max: u8 = mask2.width().max(mask2.height());
-            shape.width = Some(size_max);
-            shape.height = Some(size_min);
-            shape.rotated_cw_90 = true;
-            shape.rotated_cw_180 = true;
-            shape.rotated_cw_270 = true;
-            shape.flip_x = true;
-            shape.flip_y = true;
-            shape.flip_xy = true;
-            return Ok(shape);
+            if mask3 == shape_image {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::Plus;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = true;
+                shape.rotated_cw_180 = true;
+                shape.rotated_cw_270 = true;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                shape.flip_xy = true;
+                return Ok(shape);
+            }
         }
 
-        let o_image: Image = Image::try_create(3, 3, vec![
-            0, 1, 0,
-            1, 0, 1,
-            0, 1, 0,
-        ])?;
+        if mask3.size() == ImageSize::new(3, 3) {
+            let shape_image: Image = Image::try_create(3, 3, vec![
+                0, 1, 0,
+                1, 0, 1,
+                0, 1, 0,
+            ])?;
 
-        if mask3 == o_image {
-            let mut shape = ShapeIdentification::default();
-            shape.primary = ShapeType::O;
-            let size_min: u8 = mask2.width().min(mask2.height());
-            let size_max: u8 = mask2.width().max(mask2.height());
-            shape.width = Some(size_max);
-            shape.height = Some(size_min);
-            shape.rotated_cw_90 = true;
-            shape.rotated_cw_180 = true;
-            shape.rotated_cw_270 = true;
-            shape.flip_x = true;
-            shape.flip_y = true;
-            shape.flip_xy = true;
-            return Ok(shape);
+            if mask3 == shape_image {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::O;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = true;
+                shape.rotated_cw_180 = true;
+                shape.rotated_cw_270 = true;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                shape.flip_xy = true;
+                return Ok(shape);
+            }
+        }
+
+        if mask3.size() == ImageSize::new(3, 3) {
+            let shape_image: Image = Image::try_create(3, 3, vec![
+                1, 0, 1,
+                0, 1, 0,
+                1, 0, 1,
+            ])?;
+
+            let is_same: bool = mask3 == shape_image;
+            
+            if is_same {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::X;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = true;
+                shape.rotated_cw_180 = true;
+                shape.rotated_cw_270 = true;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                shape.flip_xy = true;
+                return Ok(shape);
+            }
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
@@ -1001,5 +1042,41 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "I");
+    }
+
+    #[test]
+    fn test_110000_x() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 1, 1,
+            1, 0, 1, 1,
+            0, 1, 0, 0,
+            1, 0, 1, 1,
+            1, 0, 1, 1,
+        ];
+        let input: Image = Image::try_create(4, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "X");
+    }
+
+    #[test]
+    fn test_110001_x() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 1,
+            0, 0, 1, 1, 0,
+            1, 1, 0, 0, 1,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "X");
     }
 }
