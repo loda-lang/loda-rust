@@ -79,13 +79,16 @@ enum ShapeType {
     /// ```
     U5,
 
-    /// Shape `I` or `H`
+    /// Shape `H`
+    /// 
+    /// H has more mass 5 pixels at the bottom 2 rows when compared to the `I` that only has 4 pixels at the bottom 2 rows.
+    /// 
     /// ````
+    /// 1, 0, 1,
     /// 1, 1, 1,
-    /// 0, 1, 0,
-    /// 1, 1, 1,
+    /// 1, 0, 1,
     /// ```
-    I,
+    H,
 
     Unclassified,
 
@@ -112,7 +115,7 @@ impl ShapeType {
             Self::UpTack => "⊥",
             Self::U4 => "U4",
             Self::U5 => "U5",
-            Self::I => "I",
+            Self::H => "H",
             Self::X => "X",
             Self::Unclassified => "unclassified",
         }
@@ -298,9 +301,9 @@ impl ShapeIdentification {
 
         if mask3.size() == ImageSize::new(3, 3) {
             let shape_image: Image = Image::try_create(3, 3, vec![
+                1, 0, 1,
                 1, 1, 1,
-                0, 1, 0,
-                1, 1, 1,
+                1, 0, 1,
             ])?;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
 
@@ -309,7 +312,7 @@ impl ShapeIdentification {
             
             if is_same || is_rot_cw_90 {
                 let mut shape = ShapeIdentification::default();
-                shape.primary = ShapeType::I;
+                shape.primary = ShapeType::H;
                 let size_min: u8 = mask2.width().min(mask2.height());
                 let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
@@ -1009,7 +1012,7 @@ mod tests {
     }
 
     #[test]
-    fn test_100000_i() {
+    fn test_100000_h() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -1024,11 +1027,11 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "I");
+        assert_eq!(actual.to_string(), "H");
     }
 
     #[test]
-    fn test_100001_i() {
+    fn test_100001_h() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 1,
@@ -1041,7 +1044,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "I");
+        assert_eq!(actual.to_string(), "H");
     }
 
     #[test]
