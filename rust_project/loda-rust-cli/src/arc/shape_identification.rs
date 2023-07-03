@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate};
+use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry};
 use std::fmt;
 
 #[allow(dead_code)]
@@ -19,13 +19,23 @@ enum ShapeType {
     /// A shape like a `+` symbol
     Plus,
 
-    /// A shape like an `U` symbol
-    U,
+    /// A shape like an `U` symbol with 4 pixels. Asymmetric.
+    /// ````
+    /// 1, 0, 1
+    /// 1, 1, 0,
+    /// ```
+    U4,
+
+    /// A shape like an `U` symbol with 5 pixels. Symmetric.
+    /// ````
+    /// 1, 0, 1
+    /// 1, 1, 1
+    /// ```
+    U5,
 
     Unclassified,
 
     // Future experiments
-    // U with 1 defect
     // V shape
     // pyramid
     // I or H shape
@@ -45,7 +55,8 @@ impl ShapeType {
             Self::L => "L",
             Self::UpTack => "⊥",
             Self::Plus => "+",
-            Self::U => "U",
+            Self::U4 => "U4",
+            Self::U5 => "U5",
             Self::Unclassified => "unclassified",
         }
     }
@@ -68,6 +79,9 @@ struct ShapeIdentification {
     flip_x: bool,
     flip_y: bool,
     flip_xy: bool,
+
+    // Future experiments
+    // is scaled down without losing information, apply scale factor to get original size
 }
 
 impl ShapeIdentification {
@@ -252,7 +266,7 @@ impl ShapeIdentification {
             
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
-                shape.primary = ShapeType::U;
+                shape.primary = ShapeType::U5;
                 let size_min: u8 = mask2.width().min(mask2.height());
                 let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
@@ -260,6 +274,48 @@ impl ShapeIdentification {
                 shape.rotated_cw_90 = is_rot_cw_90;
                 shape.rotated_cw_180 = is_rot_cw_180;
                 shape.rotated_cw_270 = is_rot_cw_270;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                shape.flip_xy = true;
+                return Ok(shape);
+            }
+        }
+
+        if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
+            println!("mask: {:?}", mask3);
+            let shape_image: Image = Image::try_create(3, 2, vec![
+                1, 0, 1,
+                1, 1, 0,
+            ])?;
+            let normal90: Image = shape_image.rotate_cw()?;
+            let normal180: Image = normal90.rotate_cw()?;
+            let normal270: Image = normal180.rotate_cw()?;
+            
+            let shape_image_flipped: Image = shape_image.flip_x()?;
+            let flipped90: Image = shape_image_flipped.rotate_cw()?;
+            let flipped180: Image = flipped90.rotate_cw()?;
+            let flipped270: Image = flipped180.rotate_cw()?;
+
+            let is_same: bool = mask3 == shape_image;
+            let is_normal90: bool = mask3 == normal90;
+            let is_normal180: bool = mask3 == normal180;
+            let is_normal270: bool = mask3 == normal270;
+
+            let is_flipped: bool = mask3 == shape_image_flipped;
+            let is_flipped90: bool = mask3 == flipped90;
+            let is_flipped180: bool = mask3 == flipped180;
+            let is_flipped270: bool = mask3 == flipped270;
+            
+            if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::U4;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = is_normal90;
+                shape.rotated_cw_180 = is_normal180;
+                shape.rotated_cw_270 = is_normal270;
                 shape.flip_x = true;
                 shape.flip_y = true;
                 shape.flip_xy = true;
@@ -568,7 +624,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70000_u_shape() {
+    fn test_70000_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -583,11 +639,11 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "U");
+        assert_eq!(actual.to_string(), "U5");
     }
 
     #[test]
-    fn test_70001_u_shape() {
+    fn test_70001_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
@@ -600,12 +656,12 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "U");
+        assert_eq!(actual.to_string(), "U5");
     }
 
 
     #[test]
-    fn test_80002_u_shape() {
+    fn test_70002_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -618,11 +674,11 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "U");
+        assert_eq!(actual.to_string(), "U5");
     }
 
     #[test]
-    fn test_70003_u_shape() {
+    fn test_70003_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1,
@@ -635,7 +691,147 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "U");
+        assert_eq!(actual.to_string(), "U5");
+    }
+
+    #[test]
+    fn test_80000_u4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0,
+            1, 1, 0,
+            1, 0, 1,
+            1, 0, 1,
+            1, 0, 1,
+        ];
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "U4");
+    }
+
+    #[test]
+    fn test_80001_u4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1,
+            0, 1, 1,
+            1, 0, 1,
+            1, 0, 1,
+            1, 0, 1,
+        ];
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "U4");
+    }
+
+    #[test]
+    fn test_80002_u4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 1,
+            1, 0, 0, 1,
+            1, 1, 1, 0,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "U4");
+    }
+
+    #[test]
+    fn test_80003_u4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 1,
+            1, 0, 0, 1,
+            0, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "U4");
+    }
+
+    #[test]
+    fn test_80004_u4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1,
+            1, 1, 0, 0,
+            0, 0, 1, 1,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "U4");
+    }
+
+    #[test]
+    fn test_80005_u4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 1,
+            1, 1, 0, 0,
+            1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "U4");
+    }
+
+    #[test]
+    fn test_80006_u4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0,
+            0, 1,
+            1, 1,
+        ];
+        let input: Image = Image::try_create(2, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "U4");
+    }
+
+    #[test]
+    fn test_80007_u4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1,
+            0, 1,
+            1, 0,
+        ];
+        let input: Image = Image::try_create(2, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "U4");
     }
 
 }
