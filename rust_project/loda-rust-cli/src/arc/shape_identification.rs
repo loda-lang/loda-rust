@@ -126,14 +126,26 @@ enum ShapeType {
     /// ```
     Diagonal3,
 
+    /// Tetris shape symbol that is skewed
+    /// 
+    /// https://en.wikipedia.org/wiki/Tetromino
+    /// https://mathworld.wolfram.com/Tetromino.html
+    /// 
+    /// ````
+    /// 0, 1, 1
+    /// 1, 1, 0
+    /// ```
+    SkewTetromino,
+
     Unclassified,
 
     // Future experiments
     // string representation of the shape
-    // tetris shape: [[1, 1, 0], [0, 1, 1]]
     // ◣ Lower Left Triangle
     // ◆ Diamond
     // pyramid
+    // dashed line
+    // checker board
 }
 
 impl ShapeType {
@@ -154,6 +166,7 @@ impl ShapeType {
             Self::TurnedV => "⋀",
             Self::Diagonal2 => "▞",
             Self::Diagonal3 => "⋰",
+            Self::SkewTetromino => "skew",
             Self::Unclassified => "unclassified",
         }
     }
@@ -572,6 +585,47 @@ impl ShapeIdentification {
             if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::U4;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = is_normal90;
+                shape.rotated_cw_180 = is_normal180;
+                shape.rotated_cw_270 = is_normal270;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                shape.flip_xy = true;
+                return Ok(shape);
+            }
+        }
+
+        if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
+            let shape_image: Image = Image::try_create(3, 2, vec![
+                0, 1, 1,
+                1, 1, 0,
+            ])?;
+            let normal90: Image = shape_image.rotate_cw()?;
+            let normal180: Image = normal90.rotate_cw()?;
+            let normal270: Image = normal180.rotate_cw()?;
+            
+            let shape_image_flipped: Image = shape_image.flip_x()?;
+            let flipped90: Image = shape_image_flipped.rotate_cw()?;
+            let flipped180: Image = flipped90.rotate_cw()?;
+            let flipped270: Image = flipped180.rotate_cw()?;
+
+            let is_same: bool = mask3 == shape_image;
+            let is_normal90: bool = mask3 == normal90;
+            let is_normal180: bool = mask3 == normal180;
+            let is_normal270: bool = mask3 == normal270;
+
+            let is_flipped: bool = mask3 == shape_image_flipped;
+            let is_flipped90: bool = mask3 == flipped90;
+            let is_flipped180: bool = mask3 == flipped180;
+            let is_flipped270: bool = mask3 == flipped270;
+            
+            if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::SkewTetromino;
                 let size_min: u8 = mask2.width().min(mask2.height());
                 let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
@@ -1337,6 +1391,72 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "⋰");
+    }
+
+    #[test]
+    fn test_150000_skew_tetramino() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 1, 1, 1,
+            1, 1, 1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 2, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "skew");
+    }
+
+    #[test]
+    fn test_150001_skew_tetramino() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 0, 0, 0,
+            0, 0, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(6, 2, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "skew");
+    }
+
+    #[test]
+    fn test_150002_skew_tetramino() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0,
+            1, 1, 1, 1,
+            0, 0, 1, 1,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "skew");
+    }
+
+    #[test]
+    fn test_150003_skew_tetramino() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 1,
+            1, 1, 1, 1,
+            1, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "skew");
     }
 
 }
