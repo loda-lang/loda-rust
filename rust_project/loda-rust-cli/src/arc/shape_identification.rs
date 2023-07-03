@@ -902,6 +902,9 @@ impl ShapeIdentification {
         //     println!("x: {}, y: {} {:?}", x, y, image);
         // }
 
+        if y_x_image_vec.is_empty() {
+            return Err(anyhow::anyhow!("Image vector is empty"));
+        }
         // Pick the first image
         let image0: &Image = &y_x_image_vec[0].2;
 
