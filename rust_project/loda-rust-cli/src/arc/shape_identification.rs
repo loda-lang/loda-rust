@@ -105,7 +105,7 @@ enum ShapeType {
     /// ```
     TurnedV,
 
-    /// Shape `▞`, similar to an forward slash `/` symbol
+    /// Shape `▞` with 2 pixels, similar to an forward slash `/` symbol
     /// 
     /// https://en.wikipedia.org/wiki/Slash_(punctuation)
     /// 
@@ -115,14 +115,25 @@ enum ShapeType {
     /// ```
     Diagonal2,
 
+    /// Shape `⋰` with 3 pixels, similar to the unicode `Up Right Diagonal Ellipsis` symbol or a forward slash `/` symbol
+    /// 
+    /// https://en.wikipedia.org/wiki/Slash_(punctuation)
+    /// 
+    /// ````
+    /// 0, 0, 1
+    /// 0, 1, 0
+    /// 1, 0, 0
+    /// ```
+    Diagonal3,
+
     Unclassified,
 
     // Future experiments
-    // diagonal line with 3 pixels
+    // string representation of the shape
     // tetris shape: [[1, 1, 0], [0, 1, 1]]
-    // pyramid
     // ◣ Lower Left Triangle
     // ◆ Diamond
+    // pyramid
 }
 
 impl ShapeType {
@@ -142,6 +153,7 @@ impl ShapeType {
             Self::X => "X",
             Self::TurnedV => "⋀",
             Self::Diagonal2 => "▞",
+            Self::Diagonal3 => "⋰",
             Self::Unclassified => "unclassified",
         }
     }
@@ -364,6 +376,33 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::Diagonal2;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = is_rot_cw_90;
+                shape.rotated_cw_180 = is_same;
+                shape.rotated_cw_270 = is_rot_cw_90;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                shape.flip_xy = true;
+                return Ok(shape);
+            }
+        }
+
+        if mask3.size() == ImageSize::new(3, 3) {
+            let shape_image: Image = Image::try_create(3, 3, vec![
+                0, 0, 1,
+                0, 1, 0,
+                1, 0, 0,
+            ])?;
+            let rot_cw_90: Image = shape_image.rotate_cw()?;
+            let is_same: bool = mask3 == shape_image;
+            let is_rot_cw_90: bool = mask3 == rot_cw_90;
+            
+            if is_same || is_rot_cw_90 {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::Diagonal3;
                 let size_min: u8 = mask2.width().min(mask2.height());
                 let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
@@ -1264,6 +1303,40 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "▞");
+    }
+
+    #[test]
+    fn test_140000_diagonal3() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 0, 1, 1,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⋰");
+    }
+
+    #[test]
+    fn test_140001_diagonal3() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 1,
+            0, 1, 1, 1, 0,
+            1, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⋰");
     }
 
 }
