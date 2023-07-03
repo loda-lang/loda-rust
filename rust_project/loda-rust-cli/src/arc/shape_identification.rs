@@ -1,0 +1,164 @@
+use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates};
+use std::fmt;
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ShapeType {
+    Empty,
+    Square,
+    Rectangle,
+    Unclassified,
+}
+
+impl ShapeType {
+    fn name(&self) -> &str {
+        match self {
+            Self::Empty => "empty",
+            Self::Square => "square",
+            Self::Rectangle => "rectangle",
+            Self::Unclassified => "unclassified",
+        }
+    }
+}
+
+impl Default for ShapeType {
+    fn default() -> Self { ShapeType::Unclassified }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+struct ShapeIdentification {
+    primary: ShapeType,
+    secondary: Option<ShapeType>,
+    width: Option<u8>,
+    height: Option<u8>,
+    rotated_cw_90: bool,
+    rotated_cw_180: bool,
+    rotated_cw_270: bool,
+    flip_x: bool,
+    flip_y: bool,
+}
+
+impl ShapeIdentification {
+    #[allow(dead_code)]
+    fn compute(mask: &Image) -> anyhow::Result<ShapeIdentification> {
+        let mask2: Image = mask.trim_color(0)?;
+        if mask2.is_empty() {
+            let mut shape = ShapeIdentification::default();
+            shape.primary = ShapeType::Empty;
+            return Ok(shape);
+        }
+        if mask2.size() == ImageSize::new(1, 1) {
+            let mut shape = ShapeIdentification::default();
+            shape.primary = ShapeType::Square;
+            shape.secondary = Some(ShapeType::Rectangle);
+            shape.width = Some(1);
+            shape.height = Some(1);
+            shape.rotated_cw_90 = true;
+            shape.rotated_cw_180 = true;
+            shape.rotated_cw_270 = true;
+            shape.flip_x = true;
+            shape.flip_y = true;
+            return Ok(shape);
+        }
+        let mask3: Image = mask2.remove_duplicates()?;
+        if mask3.size() == ImageSize::new(1, 1) {
+            let is_square: bool = mask2.width() == mask2.height();
+            if is_square {
+                let scale: u8 = mask2.width();
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::Square;
+                shape.secondary = Some(ShapeType::Rectangle);
+                shape.width = Some(scale);
+                shape.height = Some(scale);
+                shape.rotated_cw_90 = true;
+                shape.rotated_cw_180 = true;
+                shape.rotated_cw_270 = true;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                return Ok(shape);
+            } else {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::Rectangle;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = true;
+                shape.rotated_cw_180 = true;
+                shape.rotated_cw_270 = true;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                return Ok(shape);    
+            }
+        }
+
+        let shape = ShapeIdentification::default();
+        Ok(shape)
+    }
+}
+
+impl fmt::Display for ShapeIdentification {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut s: String = format!("{}", self.primary.name());
+        if let Some(shape_type) = &self.secondary {
+            s += &format!(",{}", shape_type.name());
+        }
+        write!(f, "{}", s)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::arc::ImageTryCreate;
+
+    #[test]
+    fn test_10000_square() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 1, 0,
+            0, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "square,rectangle");
+    }
+
+    #[test]
+    fn test_10001_square() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1,
+            1, 1,
+        ];
+        let input: Image = Image::try_create(2, 2, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "square,rectangle");
+    }
+
+    #[test]
+    fn test_20000_rectangle() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1,
+            1, 1, 1,
+        ];
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "rectangle");
+    }
+}

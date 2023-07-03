@@ -113,6 +113,7 @@ mod rectangle;
 mod register_arc_functions;
 mod reverse_color_popularity;
 mod run_with_program;
+mod shape_identification;
 mod single_color_object;
 mod single_color_object_satisfies_label;
 mod single_color_object_to_label;
