@@ -258,12 +258,15 @@ impl ShapeIdentification {
             shape.primary = ShapeType::Empty;
             return Ok(shape);
         }
+        let size: ImageSize = mask2.size();
+        let size_min: u8 = size.width.min(size.height);
+        let size_max: u8 = size.width.max(size.height);
         if mask2.size() == ImageSize::new(1, 1) {
             let mut shape = ShapeIdentification::default();
             shape.primary = ShapeType::Square;
             shape.secondary = Some(ShapeType::Rectangle);
-            shape.width = Some(1);
-            shape.height = Some(1);
+            shape.width = Some(size_max);
+            shape.height = Some(size_min);
             shape.rotated_cw_90 = true;
             shape.rotated_cw_180 = true;
             shape.rotated_cw_270 = true;
@@ -276,12 +279,11 @@ impl ShapeIdentification {
         if mask3.size() == ImageSize::new(1, 1) {
             let is_square: bool = mask2.width() == mask2.height();
             if is_square {
-                let scale: u8 = mask2.width();
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::Square;
                 shape.secondary = Some(ShapeType::Rectangle);
-                shape.width = Some(scale);
-                shape.height = Some(scale);
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
                 shape.rotated_cw_90 = true;
                 shape.rotated_cw_180 = true;
                 shape.rotated_cw_270 = true;
@@ -292,8 +294,6 @@ impl ShapeIdentification {
             } else {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::Rectangle;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = true;
@@ -316,8 +316,6 @@ impl ShapeIdentification {
             if mask3 == shape_image {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::Box;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = true;
@@ -340,8 +338,6 @@ impl ShapeIdentification {
             if mask3 == shape_image {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::Plus;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = true;
@@ -364,8 +360,6 @@ impl ShapeIdentification {
             if mask3 == shape_image {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::O;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = true;
@@ -390,8 +384,6 @@ impl ShapeIdentification {
             if is_same {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::X;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = true;
@@ -418,8 +410,6 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::HUppercase;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_rot_cw_90;
@@ -444,8 +434,6 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::Diagonal2;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_rot_cw_90;
@@ -471,8 +459,6 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::Diagonal3;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_rot_cw_90;
@@ -503,8 +489,6 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::L;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_rot_cw_90;
@@ -535,8 +519,6 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::UpTack;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_rot_cw_90;
@@ -567,8 +549,6 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::U5;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_rot_cw_90;
@@ -599,8 +579,6 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::TurnedV;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_rot_cw_90;
@@ -640,8 +618,6 @@ impl ShapeIdentification {
             if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::U4;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_normal90;
@@ -681,8 +657,6 @@ impl ShapeIdentification {
             if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::SkewTetromino;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_normal90;
@@ -723,8 +697,6 @@ impl ShapeIdentification {
             if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::HLowercase;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_normal90;
@@ -765,8 +737,6 @@ impl ShapeIdentification {
             if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::FlippedJ;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_normal90;
@@ -798,8 +768,6 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::TurnedY;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_rot_cw_90;
@@ -831,8 +799,6 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::RotatedK;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_rot_cw_90;
@@ -864,8 +830,6 @@ impl ShapeIdentification {
             if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
                 let mut shape = ShapeIdentification::default();
                 shape.primary = ShapeType::LowerLeftTriangle;
-                let size_min: u8 = mask2.width().min(mask2.height());
-                let size_max: u8 = mask2.width().max(mask2.height());
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.rotated_cw_90 = is_rot_cw_90;
