@@ -6,16 +6,19 @@ use std::fmt;
 enum ShapeType {
     Empty,
 
+    /// Solid square or rectangle.
     /// ````
     /// 1,
     /// ```
     Square,
 
+    /// Solid rectangle.
     /// ````
     /// 1, 1,
     /// ```
     Rectangle,
 
+    /// Rectangle with a rectangular hole.
     /// ````
     /// 1, 1, 1,
     /// 1, 0, 1,
@@ -23,7 +26,7 @@ enum ShapeType {
     /// ```
     Box,
 
-    /// A shape like a `+` symbol
+    /// Shape `+`
     /// ````
     /// 0, 1, 0,
     /// 1, 1, 1,
@@ -31,7 +34,7 @@ enum ShapeType {
     /// ```
     Plus,
 
-    /// A shape like a `O` symbol
+    /// Shape `O`
     /// ````
     /// 0, 1, 0,
     /// 1, 0, 1,
@@ -39,7 +42,7 @@ enum ShapeType {
     /// ```
     O,
 
-    /// A shape like an `L` symbol
+    /// Shape `L`
     /// ````
     /// 1, 0,
     /// 1, 1,
@@ -68,11 +71,19 @@ enum ShapeType {
     /// ```
     U5,
 
+    /// Shape `I` or `H`
+    /// ````
+    /// 1, 1, 1,
+    /// 0, 1, 0,
+    /// 1, 1, 1,
+    /// ```
+    I,
+
     Unclassified,
 
     // Future experiments
     // V shape
-    // I or H shape
+    // tetris shape: [[1, 1, 0], [0, 1, 1]]
     // pyramid
     // diagonal cross
     // diagonal line
@@ -93,6 +104,7 @@ impl ShapeType {
             Self::UpTack => "⊥",
             Self::U4 => "U4",
             Self::U5 => "U5",
+            Self::I => "I",
             Self::Unclassified => "unclassified",
         }
     }
@@ -243,6 +255,34 @@ impl ShapeIdentification {
             return Ok(shape);
         }
 
+        if mask3.size() == ImageSize::new(3, 3) {
+            let shape_image: Image = Image::try_create(3, 3, vec![
+                1, 1, 1,
+                0, 1, 0,
+                1, 1, 1,
+            ])?;
+            let rot_cw_90: Image = shape_image.rotate_cw()?;
+
+            let is_same: bool = mask3 == shape_image;
+            let is_rot_cw_90: bool = mask3 == rot_cw_90;
+            
+            if is_same || is_rot_cw_90 {
+                let mut shape = ShapeIdentification::default();
+                shape.primary = ShapeType::I;
+                let size_min: u8 = mask2.width().min(mask2.height());
+                let size_max: u8 = mask2.width().max(mask2.height());
+                shape.width = Some(size_max);
+                shape.height = Some(size_min);
+                shape.rotated_cw_90 = is_rot_cw_90;
+                shape.rotated_cw_180 = is_same;
+                shape.rotated_cw_270 = is_rot_cw_90;
+                shape.flip_x = true;
+                shape.flip_y = true;
+                shape.flip_xy = true;
+                return Ok(shape);
+            }
+        }
+
         if mask3.size() == ImageSize::new(2, 2) {
             let shape_image: Image = Image::try_create(2, 2, vec![
                 1, 0,
@@ -340,7 +380,6 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            println!("mask: {:?}", mask3);
             let shape_image: Image = Image::try_create(3, 2, vec![
                 1, 0, 1,
                 1, 1, 0,
@@ -928,4 +967,39 @@ mod tests {
         assert_eq!(actual.to_string(), "U4");
     }
 
+    #[test]
+    fn test_100000_i() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1,
+            1, 1, 1, 1,
+            0, 1, 0, 0,
+            1, 1, 1, 1,
+            1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(4, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "I");
+    }
+
+    #[test]
+    fn test_100001_i() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 1,
+            1, 1, 1, 1, 1,
+            1, 1, 0, 0, 1,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "I");
+    }
 }
