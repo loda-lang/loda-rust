@@ -16,12 +16,16 @@ enum ShapeType {
     // https://en.wikipedia.org/wiki/Up_tack
     UpTack,
 
+    /// A shape like a `+` symbol
+    Plus,
+
     Unclassified,
 
     // Future experiments
-    // cross
+    // pyramid
     // U shape
     // H shape
+    // diagonal cross
     // diagonal line
 }
 
@@ -34,6 +38,7 @@ impl ShapeType {
             Self::Box => "box",
             Self::L => "L",
             Self::UpTack => "⊥",
+            Self::Plus => "+",
             Self::Unclassified => "unclassified",
         }
     }
@@ -124,6 +129,28 @@ impl ShapeIdentification {
         if mask3 == box_image {
             let mut shape = ShapeIdentification::default();
             shape.primary = ShapeType::Box;
+            let size_min: u8 = mask2.width().min(mask2.height());
+            let size_max: u8 = mask2.width().max(mask2.height());
+            shape.width = Some(size_max);
+            shape.height = Some(size_min);
+            shape.rotated_cw_90 = true;
+            shape.rotated_cw_180 = true;
+            shape.rotated_cw_270 = true;
+            shape.flip_x = true;
+            shape.flip_y = true;
+            shape.flip_xy = true;
+            return Ok(shape);
+        }
+
+        let plus_image: Image = Image::try_create(3, 3, vec![
+            0, 1, 0,
+            1, 1, 1,
+            0, 1, 0,
+        ])?;
+
+        if mask3 == plus_image {
+            let mut shape = ShapeIdentification::default();
+            shape.primary = ShapeType::Plus;
             let size_min: u8 = mask2.width().min(mask2.height());
             let size_max: u8 = mask2.width().max(mask2.height());
             shape.width = Some(size_max);
@@ -323,7 +350,45 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_l_shape() {
+    fn test_40000_plus() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 0, 0,
+            0, 1, 1, 0, 0,
+            1, 1, 1, 1, 1,
+            0, 1, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "+");
+    }
+
+    #[test]
+    fn test_40001_plus() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 0,
+            0, 0, 1, 0,
+            1, 1, 1, 1,
+            1, 1, 1, 1,
+            0, 0, 1, 0,
+            0, 0, 1, 0,
+        ];
+        let input: Image = Image::try_create(4, 6, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "+");
+    }
+
+    #[test]
+    fn test_50000_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -341,7 +406,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_l_shape() {
+    fn test_50001_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0,
@@ -359,7 +424,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_l_shape() {
+    fn test_50002_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1,
@@ -377,7 +442,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40003_l_shape() {
+    fn test_50003_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -394,7 +459,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_uptack() {
+    fn test_60000_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -413,7 +478,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_uptack() {
+    fn test_60001_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -430,7 +495,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50002_uptack() {
+    fn test_60002_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0,
@@ -447,7 +512,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50003_uptack() {
+    fn test_60003_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1,
@@ -462,5 +527,4 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊥");
     }
-
 }
