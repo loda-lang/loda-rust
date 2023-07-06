@@ -1,5 +1,158 @@
 use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, ImageHistogram, Histogram, CenterOfMass};
 use std::fmt;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref SHAPE_TYPE_IMAGE: ShapeTypeImage = ShapeTypeImage::new().expect("Unable to create shape type image");
+}
+
+struct ShapeTypeImage {
+    image_box: Image,
+    image_plus: Image,
+    image_o: Image,
+    image_x: Image,
+    image_h_uppercase: Image,
+    image_h_lowercase: Image,
+    image_diagonal2: Image,
+    image_diagonal3: Image,
+    image_l: Image,
+    image_uptack: Image,
+    image_u5: Image,
+    image_u4: Image,
+    image_turned_v: Image,
+    image_skew_tetromino: Image,
+    image_flipped_j: Image,
+    image_turned_y: Image,
+    image_rotated_k: Image,
+    image_lower_left_triangle: Image,
+}
+
+impl ShapeTypeImage {
+    fn new() -> anyhow::Result<Self> {
+        let image_box: Image = Image::try_create(3, 3, vec![
+            1, 1, 1,
+            1, 0, 1,
+            1, 1, 1,
+        ])?;
+
+        let image_plus: Image = Image::try_create(3, 3, vec![
+            0, 1, 0,
+            1, 1, 1,
+            0, 1, 0,
+        ])?;
+
+        let image_o: Image = Image::try_create(3, 3, vec![
+            0, 1, 0,
+            1, 0, 1,
+            0, 1, 0,
+        ])?;
+
+        let image_x: Image = Image::try_create(3, 3, vec![
+            1, 0, 1,
+            0, 1, 0,
+            1, 0, 1,
+        ])?;
+
+        let image_h_uppercase: Image = Image::try_create(3, 3, vec![
+            1, 0, 1,
+            1, 1, 1,
+            1, 0, 1,
+        ])?;
+
+        let image_h_lowercase: Image = Image::try_create(3, 3, vec![
+            1, 1, 0,
+            0, 1, 0,
+            1, 1, 1,
+        ])?;
+
+        let image_diagonal2: Image = Image::try_create(2, 2, vec![
+            0, 1,
+            1, 0,
+        ])?;
+    
+        let image_diagonal3: Image = Image::try_create(3, 3, vec![
+            0, 0, 1,
+            0, 1, 0,
+            1, 0, 0,
+        ])?;
+
+        let image_l: Image = Image::try_create(2, 2, vec![
+            1, 0,
+            1, 1,
+        ])?;
+
+        let image_uptack: Image = Image::try_create(3, 2, vec![
+            0, 1, 0,
+            1, 1, 1,
+        ])?;
+
+        let image_u5: Image = Image::try_create(3, 2, vec![
+            1, 0, 1,
+            1, 1, 1,
+        ])?;
+
+        let image_u4: Image = Image::try_create(3, 2, vec![
+            1, 0, 1,
+            1, 1, 0,
+        ])?;
+
+        let image_turned_v: Image = Image::try_create(3, 2, vec![
+            0, 1, 0,
+            1, 0, 1,
+        ])?;
+
+        let image_skew_tetromino: Image = Image::try_create(3, 2, vec![
+            0, 1, 1,
+            1, 1, 0,
+        ])?;
+
+        let image_flipped_j: Image = Image::try_create(3, 3, vec![
+            1, 0, 0,
+            1, 0, 1,
+            1, 1, 1,
+        ])?;
+
+        let image_turned_y: Image = Image::try_create(3, 3, vec![
+            0, 1, 0,
+            1, 1, 1,
+            1, 0, 1,
+        ])?;
+
+        let image_rotated_k: Image = Image::try_create(3, 3, vec![
+            1, 0, 1,
+            0, 1, 0,
+            1, 1, 1,
+        ])?;
+
+        let image_lower_left_triangle: Image = Image::try_create(3, 3, vec![
+            1, 0, 0,
+            1, 1, 0,
+            1, 1, 1,
+        ])?;
+
+        let instance = Self {
+            image_box,
+            image_plus,
+            image_o,
+            image_x,
+            image_h_uppercase,
+            image_h_lowercase,
+            image_diagonal2,
+            image_diagonal3,
+            image_l,
+            image_uptack,
+            image_u5,
+            image_u4,
+            image_turned_v,
+            image_skew_tetromino,
+            image_flipped_j,
+            image_turned_y,
+            image_rotated_k,
+            image_lower_left_triangle,
+        };
+        Ok(instance)
+    }
+}
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -305,13 +458,7 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                1, 1, 1,
-                1, 0, 1,
-                1, 1, 1,
-            ])?;
-
-            if mask3 == shape_image {
+            if mask3 == SHAPE_TYPE_IMAGE.image_box {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Box;
                 shape.width = Some(size_max);
@@ -327,13 +474,7 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                0, 1, 0,
-                1, 1, 1,
-                0, 1, 0,
-            ])?;
-
-            if mask3 == shape_image {
+            if mask3 == SHAPE_TYPE_IMAGE.image_plus {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Plus;
                 shape.width = Some(size_max);
@@ -349,13 +490,7 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                0, 1, 0,
-                1, 0, 1,
-                0, 1, 0,
-            ])?;
-
-            if mask3 == shape_image {
+            if mask3 == SHAPE_TYPE_IMAGE.image_o {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::O;
                 shape.width = Some(size_max);
@@ -371,15 +506,7 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                1, 0, 1,
-                0, 1, 0,
-                1, 0, 1,
-            ])?;
-
-            let is_same: bool = mask3 == shape_image;
-            
-            if is_same {
+            if mask3 == SHAPE_TYPE_IMAGE.image_x {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::X;
                 shape.width = Some(size_max);
@@ -395,14 +522,10 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                1, 0, 1,
-                1, 1, 1,
-                1, 0, 1,
-            ])?;
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_h_uppercase;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             
             if is_same || is_rot_cw_90 {
@@ -421,12 +544,9 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(2, 2) {
-            let shape_image: Image = Image::try_create(2, 2, vec![
-                0, 1,
-                1, 0,
-            ])?;
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_diagonal2;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             
             if is_same || is_rot_cw_90 {
@@ -445,13 +565,9 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                0, 0, 1,
-                0, 1, 0,
-                1, 0, 0,
-            ])?;
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_diagonal3;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             
             if is_same || is_rot_cw_90 {
@@ -470,16 +586,12 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(2, 2) {
-            let shape_image: Image = Image::try_create(2, 2, vec![
-                1, 0,
-                1, 1,
-            ])?;
-    
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_l;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
             let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
             let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             let is_rot_cw_180: bool = mask3 == rot_cw_180;
             let is_rot_cw_270: bool = mask3 == rot_cw_270;
@@ -500,16 +612,12 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            let shape_image: Image = Image::try_create(3, 2, vec![
-                0, 1, 0,
-                1, 1, 1,
-            ])?;
-    
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_uptack;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
             let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
             let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             let is_rot_cw_180: bool = mask3 == rot_cw_180;
             let is_rot_cw_270: bool = mask3 == rot_cw_270;
@@ -530,16 +638,12 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            let shape_image: Image = Image::try_create(3, 2, vec![
-                1, 0, 1,
-                1, 1, 1,
-            ])?;
-    
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_u5;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
             let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
             let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             let is_rot_cw_180: bool = mask3 == rot_cw_180;
             let is_rot_cw_270: bool = mask3 == rot_cw_270;
@@ -560,16 +664,12 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            let shape_image: Image = Image::try_create(3, 2, vec![
-                0, 1, 0,
-                1, 0, 1,
-            ])?;
-    
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_turned_v;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
             let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
             let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             let is_rot_cw_180: bool = mask3 == rot_cw_180;
             let is_rot_cw_270: bool = mask3 == rot_cw_270;
@@ -590,10 +690,7 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            let shape_image: Image = Image::try_create(3, 2, vec![
-                1, 0, 1,
-                1, 1, 0,
-            ])?;
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_u4;
             let normal90: Image = shape_image.rotate_cw()?;
             let normal180: Image = normal90.rotate_cw()?;
             let normal270: Image = normal180.rotate_cw()?;
@@ -603,7 +700,7 @@ impl ShapeIdentification {
             let flipped180: Image = flipped90.rotate_cw()?;
             let flipped270: Image = flipped180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_normal90: bool = mask3 == normal90;
             let is_normal180: bool = mask3 == normal180;
             let is_normal270: bool = mask3 == normal270;
@@ -629,10 +726,7 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            let shape_image: Image = Image::try_create(3, 2, vec![
-                0, 1, 1,
-                1, 1, 0,
-            ])?;
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_skew_tetromino;
             let normal90: Image = shape_image.rotate_cw()?;
             let normal180: Image = normal90.rotate_cw()?;
             let normal270: Image = normal180.rotate_cw()?;
@@ -642,7 +736,7 @@ impl ShapeIdentification {
             let flipped180: Image = flipped90.rotate_cw()?;
             let flipped270: Image = flipped180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_normal90: bool = mask3 == normal90;
             let is_normal180: bool = mask3 == normal180;
             let is_normal270: bool = mask3 == normal270;
@@ -668,11 +762,7 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                1, 1, 0,
-                0, 1, 0,
-                1, 1, 1,
-            ])?;
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_h_lowercase;
             let normal90: Image = shape_image.rotate_cw()?;
             let normal180: Image = normal90.rotate_cw()?;
             let normal270: Image = normal180.rotate_cw()?;
@@ -682,7 +772,7 @@ impl ShapeIdentification {
             let flipped180: Image = flipped90.rotate_cw()?;
             let flipped270: Image = flipped180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_normal90: bool = mask3 == normal90;
             let is_normal180: bool = mask3 == normal180;
             let is_normal270: bool = mask3 == normal270;
@@ -708,11 +798,7 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                1, 0, 0,
-                1, 0, 1,
-                1, 1, 1,
-            ])?;
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_flipped_j;
             let normal90: Image = shape_image.rotate_cw()?;
             let normal180: Image = normal90.rotate_cw()?;
             let normal270: Image = normal180.rotate_cw()?;
@@ -722,7 +808,7 @@ impl ShapeIdentification {
             let flipped180: Image = flipped90.rotate_cw()?;
             let flipped270: Image = flipped180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_normal90: bool = mask3 == normal90;
             let is_normal180: bool = mask3 == normal180;
             let is_normal270: bool = mask3 == normal270;
@@ -748,17 +834,12 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                0, 1, 0,
-                1, 1, 1,
-                1, 0, 1,
-            ])?;
-    
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_turned_y;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
             let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
             let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             let is_rot_cw_180: bool = mask3 == rot_cw_180;
             let is_rot_cw_270: bool = mask3 == rot_cw_270;
@@ -779,17 +860,12 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                1, 0, 1,
-                0, 1, 0,
-                1, 1, 1,
-            ])?;
-    
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_rotated_k;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
             let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
             let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             let is_rot_cw_180: bool = mask3 == rot_cw_180;
             let is_rot_cw_270: bool = mask3 == rot_cw_270;
@@ -810,17 +886,12 @@ impl ShapeIdentification {
         }
 
         if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: Image = Image::try_create(3, 3, vec![
-                1, 0, 0,
-                1, 1, 0,
-                1, 1, 1,
-            ])?;
-    
+            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_lower_left_triangle;
             let rot_cw_90: Image = shape_image.rotate_cw()?;
             let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
             let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
 
-            let is_same: bool = mask3 == shape_image;
+            let is_same: bool = mask3 == *shape_image;
             let is_rot_cw_90: bool = mask3 == rot_cw_90;
             let is_rot_cw_180: bool = mask3 == rot_cw_180;
             let is_rot_cw_270: bool = mask3 == rot_cw_270;
