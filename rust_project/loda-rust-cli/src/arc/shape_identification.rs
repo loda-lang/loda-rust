@@ -158,8 +158,6 @@ impl ShapeTypeImage {
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ShapeType {
-    Empty,
-
     /// Solid square or rectangle.
     /// ````
     /// 1
@@ -358,7 +356,6 @@ enum ShapeType {
 impl ShapeType {
     fn name(&self) -> &str {
         match self {
-            Self::Empty => "empty",
             Self::Square => "square",
             Self::Rectangle => "rectangle",
             Self::Box => "box",
@@ -434,9 +431,7 @@ impl ShapeIdentification {
         // Remove the empty space around the shape
         let trimmed_mask: Image = mask.trim_color(0)?;
         if trimmed_mask.is_empty() {
-            let mut shape = ShapeIdentification::default();
-            shape.shape_type = ShapeType::Empty;
-            return Ok(shape);
+            return Err(anyhow::anyhow!("No shape was found in the image"));
         }
         let shape_size: ImageSize = trimmed_mask.size();
 
@@ -451,6 +446,8 @@ impl ShapeIdentification {
 
         // Compact the shape even more by removing duplicate rows and columns
         let compact_mask: Image = trimmed_mask.remove_duplicates()?;
+
+        // If it compacted into a 1x1 pixel then it's a square or rectangle
         if compact_mask.size() == ImageSize::new(1, 1) {
             let is_square: bool = trimmed_mask.width() == trimmed_mask.height();
             if is_square {
@@ -468,6 +465,8 @@ impl ShapeIdentification {
             }
         }
 
+        // If it compacted into a 3x3 image, then it may be some basic shapes
+        // these basic shapes are easy to recognize because are symmetric and thus doesn't require flipping or rotating.
         if compact_mask.size() == ImageSize::new(3, 3) {
             if compact_mask == SHAPE_TYPE_IMAGE.image_box {
                 let mut shape = ShapeIdentification::default();
@@ -501,6 +500,9 @@ impl ShapeIdentification {
                 return Ok(shape);
             }
         }
+
+        // The image is a slighly more complex shape, so we need to apply expensive transformations
+        // in order to recognize it.
 
         let transformations: Vec<(ShapeTransformation, Image)> = Self::make_transformations(&compact_mask)?;
 
@@ -539,6 +541,8 @@ impl ShapeIdentification {
             }
         }
 
+        // The shape is more advanced than the basic ones we can recognize
+        // apply even more expensive transformations to recognize it.
         let (transformation, normalized_mask) = Self::normalize(compact_mask.size(), transformations)?;
         let mut shape = ShapeIdentification::default();
         shape.shape_type = ShapeType::Unclassified;
@@ -644,11 +648,11 @@ mod tests {
         let input: Image = Image::try_create(2, 2, pixels).expect("image");
 
         // Act
-        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+        let error = ShapeIdentification::compute(&input).expect_err("is supposed to fail");
 
         // Assert
-        assert_eq!(actual.to_string(), "empty");
-        assert_eq!(actual.transformations.is_empty(), true);
+        let message: String = error.to_string();
+        assert_eq!(message.contains("No shape was found in the image"), true);
     }
 
     #[test]
