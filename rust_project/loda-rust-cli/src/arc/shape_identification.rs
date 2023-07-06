@@ -658,6 +658,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "empty");
+        assert_eq!(actual.transformations.is_empty(), true);
     }
 
     #[test]
@@ -675,6 +676,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "square");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
@@ -691,6 +693,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "square");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
@@ -707,6 +710,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "rectangle");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
@@ -722,6 +726,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "rectangle");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
@@ -740,6 +745,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "box");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
@@ -758,6 +764,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "box");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
@@ -776,6 +783,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "+");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
@@ -796,6 +804,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "+");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
@@ -815,6 +824,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "O");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
@@ -833,6 +843,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "O");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
