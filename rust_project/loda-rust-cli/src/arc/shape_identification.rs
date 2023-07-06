@@ -534,7 +534,7 @@ impl ShapeIdentification {
             }
         }
 
-        let (transformation, mask4) = Self::normalize_inner(mask3.size(), transformations)?;
+        let (transformation, mask4) = Self::normalize(mask3.size(), transformations)?;
         let mut shape = ShapeIdentification::default();
         shape.shape_type = ShapeType::Unclassified;
         shape.size = Some(size);
@@ -574,14 +574,7 @@ impl ShapeIdentification {
     /// - The most massive side is resting on the floor.
     /// - If there is a tie, the prefer object towards the left side.
     /// - If there is a tie, then sort using the raw pixel data.
-    fn normalize(image_with_unknown_orientation: &Image) -> anyhow::Result<Image> {
-        let size: ImageSize = image_with_unknown_orientation.size();
-        let transformations: Vec<(ShapeTransformation, Image)> = Self::make_transformations(&image_with_unknown_orientation)?;
-        let (_transformation, output) = Self::normalize_inner(size, transformations)?;
-        Ok(output)
-    }
-
-    fn normalize_inner(size: ImageSize, transformations: Vec<(ShapeTransformation, Image)>) -> anyhow::Result<(ShapeTransformation, Image)> {
+    fn normalize(size: ImageSize, transformations: Vec<(ShapeTransformation, Image)>) -> anyhow::Result<(ShapeTransformation, Image)> {
         // Ensure the image is always in landscape orientation
         let width: u8 = size.width.max(size.height);
         let height: u8 = size.width.min(size.height);
@@ -1974,6 +1967,13 @@ mod tests {
         Ok(images)
     }
 
+    fn normalize(image_with_unknown_orientation: &Image) -> anyhow::Result<Image> {
+        let size: ImageSize = image_with_unknown_orientation.size();
+        let transformations: Vec<(ShapeTransformation, Image)> = ShapeIdentification::make_transformations(&image_with_unknown_orientation)?;
+        let (_transformation, output) = ShapeIdentification::normalize(size, transformations)?;
+        Ok(output)
+    }
+
     #[test]
     fn test_300000_normalize() {
         // Arrange
@@ -1987,7 +1987,7 @@ mod tests {
 
         // Act
         let actual_vec: Vec<Image> = inputs.iter().map(|i| 
-            ShapeIdentification::normalize(i).expect("ok")
+            normalize(i).expect("ok")
         ).collect();
 
         // Assert
@@ -2016,7 +2016,7 @@ mod tests {
 
         // Act
         let actual_vec: Vec<Image> = inputs.iter().map(|i| 
-            ShapeIdentification::normalize(i).expect("ok")
+            normalize(i).expect("ok")
         ).collect();
 
         // Assert
@@ -2046,7 +2046,7 @@ mod tests {
 
         // Act
         let actual_vec: Vec<Image> = inputs.iter().map(|i| 
-            ShapeIdentification::normalize(i).expect("ok")
+            normalize(i).expect("ok")
         ).collect();
 
         // Assert
