@@ -497,27 +497,7 @@ impl ShapeIdentification {
             }
         }
 
-        let mut transformations = Vec::<(ShapeTransformation, Image)>::new();
-        {
-            let degree0: Image = mask3.clone();
-            let degree90: Image = degree0.rotate_cw()?;
-            let degree180: Image = degree90.rotate_cw()?;
-            let degree270: Image = degree180.rotate_cw()?;
-            transformations.push((ShapeTransformation::Normal, degree0));
-            transformations.push((ShapeTransformation::RotateCw90, degree90));
-            transformations.push((ShapeTransformation::RotateCw180, degree180));
-            transformations.push((ShapeTransformation::RotateCw270, degree270));
-        }
-        {
-            let degree0: Image = mask3.flip_x()?;
-            let degree90: Image = degree0.rotate_cw()?;
-            let degree180: Image = degree90.rotate_cw()?;
-            let degree270: Image = degree180.rotate_cw()?;
-            transformations.push((ShapeTransformation::FlipX, degree0));
-            transformations.push((ShapeTransformation::FlipXRotateCw90, degree90));
-            transformations.push((ShapeTransformation::FlipXRotateCw180, degree180));
-            transformations.push((ShapeTransformation::FlipXRotateCw270, degree270));
-        }
+        let transformations: Vec<(ShapeTransformation, Image)> = Self::make_transformations(&mask3)?;
 
         {
             let mut images_to_recognize = Vec::<(&Image, ShapeType)>::new();
@@ -560,6 +540,31 @@ impl ShapeIdentification {
         shape.size = Some(size);
         shape.compacted_image = Some(mask4);
         Ok(shape)
+    }
+
+    fn make_transformations(image: &Image) -> anyhow::Result<Vec<(ShapeTransformation, Image)>> {
+        let mut transformations = Vec::<(ShapeTransformation, Image)>::new();
+        {
+            let degree0: Image = image.clone();
+            let degree90: Image = degree0.rotate_cw()?;
+            let degree180: Image = degree90.rotate_cw()?;
+            let degree270: Image = degree180.rotate_cw()?;
+            transformations.push((ShapeTransformation::Normal, degree0));
+            transformations.push((ShapeTransformation::RotateCw90, degree90));
+            transformations.push((ShapeTransformation::RotateCw180, degree180));
+            transformations.push((ShapeTransformation::RotateCw270, degree270));
+        }
+        {
+            let degree0: Image = image.flip_x()?;
+            let degree90: Image = degree0.rotate_cw()?;
+            let degree180: Image = degree90.rotate_cw()?;
+            let degree270: Image = degree180.rotate_cw()?;
+            transformations.push((ShapeTransformation::FlipX, degree0));
+            transformations.push((ShapeTransformation::FlipXRotateCw90, degree90));
+            transformations.push((ShapeTransformation::FlipXRotateCw180, degree180));
+            transformations.push((ShapeTransformation::FlipXRotateCw270, degree270));
+        }
+        Ok(transformations)
     }
 
     /// The intention is to always yield the same image, no matter if the input is rotated or flipped.
