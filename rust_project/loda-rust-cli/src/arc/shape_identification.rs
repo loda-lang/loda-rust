@@ -569,43 +569,35 @@ impl ShapeIdentification {
 
     /// The intention is to always yield the same image, no matter if the input is rotated or flipped.
     /// 
-    /// - First transform the image so it's always in landscape orientation.
+    /// - For a non-square image, ensure the image is in landscape orientation.
     /// - The most massive side is resting on the floor.
     /// - If there is a tie, the prefer object towards the left side.
     /// - If there is a tie, then sort using the raw pixel data.
     fn normalize(image_with_unknown_orientation: &Image) -> anyhow::Result<Image> {
-        // Correct orientation
-        let landscape_image: Image;
-        if image_with_unknown_orientation.width() < image_with_unknown_orientation.height() {
-            landscape_image = image_with_unknown_orientation.rotate_cw()?;
-        } else {
-            landscape_image = image_with_unknown_orientation.clone();
-        }
+        let size: ImageSize = image_with_unknown_orientation.size();
+        let transformations: Vec<(ShapeTransformation, Image)> = Self::make_transformations(&image_with_unknown_orientation)?;
+        let image: Image = Self::normalize_inner(size, transformations)?;
+        Ok(image)
+    }
 
-        // Transformations of the image
-        let mut images: Vec<Image> = Vec::new();
-        {
-            let image: Image = landscape_image.flip_x()?;
-            images.push(image);
-        }
-        {
-            let image: Image = landscape_image.flip_y()?;
-            images.push(image);
-        }
-        {
-            let image: Image = landscape_image.flip_xy()?;
-            images.push(image);
-        }
-        images.push(landscape_image);
+    fn normalize_inner(size: ImageSize, transformations: Vec<(ShapeTransformation, Image)>) -> anyhow::Result<Image> {
+        // Ensure the image is always in landscape orientation
+        let width: u8 = size.width.max(size.height);
+        let height: u8 = size.width.min(size.height);
+        let landscape_size: ImageSize = ImageSize::new(width, height);
 
         // Obtain center of mass for each image
         let mut y_x_image_vec: Vec<(i32, u32, Image)> = Vec::new();
-        for image in images {
+        for (_transformation, image) in &transformations {
+            if image.size() != landscape_size {
+                // Ignore portrait images
+                continue;
+            }
             let scale: u32 = 10000;
             if let Some((x, y)) = image.center_of_mass(scale) {
                 // println!("x: {}, y: {} {:?}", x, y, image);
                 let inverted_y: i32 = - (y.min(i32::MAX as u32) as i32);
-                y_x_image_vec.push((inverted_y, x, image));
+                y_x_image_vec.push((inverted_y, x, image.clone()));
             }
         }
 
