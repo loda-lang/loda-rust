@@ -1,5 +1,6 @@
 use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, ImageHistogram, Histogram, CenterOfMass};
 use std::fmt;
+use std::collections::{HashMap, HashSet};
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -384,6 +385,33 @@ impl Default for ShapeType {
     fn default() -> Self { ShapeType::Unclassified }
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+enum ShapeTransformation {
+    Normal,
+    RotateCw90,
+    RotateCw180,
+    RotateCw270,
+    FlipX,
+    FlipXRotateCw90,
+    FlipXRotateCw180,
+    FlipXRotateCw270,
+}
+
+impl ShapeTransformation {
+    fn all() -> HashSet<ShapeTransformation> {
+        let mut transformations = HashSet::<ShapeTransformation>::new();
+        transformations.insert(ShapeTransformation::Normal);
+        transformations.insert(ShapeTransformation::RotateCw90);
+        transformations.insert(ShapeTransformation::RotateCw180);
+        transformations.insert(ShapeTransformation::RotateCw270);
+        transformations.insert(ShapeTransformation::FlipX);
+        transformations.insert(ShapeTransformation::FlipXRotateCw90);
+        transformations.insert(ShapeTransformation::FlipXRotateCw180);
+        transformations.insert(ShapeTransformation::FlipXRotateCw270);
+        transformations
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct ShapeIdentification {
@@ -391,6 +419,7 @@ struct ShapeIdentification {
     compacted_image: Option<Image>,
     width: Option<u8>,
     height: Option<u8>,
+    transformations: HashSet<ShapeTransformation>,
     rotated_cw_90: bool,
     rotated_cw_180: bool,
     rotated_cw_270: bool,
@@ -403,6 +432,7 @@ struct ShapeIdentification {
 }
 
 impl ShapeIdentification {
+
     #[allow(dead_code)]
     fn compute(mask: &Image) -> anyhow::Result<ShapeIdentification> {
         let mask2: Image = mask.trim_color(0)?;
@@ -419,6 +449,7 @@ impl ShapeIdentification {
             shape.shape_type = ShapeType::Square;
             shape.width = Some(size_max);
             shape.height = Some(size_min);
+            shape.transformations = ShapeTransformation::all();
             shape.rotated_cw_90 = true;
             shape.rotated_cw_180 = true;
             shape.rotated_cw_270 = true;
@@ -435,6 +466,7 @@ impl ShapeIdentification {
                 shape.shape_type = ShapeType::Square;
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
+                shape.transformations = ShapeTransformation::all();
                 shape.rotated_cw_90 = true;
                 shape.rotated_cw_180 = true;
                 shape.rotated_cw_270 = true;
@@ -447,6 +479,7 @@ impl ShapeIdentification {
                 shape.shape_type = ShapeType::Rectangle;
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
+                shape.transformations = ShapeTransformation::all();
                 shape.rotated_cw_90 = true;
                 shape.rotated_cw_180 = true;
                 shape.rotated_cw_270 = true;
@@ -463,6 +496,7 @@ impl ShapeIdentification {
                 shape.shape_type = ShapeType::Box;
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
+                shape.transformations = ShapeTransformation::all();
                 shape.rotated_cw_90 = true;
                 shape.rotated_cw_180 = true;
                 shape.rotated_cw_270 = true;
@@ -471,14 +505,13 @@ impl ShapeIdentification {
                 shape.flip_xy = true;
                 return Ok(shape);
             }
-        }
 
-        if mask3.size() == ImageSize::new(3, 3) {
             if mask3 == SHAPE_TYPE_IMAGE.image_plus {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Plus;
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
+                shape.transformations = ShapeTransformation::all();
                 shape.rotated_cw_90 = true;
                 shape.rotated_cw_180 = true;
                 shape.rotated_cw_270 = true;
@@ -487,14 +520,13 @@ impl ShapeIdentification {
                 shape.flip_xy = true;
                 return Ok(shape);
             }
-        }
 
-        if mask3.size() == ImageSize::new(3, 3) {
             if mask3 == SHAPE_TYPE_IMAGE.image_o {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::O;
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
+                shape.transformations = ShapeTransformation::all();
                 shape.rotated_cw_90 = true;
                 shape.rotated_cw_180 = true;
                 shape.rotated_cw_270 = true;
@@ -503,14 +535,13 @@ impl ShapeIdentification {
                 shape.flip_xy = true;
                 return Ok(shape);
             }
-        }
 
-        if mask3.size() == ImageSize::new(3, 3) {
             if mask3 == SHAPE_TYPE_IMAGE.image_x {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::X;
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
+                shape.transformations = ShapeTransformation::all();
                 shape.rotated_cw_90 = true;
                 shape.rotated_cw_180 = true;
                 shape.rotated_cw_270 = true;
@@ -521,393 +552,60 @@ impl ShapeIdentification {
             }
         }
 
-        if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_h_uppercase;
-            let rot_cw_90: Image = shape_image.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_rot_cw_90: bool = mask3 == rot_cw_90;
-            
-            if is_same || is_rot_cw_90 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::HUppercase;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_rot_cw_90;
-                shape.rotated_cw_180 = is_same;
-                shape.rotated_cw_270 = is_rot_cw_90;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
+        let mut transformations = Vec::<(ShapeTransformation, Image)>::new();
+        {
+            let normal: Image = mask3.clone();
+            let rot90: Image = normal.rotate_cw()?;
+            let rot180: Image = rot90.rotate_cw()?;
+            let rot270: Image = rot180.rotate_cw()?;
+            transformations.push((ShapeTransformation::Normal, normal));
+            transformations.push((ShapeTransformation::RotateCw90, rot90));
+            transformations.push((ShapeTransformation::RotateCw180, rot180));
+            transformations.push((ShapeTransformation::RotateCw270, rot270));
+        }
+        {
+            let normal: Image = mask3.flip_x()?;
+            let rot90: Image = normal.rotate_cw()?;
+            let rot180: Image = rot90.rotate_cw()?;
+            let rot270: Image = rot180.rotate_cw()?;
+            transformations.push((ShapeTransformation::Normal, normal));
+            transformations.push((ShapeTransformation::RotateCw90, rot90));
+            transformations.push((ShapeTransformation::RotateCw180, rot180));
+            transformations.push((ShapeTransformation::RotateCw270, rot270));
         }
 
-        if mask3.size() == ImageSize::new(2, 2) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_diagonal2;
-            let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let is_same: bool = mask3 == *shape_image;
-            let is_rot_cw_90: bool = mask3 == rot_cw_90;
-            
-            if is_same || is_rot_cw_90 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::Diagonal2;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_rot_cw_90;
-                shape.rotated_cw_180 = is_same;
-                shape.rotated_cw_270 = is_rot_cw_90;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
+        {
+            let mut images_to_recognize = Vec::<(&Image, ShapeType)>::new();
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_h_uppercase, ShapeType::HUppercase));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_diagonal2, ShapeType::Diagonal2));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_diagonal3, ShapeType::Diagonal3));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l, ShapeType::L));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_uptack, ShapeType::UpTack));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_u5, ShapeType::U5));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_turned_v, ShapeType::TurnedV));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_u4, ShapeType::U4));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_skew_tetromino, ShapeType::SkewTetromino));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_h_lowercase, ShapeType::HLowercase));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_flipped_j, ShapeType::FlippedJ));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_turned_y, ShapeType::TurnedY));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_k, ShapeType::RotatedK));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle, ShapeType::LowerLeftTriangle));
 
-        if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_diagonal3;
-            let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let is_same: bool = mask3 == *shape_image;
-            let is_rot_cw_90: bool = mask3 == rot_cw_90;
-            
-            if is_same || is_rot_cw_90 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::Diagonal3;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_rot_cw_90;
-                shape.rotated_cw_180 = is_same;
-                shape.rotated_cw_270 = is_rot_cw_90;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(2, 2) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_l;
-            let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
-            let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_rot_cw_90: bool = mask3 == rot_cw_90;
-            let is_rot_cw_180: bool = mask3 == rot_cw_180;
-            let is_rot_cw_270: bool = mask3 == rot_cw_270;
-            
-            if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::L;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_rot_cw_90;
-                shape.rotated_cw_180 = is_rot_cw_180;
-                shape.rotated_cw_270 = is_rot_cw_270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_uptack;
-            let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
-            let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_rot_cw_90: bool = mask3 == rot_cw_90;
-            let is_rot_cw_180: bool = mask3 == rot_cw_180;
-            let is_rot_cw_270: bool = mask3 == rot_cw_270;
-            
-            if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::UpTack;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_rot_cw_90;
-                shape.rotated_cw_180 = is_rot_cw_180;
-                shape.rotated_cw_270 = is_rot_cw_270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_u5;
-            let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
-            let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_rot_cw_90: bool = mask3 == rot_cw_90;
-            let is_rot_cw_180: bool = mask3 == rot_cw_180;
-            let is_rot_cw_270: bool = mask3 == rot_cw_270;
-            
-            if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::U5;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_rot_cw_90;
-                shape.rotated_cw_180 = is_rot_cw_180;
-                shape.rotated_cw_270 = is_rot_cw_270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_turned_v;
-            let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
-            let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_rot_cw_90: bool = mask3 == rot_cw_90;
-            let is_rot_cw_180: bool = mask3 == rot_cw_180;
-            let is_rot_cw_270: bool = mask3 == rot_cw_270;
-            
-            if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::TurnedV;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_rot_cw_90;
-                shape.rotated_cw_180 = is_rot_cw_180;
-                shape.rotated_cw_270 = is_rot_cw_270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_u4;
-            let normal90: Image = shape_image.rotate_cw()?;
-            let normal180: Image = normal90.rotate_cw()?;
-            let normal270: Image = normal180.rotate_cw()?;
-            
-            let shape_image_flipped: Image = shape_image.flip_x()?;
-            let flipped90: Image = shape_image_flipped.rotate_cw()?;
-            let flipped180: Image = flipped90.rotate_cw()?;
-            let flipped270: Image = flipped180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_normal90: bool = mask3 == normal90;
-            let is_normal180: bool = mask3 == normal180;
-            let is_normal270: bool = mask3 == normal270;
-
-            let is_flipped: bool = mask3 == shape_image_flipped;
-            let is_flipped90: bool = mask3 == flipped90;
-            let is_flipped180: bool = mask3 == flipped180;
-            let is_flipped270: bool = mask3 == flipped270;
-            
-            if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::U4;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_normal90;
-                shape.rotated_cw_180 = is_normal180;
-                shape.rotated_cw_270 = is_normal270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(3, 2) || mask3.size().rotate() == ImageSize::new(3, 2) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_skew_tetromino;
-            let normal90: Image = shape_image.rotate_cw()?;
-            let normal180: Image = normal90.rotate_cw()?;
-            let normal270: Image = normal180.rotate_cw()?;
-            
-            let shape_image_flipped: Image = shape_image.flip_x()?;
-            let flipped90: Image = shape_image_flipped.rotate_cw()?;
-            let flipped180: Image = flipped90.rotate_cw()?;
-            let flipped270: Image = flipped180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_normal90: bool = mask3 == normal90;
-            let is_normal180: bool = mask3 == normal180;
-            let is_normal270: bool = mask3 == normal270;
-
-            let is_flipped: bool = mask3 == shape_image_flipped;
-            let is_flipped90: bool = mask3 == flipped90;
-            let is_flipped180: bool = mask3 == flipped180;
-            let is_flipped270: bool = mask3 == flipped270;
-            
-            if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::SkewTetromino;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_normal90;
-                shape.rotated_cw_180 = is_normal180;
-                shape.rotated_cw_270 = is_normal270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_h_lowercase;
-            let normal90: Image = shape_image.rotate_cw()?;
-            let normal180: Image = normal90.rotate_cw()?;
-            let normal270: Image = normal180.rotate_cw()?;
-            
-            let shape_image_flipped: Image = shape_image.flip_x()?;
-            let flipped90: Image = shape_image_flipped.rotate_cw()?;
-            let flipped180: Image = flipped90.rotate_cw()?;
-            let flipped270: Image = flipped180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_normal90: bool = mask3 == normal90;
-            let is_normal180: bool = mask3 == normal180;
-            let is_normal270: bool = mask3 == normal270;
-
-            let is_flipped: bool = mask3 == shape_image_flipped;
-            let is_flipped90: bool = mask3 == flipped90;
-            let is_flipped180: bool = mask3 == flipped180;
-            let is_flipped270: bool = mask3 == flipped270;
-            
-            if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::HLowercase;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_normal90;
-                shape.rotated_cw_180 = is_normal180;
-                shape.rotated_cw_270 = is_normal270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_flipped_j;
-            let normal90: Image = shape_image.rotate_cw()?;
-            let normal180: Image = normal90.rotate_cw()?;
-            let normal270: Image = normal180.rotate_cw()?;
-            
-            let shape_image_flipped: Image = shape_image.flip_x()?;
-            let flipped90: Image = shape_image_flipped.rotate_cw()?;
-            let flipped180: Image = flipped90.rotate_cw()?;
-            let flipped270: Image = flipped180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_normal90: bool = mask3 == normal90;
-            let is_normal180: bool = mask3 == normal180;
-            let is_normal270: bool = mask3 == normal270;
-
-            let is_flipped: bool = mask3 == shape_image_flipped;
-            let is_flipped90: bool = mask3 == flipped90;
-            let is_flipped180: bool = mask3 == flipped180;
-            let is_flipped270: bool = mask3 == flipped270;
-            
-            if is_same || is_normal90 || is_normal180 || is_normal270 || is_flipped || is_flipped90 || is_flipped180 || is_flipped270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::FlippedJ;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_normal90;
-                shape.rotated_cw_180 = is_normal180;
-                shape.rotated_cw_270 = is_normal270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_turned_y;
-            let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
-            let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_rot_cw_90: bool = mask3 == rot_cw_90;
-            let is_rot_cw_180: bool = mask3 == rot_cw_180;
-            let is_rot_cw_270: bool = mask3 == rot_cw_270;
-            
-            if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::TurnedY;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_rot_cw_90;
-                shape.rotated_cw_180 = is_rot_cw_180;
-                shape.rotated_cw_270 = is_rot_cw_270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_rotated_k;
-            let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
-            let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_rot_cw_90: bool = mask3 == rot_cw_90;
-            let is_rot_cw_180: bool = mask3 == rot_cw_180;
-            let is_rot_cw_270: bool = mask3 == rot_cw_270;
-            
-            if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::RotatedK;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_rot_cw_90;
-                shape.rotated_cw_180 = is_rot_cw_180;
-                shape.rotated_cw_270 = is_rot_cw_270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
-            }
-        }
-
-        if mask3.size() == ImageSize::new(3, 3) {
-            let shape_image: &Image = &SHAPE_TYPE_IMAGE.image_lower_left_triangle;
-            let rot_cw_90: Image = shape_image.rotate_cw()?;
-            let rot_cw_180: Image = rot_cw_90.rotate_cw()?;
-            let rot_cw_270: Image = rot_cw_180.rotate_cw()?;
-
-            let is_same: bool = mask3 == *shape_image;
-            let is_rot_cw_90: bool = mask3 == rot_cw_90;
-            let is_rot_cw_180: bool = mask3 == rot_cw_180;
-            let is_rot_cw_270: bool = mask3 == rot_cw_270;
-            
-            if is_same || is_rot_cw_90 || is_rot_cw_180 || is_rot_cw_270 {
-                let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::LowerLeftTriangle;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
-                shape.rotated_cw_90 = is_rot_cw_90;
-                shape.rotated_cw_180 = is_rot_cw_180;
-                shape.rotated_cw_270 = is_rot_cw_270;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
-                return Ok(shape);
+            let mut shape = ShapeIdentification::default();
+            shape.shape_type = ShapeType::Unclassified;
+            shape.width = Some(size_max);
+            shape.height = Some(size_min);
+            let mut found_transformations = HashSet::<ShapeTransformation>::new();
+            for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
+                for (transformation_type, transformed_image) in &transformations {
+                    if *transformed_image == **image_to_recognize {
+                        found_transformations.insert(transformation_type.clone());
+                    }
+                }
+                if !found_transformations.is_empty() {
+                    shape.shape_type = *recognized_shape_type;
+                    return Ok(shape);
+                }
             }
         }
 
