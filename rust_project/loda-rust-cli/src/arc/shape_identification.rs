@@ -419,7 +419,7 @@ impl ShapeTransformation {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct ShapeIdentification {
     shape_type: ShapeType,
-    compacted_image: Option<Image>,
+    normalized_mask: Option<Image>,
     size: Option<ImageSize>,
     transformations: HashSet<ShapeTransformation>,
 
@@ -431,73 +431,78 @@ impl ShapeIdentification {
 
     #[allow(dead_code)]
     fn compute(mask: &Image) -> anyhow::Result<ShapeIdentification> {
-        let mask2: Image = mask.trim_color(0)?;
-        if mask2.is_empty() {
+        // Remove the empty space around the shape
+        let trimmed_mask: Image = mask.trim_color(0)?;
+        if trimmed_mask.is_empty() {
             let mut shape = ShapeIdentification::default();
             shape.shape_type = ShapeType::Empty;
             return Ok(shape);
         }
-        let size: ImageSize = mask2.size();
-        if mask2.size() == ImageSize::new(1, 1) {
+        let shape_size: ImageSize = trimmed_mask.size();
+
+        // After trimming, if it's a 1x1 shape, then it's a square
+        if shape_size == ImageSize::new(1, 1) {
             let mut shape = ShapeIdentification::default();
             shape.shape_type = ShapeType::Square;
-            shape.size = Some(size);
+            shape.size = Some(shape_size);
             shape.transformations = ShapeTransformation::all();
             return Ok(shape);
         }
-        let mask3: Image = mask2.remove_duplicates()?;
-        if mask3.size() == ImageSize::new(1, 1) {
-            let is_square: bool = mask2.width() == mask2.height();
+
+        // Compact the shape even more by removing duplicate rows and columns
+        let compact_mask: Image = trimmed_mask.remove_duplicates()?;
+        if compact_mask.size() == ImageSize::new(1, 1) {
+            let is_square: bool = trimmed_mask.width() == trimmed_mask.height();
             if is_square {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Square;
-                shape.size = Some(size);
+                shape.size = Some(shape_size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);
             } else {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Rectangle;
-                shape.size = Some(size);
+                shape.size = Some(shape_size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);    
             }
         }
 
-        if mask3.size() == ImageSize::new(3, 3) {
-            if mask3 == SHAPE_TYPE_IMAGE.image_box {
+        if compact_mask.size() == ImageSize::new(3, 3) {
+            if compact_mask == SHAPE_TYPE_IMAGE.image_box {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Box;
-                shape.size = Some(size);
+                shape.size = Some(shape_size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);
             }
 
-            if mask3 == SHAPE_TYPE_IMAGE.image_plus {
+            if compact_mask == SHAPE_TYPE_IMAGE.image_plus {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Plus;
-                shape.size = Some(size);
+                shape.size = Some(shape_size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);
             }
 
-            if mask3 == SHAPE_TYPE_IMAGE.image_crosshair {
+            if compact_mask == SHAPE_TYPE_IMAGE.image_crosshair {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Crosshair;
-                shape.size = Some(size);
+                shape.size = Some(shape_size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);
             }
 
-            if mask3 == SHAPE_TYPE_IMAGE.image_x {
+            if compact_mask == SHAPE_TYPE_IMAGE.image_x {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::X;
-                shape.size = Some(size);
+                shape.size = Some(shape_size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);
             }
         }
 
-        let transformations: Vec<(ShapeTransformation, Image)> = Self::make_transformations(&mask3)?;
+        let transformations: Vec<(ShapeTransformation, Image)> = Self::make_transformations(&compact_mask)?;
 
         {
             let mut images_to_recognize = Vec::<(&Image, ShapeType)>::new();
@@ -518,7 +523,7 @@ impl ShapeIdentification {
 
             let mut shape = ShapeIdentification::default();
             shape.shape_type = ShapeType::Unclassified;
-            shape.size = Some(size);
+            shape.size = Some(shape_size);
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
                 for (transformation_type, transformed_image) in &transformations {
@@ -534,11 +539,11 @@ impl ShapeIdentification {
             }
         }
 
-        let (transformation, mask4) = Self::normalize(mask3.size(), transformations)?;
+        let (transformation, normalized_mask) = Self::normalize(compact_mask.size(), transformations)?;
         let mut shape = ShapeIdentification::default();
         shape.shape_type = ShapeType::Unclassified;
-        shape.size = Some(size);
-        shape.compacted_image = Some(mask4);
+        shape.size = Some(shape_size);
+        shape.normalized_mask = Some(normalized_mask);
         shape.transformations = HashSet::<ShapeTransformation>::from([transformation]);
         Ok(shape)
     }
@@ -597,6 +602,7 @@ impl ShapeIdentification {
         }
 
         // Sort by center of mass, y first, then x, then image data
+        // Prefer objects that are bottom heavy and leaning towards the left.
         y_x_image_transformation_vec.sort();
 
         // println!("SORTED");
@@ -1889,7 +1895,7 @@ mod tests {
             1, 1, 0, 1,
         ];
         let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
-        assert_eq!(actual.compacted_image, Some(expected_compact));
+        assert_eq!(actual.normalized_mask, Some(expected_compact));
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw270]));
     }
 
@@ -1916,7 +1922,7 @@ mod tests {
             1, 1, 0, 1,
         ];
         let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
-        assert_eq!(actual.compacted_image, Some(expected_compact));
+        assert_eq!(actual.normalized_mask, Some(expected_compact));
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270]));
     }
 
@@ -1943,7 +1949,7 @@ mod tests {
             1, 1, 0, 1,
         ];
         let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
-        assert_eq!(actual.compacted_image, Some(expected_compact));
+        assert_eq!(actual.normalized_mask, Some(expected_compact));
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
     }
 
