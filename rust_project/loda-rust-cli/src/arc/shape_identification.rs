@@ -388,7 +388,7 @@ impl Default for ShapeType {
     fn default() -> Self { ShapeType::Unclassified }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 enum ShapeTransformation {
     Normal,
     RotateCw90,
@@ -534,11 +534,12 @@ impl ShapeIdentification {
             }
         }
 
-        let mask4: Image = Self::normalize(&mask3)?;
+        let (transformation, mask4) = Self::normalize_inner(mask3.size(), transformations)?;
         let mut shape = ShapeIdentification::default();
         shape.shape_type = ShapeType::Unclassified;
         shape.size = Some(size);
         shape.compacted_image = Some(mask4);
+        shape.transformations = HashSet::<ShapeTransformation>::from([transformation]);
         Ok(shape)
     }
 
@@ -576,19 +577,20 @@ impl ShapeIdentification {
     fn normalize(image_with_unknown_orientation: &Image) -> anyhow::Result<Image> {
         let size: ImageSize = image_with_unknown_orientation.size();
         let transformations: Vec<(ShapeTransformation, Image)> = Self::make_transformations(&image_with_unknown_orientation)?;
-        let image: Image = Self::normalize_inner(size, transformations)?;
-        Ok(image)
+        let (_transformation, output) = Self::normalize_inner(size, transformations)?;
+        Ok(output)
     }
 
-    fn normalize_inner(size: ImageSize, transformations: Vec<(ShapeTransformation, Image)>) -> anyhow::Result<Image> {
+    fn normalize_inner(size: ImageSize, transformations: Vec<(ShapeTransformation, Image)>) -> anyhow::Result<(ShapeTransformation, Image)> {
         // Ensure the image is always in landscape orientation
         let width: u8 = size.width.max(size.height);
         let height: u8 = size.width.min(size.height);
         let landscape_size: ImageSize = ImageSize::new(width, height);
 
         // Obtain center of mass for each image
-        let mut y_x_image_vec: Vec<(i32, u32, Image)> = Vec::new();
-        for (_transformation, image) in &transformations {
+        type Record = (i32, u32, Image, ShapeTransformation);
+        let mut y_x_image_transformation_vec: Vec<Record> = Vec::new();
+        for (transformation, image) in &transformations {
             if image.size() != landscape_size {
                 // Ignore portrait images
                 continue;
@@ -597,25 +599,26 @@ impl ShapeIdentification {
             if let Some((x, y)) = image.center_of_mass(scale) {
                 // println!("x: {}, y: {} {:?}", x, y, image);
                 let inverted_y: i32 = - (y.min(i32::MAX as u32) as i32);
-                y_x_image_vec.push((inverted_y, x, image.clone()));
+                y_x_image_transformation_vec.push((inverted_y, x, image.clone(), transformation.clone()));
             }
         }
 
         // Sort by center of mass, y first, then x, then image data
-        y_x_image_vec.sort();
+        y_x_image_transformation_vec.sort();
 
         // println!("SORTED");
         // for (y, x, image) in &y_x_image_vec {
         //     println!("x: {}, y: {} {:?}", x, y, image);
         // }
 
-        if y_x_image_vec.is_empty() {
+        if y_x_image_transformation_vec.is_empty() {
             return Err(anyhow::anyhow!("Image vector is empty"));
         }
         // Pick the first image
-        let image0: &Image = &y_x_image_vec[0].2;
-
-        Ok(image0.clone())
+        let record: &Record = &y_x_image_transformation_vec[0];
+        let image: Image = record.2.clone();
+        let transformation: ShapeTransformation = record.3.clone();
+        Ok((transformation, image))
     }
 
 }
@@ -1894,6 +1897,61 @@ mod tests {
         ];
         let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
         assert_eq!(actual.compacted_image, Some(expected_compact));
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw270]));
+    }
+
+    #[test]
+    fn test_210001_unclassified() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 0,
+            1, 0, 0, 1,
+            0, 0, 0, 1,
+            1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "unclassified");
+
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+            1, 1, 0, 1,
+        ];
+        let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual.compacted_image, Some(expected_compact));
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270]));
+    }
+
+    #[test]
+    fn test_210002_unclassified() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+            1, 0, 0, 0,
+            1, 1, 0, 1,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "unclassified");
+
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+            1, 1, 0, 1,
+        ];
+        let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual.compacted_image, Some(expected_compact));
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
     }
 
     fn transform(input: &Image, mode: u8) -> anyhow::Result<Image> {
