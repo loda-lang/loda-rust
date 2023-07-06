@@ -420,8 +420,7 @@ impl ShapeTransformation {
 struct ShapeIdentification {
     shape_type: ShapeType,
     compacted_image: Option<Image>,
-    width: Option<u8>,
-    height: Option<u8>,
+    size: Option<ImageSize>,
     transformations: HashSet<ShapeTransformation>,
 
     // Future experiments
@@ -439,13 +438,10 @@ impl ShapeIdentification {
             return Ok(shape);
         }
         let size: ImageSize = mask2.size();
-        let size_min: u8 = size.width.min(size.height);
-        let size_max: u8 = size.width.max(size.height);
         if mask2.size() == ImageSize::new(1, 1) {
             let mut shape = ShapeIdentification::default();
             shape.shape_type = ShapeType::Square;
-            shape.width = Some(size_max);
-            shape.height = Some(size_min);
+            shape.size = Some(size);
             shape.transformations = ShapeTransformation::all();
             return Ok(shape);
         }
@@ -455,15 +451,13 @@ impl ShapeIdentification {
             if is_square {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Square;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
+                shape.size = Some(size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);
             } else {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Rectangle;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
+                shape.size = Some(size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);    
             }
@@ -473,8 +467,7 @@ impl ShapeIdentification {
             if mask3 == SHAPE_TYPE_IMAGE.image_box {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Box;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
+                shape.size = Some(size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);
             }
@@ -482,8 +475,7 @@ impl ShapeIdentification {
             if mask3 == SHAPE_TYPE_IMAGE.image_plus {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Plus;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
+                shape.size = Some(size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);
             }
@@ -491,8 +483,7 @@ impl ShapeIdentification {
             if mask3 == SHAPE_TYPE_IMAGE.image_crosshair {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::Crosshair;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
+                shape.size = Some(size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);
             }
@@ -500,8 +491,7 @@ impl ShapeIdentification {
             if mask3 == SHAPE_TYPE_IMAGE.image_x {
                 let mut shape = ShapeIdentification::default();
                 shape.shape_type = ShapeType::X;
-                shape.width = Some(size_max);
-                shape.height = Some(size_min);
+                shape.size = Some(size);
                 shape.transformations = ShapeTransformation::all();
                 return Ok(shape);
             }
@@ -548,8 +538,7 @@ impl ShapeIdentification {
 
             let mut shape = ShapeIdentification::default();
             shape.shape_type = ShapeType::Unclassified;
-            shape.width = Some(size_max);
-            shape.height = Some(size_min);
+            shape.size = Some(size);
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
                 for (transformation_type, transformed_image) in &transformations {
@@ -568,8 +557,7 @@ impl ShapeIdentification {
         let mask4: Image = Self::normalize(&mask3)?;
         let mut shape = ShapeIdentification::default();
         shape.shape_type = ShapeType::Unclassified;
-        shape.width = Some(size_max);
-        shape.height = Some(size_min);
+        shape.size = Some(size);
         shape.compacted_image = Some(mask4);
         Ok(shape)
     }
