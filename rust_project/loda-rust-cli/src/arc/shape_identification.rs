@@ -10,7 +10,7 @@ lazy_static! {
 struct ShapeTypeImage {
     image_box: Image,
     image_plus: Image,
-    image_o: Image,
+    image_crosshair: Image,
     image_x: Image,
     image_h_uppercase: Image,
     image_h_lowercase: Image,
@@ -42,7 +42,7 @@ impl ShapeTypeImage {
             0, 1, 0,
         ])?;
 
-        let image_o: Image = Image::try_create(3, 3, vec![
+        let image_crosshair: Image = Image::try_create(3, 3, vec![
             0, 1, 0,
             1, 0, 1,
             0, 1, 0,
@@ -134,7 +134,7 @@ impl ShapeTypeImage {
         let instance = Self {
             image_box,
             image_plus,
-            image_o,
+            image_crosshair,
             image_x,
             image_h_uppercase,
             image_h_lowercase,
@@ -188,13 +188,16 @@ enum ShapeType {
     /// ```
     Plus,
 
-    /// Shape `O`
+    /// Shape `✜`, similar to a `+` symbol where the center is hollow.
+    /// 
+    /// Heavy Open Centre Cross
+    /// 
     /// ````
     /// 0, 1, 0
     /// 1, 0, 1
     /// 0, 1, 0
     /// ```
-    O,
+    Crosshair,
 
     /// Shape `X`
     /// ````
@@ -360,7 +363,7 @@ impl ShapeType {
             Self::Rectangle => "rectangle",
             Self::Box => "box",
             Self::Plus => "+",
-            Self::O => "O",
+            Self::Crosshair => "✜",
             Self::L => "L",
             Self::UpTack => "⊥",
             Self::U4 => "U4",
@@ -485,9 +488,9 @@ impl ShapeIdentification {
                 return Ok(shape);
             }
 
-            if mask3 == SHAPE_TYPE_IMAGE.image_o {
+            if mask3 == SHAPE_TYPE_IMAGE.image_crosshair {
                 let mut shape = ShapeIdentification::default();
-                shape.shape_type = ShapeType::O;
+                shape.shape_type = ShapeType::Crosshair;
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.transformations = ShapeTransformation::all();
@@ -808,7 +811,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_o_shape() {
+    fn test_50000_crosshair_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -823,12 +826,12 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "O");
+        assert_eq!(actual.to_string(), "✜");
         assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
-    fn test_50001_o_shape() {
+    fn test_50001_crosshair_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 0, 0,
@@ -842,7 +845,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "O");
+        assert_eq!(actual.to_string(), "✜");
         assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
