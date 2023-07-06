@@ -420,12 +420,6 @@ struct ShapeIdentification {
     width: Option<u8>,
     height: Option<u8>,
     transformations: HashSet<ShapeTransformation>,
-    rotated_cw_90: bool,
-    rotated_cw_180: bool,
-    rotated_cw_270: bool,
-    flip_x: bool,
-    flip_y: bool,
-    flip_xy: bool,
 
     // Future experiments
     // is scaled down without losing information, apply scale factor to get original size
@@ -450,12 +444,6 @@ impl ShapeIdentification {
             shape.width = Some(size_max);
             shape.height = Some(size_min);
             shape.transformations = ShapeTransformation::all();
-            shape.rotated_cw_90 = true;
-            shape.rotated_cw_180 = true;
-            shape.rotated_cw_270 = true;
-            shape.flip_x = true;
-            shape.flip_y = true;
-            shape.flip_xy = true;
             return Ok(shape);
         }
         let mask3: Image = mask2.remove_duplicates()?;
@@ -467,12 +455,6 @@ impl ShapeIdentification {
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.transformations = ShapeTransformation::all();
-                shape.rotated_cw_90 = true;
-                shape.rotated_cw_180 = true;
-                shape.rotated_cw_270 = true;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
                 return Ok(shape);
             } else {
                 let mut shape = ShapeIdentification::default();
@@ -480,12 +462,6 @@ impl ShapeIdentification {
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.transformations = ShapeTransformation::all();
-                shape.rotated_cw_90 = true;
-                shape.rotated_cw_180 = true;
-                shape.rotated_cw_270 = true;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
                 return Ok(shape);    
             }
         }
@@ -497,12 +473,6 @@ impl ShapeIdentification {
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.transformations = ShapeTransformation::all();
-                shape.rotated_cw_90 = true;
-                shape.rotated_cw_180 = true;
-                shape.rotated_cw_270 = true;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
                 return Ok(shape);
             }
 
@@ -512,12 +482,6 @@ impl ShapeIdentification {
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.transformations = ShapeTransformation::all();
-                shape.rotated_cw_90 = true;
-                shape.rotated_cw_180 = true;
-                shape.rotated_cw_270 = true;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
                 return Ok(shape);
             }
 
@@ -527,12 +491,6 @@ impl ShapeIdentification {
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.transformations = ShapeTransformation::all();
-                shape.rotated_cw_90 = true;
-                shape.rotated_cw_180 = true;
-                shape.rotated_cw_270 = true;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
                 return Ok(shape);
             }
 
@@ -542,12 +500,6 @@ impl ShapeIdentification {
                 shape.width = Some(size_max);
                 shape.height = Some(size_min);
                 shape.transformations = ShapeTransformation::all();
-                shape.rotated_cw_90 = true;
-                shape.rotated_cw_180 = true;
-                shape.rotated_cw_270 = true;
-                shape.flip_x = true;
-                shape.flip_y = true;
-                shape.flip_xy = true;
                 return Ok(shape);
             }
         }
