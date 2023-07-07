@@ -191,7 +191,7 @@ impl SubcommandARCWeb {
             }
         };
         for color in 0..=9 {
-            let enumerated_objects: Image = match sco.enumerate_clusters(color, PixelConnectivity::Connectivity4) {
+            let enumerated_objects: Image = match sco.enumerate_clusters(color, PixelConnectivity::Connectivity8) {
                 Ok(value) => value,
                 Err(_error) => {
                     // println!("error: {:?}", error);
@@ -279,12 +279,11 @@ impl SubcommandARCWeb {
         let mut image_output = Image::empty();
         let mut sco_input: Option<SingleColorObject> = None;
         let mut sco_output: Option<SingleColorObject> = None;
-        for pair in &task.pairs {
+        if let Some(pair) = task.pairs.get(0) {
             image_input = pair.input.image.clone();
             image_output = pair.output.image.clone();
             sco_input = pair.input.image_meta.single_color_object.clone();
             sco_output = pair.output.image_meta.single_color_object.clone();
-            break;
         }
 
         Self::inspect_shapes("input", &sco_input);
