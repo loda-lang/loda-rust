@@ -163,7 +163,7 @@ impl ShapeTypeImage {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ShapeType {
+pub enum ShapeType {
     /// Solid square or rectangle.
     /// ````
     /// 1
@@ -386,12 +386,8 @@ impl ShapeType {
     }
 }
 
-impl Default for ShapeType {
-    fn default() -> Self { ShapeType::Unclassified }
-}
-
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-enum ShapeTransformation {
+pub enum ShapeTransformation {
     Normal,
     RotateCw90,
     RotateCw180,
@@ -419,11 +415,11 @@ impl ShapeTransformation {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ShapeIdentification {
-    shape_type: ShapeType,
-    size: ImageSize,
-    transformations: HashSet<ShapeTransformation>,
-    normalized_mask: Option<Image>,
+pub struct ShapeIdentification {
+    pub shape_type: ShapeType,
+    pub size: ImageSize,
+    pub transformations: HashSet<ShapeTransformation>,
+    pub normalized_mask: Option<Image>,
 
     // Future experiments
     // is scaled down without losing information, apply scale factor to get original size.
@@ -433,7 +429,7 @@ struct ShapeIdentification {
 impl ShapeIdentification {
 
     #[allow(dead_code)]
-    fn compute(mask: &Image) -> anyhow::Result<ShapeIdentification> {
+    pub fn compute(mask: &Image) -> anyhow::Result<ShapeIdentification> {
         // Remove the empty space around the shape
         let trimmed_mask: Image = mask.trim_color(0)?;
         if trimmed_mask.is_empty() {
