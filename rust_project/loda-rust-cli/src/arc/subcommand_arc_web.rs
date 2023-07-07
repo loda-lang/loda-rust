@@ -1,7 +1,9 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
 use super::arc_work_model::{PairType, Task};
-use super::{Image, ImageSize};
+use super::{Image, ImageSize, Histogram};
+use super::{ShapeIdentification, ShapeTransformation, ShapeType};
+use super::{SingleColorObject, PixelConnectivity, ImageHistogram, ImageMask};
 use tera::Tera;
 use tide::http::mime;
 use tide::{Request, Response};
@@ -180,6 +182,40 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
+    fn inspect_shapes(name: &str, sco: &Option<SingleColorObject>) {
+        let sco: &SingleColorObject = match sco {
+            Some(value) => value,
+            None => {
+                println!("{}: no sco", name);
+                return;
+            }
+        };
+        for color in 0..=9 {
+            let enumerated_objects: Image = match sco.enumerate_clusters(color, PixelConnectivity::Connectivity4) {
+                Ok(value) => value,
+                Err(_error) => {
+                    // println!("error: {:?}", error);
+                    continue;
+                }
+            };
+            let histogram: Histogram = enumerated_objects.histogram_all();
+            for (count, object_id) in histogram.pairs_ordered_by_color() {
+                if count == 0 || object_id == 0 {
+                    continue;
+                }
+                let mask: Image = enumerated_objects.to_mask_where_color_is(object_id);
+                let shape_id: ShapeIdentification = match ShapeIdentification::compute(&mask) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        println!("unable to find shape. error: {:?}", error);
+                        continue;
+                    }
+                };
+                println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
+            }
+        }
+    }
+
     #[cfg(feature = "petgraph")]
     async fn get_node(req: Request<State>) -> tide::Result {
         let config: &Config = &req.state().config;
@@ -241,11 +277,19 @@ impl SubcommandARCWeb {
 
         let mut image_input = Image::empty();
         let mut image_output = Image::empty();
+        let mut sco_input: Option<SingleColorObject> = None;
+        let mut sco_output: Option<SingleColorObject> = None;
         for pair in &task.pairs {
             image_input = pair.input.image.clone();
             image_output = pair.output.image.clone();
+            sco_input = pair.input.image_meta.single_color_object.clone();
+            sco_output = pair.output.image_meta.single_color_object.clone();
             break;
         }
+
+        Self::inspect_shapes("input", &sco_input);
+        Self::inspect_shapes("output", &sco_output);
+
         let mut instance = ExperimentWithPetgraph::new();
 
         let image_input_node_index = match instance.add_image(&image_input) {
