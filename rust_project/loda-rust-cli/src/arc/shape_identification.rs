@@ -1064,6 +1064,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "⊔");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90]));
     }
 
     #[test]
@@ -1081,6 +1082,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "⊔");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
     }
 
     #[test]
