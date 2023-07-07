@@ -4,7 +4,7 @@
 //! 
 //! Similar to SIFT (Scale-invariant feature transform) but without using points.
 //! https://en.wikipedia.org/wiki/Scale-invariant_feature_transform
-use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, CenterOfMass};
+use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop};
 use std::fmt;
 use std::collections::HashSet;
 use lazy_static::lazy_static;
@@ -417,7 +417,7 @@ impl ShapeTransformation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShapeIdentification {
     pub shape_type: ShapeType,
-    pub size: ImageSize,
+    pub rect: Rectangle,
     pub transformations: HashSet<ShapeTransformation>,
     pub normalized_mask: Option<Image>,
 
@@ -431,17 +431,22 @@ impl ShapeIdentification {
     #[allow(dead_code)]
     pub fn compute(mask: &Image) -> anyhow::Result<ShapeIdentification> {
         // Remove the empty space around the shape
-        let trimmed_mask: Image = mask.trim_color(0)?;
-        if trimmed_mask.is_empty() {
+        let color_to_be_trimmed: u8 = 0;
+        let rect: Rectangle = mask.outer_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
+        if rect.is_empty() {
             return Err(anyhow::anyhow!("No shape was found in the image"));
         }
+        let trimmed_mask: Image = mask.crop(rect)?;
         let shape_size: ImageSize = trimmed_mask.size();
+        if shape_size.is_empty() {
+            return Err(anyhow::anyhow!("Integrity error. Empty crop rect should have been rejected earlier"));
+        }
 
         // After trimming, if it's a 1x1 shape, then it's a square
         if shape_size == ImageSize::new(1, 1) {
             let shape = Self {
                 shape_type: ShapeType::Square,
-                size: shape_size,
+                rect,
                 transformations: ShapeTransformation::all(),
                 normalized_mask: None,
             };
@@ -457,7 +462,7 @@ impl ShapeIdentification {
             if is_square {
                 let shape = Self {
                     shape_type: ShapeType::Square,
-                    size: shape_size,
+                    rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
                 };
@@ -465,7 +470,7 @@ impl ShapeIdentification {
             } else {
                 let shape = Self {
                     shape_type: ShapeType::Rectangle,
-                    size: shape_size,
+                    rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
                 };
@@ -479,7 +484,7 @@ impl ShapeIdentification {
             if compact_mask == SHAPE_TYPE_IMAGE.image_box {
                 let shape = Self {
                     shape_type: ShapeType::Box,
-                    size: shape_size,
+                    rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
                 };
@@ -489,7 +494,7 @@ impl ShapeIdentification {
             if compact_mask == SHAPE_TYPE_IMAGE.image_plus {
                 let shape = Self {
                     shape_type: ShapeType::Plus,
-                    size: shape_size,
+                    rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
                 };
@@ -499,7 +504,7 @@ impl ShapeIdentification {
             if compact_mask == SHAPE_TYPE_IMAGE.image_crosshair {
                 let shape = Self {
                     shape_type: ShapeType::Crosshair,
-                    size: shape_size,
+                    rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
                 };
@@ -509,7 +514,7 @@ impl ShapeIdentification {
             if compact_mask == SHAPE_TYPE_IMAGE.image_x {
                 let shape = Self {
                     shape_type: ShapeType::X,
-                    size: shape_size,
+                    rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
                 };
@@ -549,7 +554,7 @@ impl ShapeIdentification {
                 if !found_transformations.is_empty() {
                     let shape = Self {
                         shape_type: *recognized_shape_type,
-                        size: shape_size,
+                        rect,
                         transformations: found_transformations,
                         normalized_mask: None,
                     };
@@ -563,7 +568,7 @@ impl ShapeIdentification {
         let (transformation, normalized_mask) = Self::normalize(compact_mask.size(), transformations)?;
         let shape = Self {
             shape_type: ShapeType::Unclassified,
-            size: shape_size,
+            rect,
             transformations: HashSet::<ShapeTransformation>::from([transformation]),
             normalized_mask: Some(normalized_mask),
         };
