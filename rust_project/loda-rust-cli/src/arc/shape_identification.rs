@@ -1,6 +1,12 @@
-use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, ImageHistogram, Histogram, CenterOfMass};
+//! Identification of shape type and transformations.
+//! 
+//! Invariant to translation, scaling, flipping, rotation (90, 180, 270) and deformations.
+//! 
+//! Similar to SIFT (Scale-invariant feature transform) but without using points.
+//! https://en.wikipedia.org/wiki/Scale-invariant_feature_transform
+use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, CenterOfMass};
 use std::fmt;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -346,7 +352,6 @@ enum ShapeType {
     Unclassified,
 
     // Future experiments
-    // string representation of the shape
     // dashed line
     // checker board
     // ◆ Diamond
@@ -421,7 +426,8 @@ struct ShapeIdentification {
     normalized_mask: Option<Image>,
 
     // Future experiments
-    // is scaled down without losing information, apply scale factor to get original size
+    // is scaled down without losing information, apply scale factor to get original size.
+    // diagonal compression, so that a 10pixel long diagonal line and a 13pixel long diagonal line, gets the same representation.
 }
 
 impl ShapeIdentification {
