@@ -33,6 +33,7 @@ struct ShapeTypeImage {
     image_rotated_k: Image,
     image_lower_left_triangle: Image,
     image_left_plus: Image,
+    image_leftwards_harpoon_with_barb_upwards: Image,
 }
 
 impl ShapeTypeImage {
@@ -144,6 +145,12 @@ impl ShapeTypeImage {
             0, 1, 0,
         ])?;
 
+        let image_leftwards_harpoon_with_barb_upwards: Image = Image::try_create(3, 3, vec![
+            0, 1, 0,
+            1, 0, 0,
+            1, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -164,6 +171,7 @@ impl ShapeTypeImage {
             image_rotated_k,
             image_lower_left_triangle,
             image_left_plus,
+            image_leftwards_harpoon_with_barb_upwards,
         };
         Ok(instance)
     }
@@ -372,6 +380,19 @@ pub enum ShapeType {
     /// ```
     LeftPlus,
 
+    /// Shape `↼`, similar to the Tetris `L` symbol with a pixel at the top middle.
+    /// 
+    /// In between state between a `+` symbol and a `L` symbol.
+    /// 
+    /// A rotated version of the `ᒯ` symbol.
+    /// 
+    /// ````
+    /// 0, 1, 0
+    /// 1, 0, 0
+    /// 1, 1, 1
+    /// ```
+    LeftwardsHarpoonWithBarbUpwards,
+
     Unclassified,
 
     // Future experiments
@@ -405,6 +426,7 @@ impl ShapeType {
             Self::LowerLeftTriangle => "◣",
             Self::FlippedJ => "𐐢",
             Self::LeftPlus => "ഺ",
+            Self::LeftwardsHarpoonWithBarbUpwards => "↼",
             Self::Unclassified => "unclassified",
         }
     }
@@ -568,6 +590,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_k, ShapeType::RotatedK));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle, ShapeType::LowerLeftTriangle));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_left_plus, ShapeType::LeftPlus));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_leftwards_harpoon_with_barb_upwards, ShapeType::LeftwardsHarpoonWithBarbUpwards));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -1943,6 +1966,26 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "ഺ");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+    }
+
+    #[test]
+    fn test_210000_leftwards_harpoon_with_barb_upwards() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+            1, 1, 1, 1,
+            1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(4, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "↼");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
     }
 
