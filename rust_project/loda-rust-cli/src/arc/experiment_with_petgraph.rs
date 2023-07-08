@@ -23,7 +23,7 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
-use super::{Image, ImageSize};
+use super::{Image, ImageSize, PixelConnectivity};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -33,7 +33,7 @@ pub enum NodeData {
     Color { color: u8 },
     PositionX { x: u8 },
     PositionY { y: u8 },
-    Object,
+    Object { connectivity: PixelConnectivity },
     // Input,
     // Output,
     // Pair,
@@ -76,6 +76,7 @@ pub enum EdgeData {
     // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
     // IsTouchingAnotherObject { edge_type: PixelNeighborEdgeType },
+    // InsideHoleOfAnotherObject,
 }
 
 #[allow(dead_code)]
@@ -244,8 +245,8 @@ impl ExperimentWithPetgraph {
     /// 
     /// Returns the `NodeIndex` of the created `Object` node.
     #[allow(dead_code)]
-    pub fn add_object(&mut self, image_index: NodeIndex, object_mask: &Image) -> anyhow::Result<NodeIndex> {
-        let node_object = NodeData::Object;
+    pub fn add_object(&mut self, image_index: NodeIndex, object_mask: &Image, connectivity: PixelConnectivity) -> anyhow::Result<NodeIndex> {
+        let node_object = NodeData::Object { connectivity };
         let object_index: NodeIndex = self.graph.add_node(node_object);
 
         let image_node: NodeData = self.graph[image_index];

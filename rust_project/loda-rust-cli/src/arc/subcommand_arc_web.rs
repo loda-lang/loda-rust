@@ -183,6 +183,7 @@ impl SubcommandARCWeb {
     }
 
     fn process_shapes(graph: &mut ExperimentWithPetgraph, image_index: NodeIndex, name: &str, sco: &Option<SingleColorObject>) {
+        let connectivity: PixelConnectivity = PixelConnectivity::Connectivity8;
         let sco: &SingleColorObject = match sco {
             Some(value) => value,
             None => {
@@ -191,7 +192,7 @@ impl SubcommandARCWeb {
             }
         };
         for color in 0..=9 {
-            let enumerated_objects: Image = match sco.enumerate_clusters(color, PixelConnectivity::Connectivity8) {
+            let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
                 Ok(value) => value,
                 Err(_error) => {
                     // println!("error: {:?}", error);
@@ -212,7 +213,7 @@ impl SubcommandARCWeb {
                     }
                 };
                 println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
-                let object_index: NodeIndex = match graph.add_object(image_index, &shape_id.mask_uncropped) {
+                let object_index: NodeIndex = match graph.add_object(image_index, &shape_id.mask_uncropped, connectivity) {
                     Ok(value) => value,
                     Err(error) => {
                         println!("unable to add object to graph. error: {:?}", error);
