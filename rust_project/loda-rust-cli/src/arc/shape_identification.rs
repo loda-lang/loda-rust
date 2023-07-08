@@ -464,9 +464,19 @@ impl ShapeTransformation {
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShapeIdentification {
+    /// The recognized shape type, or `Unclassified` if the shape is not recognized.
     pub shape_type: ShapeType,
+
+    /// The original mask, without any cropping.
+    pub mask_uncropped: Image,
+
+    /// Bounding box of the shape, which is used for cropping.
     pub rect: Rectangle,
+
+    /// The transformations that converts from the original shape to the normalized shape.
     pub transformations: HashSet<ShapeTransformation>,
+
+    /// The compacted mask, that is the smallest representation of the shape.
     pub normalized_mask: Option<Image>,
 
     // Future experiments
@@ -494,6 +504,7 @@ impl ShapeIdentification {
         if shape_size == ImageSize::new(1, 1) {
             let shape = Self {
                 shape_type: ShapeType::Square,
+                mask_uncropped: mask.clone(),
                 rect,
                 transformations: ShapeTransformation::all(),
                 normalized_mask: None,
@@ -510,6 +521,7 @@ impl ShapeIdentification {
             if is_square {
                 let shape = Self {
                     shape_type: ShapeType::Square,
+                    mask_uncropped: mask.clone(),
                     rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
@@ -518,6 +530,7 @@ impl ShapeIdentification {
             } else {
                 let shape = Self {
                     shape_type: ShapeType::Rectangle,
+                    mask_uncropped: mask.clone(),
                     rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
@@ -532,6 +545,7 @@ impl ShapeIdentification {
             if compact_mask == SHAPE_TYPE_IMAGE.image_box {
                 let shape = Self {
                     shape_type: ShapeType::Box,
+                    mask_uncropped: mask.clone(),
                     rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
@@ -542,6 +556,7 @@ impl ShapeIdentification {
             if compact_mask == SHAPE_TYPE_IMAGE.image_plus {
                 let shape = Self {
                     shape_type: ShapeType::Plus,
+                    mask_uncropped: mask.clone(),
                     rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
@@ -552,6 +567,7 @@ impl ShapeIdentification {
             if compact_mask == SHAPE_TYPE_IMAGE.image_crosshair {
                 let shape = Self {
                     shape_type: ShapeType::Crosshair,
+                    mask_uncropped: mask.clone(),
                     rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
@@ -562,6 +578,7 @@ impl ShapeIdentification {
             if compact_mask == SHAPE_TYPE_IMAGE.image_x {
                 let shape = Self {
                     shape_type: ShapeType::X,
+                    mask_uncropped: mask.clone(),
                     rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
@@ -604,6 +621,7 @@ impl ShapeIdentification {
                 if !found_transformations.is_empty() {
                     let shape = Self {
                         shape_type: *recognized_shape_type,
+                        mask_uncropped: mask.clone(),
                         rect,
                         transformations: found_transformations,
                         normalized_mask: None,
@@ -618,6 +636,7 @@ impl ShapeIdentification {
         let (transformation, normalized_mask) = Self::normalize(compact_mask.size(), transformations)?;
         let shape = Self {
             shape_type: ShapeType::Unclassified,
+            mask_uncropped: mask.clone(),
             rect,
             transformations: HashSet::<ShapeTransformation>::from([transformation]),
             normalized_mask: Some(normalized_mask),
