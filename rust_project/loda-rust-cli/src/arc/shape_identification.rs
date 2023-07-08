@@ -29,7 +29,7 @@ struct ShapeTypeImage {
     image_turned_v: Image,
     image_skew_tetromino: Image,
     image_flipped_j: Image,
-    image_turned_y: Image,
+    image_inverted_fork: Image,
     image_rotated_k: Image,
     image_lower_left_triangle: Image,
     image_left_plus: Image,
@@ -121,7 +121,7 @@ impl ShapeTypeImage {
             1, 1, 1,
         ])?;
 
-        let image_turned_y: Image = Image::try_create(3, 3, vec![
+        let image_inverted_fork: Image = Image::try_create(3, 3, vec![
             0, 1, 0,
             1, 1, 1,
             1, 0, 1,
@@ -167,7 +167,7 @@ impl ShapeTypeImage {
             image_turned_v,
             image_skew_tetromino,
             image_flipped_j,
-            image_turned_y,
+            image_inverted_fork,
             image_rotated_k,
             image_lower_left_triangle,
             image_left_plus,
@@ -283,7 +283,9 @@ pub enum ShapeType {
     /// ```
     HLowercase,
 
-    /// Shape `⅄`, similar to an uppercase `A` symbol or an upside down `Y` symbol
+    /// Shape `⑃`, similar the shape `⅄` or an upside down `Y` symbol or an uppercase `A` symbol
+    /// 
+    /// U+2443: OCR INVERTED FORK
     /// 
     /// https://en.wikipedia.org/wiki/Voiced_palatal_lateral_approximant
     /// 
@@ -292,7 +294,7 @@ pub enum ShapeType {
     /// 1, 1, 1
     /// 1, 0, 1
     /// ```
-    TurnedY,
+    InvertedFork,
 
     /// Shape `⊻`, similar to an uppercase `K` symbol that have been rotated clockwise 90 degrees
     /// 
@@ -417,7 +419,7 @@ impl ShapeType {
             Self::HUppercase => "H",
             Self::HLowercase => "Ⴙ",
             Self::X => "X",
-            Self::TurnedY => "⅄",
+            Self::InvertedFork => "⑃",
             Self::RotatedK => "⊻",
             Self::TurnedV => "⋀",
             Self::Diagonal2 => "▞",
@@ -586,7 +588,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_skew_tetromino, ShapeType::SkewTetromino));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_h_lowercase, ShapeType::HLowercase));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_flipped_j, ShapeType::FlippedJ));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_turned_y, ShapeType::TurnedY));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_inverted_fork, ShapeType::InvertedFork));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_k, ShapeType::RotatedK));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle, ShapeType::LowerLeftTriangle));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_left_plus, ShapeType::LeftPlus));
@@ -1643,7 +1645,7 @@ mod tests {
     }
 
     #[test]
-    fn test_170000_turned_y() {
+    fn test_170000_inverted_fork() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 0,
@@ -1656,12 +1658,12 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "⅄");
+        assert_eq!(actual.to_string(), "⑃");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90]));
     }
 
     #[test]
-    fn test_170001_turned_y() {
+    fn test_170001_inverted_fork() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 1,
@@ -1674,12 +1676,12 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "⅄");
+        assert_eq!(actual.to_string(), "⑃");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
     }
 
     #[test]
-    fn test_170002_turned_y() {
+    fn test_170002_inverted_fork() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -1694,12 +1696,12 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "⅄");
+        assert_eq!(actual.to_string(), "⑃");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipX]));
     }
 
     #[test]
-    fn test_170003_turned_y() {
+    fn test_170003_inverted_fork() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
@@ -1714,7 +1716,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "⅄");
+        assert_eq!(actual.to_string(), "⑃");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
     }
 
