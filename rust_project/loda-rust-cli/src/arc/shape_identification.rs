@@ -264,7 +264,9 @@ pub enum ShapeType {
     /// ```
     HUppercase,
 
-    /// Shape `h`, similar to a lowercase `h` symbol
+    /// Shape `Ⴙ`, similar to a lowercase `h` symbol
+    /// 
+    /// U+10B9: GEORGIAN CAPITAL LETTER CHIN
     /// 
     /// ````
     /// 1, 0, 0
@@ -392,7 +394,7 @@ impl ShapeType {
             Self::U4 => "U4",
             Self::U5 => "⊔",
             Self::HUppercase => "H",
-            Self::HLowercase => "h",
+            Self::HLowercase => "Ⴙ",
             Self::X => "X",
             Self::TurnedY => "⅄",
             Self::RotatedK => "⊻",
@@ -1559,7 +1561,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "h");
+        assert_eq!(actual.to_string(), "Ⴙ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw90]));
     }
 
@@ -1577,7 +1579,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "h");
+        assert_eq!(actual.to_string(), "Ⴙ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90]));
     }
 
@@ -1595,7 +1597,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "h");
+        assert_eq!(actual.to_string(), "Ⴙ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw180]));
     }
 
@@ -1613,7 +1615,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "h");
+        assert_eq!(actual.to_string(), "Ⴙ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
     }
 
