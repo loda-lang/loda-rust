@@ -24,7 +24,7 @@
 //! - reapply the same transformations to the input images.        
 //!
 use super::{Image, ImageSize};
-use petgraph::{stable_graph::NodeIndex, visit::EdgeRef};
+use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum NodeData {
@@ -33,6 +33,9 @@ pub enum NodeData {
     Color { color: u8 },
     PositionX { x: u8 },
     PositionY { y: u8 },
+    Object,
+    // Input,
+    // Output,
     // Pair,
     // PairTrain,
     // PairTest,
@@ -44,7 +47,6 @@ pub enum NodeData {
     // ImageCorner { corner: ImageCornerType },
     // PixelColumn,
     // PixelRow,
-    // Object,
     // ObjectStaysLocked,
     // ObjectMoves,
     // GridLine,
@@ -232,9 +234,74 @@ impl ExperimentWithPetgraph {
         Ok(result_image)
     }
 
-    // fn extend_image_with_metadata(&mut self, image_index: NodeIndex, image: &Image) -> anyhow::Result<()> {
-    //     Ok(())
-    // }
+    /// Describe an object inside an image.
+    /// 
+    /// Create an object node.
+    /// 
+    /// Establishes links from pixel nodes to the object node.
+    /// 
+    /// Returns the `NodeIndex` of the created `Object` node.
+    #[allow(dead_code)]
+    pub fn add_object(&mut self, image_index: NodeIndex, object_mask: &Image) -> anyhow::Result<NodeIndex> {
+        let node_object = NodeData::Object;
+        let object_index: NodeIndex = self.graph.add_node(node_object);
+
+        let image_node: NodeData = self.graph[image_index];
+        let size = match image_node {
+            NodeData::Image { size } => size,
+            _ => { 
+                return Err(anyhow::anyhow!("Expected NodeData::Image at index {:?}.", image_index)); 
+            }
+        };
+        if size != object_mask.size() {
+            return Err(anyhow::anyhow!("Expected object_mask to have same size as the image its describing."));
+        }
+
+        let mut pixel_indexes = Vec::<NodeIndex>::new();
+        for edge_image in self.graph.edges(image_index) {
+            let pixel_index: NodeIndex = edge_image.target();
+            let pixel_node: NodeData = self.graph[pixel_index];
+            match pixel_node {
+                NodeData::Pixel => {},
+                _ => continue
+            }
+
+            let mut found_x: Option<u8> = None;
+            let mut found_y: Option<u8> = None;
+            for edge_pixel in self.graph.edges(pixel_index) {
+                let child_index: NodeIndex = edge_pixel.target();
+                let child_node: NodeData = self.graph[child_index];
+                match child_node {
+                    NodeData::PositionX { x } => { found_x = Some(x); },
+                    NodeData::PositionY { y } => { found_y = Some(y); },
+                    _ => {}
+                }
+            }
+            let (x, y) = match (found_x, found_y) {
+                (Some(x), Some(y)) => (x, y),
+                _ => {
+                    return Err(anyhow::anyhow!("Expected all pixels to have PositionX and PositionY properties."));
+                }
+            };
+
+            let color: u8 = match object_mask.get(x as i32, y as i32) {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("No pixel for coordinate. Expected object_mask to have same size as the image its describing."));
+                }
+            };
+            if color == 0 {
+                continue;
+            }
+            pixel_indexes.push(pixel_index);
+        }
+
+        // println!("pixel to object: adding {} edges", pixel_indexes.len());
+        for pixel_index in pixel_indexes {
+            let _edge_index: EdgeIndex = self.graph.add_edge(object_index, pixel_index, EdgeData::Link);
+        }
+        Ok(object_index)
+    }
 }
 
 #[cfg(test)]
