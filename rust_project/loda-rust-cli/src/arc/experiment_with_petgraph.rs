@@ -191,8 +191,8 @@ impl ExperimentWithPetgraph {
     /// Generates an image from the graph for the given `NodeIndex`.
     #[allow(dead_code)]
     pub fn to_image(&self, image_index: NodeIndex) -> anyhow::Result<Image> {
-        let node: NodeData = self.graph[image_index];
-        let size: ImageSize = match node {
+        let image_node: NodeData = self.graph[image_index];
+        let size: ImageSize = match image_node {
             NodeData::Image { size } => size,
             _ => { 
                 return Err(anyhow::anyhow!("Expected NodeData::Image at index {:?}.", image_index)); 
