@@ -23,12 +23,12 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
-use super::Image;
+use super::{Image, ImageSize};
 use petgraph::{stable_graph::NodeIndex, visit::EdgeRef};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum NodeData {
-    Image { width: u8, height: u8 },
+    Image { size: ImageSize },
     Pixel,
     Color { color: u8 },
     PositionX { x: u8 },
@@ -95,7 +95,7 @@ impl ExperimentWithPetgraph {
     /// Returns the `NodeIndex` of the created image node.
     #[allow(dead_code)]
     pub fn add_image(&mut self, image: &Image) -> anyhow::Result<NodeIndex> {
-        let node_image = NodeData::Image { width: image.width(), height: image.height() };
+        let node_image = NodeData::Image { size: image.size() };
         let image_index: NodeIndex = self.graph.add_node(node_image);
 
         let mut indexes_pixels: Vec<NodeIndex> = Vec::new();
@@ -192,13 +192,13 @@ impl ExperimentWithPetgraph {
     #[allow(dead_code)]
     pub fn to_image(&self, image_index: NodeIndex) -> anyhow::Result<Image> {
         let node: NodeData = self.graph[image_index];
-        let (width, height) = match node {
-            NodeData::Image { width, height } => { (width, height) },
+        let size: ImageSize = match node {
+            NodeData::Image { size } => size,
             _ => { 
                 return Err(anyhow::anyhow!("Expected NodeData::Image at index {:?}.", image_index)); 
             }
         };
-        let mut result_image = Image::color(width, height, 255);
+        let mut result_image = Image::color(size.width, size.height, 255);
 
         for edge_image in self.graph.edges(image_index) {
             let pixel_index: NodeIndex = edge_image.target();
