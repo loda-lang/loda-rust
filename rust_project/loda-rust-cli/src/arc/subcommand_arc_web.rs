@@ -182,7 +182,7 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
-    fn inspect_shapes(name: &str, sco: &Option<SingleColorObject>) {
+    fn process_shapes(graph: &mut ExperimentWithPetgraph, image_index: NodeIndex, name: &str, sco: &Option<SingleColorObject>) {
         let sco: &SingleColorObject = match sco {
             Some(value) => value,
             None => {
@@ -212,6 +212,14 @@ impl SubcommandARCWeb {
                     }
                 };
                 println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
+                let object_index: NodeIndex = match graph.add_object(image_index, &shape_id.mask_uncropped) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        println!("unable to add object to graph. error: {:?}", error);
+                        continue;
+                    }
+                };
+                println!("name: {} object_index: {:?}", name, object_index);
             }
         }
     }
@@ -275,10 +283,12 @@ impl SubcommandARCWeb {
             }
         };
 
+
         let mut image_input = Image::empty();
         let mut image_output = Image::empty();
         let mut sco_input: Option<SingleColorObject> = None;
         let mut sco_output: Option<SingleColorObject> = None;
+        // Do this for all the pairs. Currently it's only one pair.
         if let Some(pair) = task.pairs.get(0) {
             image_input = pair.input.image.clone();
             image_output = pair.output.image.clone();
@@ -286,12 +296,9 @@ impl SubcommandARCWeb {
             sco_output = pair.output.image_meta.single_color_object.clone();
         }
 
-        Self::inspect_shapes("input", &sco_input);
-        Self::inspect_shapes("output", &sco_output);
-
         let mut instance = ExperimentWithPetgraph::new();
 
-        let image_input_node_index = match instance.add_image(&image_input) {
+        let image_input_node_index: NodeIndex = match instance.add_image(&image_input) {
             Ok(value) => value,
             Err(error) => {
                 debug!("error: {:?}", error);
@@ -304,7 +311,7 @@ impl SubcommandARCWeb {
         };
         println!("image_input_node_index: {:?}", image_input_node_index);
 
-        let image_output_node_index = match instance.add_image(&image_output) {
+        let image_output_node_index: NodeIndex = match instance.add_image(&image_output) {
             Ok(value) => value,
             Err(error) => {
                 debug!("error: {:?}", error);
@@ -316,6 +323,10 @@ impl SubcommandARCWeb {
             }
         };
         println!("image_output_node_index: {:?}", image_output_node_index);
+
+        Self::process_shapes(&mut instance, image_input_node_index, "input", &sco_input);
+        Self::process_shapes(&mut instance, image_output_node_index, "output", &sco_output);
+
 
         let graph: &Graph<NodeData, EdgeData> = instance.graph();
 
