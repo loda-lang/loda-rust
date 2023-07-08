@@ -32,6 +32,7 @@ struct ShapeTypeImage {
     image_turned_y: Image,
     image_rotated_k: Image,
     image_lower_left_triangle: Image,
+    image_left_plus: Image,
 }
 
 impl ShapeTypeImage {
@@ -137,6 +138,12 @@ impl ShapeTypeImage {
             1, 1, 1,
         ])?;
 
+        let image_left_plus: Image = Image::try_create(3, 3, vec![
+            1, 0, 0,
+            1, 1, 1,
+            0, 1, 0,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -156,6 +163,7 @@ impl ShapeTypeImage {
             image_turned_y,
             image_rotated_k,
             image_lower_left_triangle,
+            image_left_plus,
         };
         Ok(instance)
     }
@@ -349,6 +357,19 @@ pub enum ShapeType {
     /// ```
     FlippedJ,
 
+    /// Shape `ഺ`, similar to a `+` where the top line is at the left side.
+    /// 
+    /// In between state between a `+` symbol and a `L` symbol.
+    /// 
+    /// U+0D3A: MALAYALAM LETTER TTTA
+    /// 
+    /// ````
+    /// 1, 0, 0
+    /// 1, 1, 1
+    /// 0, 1, 0
+    /// ```
+    LeftPlus,
+
     Unclassified,
 
     // Future experiments
@@ -381,6 +402,7 @@ impl ShapeType {
             Self::SkewTetromino => "skew",
             Self::LowerLeftTriangle => "◣",
             Self::FlippedJ => "𐐢",
+            Self::LeftPlus => "ഺ",
             Self::Unclassified => "unclassified",
         }
     }
@@ -543,6 +565,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_turned_y, ShapeType::TurnedY));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_k, ShapeType::RotatedK));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle, ShapeType::LowerLeftTriangle));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_left_plus, ShapeType::LeftPlus));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -1902,7 +1925,27 @@ mod tests {
     }
 
     #[test]
-    fn test_210000_unclassified() {
+    fn test_200000_left_plus() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0,
+            1, 1, 1, 1,
+            1, 1, 1, 1,
+            0, 0, 1, 0,
+            0, 0, 1, 0,
+        ];
+        let input: Image = Image::try_create(4, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "ഺ");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+    }
+
+    #[test]
+    fn test_290000_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 1,
@@ -1929,7 +1972,7 @@ mod tests {
     }
 
     #[test]
-    fn test_210001_unclassified() {
+    fn test_290001_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 0,
@@ -1956,7 +1999,7 @@ mod tests {
     }
 
     #[test]
-    fn test_210002_unclassified() {
+    fn test_290002_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
