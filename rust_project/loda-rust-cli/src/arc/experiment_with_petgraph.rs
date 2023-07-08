@@ -70,6 +70,8 @@ pub enum PixelNeighborEdgeType {
 pub enum EdgeData {
     Link,
     PixelNeighbor { edge_type: PixelNeighborEdgeType },
+    Parent,
+    Child,
     // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
@@ -298,7 +300,8 @@ impl ExperimentWithPetgraph {
 
         // println!("pixel to object: adding {} edges", pixel_indexes.len());
         for pixel_index in pixel_indexes {
-            let _edge_index: EdgeIndex = self.graph.add_edge(object_index, pixel_index, EdgeData::Link);
+            let _edge_index: EdgeIndex = self.graph.add_edge(pixel_index, object_index, EdgeData::Parent);
+            let _edge_index: EdgeIndex = self.graph.add_edge(object_index, pixel_index, EdgeData::Child);
         }
         Ok(object_index)
     }

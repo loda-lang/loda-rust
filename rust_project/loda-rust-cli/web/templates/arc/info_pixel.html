@@ -10,4 +10,11 @@ style="display: none;"
         <li>x: {{ x }}</li>
         <li>y: {{ y }}</li>
     </ul>
+
+    {% if outgoing_edges %}
+    <h1>Outgoing edges</h1>
+    {{ outgoing_edges|safe }}
+    {% else %}
+    <h1>Outgoing edges - none</h1>
+    {% endif %}
 </div>

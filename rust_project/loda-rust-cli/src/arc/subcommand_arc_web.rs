@@ -567,6 +567,7 @@ struct WrapPixel {
     y: Option<u8>,
     task_id: Option<String>,
     node_index: Option<NodeIndex>,
+    outgoing_edges: Option<String>,
 }
 
 impl WrapPixel {
@@ -585,6 +586,19 @@ impl WrapPixel {
                 _ => {}
             }
         }
+
+        let mut formatted_edges = String::new();
+        for edge_pixel in graph.edges(node_index) {
+            match edge_pixel.weight() {
+                EdgeData::PixelNeighbor { edge_type: _ } => continue,
+                _ => {}
+            };
+            let child_index: NodeIndex = edge_pixel.target();
+            let child_node: NodeData = graph[child_index];
+            formatted_edges += &format!("<li>{:?} {:?} {:?}</li>", edge_pixel, child_index, child_node);
+        }
+        self.outgoing_edges = Some(format!("<ul>{}</ul>", formatted_edges));
+
     }
 
     fn infoid(&self) -> Option<String> {
@@ -652,6 +666,7 @@ impl WrapPixel {
         if let Some(infoid) = self.infoid() {
             context.insert("infoid", &infoid);
         }
+        context.insert("outgoing_edges", &self.outgoing_edges);
         context
     }
 }
