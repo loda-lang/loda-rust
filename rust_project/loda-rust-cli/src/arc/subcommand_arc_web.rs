@@ -404,59 +404,61 @@ impl SubcommandARCWeb {
             }
         }
 
+        let node_href_prefix: String = format!("/task/{}/node", task_id);
+
         let mut center_wrap_pixel = WrapPixel::default();
         center_wrap_pixel.task_id = Some(task_id.to_string());
         center_wrap_pixel.node_index = Some(node_index);
         center_wrap_pixel.is_center_pixel = true;
-        center_wrap_pixel.load(&graph);
+        center_wrap_pixel.load(&graph, &node_href_prefix);
         let pixel_center: String = tera.render("wrap_pixel.html", &center_wrap_pixel.to_context()).unwrap();
     
         let mut up_wrap_pixel = WrapPixel::default();
         up_wrap_pixel.task_id = Some(task_id.to_string());
         up_wrap_pixel.node_index = node_index_up;
-        up_wrap_pixel.load(&graph);
+        up_wrap_pixel.load(&graph, &node_href_prefix);
         let pixel_up: String = tera.render("wrap_pixel.html", &up_wrap_pixel.to_context()).unwrap();
 
         let mut down_wrap_pixel = WrapPixel::default();
         down_wrap_pixel.task_id = Some(task_id.to_string());
         down_wrap_pixel.node_index = node_index_down;
-        down_wrap_pixel.load(&graph);
+        down_wrap_pixel.load(&graph, &node_href_prefix);
         let pixel_down: String = tera.render("wrap_pixel.html", &down_wrap_pixel.to_context()).unwrap();
 
         let mut left_wrap_pixel = WrapPixel::default();
         left_wrap_pixel.task_id = Some(task_id.to_string());
         left_wrap_pixel.node_index = node_index_left;
-        left_wrap_pixel.load(&graph);
+        left_wrap_pixel.load(&graph, &node_href_prefix);
         let pixel_left: String = tera.render("wrap_pixel.html", &left_wrap_pixel.to_context()).unwrap();
 
         let mut right_wrap_pixel = WrapPixel::default();
         right_wrap_pixel.task_id = Some(task_id.to_string());
         right_wrap_pixel.node_index = node_index_right;
-        right_wrap_pixel.load(&graph);
+        right_wrap_pixel.load(&graph, &node_href_prefix);
         let pixel_right: String = tera.render("wrap_pixel.html", &right_wrap_pixel.to_context()).unwrap();
 
         let mut upleft_wrap_pixel = WrapPixel::default();
         upleft_wrap_pixel.task_id = Some(task_id.to_string());
         upleft_wrap_pixel.node_index = node_index_upleft;
-        upleft_wrap_pixel.load(&graph);
+        upleft_wrap_pixel.load(&graph, &node_href_prefix);
         let pixel_upleft: String = tera.render("wrap_pixel.html", &upleft_wrap_pixel.to_context()).unwrap();
 
         let mut upright_wrap_pixel = WrapPixel::default();
         upright_wrap_pixel.task_id = Some(task_id.to_string());
         upright_wrap_pixel.node_index = node_index_upright;
-        upright_wrap_pixel.load(&graph);
+        upright_wrap_pixel.load(&graph, &node_href_prefix);
         let pixel_upright: String = tera.render("wrap_pixel.html", &upright_wrap_pixel.to_context()).unwrap();
 
         let mut downleft_wrap_pixel = WrapPixel::default();
         downleft_wrap_pixel.task_id = Some(task_id.to_string());
         downleft_wrap_pixel.node_index = node_index_downleft;
-        downleft_wrap_pixel.load(&graph);
+        downleft_wrap_pixel.load(&graph, &node_href_prefix);
         let pixel_downleft: String = tera.render("wrap_pixel.html", &downleft_wrap_pixel.to_context()).unwrap();
 
         let mut downright_wrap_pixel = WrapPixel::default();
         downright_wrap_pixel.task_id = Some(task_id.to_string());
         downright_wrap_pixel.node_index = node_index_downright;
-        downright_wrap_pixel.load(&graph);
+        downright_wrap_pixel.load(&graph, &node_href_prefix);
         let pixel_downright: String = tera.render("wrap_pixel.html", &downright_wrap_pixel.to_context()).unwrap();
 
         let mut context_edge_horizontal = tera::Context::new();
@@ -557,7 +559,7 @@ struct WrapPixel {
 }
 
 impl WrapPixel {
-    fn load(&mut self, graph: &Graph<NodeData, EdgeData>) {
+    fn load(&mut self, graph: &Graph<NodeData, EdgeData>, node_href_prefix: &str) {
         let node_index: NodeIndex = match self.node_index {
             Some(node_index) => node_index.clone(),
             None => return,
@@ -584,6 +586,7 @@ impl WrapPixel {
             let outgoing_edge = OutgoingEdge {
                 edge_index: edge_pixel.id().index(),
                 edge_name: format!("{:?}", edge_pixel.weight()),
+                node_href: format!("{}/{}", node_href_prefix, child_index.index()),
                 node_index: child_index.index(),
                 node_name: format!("{:?}", child_node),
             };
@@ -668,6 +671,7 @@ impl WrapPixel {
 struct OutgoingEdge {
     edge_index: usize,
     edge_name: String,
+    node_href: String,
     node_index: usize,
     node_name: String,
 }

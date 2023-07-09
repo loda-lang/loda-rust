@@ -19,7 +19,7 @@ style="display: none;"
     <h1>Outgoing edges</h1>
     <ul>
         {% for item in outgoing_edges %}
-            <li>{{ item.edge_index }} - {{ item.edge_name }} - {{ item.node_index }} - {{ item.node_name }}</li>
+            <li>{{ item.edge_index }} - {{ item.edge_name }} - <a href="{{ item.node_href }}">{{ item.node_index }} - {{ item.node_name }}</a></li>
         {% endfor %}
     </ul>
     {% else %}
