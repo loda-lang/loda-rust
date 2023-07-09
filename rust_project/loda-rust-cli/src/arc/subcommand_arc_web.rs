@@ -349,6 +349,7 @@ impl SubcommandARCWeb {
         context2.insert("inspect_data", &s);
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
+        context2.insert("node_id", &node_index.index().to_string());
         let body: String = tera.render("page_node_nonpixel.html", &context2).unwrap();
         
         let response = Response::builder(200)
@@ -530,6 +531,7 @@ impl SubcommandARCWeb {
         context2.insert("right_side", &info_divs);
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
+        context2.insert("node_id", &node_index.index().to_string());
         let body: String = tera.render("page_node_pixel.html", &context2).unwrap();
         
         let response = Response::builder(200)
@@ -733,6 +735,7 @@ async fn demo1(req: Request<State>) -> tide::Result {
     context2.insert("right_side", "hi");
     context2.insert("task_id", "demo1");
     context2.insert("task_href", "#");
+    context2.insert("node_id", "42");
     let body: String = tera.render("page_node_pixel.html", &context2).unwrap();
 
     let response = Response::builder(200)
