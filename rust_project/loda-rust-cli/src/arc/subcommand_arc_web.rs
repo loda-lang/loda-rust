@@ -558,8 +558,8 @@ struct WrapNonPixelNode {
 
 impl WrapNonPixelNode {
     fn load(&mut self, graph: &Graph<NodeData, EdgeData>, node_href_prefix: &str) {
-        self.outgoing_edges = TemplateItemEdge::outgoing(graph, node_href_prefix, self.node_index);
-        self.incoming_edges = TemplateItemEdge::incoming(graph, node_href_prefix, self.node_index);
+        self.outgoing_edges = TemplateItemEdge::outgoing(graph, node_href_prefix, self.node_index, false);
+        self.incoming_edges = TemplateItemEdge::incoming(graph, node_href_prefix, self.node_index, false);
     }
 }
 
@@ -573,6 +573,7 @@ struct WrapPixel {
     task_id: Option<String>,
     node_index: Option<NodeIndex>,
     outgoing_edges: Vec<TemplateItemEdge>,
+    incoming_edges: Vec<TemplateItemEdge>,
 }
 
 impl WrapPixel {
@@ -592,25 +593,8 @@ impl WrapPixel {
             }
         }
 
-        let mut outgoing_edges = Vec::<TemplateItemEdge>::new();
-        for edge_pixel in graph.edges(node_index) {
-            match edge_pixel.weight() {
-                EdgeData::PixelNeighbor { edge_type: _ } => continue,
-                _ => {}
-            };
-            let child_index: NodeIndex = edge_pixel.target();
-            let child_node: NodeData = graph[child_index];
-            let outgoing_edge = TemplateItemEdge {
-                edge_index: edge_pixel.id().index(),
-                edge_name: format!("{:?}", edge_pixel.weight()),
-                node_href: format!("{}/{}", node_href_prefix, child_index.index()),
-                node_index: child_index.index(),
-                node_name: format!("{:?}", child_node),
-            };
-            outgoing_edges.push(outgoing_edge);
-        }
-        self.outgoing_edges = outgoing_edges;
-
+        self.outgoing_edges = TemplateItemEdge::outgoing(graph, node_href_prefix, node_index, true);
+        self.incoming_edges = TemplateItemEdge::incoming(graph, node_href_prefix, node_index, true);
     }
 
     fn infoid(&self) -> Option<String> {
@@ -680,6 +664,7 @@ impl WrapPixel {
         }
         context.insert("is_center_pixel", &self.is_center_pixel);
         context.insert("outgoing_edges", &self.outgoing_edges);
+        context.insert("incoming_edges", &self.incoming_edges);
         context
     }
 }
@@ -694,10 +679,18 @@ struct TemplateItemEdge {
 }
 
 impl TemplateItemEdge {
-    fn outgoing(graph: &Graph<NodeData, EdgeData>, node_href_prefix: &str, node_index: NodeIndex) -> Vec<Self> {
+    fn outgoing(graph: &Graph<NodeData, EdgeData>, node_href_prefix: &str, node_index: NodeIndex, ignore_pixel_neighbor: bool) -> Vec<Self> {
         let edges = graph.edges_directed(node_index, petgraph::Outgoing);
         let mut items = Vec::<TemplateItemEdge>::new();
         for edge in edges {
+            match edge.weight() {
+                EdgeData::PixelNeighbor { edge_type: _ } => {
+                    if ignore_pixel_neighbor {
+                        continue;
+                    }
+                },
+                _ => {}
+            };
             let child_index: NodeIndex = edge.target();
             let child_node: NodeData = graph[child_index];
             let item = Self {
@@ -712,10 +705,18 @@ impl TemplateItemEdge {
         items
     }
 
-    fn incoming(graph: &Graph<NodeData, EdgeData>, node_href_prefix: &str, node_index: NodeIndex) -> Vec<Self> {
+    fn incoming(graph: &Graph<NodeData, EdgeData>, node_href_prefix: &str, node_index: NodeIndex, ignore_pixel_neighbor: bool) -> Vec<Self> {
         let edges = graph.edges_directed(node_index, petgraph::Incoming);
         let mut items = Vec::<TemplateItemEdge>::new();
         for edge in edges {
+            match edge.weight() {
+                EdgeData::PixelNeighbor { edge_type: _ } => {
+                    if ignore_pixel_neighbor {
+                        continue;
+                    }
+                },
+                _ => {}
+            };
             let child_index: NodeIndex = edge.source();
             let child_node: NodeData = graph[child_index];
             let item = Self {

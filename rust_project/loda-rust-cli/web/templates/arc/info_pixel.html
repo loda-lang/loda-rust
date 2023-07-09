@@ -15,6 +15,17 @@ style="display: none;"
         <li>y: {{ y }}</li>
     </ul>
 
+    {% if incoming_edges %}
+    <h1>Incoming edges</h1>
+    <ul>
+        {% for item in incoming_edges %}
+            <li>{{ item.edge_index }} - {{ item.edge_name }} - <a href="{{ item.node_href }}">{{ item.node_index }} - {{ item.node_name }}</a></li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <h1>Incoming edges - none</h1>
+    {% endif %}
+
     {% if outgoing_edges %}
     <h1>Outgoing edges</h1>
     <ul>
