@@ -4,6 +4,7 @@ use super::arc_work_model::{PairType, Task};
 use super::{Image, ImageSize, Histogram};
 use super::{ShapeIdentification, ShapeTransformation, ShapeType};
 use super::{SingleColorObject, PixelConnectivity, ImageHistogram, ImageMask};
+use serde::Serialize;
 use tera::Tera;
 use tide::http::mime;
 use tide::{Request, Response};
@@ -549,7 +550,7 @@ struct WrapPixel {
     y: Option<u8>,
     task_id: Option<String>,
     node_index: Option<NodeIndex>,
-    outgoing_edges: Option<String>,
+    outgoing_edges: Vec<OutgoingEdge>,
 }
 
 impl WrapPixel {
@@ -569,7 +570,7 @@ impl WrapPixel {
             }
         }
 
-        let mut formatted_edges = String::new();
+        let mut outgoing_edges = Vec::<OutgoingEdge>::new();
         for edge_pixel in graph.edges(node_index) {
             match edge_pixel.weight() {
                 EdgeData::PixelNeighbor { edge_type: _ } => continue,
@@ -577,9 +578,15 @@ impl WrapPixel {
             };
             let child_index: NodeIndex = edge_pixel.target();
             let child_node: NodeData = graph[child_index];
-            formatted_edges += &format!("<li>{:?} {:?} {:?}</li>", edge_pixel, child_index, child_node);
+            let outgoing_edge = OutgoingEdge {
+                edge_index: edge_pixel.id().index(),
+                edge_name: format!("{:?}", edge_pixel.weight()),
+                node_index: child_index.index(),
+                node_name: format!("{:?}", child_node),
+            };
+            outgoing_edges.push(outgoing_edge);
         }
-        self.outgoing_edges = Some(format!("<ul>{}</ul>", formatted_edges));
+        self.outgoing_edges = outgoing_edges;
 
     }
 
@@ -651,6 +658,14 @@ impl WrapPixel {
         context.insert("outgoing_edges", &self.outgoing_edges);
         context
     }
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct OutgoingEdge {
+    edge_index: usize,
+    edge_name: String,
+    node_index: usize,
+    node_name: String,
 }
 
 async fn demo1(req: Request<State>) -> tide::Result {
