@@ -23,7 +23,8 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
-use super::{Image, ImageSize, PixelConnectivity};
+use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram};
+use super::{ImageMask, ShapeIdentification};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -77,6 +78,7 @@ pub enum EdgeData {
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
     // IsTouchingAnotherObject { edge_type: PixelNeighborEdgeType },
     // InsideHoleOfAnotherObject,
+    // InsideBoundingBoxOfAnotherObject,
 }
 
 #[allow(dead_code)]
@@ -305,6 +307,48 @@ impl ExperimentWithPetgraph {
             let _edge_index: EdgeIndex = self.graph.add_edge(object_index, pixel_index, EdgeData::Child);
         }
         Ok(object_index)
+    }
+
+    pub fn process_shapes(&mut self, image_index: NodeIndex, name: &str, sco: &SingleColorObject, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+        for color in 0..=9 {
+            let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
+                Ok(value) => value,
+                Err(_error) => {
+                    // println!("error: {:?}", error);
+                    continue;
+                }
+            };
+            let histogram: Histogram = enumerated_objects.histogram_all();
+            for (count, object_id) in histogram.pairs_ordered_by_color() {
+                if count == 0 || object_id == 0 {
+                    continue;
+                }
+                let mask: Image = enumerated_objects.to_mask_where_color_is(object_id);
+                let shape_id: ShapeIdentification = match ShapeIdentification::compute(&mask) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        println!("unable to find shape. error: {:?}", error);
+                        continue;
+                    }
+                };
+                println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
+                let object_index: NodeIndex = match self.add_object(image_index, &shape_id.mask_uncropped, connectivity) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        println!("unable to add object to graph. error: {:?}", error);
+                        continue;
+                    }
+                };
+                println!("name: {} object_index: {:?}", name, object_index);
+
+                {
+                    let property = NodeData::Color { color };
+                    let index: NodeIndex = self.graph.add_node(property);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                }
+            }
+        }
+        Ok(())
     }
 }
 

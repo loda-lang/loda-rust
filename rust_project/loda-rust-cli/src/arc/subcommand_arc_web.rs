@@ -191,36 +191,11 @@ impl SubcommandARCWeb {
                 return;
             }
         };
-        for color in 0..=9 {
-            let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
-                Ok(value) => value,
-                Err(_error) => {
-                    // println!("error: {:?}", error);
-                    continue;
-                }
-            };
-            let histogram: Histogram = enumerated_objects.histogram_all();
-            for (count, object_id) in histogram.pairs_ordered_by_color() {
-                if count == 0 || object_id == 0 {
-                    continue;
-                }
-                let mask: Image = enumerated_objects.to_mask_where_color_is(object_id);
-                let shape_id: ShapeIdentification = match ShapeIdentification::compute(&mask) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        println!("unable to find shape. error: {:?}", error);
-                        continue;
-                    }
-                };
-                println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
-                let object_index: NodeIndex = match graph.add_object(image_index, &shape_id.mask_uncropped, connectivity) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        println!("unable to add object to graph. error: {:?}", error);
-                        continue;
-                    }
-                };
-                println!("name: {} object_index: {:?}", name, object_index);
+        match graph.process_shapes(image_index, name, sco, connectivity) {
+            Ok(()) => {},
+            Err(error) => {
+                println!("{}: unable to process shapes error: {:?}", name, error);
+                return;
             }
         }
     }
