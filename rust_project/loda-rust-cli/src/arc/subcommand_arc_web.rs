@@ -68,7 +68,6 @@ impl SubcommandARCWeb {
             config: self.config.clone(),
             tera: tera_arc,
         });
-        app.at("/").get(demo1);
         app.at("/task").get(Self::get_task_list);
         app.at("/task/:task_id").get(Self::get_task_with_id);
 
@@ -671,80 +670,4 @@ struct OutgoingEdge {
     edge_name: String,
     node_index: usize,
     node_name: String,
-}
-
-async fn demo1(req: Request<State>) -> tide::Result {
-    println!("demo1");
-    let tera: &Tera = &req.state().tera;
-
-    let mut context_pixel_center = tera::Context::new();
-    context_pixel_center.insert("color", "2");
-    context_pixel_center.insert("href", "#");
-    let pixel_center: String = tera.render("wrap_pixel.html", &context_pixel_center).unwrap();
-
-    let mut context_pixel_mock1 = tera::Context::new();
-    context_pixel_mock1.insert("color", "3");
-    context_pixel_mock1.insert("href", "/task/662c240a/node/5");
-    let pixel_mock1: String = tera.render("wrap_pixel.html", &context_pixel_mock1).unwrap();
-
-    let mut context_pixel_mock2 = tera::Context::new();
-    context_pixel_mock2.insert("color", "4");
-    context_pixel_mock2.insert("href", "/task/662c240a/node/5");
-    let pixel_mock2: String = tera.render("wrap_pixel.html", &context_pixel_mock2).unwrap();
-
-    let mut context_edge_horizontal = tera::Context::new();
-    context_edge_horizontal.insert("htmlcharacter", "&#x22EF;");
-    context_edge_horizontal.insert("infoid", "edgexyz");
-    let edge_horizontal: String = tera.render("wrap_edge.html", &context_edge_horizontal).unwrap();
-
-    let mut context_edge_vertical = tera::Context::new();
-    context_edge_vertical.insert("htmlcharacter", "&#x22EE;");
-    context_edge_vertical.insert("infoid", "edgexyz");
-    let edge_vertical: String = tera.render("wrap_edge.html", &context_edge_vertical).unwrap();
-
-    let mut context_edge_diagonal_a = tera::Context::new();
-    context_edge_diagonal_a.insert("htmlcharacter", "&#x22F1;");
-    context_edge_diagonal_a.insert("infoid", "edgexyz");
-    let edge_diagonal_a: String = tera.render("wrap_edge.html", &context_edge_diagonal_a).unwrap();
-
-    let mut context_edge_diagonal_b = tera::Context::new();
-    context_edge_diagonal_b.insert("htmlcharacter", "&#x22F0;");
-    context_edge_diagonal_b.insert("infoid", "edgexyz");
-    let edge_diagonal_b: String = tera.render("wrap_edge.html", &context_edge_diagonal_b).unwrap();
-
-    let mut context = tera::Context::new();
-    context.insert("pixel_center", &pixel_center);
-    context.insert("pixel_up", &pixel_mock1);
-    context.insert("pixel_down", &pixel_mock1);
-    context.insert("pixel_left", &pixel_mock1);
-    context.insert("pixel_right", &pixel_mock1);
-    context.insert("pixel_upleft", &pixel_mock2);
-    context.insert("pixel_upright", &pixel_mock2);
-    context.insert("pixel_downleft", &pixel_mock2);
-    context.insert("pixel_downright", &pixel_mock2);
-    context.insert("edge_left_center", &edge_horizontal);
-    context.insert("edge_center_right", &edge_horizontal);
-    context.insert("edge_center_up", &edge_vertical);
-    context.insert("edge_center_down", &edge_vertical);
-    context.insert("edge_center_upleft", &edge_diagonal_a);
-    context.insert("edge_center_upright", &edge_diagonal_b);
-    context.insert("edge_center_downleft", &edge_diagonal_b);
-    context.insert("edge_center_downright", &edge_diagonal_a);
-
-    let pretty_pixel: String = tera.render("inspect_pixel.html", &context).unwrap();
-
-    let mut context2 = tera::Context::new();
-    context2.insert("left_side", &pretty_pixel);
-    context2.insert("right_side", "hi");
-    context2.insert("task_id", "demo1");
-    context2.insert("task_href", "#");
-    context2.insert("node_id", "42");
-    let body: String = tera.render("page_node_pixel.html", &context2).unwrap();
-
-    let response = Response::builder(200)
-        .body(body)
-        .content_type(mime::HTML)
-        .build();
-
-    Ok(response)
 }
