@@ -323,32 +323,38 @@ impl SubcommandARCWeb {
                 return Self::page_graph_pixel(graph, node_index, task_id, tera);
             },
             _ => {
-                let mut s = String::new();
-                s += &format!("{:?}", node);
-                s += "\n";
-                s += "\n";
-
-                let count_outgoing: usize = graph.edges_directed(node_index, petgraph::Outgoing).count();
-                s += &format!("count_outgoing: {:?}", count_outgoing);
-                s += "\n";
-    
-                let count_incoming: usize = graph.edges_directed(node_index, petgraph::Incoming).count();
-                s += &format!("count_incoming: {:?}", count_incoming);
-                s += "\n";
-    
-                let mut context2 = tera::Context::new();
-                context2.insert("inspect_data", &s);
-                context2.insert("task_id", &task_id);
-                context2.insert("task_href", &format!("/task/{}", task_id));
-                let body: String = tera.render("page_graph_node.html", &context2).unwrap();
-                
-                let response = Response::builder(200)
-                    .body(body)
-                    .content_type(mime::HTML)
-                    .build();
-                return Ok(response);
+                return Self::page_graph_nonpixel(graph, node_index, task_id, tera);
             }
         }
+    }
+
+    fn page_graph_nonpixel(graph: &Graph<NodeData, EdgeData>, node_index: NodeIndex, task_id: &str, tera: &Tera) -> tide::Result {
+        let node: &NodeData = &graph[node_index];
+
+        let mut s = String::new();
+        s += &format!("{:?}", node);
+        s += "\n";
+        s += "\n";
+
+        let count_outgoing: usize = graph.edges_directed(node_index, petgraph::Outgoing).count();
+        s += &format!("count_outgoing: {:?}", count_outgoing);
+        s += "\n";
+
+        let count_incoming: usize = graph.edges_directed(node_index, petgraph::Incoming).count();
+        s += &format!("count_incoming: {:?}", count_incoming);
+        s += "\n";
+
+        let mut context2 = tera::Context::new();
+        context2.insert("inspect_data", &s);
+        context2.insert("task_id", &task_id);
+        context2.insert("task_href", &format!("/task/{}", task_id));
+        let body: String = tera.render("page_graph_node.html", &context2).unwrap();
+        
+        let response = Response::builder(200)
+            .body(body)
+            .content_type(mime::HTML)
+            .build();
+        Ok(response)
     }
 
     fn page_graph_pixel(graph: &Graph<NodeData, EdgeData>, node_index: NodeIndex, task_id: &str, tera: &Tera) -> tide::Result {
