@@ -2,7 +2,11 @@
 {% if infoid %}
 id="{{infoid}}"
 {% endif %}
+{% if is_center_pixel %}
+class="visiblebydefault"
+{% else %}
 style="display: none;"
+{% endif %}
 >
     <h1>Pixel</h1>
     <ul>

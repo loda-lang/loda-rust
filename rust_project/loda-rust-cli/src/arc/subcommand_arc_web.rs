@@ -408,6 +408,7 @@ impl SubcommandARCWeb {
         let mut center_wrap_pixel = WrapPixel::default();
         center_wrap_pixel.task_id = Some(task_id.to_string());
         center_wrap_pixel.node_index = Some(node_index);
+        center_wrap_pixel.is_center_pixel = true;
         center_wrap_pixel.load(&graph);
         let pixel_center: String = tera.render("wrap_pixel.html", &center_wrap_pixel.to_context()).unwrap();
     
@@ -547,6 +548,7 @@ impl SubcommandARCWeb {
 #[cfg(feature = "petgraph")]
 #[derive(Clone, Debug, Default)]
 struct WrapPixel {
+    is_center_pixel: bool,
     color: Option<u8>,
     x: Option<u8>,
     y: Option<u8>,
@@ -657,6 +659,7 @@ impl WrapPixel {
         if let Some(infoid) = self.infoid() {
             context.insert("infoid", &infoid);
         }
+        context.insert("is_center_pixel", &self.is_center_pixel);
         context.insert("outgoing_edges", &self.outgoing_edges);
         context
     }
