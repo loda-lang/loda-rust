@@ -329,6 +329,13 @@ impl SubcommandARCWeb {
     }
 
     fn page_node_nonpixel(graph: &Graph<NodeData, EdgeData>, node_index: NodeIndex, task_id: &str, tera: &Tera) -> tide::Result {
+        let node_href_prefix: String = format!("/task/{}/node", task_id);
+
+        let mut wrap = WrapNonPixelNode::default();
+        wrap.task_id = Some(task_id.to_string());
+        wrap.node_index = node_index;
+        wrap.load(&graph, &node_href_prefix);
+    
         let node: &NodeData = &graph[node_index];
 
         let mut s = String::new();
@@ -349,6 +356,7 @@ impl SubcommandARCWeb {
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
         context2.insert("node_id", &node_index.index().to_string());
+        context2.insert("outgoing_edges", &wrap.outgoing_edges);
         let body: String = tera.render("page_node_nonpixel.html", &context2).unwrap();
         
         let response = Response::builder(200)
@@ -544,6 +552,33 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
+}
+
+#[cfg(feature = "petgraph")]
+#[derive(Clone, Debug, Default)]
+struct WrapNonPixelNode {
+    task_id: Option<String>,
+    node_index: NodeIndex,
+    outgoing_edges: Vec<OutgoingEdge>,
+}
+
+impl WrapNonPixelNode {
+    fn load(&mut self, graph: &Graph<NodeData, EdgeData>, node_href_prefix: &str) {
+        let mut outgoing_edges = Vec::<OutgoingEdge>::new();
+        for edge_pixel in graph.edges(self.node_index) {
+            let child_index: NodeIndex = edge_pixel.target();
+            let child_node: NodeData = graph[child_index];
+            let outgoing_edge = OutgoingEdge {
+                edge_index: edge_pixel.id().index(),
+                edge_name: format!("{:?}", edge_pixel.weight()),
+                node_href: format!("{}/{}", node_href_prefix, child_index.index()),
+                node_index: child_index.index(),
+                node_name: format!("{:?}", child_node),
+            };
+            outgoing_edges.push(outgoing_edge);
+        }
+        self.outgoing_edges = outgoing_edges;
+    }
 }
 
 #[cfg(feature = "petgraph")]
