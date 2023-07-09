@@ -23,7 +23,7 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
-use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram};
+use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType};
 use super::{ImageMask, ShapeIdentification};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 
@@ -35,6 +35,7 @@ pub enum NodeData {
     PositionX { x: u8 },
     PositionY { y: u8 },
     Object { connectivity: PixelConnectivity },
+    ShapeType { shape_type: ShapeType },
     // Input,
     // Output,
     // Pair,
@@ -340,6 +341,12 @@ impl ExperimentWithPetgraph {
                     }
                 };
                 println!("name: {} object_index: {:?}", name, object_index);
+
+                {
+                    let property = NodeData::ShapeType { shape_type: shape_id.shape_type.clone() };
+                    let index: NodeIndex = self.graph.add_node(property);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                }
 
                 {
                     let property = NodeData::Color { color };

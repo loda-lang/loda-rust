@@ -178,7 +178,7 @@ impl ShapeTypeImage {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ShapeType {
     /// Solid square or rectangle.
     /// ````
