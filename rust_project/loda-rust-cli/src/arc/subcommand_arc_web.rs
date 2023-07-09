@@ -73,7 +73,7 @@ impl SubcommandARCWeb {
         app.at("/task/:task_id").get(Self::get_task_with_id);
 
         #[cfg(feature = "petgraph")]
-        app.at("/task/:task_id/graph/:node_id").get(Self::get_node);
+        app.at("/task/:task_id/node/:node_id").get(Self::get_node);
 
         app.at("/static").serve_dir(&dir_static)?;
         app.listen("127.0.0.1:8090").await?;
@@ -172,7 +172,7 @@ impl SubcommandARCWeb {
         context.insert("inspect_html", &inspect_html);
         context.insert("task_id", task_id);
         context.insert("tasklist_href", "/task");
-        context.insert("graph_href", &format!("/task/{}/graph/1", task_id));
+        context.insert("node_href", &format!("/task/{}/node/1", task_id));
         let html: String = tera.render("page_inspect_task.html", &context).unwrap();
     
         let response = Response::builder(200)
@@ -321,15 +321,15 @@ impl SubcommandARCWeb {
 
         match node {
             NodeData::Pixel => {
-                return Self::page_graph_pixel(graph, node_index, task_id, tera);
+                return Self::page_node_pixel(graph, node_index, task_id, tera);
             },
             _ => {
-                return Self::page_graph_nonpixel(graph, node_index, task_id, tera);
+                return Self::page_node_nonpixel(graph, node_index, task_id, tera);
             }
         }
     }
 
-    fn page_graph_nonpixel(graph: &Graph<NodeData, EdgeData>, node_index: NodeIndex, task_id: &str, tera: &Tera) -> tide::Result {
+    fn page_node_nonpixel(graph: &Graph<NodeData, EdgeData>, node_index: NodeIndex, task_id: &str, tera: &Tera) -> tide::Result {
         let node: &NodeData = &graph[node_index];
 
         let mut s = String::new();
@@ -349,7 +349,7 @@ impl SubcommandARCWeb {
         context2.insert("inspect_data", &s);
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
-        let body: String = tera.render("page_graph_node.html", &context2).unwrap();
+        let body: String = tera.render("page_node_nonpixel.html", &context2).unwrap();
         
         let response = Response::builder(200)
             .body(body)
@@ -358,7 +358,7 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
-    fn page_graph_pixel(graph: &Graph<NodeData, EdgeData>, node_index: NodeIndex, task_id: &str, tera: &Tera) -> tide::Result {
+    fn page_node_pixel(graph: &Graph<NodeData, EdgeData>, node_index: NodeIndex, task_id: &str, tera: &Tera) -> tide::Result {
         let mut node_index_up: Option<NodeIndex> = None;
         let mut node_index_down: Option<NodeIndex> = None;
         let mut node_index_left: Option<NodeIndex> = None;
@@ -530,7 +530,7 @@ impl SubcommandARCWeb {
         context2.insert("right_side", &info_divs);
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
-        let body: String = tera.render("page_graph_pixel.html", &context2).unwrap();
+        let body: String = tera.render("page_node_pixel.html", &context2).unwrap();
         
         let response = Response::builder(200)
             .body(body)
@@ -610,7 +610,7 @@ impl WrapPixel {
         let href: String;
         match (&self.task_id, &self.node_index) {
             (Some(task_id), Some(node_index)) => {
-                href = format!("/task/{}/graph/{}", task_id, node_index.index());
+                href = format!("/task/{}/node/{}", task_id, node_index.index());
             },
             _ => {
                 href = "#".to_string();
@@ -679,12 +679,12 @@ async fn demo1(req: Request<State>) -> tide::Result {
 
     let mut context_pixel_mock1 = tera::Context::new();
     context_pixel_mock1.insert("color", "3");
-    context_pixel_mock1.insert("href", "/task/662c240a/graph/5");
+    context_pixel_mock1.insert("href", "/task/662c240a/node/5");
     let pixel_mock1: String = tera.render("wrap_pixel.html", &context_pixel_mock1).unwrap();
 
     let mut context_pixel_mock2 = tera::Context::new();
     context_pixel_mock2.insert("color", "4");
-    context_pixel_mock2.insert("href", "/task/662c240a/graph/5");
+    context_pixel_mock2.insert("href", "/task/662c240a/node/5");
     let pixel_mock2: String = tera.render("wrap_pixel.html", &context_pixel_mock2).unwrap();
 
     let mut context_edge_horizontal = tera::Context::new();
@@ -733,7 +733,7 @@ async fn demo1(req: Request<State>) -> tide::Result {
     context2.insert("right_side", "hi");
     context2.insert("task_id", "demo1");
     context2.insert("task_href", "#");
-    let body: String = tera.render("page_graph_pixel.html", &context2).unwrap();
+    let body: String = tera.render("page_node_pixel.html", &context2).unwrap();
 
     let response = Response::builder(200)
         .body(body)
