@@ -343,20 +343,13 @@ impl SubcommandARCWeb {
         s += "\n";
         s += "\n";
 
-        let count_outgoing: usize = graph.edges_directed(node_index, petgraph::Outgoing).count();
-        s += &format!("count_outgoing: {:?}", count_outgoing);
-        s += "\n";
-
-        let count_incoming: usize = graph.edges_directed(node_index, petgraph::Incoming).count();
-        s += &format!("count_incoming: {:?}", count_incoming);
-        s += "\n";
-
         let mut context2 = tera::Context::new();
         context2.insert("inspect_data", &s);
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
         context2.insert("node_id", &node_index.index().to_string());
         context2.insert("outgoing_edges", &wrap.outgoing_edges);
+        context2.insert("incoming_edges", &wrap.incoming_edges);
         let body: String = tera.render("page_node_nonpixel.html", &context2).unwrap();
         
         let response = Response::builder(200)
@@ -559,25 +552,14 @@ impl SubcommandARCWeb {
 struct WrapNonPixelNode {
     task_id: Option<String>,
     node_index: NodeIndex,
-    outgoing_edges: Vec<OutgoingEdge>,
+    outgoing_edges: Vec<TemplateItemEdge>,
+    incoming_edges: Vec<TemplateItemEdge>,
 }
 
 impl WrapNonPixelNode {
     fn load(&mut self, graph: &Graph<NodeData, EdgeData>, node_href_prefix: &str) {
-        let mut outgoing_edges = Vec::<OutgoingEdge>::new();
-        for edge_pixel in graph.edges(self.node_index) {
-            let child_index: NodeIndex = edge_pixel.target();
-            let child_node: NodeData = graph[child_index];
-            let outgoing_edge = OutgoingEdge {
-                edge_index: edge_pixel.id().index(),
-                edge_name: format!("{:?}", edge_pixel.weight()),
-                node_href: format!("{}/{}", node_href_prefix, child_index.index()),
-                node_index: child_index.index(),
-                node_name: format!("{:?}", child_node),
-            };
-            outgoing_edges.push(outgoing_edge);
-        }
-        self.outgoing_edges = outgoing_edges;
+        self.outgoing_edges = TemplateItemEdge::outgoing(graph, node_href_prefix, self.node_index);
+        self.incoming_edges = TemplateItemEdge::incoming(graph, node_href_prefix, self.node_index);
     }
 }
 
@@ -590,7 +572,7 @@ struct WrapPixel {
     y: Option<u8>,
     task_id: Option<String>,
     node_index: Option<NodeIndex>,
-    outgoing_edges: Vec<OutgoingEdge>,
+    outgoing_edges: Vec<TemplateItemEdge>,
 }
 
 impl WrapPixel {
@@ -610,7 +592,7 @@ impl WrapPixel {
             }
         }
 
-        let mut outgoing_edges = Vec::<OutgoingEdge>::new();
+        let mut outgoing_edges = Vec::<TemplateItemEdge>::new();
         for edge_pixel in graph.edges(node_index) {
             match edge_pixel.weight() {
                 EdgeData::PixelNeighbor { edge_type: _ } => continue,
@@ -618,7 +600,7 @@ impl WrapPixel {
             };
             let child_index: NodeIndex = edge_pixel.target();
             let child_node: NodeData = graph[child_index];
-            let outgoing_edge = OutgoingEdge {
+            let outgoing_edge = TemplateItemEdge {
                 edge_index: edge_pixel.id().index(),
                 edge_name: format!("{:?}", edge_pixel.weight()),
                 node_href: format!("{}/{}", node_href_prefix, child_index.index()),
@@ -703,10 +685,49 @@ impl WrapPixel {
 }
 
 #[derive(Clone, Debug, Serialize)]
-struct OutgoingEdge {
+struct TemplateItemEdge {
     edge_index: usize,
     edge_name: String,
     node_href: String,
     node_index: usize,
     node_name: String,
 }
+
+impl TemplateItemEdge {
+    fn outgoing(graph: &Graph<NodeData, EdgeData>, node_href_prefix: &str, node_index: NodeIndex) -> Vec<Self> {
+        let edges = graph.edges_directed(node_index, petgraph::Outgoing);
+        let mut items = Vec::<TemplateItemEdge>::new();
+        for edge in edges {
+            let child_index: NodeIndex = edge.target();
+            let child_node: NodeData = graph[child_index];
+            let item = Self {
+                edge_index: edge.id().index(),
+                edge_name: format!("{:?}", edge.weight()),
+                node_href: format!("{}/{}", node_href_prefix, child_index.index()),
+                node_index: child_index.index(),
+                node_name: format!("{:?}", child_node),
+            };
+            items.push(item);
+        }
+        items
+    }
+
+    fn incoming(graph: &Graph<NodeData, EdgeData>, node_href_prefix: &str, node_index: NodeIndex) -> Vec<Self> {
+        let edges = graph.edges_directed(node_index, petgraph::Incoming);
+        let mut items = Vec::<TemplateItemEdge>::new();
+        for edge in edges {
+            let child_index: NodeIndex = edge.source();
+            let child_node: NodeData = graph[child_index];
+            let item = Self {
+                edge_index: edge.id().index(),
+                edge_name: format!("{:?}", edge.weight()),
+                node_href: format!("{}/{}", node_href_prefix, child_index.index()),
+                node_index: child_index.index(),
+                node_name: format!("{:?}", child_node),
+            };
+            items.push(item);
+        }
+        items
+    }
+}
+
