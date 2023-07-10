@@ -27,6 +27,10 @@
     overflow: hidden;
 }
 
+.themearc.image .json-data {
+    display: none;
+}
+
 .themearc.image.row span:hover {
     background-color: white;
 }

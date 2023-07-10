@@ -22,7 +22,12 @@
     </header>
     
     <main id="main-outer">
-    <div id="main-inner">{{inspect_html|safe}}</div>
+    <div id="main-inner">
+        <div class="themearc image" data-image>
+            <span class="json-data">[[1, 2, 3], [4, 5, 6]]</span>
+        </div>
+
+        {{inspect_html|safe}}</div>
     </main>
     
     <footer id="page-footer">
@@ -33,5 +38,47 @@
         <!-- footer -->
     </div>
     </footer>
+
+      <script>
+        const imageDivs = document.querySelectorAll('[data-image]');
+      
+        Array.from(imageDivs).forEach((imageDiv) => {
+          const divs = imageDiv.querySelectorAll('.json-data');
+          const div = divs[0];
+          const json = div.innerText;
+          const imageRows = JSON.parse(json);
+
+          const spanRowContainer = document.createElement('span');
+          spanRowContainer.className = 'themearc image rows';
+
+          imageRows.forEach((row, rowIndex) => {
+            const spanRow = document.createElement('span');
+            spanRow.className = 'themearc image row';
+      
+            row.forEach((pixel, columnIndex) => {
+              const spanPixel = document.createElement('span');
+              spanPixel.className = `themearc symbol_${pixel}`;
+              spanPixel.textContent = pixel;
+              spanPixel.addEventListener('click', () => {
+                const host = window.location.href;
+                const url = `${host}/find-node-pixel?x=${columnIndex}&y=${rowIndex}`;
+                window.open(url, '_blank');
+              });
+              spanRow.appendChild(spanPixel);
+            });
+      
+            spanRowContainer.appendChild(spanRow);
+          });
+
+          const divRowContainer = document.createElement('div');
+          divRowContainer.className = 'themearc image rows-container';
+          divRowContainer.appendChild(spanRowContainer);
+
+          imageDiv.appendChild(divRowContainer);
+      
+          div.style.display = 'none';
+        });
+      </script>
+
 </body>
 </html>
