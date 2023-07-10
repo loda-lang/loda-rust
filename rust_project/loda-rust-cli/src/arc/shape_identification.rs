@@ -382,7 +382,13 @@ pub enum ShapeType {
     /// ```
     LeftPlus,
 
-    /// Shape `↼`, similar to the Tetris `L` symbol with a pixel at the top middle.
+    /// Shape `↼` corresponding to one of the states in the game-of-life glider.
+    /// 
+    /// The glider is the smallest, most common, and first-discovered spaceship in Game of Life.
+    /// 
+    /// https://conwaylife.com/wiki/Glider
+    /// 
+    /// Similar to the Tetris `L` symbol with a pixel at the top middle.
     /// 
     /// In between state between a `+` symbol and a `L` symbol.
     /// 
