@@ -27,6 +27,14 @@
     overflow: hidden;
 }
 
+.themearc.image.row span:hover {
+    background-color: white;
+}
+.themearc.rows:hover {
+    outline: 2px solid var(--image-pixel-border);
+    outline-offset: 2px;
+}
+
 .themearc.symbol_0 {
     background-color: #000;
 }
