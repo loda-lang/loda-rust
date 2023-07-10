@@ -4,6 +4,7 @@ use super::arc_work_model::{PairType, Task};
 use super::{Image, ImageSize, Histogram};
 use super::{ShapeIdentification, ShapeTransformation, ShapeType};
 use super::{SingleColorObject, PixelConnectivity, ImageHistogram, ImageMask};
+use http_types::{url, Url};
 use serde::{Deserialize, Serialize};
 use tera::Tera;
 use tide::http::mime;
@@ -185,13 +186,34 @@ impl SubcommandARCWeb {
     }
 
     async fn find_node_pixel(req: Request<State>) -> tide::Result {
+        let tera: &Tera = &req.state().tera;
+        let task_id: &str = req.param("task_id").unwrap_or("world");
         let query: FindNodePixel = req.query()?;
         let s = format!("find_node_pixel x: {}, y: {}", query.x, query.y);
-        let response = tide::Response::builder(200)
-            .body(s)
-            .content_type("text/plain; charset=utf-8")
+        // find the pixel in the graph and get its node id.
+        let node_id: u32 = 1;
+
+        let current_url: &Url = req.url();
+        let redirect_url: Url;
+        if let Some(domain) = current_url.domain() {
+            let base_url = match current_url.port() {
+                Some(port) => format!("{}://{}:{}", current_url.scheme(), domain, port),
+                None => format!("{}://{}", current_url.scheme(), domain),
+            };
+            redirect_url = Url::parse(&format!("{}/task/{}/node/{}", base_url, task_id, node_id))?;
+        } else {
+            return Err(tide::Error::from_str(500, "URL does not have a base URL"));
+        }
+
+        let mut context = tera::Context::new();
+        context.insert("redirect_url", &redirect_url);
+        let html: String = tera.render("redirect.html", &context).unwrap();
+    
+        let response = Response::builder(200)
+            .body(html)
+            .content_type(mime::HTML)
             .build();
-        return Ok(response);
+        Ok(response)
     }
 
     fn process_shapes(graph: &mut ExperimentWithPetgraph, image_index: NodeIndex, name: &str, sco: &Option<SingleColorObject>) {
