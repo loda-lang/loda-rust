@@ -4,7 +4,7 @@ use super::arc_work_model::{PairType, Task};
 use super::{Image, ImageSize, Histogram};
 use super::{ShapeIdentification, ShapeTransformation, ShapeType};
 use super::{SingleColorObject, PixelConnectivity, ImageHistogram, ImageMask};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tera::Tera;
 use tide::http::mime;
 use tide::{Request, Response};
@@ -70,6 +70,8 @@ impl SubcommandARCWeb {
         });
         app.at("/task").get(Self::get_task_list);
         app.at("/task/:task_id").get(Self::get_task_with_id);
+
+        app.at("/task/:task_id/find-node-pixel").get(Self::find_node_pixel);
 
         #[cfg(feature = "petgraph")]
         app.at("/task/:task_id/node/:node_id").get(Self::get_node);
@@ -180,6 +182,16 @@ impl SubcommandARCWeb {
             .build();
     
         Ok(response)
+    }
+
+    async fn find_node_pixel(req: Request<State>) -> tide::Result {
+        let query: FindNodePixel = req.query()?;
+        let s = format!("find_node_pixel x: {}, y: {}", query.x, query.y);
+        let response = tide::Response::builder(200)
+            .body(s)
+            .content_type("text/plain; charset=utf-8")
+            .build();
+        return Ok(response);
     }
 
     fn process_shapes(graph: &mut ExperimentWithPetgraph, image_index: NodeIndex, name: &str, sco: &Option<SingleColorObject>) {
@@ -732,3 +744,8 @@ impl TemplateItemEdge {
     }
 }
 
+#[derive(Deserialize)]
+struct FindNodePixel {
+    x: u8,
+    y: u8,
+}
