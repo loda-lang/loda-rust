@@ -4,7 +4,7 @@ use super::arc_work_model::{PairType, Task};
 use super::{Image, ImageSize, Histogram};
 use super::{ShapeIdentification, ShapeTransformation, ShapeType};
 use super::{SingleColorObject, PixelConnectivity, ImageHistogram, ImageMask};
-use http_types::{url, Url};
+use http_types::Url;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
 use tide::http::mime;
@@ -186,7 +186,6 @@ impl SubcommandARCWeb {
     }
 
     async fn find_node_pixel(req: Request<State>) -> tide::Result {
-        let tera: &Tera = &req.state().tera;
         let task_id: &str = req.param("task_id").unwrap_or("world");
         let query: FindNodePixel = req.query()?;
         let s = format!("find_node_pixel x: {}, y: {}", query.x, query.y);
@@ -205,13 +204,8 @@ impl SubcommandARCWeb {
             return Err(tide::Error::from_str(500, "URL does not have a base URL"));
         }
 
-        let mut context = tera::Context::new();
-        context.insert("redirect_url", &redirect_url);
-        let html: String = tera.render("redirect.html", &context).unwrap();
-    
-        let response = Response::builder(200)
-            .body(html)
-            .content_type(mime::HTML)
+        let response = Response::builder(303)
+            .header("Location", redirect_url.as_str())
             .build();
         Ok(response)
     }
