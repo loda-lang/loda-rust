@@ -371,7 +371,7 @@ pub enum ShapeType {
 
     /// Shape `ഺ`, similar to a `+` where the top line is at the left side.
     /// 
-    /// In between state between a `+` symbol and a `L` symbol.
+    /// In between state between a `+` symbol and a rotated `T` symbol.
     /// 
     /// U+0D3A: MALAYALAM LETTER TTTA
     /// 
@@ -390,7 +390,7 @@ pub enum ShapeType {
     /// 
     /// Similar to the Tetris `L` symbol with a pixel at the top middle.
     /// 
-    /// In between state between a `+` symbol and a `L` symbol.
+    /// In between state between a `L` symbol and a `⊥` (upside down `T` symbol).
     /// 
     /// A rotated version of the `ᒯ` symbol.
     /// 
