@@ -34,6 +34,7 @@ struct ShapeTypeImage {
     image_lower_left_triangle: Image,
     image_left_plus: Image,
     image_leftwards_harpoon_with_barb_upwards: Image,
+    image_box_without_one_corner: Image,
 }
 
 impl ShapeTypeImage {
@@ -151,6 +152,12 @@ impl ShapeTypeImage {
             1, 1, 1,
         ])?;
 
+        let image_box_without_one_corner: Image = Image::try_create(3, 3, vec![
+            1, 1, 0,
+            1, 0, 1,
+            1, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -172,6 +179,7 @@ impl ShapeTypeImage {
             image_lower_left_triangle,
             image_left_plus,
             image_leftwards_harpoon_with_barb_upwards,
+            image_box_without_one_corner,
         };
         Ok(instance)
     }
@@ -401,6 +409,18 @@ pub enum ShapeType {
     /// ```
     LeftwardsHarpoonWithBarbUpwards,
 
+    /// A box that is hollow, that lack one of its corners.
+    /// 
+    /// Possible unicode character to represent this shape:
+    /// `◳`, WHITE SQUARE WITH UPPER RIGHT QUADRANT
+    /// 
+    /// ````
+    /// 1, 1, 0
+    /// 1, 0, 1
+    /// 1, 1, 1
+    /// ```
+    BoxWithoutOneCorner,
+
     Unclassified,
 
     // Future experiments
@@ -435,6 +455,7 @@ impl ShapeType {
             Self::FlippedJ => "𐐢",
             Self::LeftPlus => "ഺ",
             Self::LeftwardsHarpoonWithBarbUpwards => "↼",
+            Self::BoxWithoutOneCorner => "box1",
             Self::Unclassified => "unclassified",
         }
     }
@@ -616,6 +637,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle, ShapeType::LowerLeftTriangle));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_left_plus, ShapeType::LeftPlus));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_leftwards_harpoon_with_barb_upwards, ShapeType::LeftwardsHarpoonWithBarbUpwards));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_without_one_corner, ShapeType::BoxWithoutOneCorner));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2014,6 +2036,26 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "↼");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+    }
+
+    #[test]
+    fn test_220000_image_box_without_one_corner() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1,
+            1, 0, 0, 1,
+            1, 0, 0, 1,
+            1, 1, 1, 0,
+            1, 1, 1, 0,
+        ];
+        let input: Image = Image::try_create(4, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "box1");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw180]));
     }
 
     #[test]
