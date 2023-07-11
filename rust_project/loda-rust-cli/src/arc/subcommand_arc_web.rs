@@ -286,8 +286,62 @@ impl SubcommandARCWeb {
         let task_id: &str = req.param("task_id").unwrap_or("world");
         let query: FindNodePixel = req.query()?;
         let s = format!("find_node_pixel x: {}, y: {}", query.x, query.y);
-        // find the pixel in the graph and get its node id.
-        let node_id: u32 = 1;
+
+        let task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
+            Ok(value) => value,
+            Err(error) => {
+                error!("cannot load the task_graph. error: {:?}", error);
+                let response = tide::Response::builder(404)
+                    .body("cannot load the task_graph.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+
+        // find the pixel in the graph and get its corresponding node id.
+        let graph: &Graph<NodeData, EdgeData> = task_graph.graph();
+        let mut found_node_index: Option<NodeIndex> = None;
+        for node_index in graph.node_indices() {
+            let node: NodeData = graph[node_index];
+            match node {
+                NodeData::Pixel => {},
+                _ => continue
+            }
+            let pixel_index: NodeIndex = node_index;
+
+            let mut found_x: Option<u8> = None;
+            let mut found_y: Option<u8> = None;
+            for edge_pixel in graph.edges(pixel_index) {
+                let child_index: NodeIndex = edge_pixel.target();
+                let child_node: NodeData = graph[child_index];
+                match child_node {
+                    NodeData::PositionX { x } => { found_x = Some(x); },
+                    NodeData::PositionY { y } => { found_y = Some(y); },
+                    _ => {}
+                }
+            }
+            let (pixel_x, pixel_y) = match (found_x, found_y) {
+                (Some(x), Some(y)) => (x, y),
+                _ => continue
+            };
+            if pixel_x != query.x || pixel_y != query.y {
+                continue;
+            }
+            println!("found node_index: {:?}", node_index);
+            if found_node_index.is_some() {
+                println!("multiple candidates found. x: {} y: {}", query.x, query.y);
+                continue;
+            }
+            found_node_index = Some(node_index);
+        }
+
+        let node_id: usize = match found_node_index {
+            Some(value) => value.index(),
+            None => {
+                return Err(tide::Error::from_str(500, "Cannot find the pixel in the graph"));
+            }
+        };
 
         let current_url: &Url = req.url();
         let redirect_url: Url;
