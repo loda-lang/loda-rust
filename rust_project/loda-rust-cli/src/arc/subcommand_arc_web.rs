@@ -9,14 +9,31 @@ use serde::{Deserialize, Serialize};
 use tera::Tera;
 use tide::http::mime;
 use tide::{Request, Response};
+use tokio::sync::RwLock;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::num::NonZeroUsize;
+use cached::{SizedCache, Cached};
 
 #[cfg(feature = "petgraph")]
 use super::{ExperimentWithPetgraph, NodeData, EdgeData, PixelNeighborEdgeType};
 
 #[cfg(feature = "petgraph")]
 use petgraph::{Graph, stable_graph::NodeIndex, visit::EdgeRef};
+
+const DEFAULT_CACHE_CAPACITY: usize = 10;
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+struct CacheKey {
+    task_name: String,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct CacheValue {
+    task: Option<Task>,
+}
+
+type Cache = SizedCache<CacheKey, CacheValue>;
 
 #[derive(Clone)]
 struct State {
@@ -26,6 +43,8 @@ struct State {
     tera: Arc<Tera>,
 
     all_json_paths: Vec<PathBuf>,
+
+    cache: Arc<RwLock<Cache>>,
 }
 
 pub struct SubcommandARCWeb {
@@ -73,10 +92,18 @@ impl SubcommandARCWeb {
         let all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
         debug!("all_json_paths: {:?}", all_json_paths.len());
 
+        let cache_arc: Arc<RwLock<Cache>>;
+        {
+            let capacity = NonZeroUsize::new(DEFAULT_CACHE_CAPACITY).unwrap();
+            let cache: Cache = SizedCache::with_size(capacity.get());
+            cache_arc = Arc::new(RwLock::new(cache));
+        }
+
         let mut app = tide::with_state(State {
             config: self.config.clone(),
             tera: tera_arc,
             all_json_paths,
+            cache: cache_arc,
         });
         app.at("/task").get(Self::get_task_list);
         app.at("/task/:task_id").get(Self::get_task_with_id);
@@ -124,39 +151,58 @@ impl SubcommandARCWeb {
         let task_id: &str = req.param("task_id").unwrap_or("world");
         let find_filename: String = format!("{}.json", task_id);
     
-        let all_json_paths: Vec<PathBuf> = req.state().all_json_paths.clone();    
-        let found_path: Option<PathBuf> = all_json_paths
-            .into_iter()
-            .find(|path| {
-                if let Some(filename) = path.file_name() {
-                    if filename.to_string_lossy() == find_filename {
-                        debug!("found the task. path: {:?}", path);
-                        return true;
-                    }
-                }
-                false
-            });
 
-        let task_json_file: PathBuf = match found_path {
-            Some(value) => value,
-            None => {
-                let response = tide::Response::builder(404)
-                    .body("cannot find the task.")
-                    .content_type("text/plain; charset=utf-8")
-                    .build();
-                return Ok(response);
-            }
+        let key = CacheKey {
+            task_name: task_id.to_string(),
         };
-        debug!("task_json_file: {:?}", task_json_file);
-
-        let task: Task = match Task::load_with_json_file(&task_json_file) {
-            Ok(value) => value,
-            Err(_error) => {
-                let response = tide::Response::builder(500)
-                    .body("unable to load the task.")
-                    .content_type("text/plain; charset=utf-8")
-                    .build();
-                return Ok(response);
+        let mut write_guard = req.state().cache.write().await;
+        let cache_value: &mut CacheValue = write_guard.cache_get_or_set_with(key, || CacheValue::default());
+    
+        let cached_task: Option<Task> = cache_value.task.clone();
+        let task: Task = match cached_task {
+            Some(value) => {
+                debug!("cache hit. task: {:?}", task_id);
+                value
+            },
+            None => {
+                debug!("cache miss. task: {:?}", task_id);
+                let all_json_paths: Vec<PathBuf> = req.state().all_json_paths.clone();    
+                let found_path: Option<PathBuf> = all_json_paths
+                    .into_iter()
+                    .find(|path| {
+                        if let Some(filename) = path.file_name() {
+                            if filename.to_string_lossy() == find_filename {
+                                debug!("found the task. path: {:?}", path);
+                                return true;
+                            }
+                        }
+                        false
+                    });
+        
+                let task_json_file: PathBuf = match found_path {
+                    Some(value) => value,
+                    None => {
+                        let response = tide::Response::builder(404)
+                            .body("cannot find the task.")
+                            .content_type("text/plain; charset=utf-8")
+                            .build();
+                        return Ok(response);
+                    }
+                };
+                debug!("task_json_file: {:?}", task_json_file);
+        
+                let the_task: Task = match Task::load_with_json_file(&task_json_file) {
+                    Ok(value) => value,
+                    Err(_error) => {
+                        let response = tide::Response::builder(500)
+                            .body("unable to load the task.")
+                            .content_type("text/plain; charset=utf-8")
+                            .build();
+                        return Ok(response);
+                    }
+                };
+                cache_value.task = Some(the_task.clone());
+                the_task
             }
         };
 

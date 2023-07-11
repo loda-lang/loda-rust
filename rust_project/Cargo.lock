@@ -1987,6 +1987,7 @@ dependencies = [
  "bastion",
  "bit-set",
  "bloomfilter",
+ "cached",
  "chrono",
  "clap",
  "console",
