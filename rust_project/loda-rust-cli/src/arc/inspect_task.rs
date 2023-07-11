@@ -109,7 +109,7 @@ impl InspectTask {
         }
         {
             self.row_input_image += "<td>";
-            self.row_input_image += &pair.input.image.to_html();
+            self.row_input_image += &pair.input.image.to_interactive_html("");
             if let Some(pattern) = &pair.input.grid_pattern {
                 self.row_input_image += "<br>";
                 self.row_input_image += &pattern.line_mask.to_html();
@@ -142,10 +142,10 @@ impl InspectTask {
             self.row_output_image += "<td>";
             match pair.pair_type {
                 arc_work_model::PairType::Train => {
-                    self.row_output_image += &pair.output.image.to_html();
+                    self.row_output_image += &pair.output.image.to_interactive_html("");
                 },
                 arc_work_model::PairType::Test => {
-                    self.row_output_image += &pair.output.test_image.to_html_with_prefix("Expected ");
+                    self.row_output_image += &pair.output.test_image.to_interactive_html("Expected ");
                 },
             };
             self.row_output_image += "</td>";
