@@ -25,11 +25,13 @@
 //!
 use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType};
 use super::{ImageMask, ShapeIdentification};
-use super::arc_work_model::{Task};
+use super::arc_work_model::{Task, Pair};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum NodeData {
+    Task,
+    Pair { pair_index: u8 },
     Image { size: ImageSize },
     Pixel,
     Color { color: u8 },
@@ -39,7 +41,6 @@ pub enum NodeData {
     ShapeType { shape_type: ShapeType },
     // Input,
     // Output,
-    // Pair,
     // PairTrain,
     // PairTest,
     // PairInputImage,
@@ -378,37 +379,51 @@ impl TaskGraph {
         }
     }
 
-    pub fn populate_with_task(&mut self, task: &Task) -> anyhow::Result<()> {
-        let mut image_input = Image::empty();
-        let mut image_output = Image::empty();
-        let mut sco_input: Option<SingleColorObject> = None;
-        let mut sco_output: Option<SingleColorObject> = None;
-        // Do this for all the pairs. Currently it's only one pair.
-        if let Some(pair) = task.pairs.get(0) {
-            image_input = pair.input.image.clone();
-            image_output = pair.output.image.clone();
-            sco_input = pair.input.image_meta.single_color_object.clone();
-            sco_output = pair.output.image_meta.single_color_object.clone();
+    fn populate_with_pair(&mut self, pair: &Pair, pair_index: u8, task_node_index: NodeIndex) -> anyhow::Result<()> {
+        let pair_node_index: NodeIndex;
+        {
+            let property = NodeData::Pair { pair_index: pair_index };
+            pair_node_index = self.graph.add_node(property);
+            self.graph.add_edge(task_node_index, pair_node_index, EdgeData::Child);
+            self.graph.add_edge(pair_node_index, task_node_index, EdgeData::Parent);
         }
 
-        let image_input_node_index: NodeIndex = match self.add_image(&image_input) {
+        let image_input_node_index: NodeIndex = match self.add_image(&pair.input.image) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("unable to populate graph. {:?}", error));
+                return Err(anyhow::anyhow!("pair[{}].input.image cannot add image. {:?}", pair_index, error));
             }
         };
         println!("image_input_node_index: {:?}", image_input_node_index);
+        self.graph.add_edge(pair_node_index, image_input_node_index, EdgeData::Child);
+        self.graph.add_edge(image_input_node_index, pair_node_index, EdgeData::Parent);
 
-        let image_output_node_index: NodeIndex = match self.add_image(&image_output) {
+        let image_output_node_index: NodeIndex = match self.add_image(&pair.output.image) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("unable to populate graph. {:?}", error));
+                return Err(anyhow::anyhow!("pair[{}].output.image cannot add image. {:?}", pair_index, error));
             }
         };
         println!("image_output_node_index: {:?}", image_output_node_index);
+        self.graph.add_edge(pair_node_index, image_output_node_index, EdgeData::Child);
+        self.graph.add_edge(image_output_node_index, pair_node_index, EdgeData::Parent);
 
-        self.process_shapes(image_input_node_index, "input", &sco_input);
-        self.process_shapes(image_output_node_index, "output", &sco_output);
+        self.process_shapes(image_input_node_index, "input", &pair.input.image_meta.single_color_object);
+        self.process_shapes(image_output_node_index, "output", &pair.output.image_meta.single_color_object);
+        Ok(())
+    }
+
+    pub fn populate_with_task(&mut self, task: &Task) -> anyhow::Result<()> {
+        let task_node_index: NodeIndex;
+        {
+            let property = NodeData::Task;
+            task_node_index = self.graph.add_node(property);
+        }
+
+        for (index, pair) in task.pairs.iter().enumerate() {
+            let pair_index: u8 = index.min(255) as u8;
+            self.populate_with_pair(pair, pair_index, task_node_index)?;
+        }
         Ok(())
     }
 }
