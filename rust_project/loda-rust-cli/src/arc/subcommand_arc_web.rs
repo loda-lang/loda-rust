@@ -31,6 +31,7 @@ struct CacheKey {
 #[derive(Clone, Debug, Default)]
 pub struct CacheValue {
     task: Option<Task>,
+    task_graph: Option<TaskGraph>,
 }
 
 type Cache = SizedCache<CacheKey, CacheValue>;
@@ -186,6 +187,59 @@ impl SubcommandARCWeb {
         Ok(task)
     }
 
+    async fn load_task_graph(req: &Request<State>, task_id: &str) -> anyhow::Result<TaskGraph> {
+        let task: Task = Self::load_task(req, task_id).await?;
+
+        let key = CacheKey {
+            task_name: task_id.to_string(),
+        };
+        let mut write_guard = req.state().cache.write().await;
+        let cache_value: &mut CacheValue = write_guard.cache_get_or_set_with(key, || CacheValue::default());
+
+        if let Some(task_graph) = &cache_value.task_graph {
+            debug!("cache hit. task: {:?}", task_id);
+            return Ok(task_graph.clone());
+        }
+
+        debug!("cache miss. task: {:?}", task_id);
+
+        let mut image_input = Image::empty();
+        let mut image_output = Image::empty();
+        let mut sco_input: Option<SingleColorObject> = None;
+        let mut sco_output: Option<SingleColorObject> = None;
+        // Do this for all the pairs. Currently it's only one pair.
+        if let Some(pair) = task.pairs.get(0) {
+            image_input = pair.input.image.clone();
+            image_output = pair.output.image.clone();
+            sco_input = pair.input.image_meta.single_color_object.clone();
+            sco_output = pair.output.image_meta.single_color_object.clone();
+        }
+
+        let mut task_graph = TaskGraph::new();
+
+        let image_input_node_index: NodeIndex = match task_graph.add_image(&image_input) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("unable to populate graph. {:?}", error));
+            }
+        };
+        println!("image_input_node_index: {:?}", image_input_node_index);
+
+        let image_output_node_index: NodeIndex = match task_graph.add_image(&image_output) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("unable to populate graph. {:?}", error));
+            }
+        };
+        println!("image_output_node_index: {:?}", image_output_node_index);
+
+        Self::process_shapes(&mut task_graph, image_input_node_index, "input", &sco_input);
+        Self::process_shapes(&mut task_graph, image_output_node_index, "output", &sco_output);
+
+        cache_value.task_graph = Some(task_graph.clone());
+        Ok(task_graph)
+    }
+
     async fn get_task_with_id(req: Request<State>) -> tide::Result {
         let tera: &Tera = &req.state().tera;
         let task_id: &str = req.param("task_id").unwrap_or("world");
@@ -288,63 +342,19 @@ impl SubcommandARCWeb {
             }
         };
 
-        let task: Task = match Self::load_task(&req, task_id).await {
+        let task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
             Ok(value) => value,
             Err(error) => {
-                error!("cannot load the task. error: {:?}", error);
+                error!("cannot load the task_graph. error: {:?}", error);
                 let response = tide::Response::builder(404)
-                    .body("cannot load the task.")
+                    .body("cannot load the task_graph.")
                     .content_type("text/plain; charset=utf-8")
                     .build();
                 return Ok(response);
             }
         };
 
-        let mut image_input = Image::empty();
-        let mut image_output = Image::empty();
-        let mut sco_input: Option<SingleColorObject> = None;
-        let mut sco_output: Option<SingleColorObject> = None;
-        // Do this for all the pairs. Currently it's only one pair.
-        if let Some(pair) = task.pairs.get(0) {
-            image_input = pair.input.image.clone();
-            image_output = pair.output.image.clone();
-            sco_input = pair.input.image_meta.single_color_object.clone();
-            sco_output = pair.output.image_meta.single_color_object.clone();
-        }
-
-        let mut instance = TaskGraph::new();
-
-        let image_input_node_index: NodeIndex = match instance.add_image(&image_input) {
-            Ok(value) => value,
-            Err(error) => {
-                debug!("error: {:?}", error);
-                let response = tide::Response::builder(500)
-                    .body("unable to populate graph.")
-                    .content_type("text/plain; charset=utf-8")
-                    .build();
-                return Ok(response);
-            }
-        };
-        println!("image_input_node_index: {:?}", image_input_node_index);
-
-        let image_output_node_index: NodeIndex = match instance.add_image(&image_output) {
-            Ok(value) => value,
-            Err(error) => {
-                debug!("error: {:?}", error);
-                let response = tide::Response::builder(500)
-                    .body("unable to populate graph.")
-                    .content_type("text/plain; charset=utf-8")
-                    .build();
-                return Ok(response);
-            }
-        };
-        println!("image_output_node_index: {:?}", image_output_node_index);
-
-        Self::process_shapes(&mut instance, image_input_node_index, "input", &sco_input);
-        Self::process_shapes(&mut instance, image_output_node_index, "output", &sco_output);
-
-
-        let graph: &Graph<NodeData, EdgeData> = instance.graph();
+        let graph: &Graph<NodeData, EdgeData> = task_graph.graph();
 
         let node_index = NodeIndex::new(node_id_usize);
         if node_id_usize >= graph.node_count() {

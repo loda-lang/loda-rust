@@ -83,6 +83,7 @@ pub enum EdgeData {
 }
 
 #[allow(dead_code)]
+#[derive(Clone, Debug)]
 pub struct TaskGraph {
     graph: petgraph::Graph<NodeData, EdgeData>,
 }
