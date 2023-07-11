@@ -16,7 +16,7 @@ use std::num::NonZeroUsize;
 use cached::{SizedCache, Cached};
 
 #[cfg(feature = "petgraph")]
-use super::{ExperimentWithPetgraph, NodeData, EdgeData, PixelNeighborEdgeType};
+use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType};
 
 #[cfg(feature = "petgraph")]
 use petgraph::{Graph, stable_graph::NodeIndex, visit::EdgeRef};
@@ -258,7 +258,7 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
-    fn process_shapes(graph: &mut ExperimentWithPetgraph, image_index: NodeIndex, name: &str, sco: &Option<SingleColorObject>) {
+    fn process_shapes(graph: &mut TaskGraph, image_index: NodeIndex, name: &str, sco: &Option<SingleColorObject>) {
         let connectivity: PixelConnectivity = PixelConnectivity::Connectivity8;
         let sco: &SingleColorObject = match sco {
             Some(value) => value,
@@ -317,7 +317,7 @@ impl SubcommandARCWeb {
             sco_output = pair.output.image_meta.single_color_object.clone();
         }
 
-        let mut instance = ExperimentWithPetgraph::new();
+        let mut instance = TaskGraph::new();
 
         let image_input_node_index: NodeIndex = match instance.add_image(&image_input) {
             Ok(value) => value,

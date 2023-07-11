@@ -1,4 +1,4 @@
-//! Experiments solving an ARC task with a graph representation.
+//! Graph representation of a single ARC task.
 //! 
 //! The flow of the solver is as follows:
 //! 
@@ -83,11 +83,11 @@ pub enum EdgeData {
 }
 
 #[allow(dead_code)]
-pub struct ExperimentWithPetgraph {
+pub struct TaskGraph {
     graph: petgraph::Graph<NodeData, EdgeData>,
 }
 
-impl ExperimentWithPetgraph {
+impl TaskGraph {
     #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
@@ -374,7 +374,7 @@ mod tests {
             0, 0, 0, 1,
         ];
         let input: Image = Image::try_create(4, 4, pixels).expect("image");
-        let mut instance = ExperimentWithPetgraph::new();
+        let mut instance = TaskGraph::new();
 
         // Act
         let image_index: NodeIndex = instance.add_image(&input).expect("NodeIndex");
@@ -408,7 +408,7 @@ mod tests {
             1, 1, 1, 1,
         ];
         let image1: Image = Image::try_create(4, 4, pixels1).expect("image");
-        let mut instance = ExperimentWithPetgraph::new();
+        let mut instance = TaskGraph::new();
 
         // Act
         let image_index0: NodeIndex = instance.add_image(&image0).expect("NodeIndex");
