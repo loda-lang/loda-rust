@@ -20,8 +20,12 @@ use petgraph::{Graph, stable_graph::NodeIndex, visit::EdgeRef};
 
 #[derive(Clone)]
 struct State {
+    #[allow(dead_code)]
     config: Config,
+
     tera: Arc<Tera>,
+
+    all_json_paths: Vec<PathBuf>,
 }
 
 pub struct SubcommandARCWeb {
@@ -65,9 +69,14 @@ impl SubcommandARCWeb {
             tera_arc = Arc::new(tera);
         }
 
+        let repo_path: PathBuf = self.config.arc_repository_data();
+        let all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
+        debug!("all_json_paths: {:?}", all_json_paths.len());
+
         let mut app = tide::with_state(State {
             config: self.config.clone(),
             tera: tera_arc,
+            all_json_paths,
         });
         app.at("/task").get(Self::get_task_list);
         app.at("/task/:task_id").get(Self::get_task_with_id);
@@ -84,12 +93,8 @@ impl SubcommandARCWeb {
     }
 
     async fn get_task_list(req: Request<State>) -> tide::Result {
-        let config: &Config = &req.state().config;
         let tera: &Tera = &req.state().tera;
-    
-        let repo_path: PathBuf = config.arc_repository_data();
-        let mut all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
-        debug!("all_json_paths: {:?}", all_json_paths.len());
+        let mut all_json_paths: Vec<PathBuf> = req.state().all_json_paths.clone();    
 
         alphanumeric_sort::sort_path_slice(&mut all_json_paths);
 
@@ -115,15 +120,11 @@ impl SubcommandARCWeb {
     }
 
     async fn get_task_with_id(req: Request<State>) -> tide::Result {
-        let config: &Config = &req.state().config;
         let tera: &Tera = &req.state().tera;
         let task_id: &str = req.param("task_id").unwrap_or("world");
         let find_filename: String = format!("{}.json", task_id);
     
-        let repo_path: PathBuf = config.arc_repository_data();
-        let all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
-        debug!("all_json_paths: {:?}", all_json_paths.len());
-
+        let all_json_paths: Vec<PathBuf> = req.state().all_json_paths.clone();    
         let found_path: Option<PathBuf> = all_json_paths
             .into_iter()
             .find(|path| {
@@ -230,10 +231,10 @@ impl SubcommandARCWeb {
 
     #[cfg(feature = "petgraph")]
     async fn get_node(req: Request<State>) -> tide::Result {
-        let config: &Config = &req.state().config;
         let tera: &Tera = &req.state().tera;
         let task_id: &str = req.param("task_id").unwrap_or("world");
         let node_id: &str = req.param("node_id").unwrap_or("world");
+        let all_json_paths: Vec<PathBuf> = req.state().all_json_paths.clone();    
 
         let node_id_usize: usize = match node_id.parse::<usize>() {
             Ok(value) => value,
@@ -248,10 +249,6 @@ impl SubcommandARCWeb {
 
         let find_filename: String = format!("{}.json", task_id);
     
-        let repo_path: PathBuf = config.arc_repository_data();
-        let all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
-        debug!("all_json_paths: {:?}", all_json_paths.len());
-
         let found_path: Option<PathBuf> = all_json_paths
             .into_iter()
             .find(|path| {
