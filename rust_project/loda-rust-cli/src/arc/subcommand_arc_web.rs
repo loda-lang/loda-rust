@@ -152,42 +152,37 @@ impl SubcommandARCWeb {
         };
         let mut write_guard = req.state().cache.write().await;
         let cache_value: &mut CacheValue = write_guard.cache_get_or_set_with(key, || CacheValue::default());
-    
-        let cached_task: Option<Task> = cache_value.task.clone();
-        let task: Task = match cached_task {
-            Some(value) => {
-                debug!("cache hit. task: {:?}", task_id);
-                value
-            },
-            None => {
-                debug!("cache miss. task: {:?}", task_id);
-                let find_filename: String = format!("{}.json", task_id);
-                let all_json_paths: Vec<PathBuf> = req.state().all_json_paths.clone();    
-                let found_path: Option<PathBuf> = all_json_paths
-                    .into_iter()
-                    .find(|path| {
-                        if let Some(filename) = path.file_name() {
-                            if filename.to_string_lossy() == find_filename {
-                                // debug!("found the task. path: {:?}", path);
-                                return true;
-                            }
-                        }
-                        false
-                    });
-        
-                let task_json_file: PathBuf = match found_path {
-                    Some(value) => value,
-                    None => {
-                        return Err(anyhow::anyhow!("cannot find the task."));
+
+        if let Some(task) = &cache_value.task {
+            debug!("cache hit. task: {:?}", task_id);
+            return Ok(task.clone());
+        }
+
+        debug!("cache miss. task: {:?}", task_id);
+        let find_filename: String = format!("{}.json", task_id);
+        let all_json_paths: Vec<PathBuf> = req.state().all_json_paths.clone();    
+        let found_path: Option<PathBuf> = all_json_paths
+            .into_iter()
+            .find(|path| {
+                if let Some(filename) = path.file_name() {
+                    if filename.to_string_lossy() == find_filename {
+                        // debug!("found the task. path: {:?}", path);
+                        return true;
                     }
-                };
-                // debug!("task_json_file: {:?}", task_json_file);
-        
-                let the_task: Task = Task::load_with_json_file(&task_json_file)?;
-                cache_value.task = Some(the_task.clone());
-                the_task
+                }
+                false
+            });
+
+        let task_json_file: PathBuf = match found_path {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("cannot find the task."));
             }
         };
+        // debug!("task_json_file: {:?}", task_json_file);
+
+        let task: Task = Task::load_with_json_file(&task_json_file)?;
+        cache_value.task = Some(task.clone());
         Ok(task)
     }
 
