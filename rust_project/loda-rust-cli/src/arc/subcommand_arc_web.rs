@@ -146,12 +146,7 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
-    async fn get_task_with_id(req: Request<State>) -> tide::Result {
-        let tera: &Tera = &req.state().tera;
-        let task_id: &str = req.param("task_id").unwrap_or("world");
-        let find_filename: String = format!("{}.json", task_id);
-    
-
+    async fn load_task(req: &Request<State>, task_id: &str) -> anyhow::Result<Task> {
         let key = CacheKey {
             task_name: task_id.to_string(),
         };
@@ -166,13 +161,14 @@ impl SubcommandARCWeb {
             },
             None => {
                 debug!("cache miss. task: {:?}", task_id);
+                let find_filename: String = format!("{}.json", task_id);
                 let all_json_paths: Vec<PathBuf> = req.state().all_json_paths.clone();    
                 let found_path: Option<PathBuf> = all_json_paths
                     .into_iter()
                     .find(|path| {
                         if let Some(filename) = path.file_name() {
                             if filename.to_string_lossy() == find_filename {
-                                debug!("found the task. path: {:?}", path);
+                                // debug!("found the task. path: {:?}", path);
                                 return true;
                             }
                         }
@@ -182,27 +178,32 @@ impl SubcommandARCWeb {
                 let task_json_file: PathBuf = match found_path {
                     Some(value) => value,
                     None => {
-                        let response = tide::Response::builder(404)
-                            .body("cannot find the task.")
-                            .content_type("text/plain; charset=utf-8")
-                            .build();
-                        return Ok(response);
+                        return Err(anyhow::anyhow!("cannot find the task."));
                     }
                 };
-                debug!("task_json_file: {:?}", task_json_file);
+                // debug!("task_json_file: {:?}", task_json_file);
         
-                let the_task: Task = match Task::load_with_json_file(&task_json_file) {
-                    Ok(value) => value,
-                    Err(_error) => {
-                        let response = tide::Response::builder(500)
-                            .body("unable to load the task.")
-                            .content_type("text/plain; charset=utf-8")
-                            .build();
-                        return Ok(response);
-                    }
-                };
+                let the_task: Task = Task::load_with_json_file(&task_json_file)?;
                 cache_value.task = Some(the_task.clone());
                 the_task
+            }
+        };
+        Ok(task)
+    }
+
+    async fn get_task_with_id(req: Request<State>) -> tide::Result {
+        let tera: &Tera = &req.state().tera;
+        let task_id: &str = req.param("task_id").unwrap_or("world");
+    
+        let task: Task = match Self::load_task(&req, task_id).await {
+            Ok(value) => value,
+            Err(error) => {
+                error!("cannot load the task. error: {:?}", error);
+                let response = tide::Response::builder(404)
+                    .body("cannot load the task.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
             }
         };
 
@@ -280,7 +281,6 @@ impl SubcommandARCWeb {
         let tera: &Tera = &req.state().tera;
         let task_id: &str = req.param("task_id").unwrap_or("world");
         let node_id: &str = req.param("node_id").unwrap_or("world");
-        let all_json_paths: Vec<PathBuf> = req.state().all_json_paths.clone();    
 
         let node_id_usize: usize = match node_id.parse::<usize>() {
             Ok(value) => value,
@@ -293,43 +293,17 @@ impl SubcommandARCWeb {
             }
         };
 
-        let find_filename: String = format!("{}.json", task_id);
-    
-        let found_path: Option<PathBuf> = all_json_paths
-            .into_iter()
-            .find(|path| {
-                if let Some(filename) = path.file_name() {
-                    if filename.to_string_lossy() == find_filename {
-                        debug!("found the task. path: {:?}", path);
-                        return true;
-                    }
-                }
-                false
-            });
-
-        let task_json_file: PathBuf = match found_path {
-            Some(value) => value,
-            None => {
-                let response = tide::Response::builder(404)
-                    .body("cannot find the task.")
-                    .content_type("text/plain; charset=utf-8")
-                    .build();
-                return Ok(response);
-            }
-        };
-        debug!("task_json_file: {:?}", task_json_file);
-
-        let task: Task = match Task::load_with_json_file(&task_json_file) {
+        let task: Task = match Self::load_task(&req, task_id).await {
             Ok(value) => value,
-            Err(_error) => {
-                let response = tide::Response::builder(500)
-                    .body("unable to load the task.")
+            Err(error) => {
+                error!("cannot load the task. error: {:?}", error);
+                let response = tide::Response::builder(404)
+                    .body("cannot load the task.")
                     .content_type("text/plain; charset=utf-8")
                     .build();
                 return Ok(response);
             }
         };
-
 
         let mut image_input = Image::empty();
         let mut image_output = Image::empty();
