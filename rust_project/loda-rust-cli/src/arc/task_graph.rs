@@ -25,6 +25,7 @@
 //!
 use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType};
 use super::{ImageMask, ShapeIdentification};
+use super::arc_work_model::{Task};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -311,7 +312,7 @@ impl TaskGraph {
         Ok(object_index)
     }
 
-    pub fn process_shapes(&mut self, image_index: NodeIndex, name: &str, sco: &SingleColorObject, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+    fn process_shapes_inner(&mut self, image_index: NodeIndex, name: &str, sco: &SingleColorObject, connectivity: PixelConnectivity) -> anyhow::Result<()> {
         for color in 0..=9 {
             let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
                 Ok(value) => value,
@@ -356,6 +357,58 @@ impl TaskGraph {
                 }
             }
         }
+        Ok(())
+    }
+
+    fn process_shapes(&mut self, image_index: NodeIndex, name: &str, sco: &Option<SingleColorObject>) {
+        let connectivity: PixelConnectivity = PixelConnectivity::Connectivity8;
+        let sco: &SingleColorObject = match sco {
+            Some(value) => value,
+            None => {
+                println!("{}: no sco", name);
+                return;
+            }
+        };
+        match self.process_shapes_inner(image_index, name, sco, connectivity) {
+            Ok(()) => {},
+            Err(error) => {
+                println!("{}: unable to process shapes error: {:?}", name, error);
+                return;
+            }
+        }
+    }
+
+    pub fn populate_with_task(&mut self, task: &Task) -> anyhow::Result<()> {
+        let mut image_input = Image::empty();
+        let mut image_output = Image::empty();
+        let mut sco_input: Option<SingleColorObject> = None;
+        let mut sco_output: Option<SingleColorObject> = None;
+        // Do this for all the pairs. Currently it's only one pair.
+        if let Some(pair) = task.pairs.get(0) {
+            image_input = pair.input.image.clone();
+            image_output = pair.output.image.clone();
+            sco_input = pair.input.image_meta.single_color_object.clone();
+            sco_output = pair.output.image_meta.single_color_object.clone();
+        }
+
+        let image_input_node_index: NodeIndex = match self.add_image(&image_input) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("unable to populate graph. {:?}", error));
+            }
+        };
+        println!("image_input_node_index: {:?}", image_input_node_index);
+
+        let image_output_node_index: NodeIndex = match self.add_image(&image_output) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("unable to populate graph. {:?}", error));
+            }
+        };
+        println!("image_output_node_index: {:?}", image_output_node_index);
+
+        self.process_shapes(image_input_node_index, "input", &sco_input);
+        self.process_shapes(image_output_node_index, "output", &sco_output);
         Ok(())
     }
 }

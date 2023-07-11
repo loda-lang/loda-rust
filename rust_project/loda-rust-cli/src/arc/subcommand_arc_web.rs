@@ -203,38 +203,13 @@ impl SubcommandARCWeb {
 
         debug!("cache miss. task: {:?}", task_id);
 
-        let mut image_input = Image::empty();
-        let mut image_output = Image::empty();
-        let mut sco_input: Option<SingleColorObject> = None;
-        let mut sco_output: Option<SingleColorObject> = None;
-        // Do this for all the pairs. Currently it's only one pair.
-        if let Some(pair) = task.pairs.get(0) {
-            image_input = pair.input.image.clone();
-            image_output = pair.output.image.clone();
-            sco_input = pair.input.image_meta.single_color_object.clone();
-            sco_output = pair.output.image_meta.single_color_object.clone();
-        }
-
         let mut task_graph = TaskGraph::new();
-
-        let image_input_node_index: NodeIndex = match task_graph.add_image(&image_input) {
-            Ok(value) => value,
+        match task_graph.populate_with_task(&task) {
+            Ok(()) => {},
             Err(error) => {
                 return Err(anyhow::anyhow!("unable to populate graph. {:?}", error));
             }
-        };
-        println!("image_input_node_index: {:?}", image_input_node_index);
-
-        let image_output_node_index: NodeIndex = match task_graph.add_image(&image_output) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("unable to populate graph. {:?}", error));
-            }
-        };
-        println!("image_output_node_index: {:?}", image_output_node_index);
-
-        Self::process_shapes(&mut task_graph, image_input_node_index, "input", &sco_input);
-        Self::process_shapes(&mut task_graph, image_output_node_index, "output", &sco_output);
+        }
 
         cache_value.task_graph = Some(task_graph.clone());
         Ok(task_graph)
@@ -359,24 +334,6 @@ impl SubcommandARCWeb {
             .header("Location", redirect_url.as_str())
             .build();
         Ok(response)
-    }
-
-    fn process_shapes(graph: &mut TaskGraph, image_index: NodeIndex, name: &str, sco: &Option<SingleColorObject>) {
-        let connectivity: PixelConnectivity = PixelConnectivity::Connectivity8;
-        let sco: &SingleColorObject = match sco {
-            Some(value) => value,
-            None => {
-                println!("{}: no sco", name);
-                return;
-            }
-        };
-        match graph.process_shapes(image_index, name, sco, connectivity) {
-            Ok(()) => {},
-            Err(error) => {
-                println!("{}: unable to process shapes error: {:?}", name, error);
-                return;
-            }
-        }
     }
 
     #[cfg(feature = "petgraph")]
