@@ -63,7 +63,7 @@ static ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS: u64 = 200;
 /// The hidden ARC dataset has 100 programs. How long time does it take mutating 100 programs. 
 /// Guess - Lower bound 10 seconds. Then it takes around 10 minutes to complete 64 mutations.
 /// Guess - Upper bound 120 seconds. Then it takes around 2 hours to complete 64 mutations.
-static ARC_COMPETITION_NUMBER_OF_MUTATIONS: u64 = 2048;
+static ARC_COMPETITION_NUMBER_OF_MUTATIONS: u64 = 1024;
 
 type ModelItemVec = Vec<Rc<RefCell<ModelItem>>>;
 
