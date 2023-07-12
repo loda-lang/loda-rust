@@ -31,6 +31,7 @@ use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NodeData {
     Task,
+    Id { id: String },
     Pair { pair_index: u8 },
     Image { size: ImageSize },
     Pixel,
@@ -373,11 +374,11 @@ impl TaskGraph {
         }
     }
 
-    fn populate_with_pair(&mut self, pair: &Pair, pair_index: u8, task_node_index: NodeIndex) -> anyhow::Result<()> {
+    fn populate_with_pair(&mut self, pair: &Pair, task_node_index: NodeIndex) -> anyhow::Result<()> {
         let pair_node_index: NodeIndex;
         {
-            let property = NodeData::Pair { pair_index: pair_index };
-            pair_node_index = self.graph.add_node(property);
+            let node = NodeData::Pair { pair_index: pair.pair_index };
+            pair_node_index = self.graph.add_node(node);
             self.graph.add_edge(task_node_index, pair_node_index, EdgeData::Child);
             self.graph.add_edge(pair_node_index, task_node_index, EdgeData::Parent);
         }
@@ -385,7 +386,7 @@ impl TaskGraph {
         let image_input_node_index: NodeIndex = match self.add_image(&pair.input.image) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("pair[{}].input.image cannot add image. {:?}", pair_index, error));
+                return Err(anyhow::anyhow!("pair[{}].input.image cannot add image. {:?}", pair.pair_index, error));
             }
         };
         println!("image_input_node_index: {:?}", image_input_node_index);
@@ -395,7 +396,7 @@ impl TaskGraph {
         let image_output_node_index: NodeIndex = match self.add_image(&pair.output.image) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("pair[{}].output.image cannot add image. {:?}", pair_index, error));
+                return Err(anyhow::anyhow!("pair[{}].output.image cannot add image. {:?}", pair.pair_index, error));
             }
         };
         println!("image_output_node_index: {:?}", image_output_node_index);
@@ -404,19 +405,33 @@ impl TaskGraph {
 
         self.process_shapes(image_input_node_index, "input", &pair.input.image_meta.single_color_object);
         self.process_shapes(image_output_node_index, "output", &pair.output.image_meta.single_color_object);
+
+        {
+            let id: String = pair.id_input_image();
+            let node = NodeData::Id { id };
+            let id_node_index: NodeIndex = self.graph.add_node(node);
+            self.graph.add_edge(id_node_index, image_input_node_index, EdgeData::Link);
+        }
+
+        {
+            let id: String = pair.id_output_image();
+            let node = NodeData::Id { id };
+            let id_node_index: NodeIndex = self.graph.add_node(node);
+            self.graph.add_edge(id_node_index, image_output_node_index, EdgeData::Link);
+        }
+
         Ok(())
     }
 
     pub fn populate_with_task(&mut self, task: &Task) -> anyhow::Result<()> {
         let task_node_index: NodeIndex;
         {
-            let property = NodeData::Task;
-            task_node_index = self.graph.add_node(property);
+            let node = NodeData::Task;
+            task_node_index = self.graph.add_node(node);
         }
 
-        for (index, pair) in task.pairs.iter().enumerate() {
-            let pair_index: u8 = index.min(255) as u8;
-            self.populate_with_pair(pair, pair_index, task_node_index)?;
+        for pair in &task.pairs {
+            self.populate_with_pair(pair, task_node_index)?;
         }
         Ok(())
     }
