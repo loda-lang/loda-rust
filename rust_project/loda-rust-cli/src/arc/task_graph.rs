@@ -28,7 +28,7 @@ use super::{ImageMask, ShapeIdentification};
 use super::arc_work_model::{Task, Pair};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NodeData {
     Task,
     Pair { pair_index: u8 },
@@ -202,9 +202,8 @@ impl TaskGraph {
     /// Generates an image from the graph for the given `NodeIndex`.
     #[allow(dead_code)]
     pub fn to_image(&self, image_index: NodeIndex) -> anyhow::Result<Image> {
-        let image_node: NodeData = self.graph[image_index];
-        let size: ImageSize = match image_node {
-            NodeData::Image { size } => size,
+        let size: ImageSize = match &self.graph[image_index] {
+            NodeData::Image { size } => *size,
             _ => { 
                 return Err(anyhow::anyhow!("Expected NodeData::Image at index {:?}.", image_index)); 
             }
@@ -213,8 +212,7 @@ impl TaskGraph {
 
         for edge_image in self.graph.edges(image_index) {
             let pixel_index: NodeIndex = edge_image.target();
-            let pixel_node: NodeData = self.graph[pixel_index];
-            match pixel_node {
+            match &self.graph[pixel_index] {
                 NodeData::Pixel => {},
                 _ => continue
             }
@@ -224,11 +222,10 @@ impl TaskGraph {
             let mut found_color: Option<u8> = None;
             for edge_pixel in self.graph.edges(pixel_index) {
                 let child_index: NodeIndex = edge_pixel.target();
-                let child_node: NodeData = self.graph[child_index];
-                match child_node {
-                    NodeData::PositionX { x } => { found_x = Some(x); },
-                    NodeData::PositionY { y } => { found_y = Some(y); },
-                    NodeData::Color { color } => { found_color = Some(color); },
+                match &self.graph[child_index] {
+                    NodeData::PositionX { x } => { found_x = Some(*x); },
+                    NodeData::PositionY { y } => { found_y = Some(*y); },
+                    NodeData::Color { color } => { found_color = Some(*color); },
                     _ => {}
                 }
             }
@@ -255,9 +252,8 @@ impl TaskGraph {
         let node_object = NodeData::Object { connectivity };
         let object_index: NodeIndex = self.graph.add_node(node_object);
 
-        let image_node: NodeData = self.graph[image_index];
-        let size = match image_node {
-            NodeData::Image { size } => size,
+        let size = match &self.graph[image_index] {
+            NodeData::Image { size } => *size,
             _ => { 
                 return Err(anyhow::anyhow!("Expected NodeData::Image at index {:?}.", image_index)); 
             }
@@ -269,8 +265,7 @@ impl TaskGraph {
         let mut pixel_indexes = Vec::<NodeIndex>::new();
         for edge_image in self.graph.edges(image_index) {
             let pixel_index: NodeIndex = edge_image.target();
-            let pixel_node: NodeData = self.graph[pixel_index];
-            match pixel_node {
+            match &self.graph[pixel_index] {
                 NodeData::Pixel => {},
                 _ => continue
             }
@@ -279,10 +274,9 @@ impl TaskGraph {
             let mut found_y: Option<u8> = None;
             for edge_pixel in self.graph.edges(pixel_index) {
                 let child_index: NodeIndex = edge_pixel.target();
-                let child_node: NodeData = self.graph[child_index];
-                match child_node {
-                    NodeData::PositionX { x } => { found_x = Some(x); },
-                    NodeData::PositionY { y } => { found_y = Some(y); },
+                match &self.graph[child_index] {
+                    NodeData::PositionX { x } => { found_x = Some(*x); },
+                    NodeData::PositionY { y } => { found_y = Some(*y); },
                     _ => {}
                 }
             }

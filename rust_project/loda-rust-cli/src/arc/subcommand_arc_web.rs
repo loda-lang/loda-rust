@@ -278,7 +278,7 @@ impl SubcommandARCWeb {
         let graph: &Graph<NodeData, EdgeData> = task_graph.graph();
         let mut found_node_index: Option<NodeIndex> = None;
         for node_index in graph.node_indices() {
-            let node: NodeData = graph[node_index];
+            let node: &NodeData = &graph[node_index];
             match node {
                 NodeData::Pixel => {},
                 _ => continue
@@ -289,10 +289,10 @@ impl SubcommandARCWeb {
             let mut found_y: Option<u8> = None;
             for edge_pixel in graph.edges(pixel_index) {
                 let child_index: NodeIndex = edge_pixel.target();
-                let child_node: NodeData = graph[child_index];
+                let child_node: &NodeData = &graph[child_index];
                 match child_node {
-                    NodeData::PositionX { x } => { found_x = Some(x); },
-                    NodeData::PositionY { y } => { found_y = Some(y); },
+                    NodeData::PositionX { x } => { found_x = Some(*x); },
+                    NodeData::PositionY { y } => { found_y = Some(*y); },
                     _ => {}
                 }
             }
@@ -645,11 +645,10 @@ impl WrapPixel {
         };
         for edge_pixel in graph.edges(node_index) {
             let child_index: NodeIndex = edge_pixel.target();
-            let child_node: NodeData = graph[child_index];
-            match child_node {
-                NodeData::PositionX { x } => { self.x = Some(x); },
-                NodeData::PositionY { y } => { self.y = Some(y); },
-                NodeData::Color { color } => { self.color = Some(color); },
+            match &graph[child_index] {
+                NodeData::PositionX { x } => { self.x = Some(*x); },
+                NodeData::PositionY { y } => { self.y = Some(*y); },
+                NodeData::Color { color } => { self.color = Some(*color); },
                 _ => {}
             }
         }
@@ -753,13 +752,13 @@ impl TemplateItemEdge {
                 _ => {}
             };
             let child_index: NodeIndex = edge.target();
-            let child_node: NodeData = graph[child_index];
+            let node_name: String = format!("{:?}", graph[child_index]);
             let item = Self {
                 edge_index: edge.id().index(),
                 edge_name: format!("{:?}", edge.weight()),
                 node_href: format!("{}/{}", node_href_prefix, child_index.index()),
                 node_index: child_index.index(),
-                node_name: format!("{:?}", child_node),
+                node_name,
             };
             items.push(item);
         }
@@ -779,13 +778,13 @@ impl TemplateItemEdge {
                 _ => {}
             };
             let child_index: NodeIndex = edge.source();
-            let child_node: NodeData = graph[child_index];
+            let node_name: String = format!("{:?}", graph[child_index]);
             let item = Self {
                 edge_index: edge.id().index(),
                 edge_name: format!("{:?}", edge.weight()),
                 node_href: format!("{}/{}", node_href_prefix, child_index.index()),
                 node_index: child_index.index(),
-                node_name: format!("{:?}", child_node),
+                node_name,
             };
             items.push(item);
         }
