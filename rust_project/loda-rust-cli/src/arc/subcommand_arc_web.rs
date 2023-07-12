@@ -260,7 +260,7 @@ impl SubcommandARCWeb {
     async fn find_node_pixel(req: Request<State>) -> tide::Result {
         let task_id: &str = req.param("task_id").unwrap_or("world");
         let query: FindNodePixel = req.query()?;
-        println!("find_node_pixel x: {}, y: {} id: {}", query.x, query.y, query.id);
+        // println!("find_node_pixel x: {}, y: {} id: {}", query.x, query.y, query.id);
 
         let task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
             Ok(value) => value,
@@ -303,7 +303,7 @@ impl SubcommandARCWeb {
                 return Ok(response);
             }
         };
-        println!("id_node_index: {:?}", id_node_index);
+        // println!("id_node_index: {:?}", id_node_index);
 
         // Find the `Image` node that is a child of the `Id` node.
         let mut found_image_node_index: Option<NodeIndex> = None;
@@ -324,13 +324,13 @@ impl SubcommandARCWeb {
                 return Ok(response);
             }
         };
-        println!("image_node_index: {:?}", image_node_index);
+        // println!("image_node_index: {:?}", image_node_index);
 
-
-        let mut found_node_index: Option<NodeIndex> = None;
-        for node_index in graph.node_indices() {
-            let node: &NodeData = &graph[node_index];
-            match node {
+        // Find the `Pixel` node that is a child of the `Image` node.
+        let mut found_pixel_node_index: Option<NodeIndex> = None;
+        for edge_image in graph.edges(image_node_index) {
+            let node_index: NodeIndex = edge_image.target();
+            match &graph[node_index] {
                 NodeData::Pixel => {},
                 _ => continue
             }
@@ -354,20 +354,19 @@ impl SubcommandARCWeb {
             if pixel_x != query.x || pixel_y != query.y {
                 continue;
             }
-            println!("found node_index: {:?}", node_index);
-            if found_node_index.is_some() {
+            if found_pixel_node_index.is_some() {
                 println!("multiple candidates found. x: {} y: {}", query.x, query.y);
                 continue;
             }
-            found_node_index = Some(node_index);
+            found_pixel_node_index = Some(node_index);
         }
-
-        let node_id: usize = match found_node_index {
+        let pixel_node_index: usize = match found_pixel_node_index {
             Some(value) => value.index(),
             None => {
                 return Err(tide::Error::from_str(500, "Cannot find the pixel in the graph"));
             }
         };
+        // println!("pixel_node_index: {:?}", pixel_node_index);
 
         let current_url: &Url = req.url();
         let redirect_url: Url;
@@ -376,7 +375,7 @@ impl SubcommandARCWeb {
                 Some(port) => format!("{}://{}:{}", current_url.scheme(), domain, port),
                 None => format!("{}://{}", current_url.scheme(), domain),
             };
-            redirect_url = Url::parse(&format!("{}/task/{}/node/{}", base_url, task_id, node_id))?;
+            redirect_url = Url::parse(&format!("{}/task/{}/node/{}", base_url, task_id, pixel_node_index))?;
         } else {
             return Err(tide::Error::from_str(500, "URL does not have a base URL"));
         }
