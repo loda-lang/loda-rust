@@ -62,7 +62,7 @@
               spanPixel.textContent = pixel;
               spanPixel.addEventListener('click', () => {
                 const host = window.location.href;
-                const url = `${host}/find-node-pixel?x=${columnIndex}&y=${rowIndex}&image=${datasetImageValue}`;
+                const url = `${host}/find-node-pixel?x=${columnIndex}&y=${rowIndex}&id=${datasetImageValue}`;
                 window.open(url, '_blank');
               });
               spanRow.appendChild(spanPixel);

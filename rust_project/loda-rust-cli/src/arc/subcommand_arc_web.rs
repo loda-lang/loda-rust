@@ -260,7 +260,7 @@ impl SubcommandARCWeb {
     async fn find_node_pixel(req: Request<State>) -> tide::Result {
         let task_id: &str = req.param("task_id").unwrap_or("world");
         let query: FindNodePixel = req.query()?;
-        println!("find_node_pixel x: {}, y: {} image: {}", query.x, query.y, query.image);
+        println!("find_node_pixel x: {}, y: {} id: {}", query.x, query.y, query.id);
 
         let task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
             Ok(value) => value,
@@ -276,6 +276,57 @@ impl SubcommandARCWeb {
 
         // find the pixel in the graph and get its corresponding node id.
         let graph: &Graph<NodeData, EdgeData> = task_graph.graph();
+
+        // Find the `Id` node with the `query.id`.
+        let mut found_id_node_index: Option<NodeIndex> = None;
+        for node_index in graph.node_indices() {
+            match &graph[node_index] {
+                NodeData::Id { id } => {
+                    if *id != query.id {
+                        continue;
+                    }
+                    if found_id_node_index.is_some() {
+                        println!("found multiple nodes with the same id: {}", id);
+                    }
+                    found_id_node_index = Some(node_index);
+                },
+                _ => continue
+            }
+        }
+        let id_node_index: NodeIndex = match found_id_node_index {
+            Some(value) => value,
+            None => {
+                let response = tide::Response::builder(404)
+                    .body("cannot find the node with the given id.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+        println!("id_node_index: {:?}", id_node_index);
+
+        // Find the `Image` node that is a child of the `Id` node.
+        let mut found_image_node_index: Option<NodeIndex> = None;
+        for edge in graph.edges(id_node_index) {
+            let child_index: NodeIndex = edge.target();
+            if found_image_node_index.is_some() {
+                println!("found multiple image nodes for the given id.");
+            }
+            found_image_node_index = Some(child_index);
+        }
+        let image_node_index: NodeIndex = match found_image_node_index {
+            Some(value) => value,
+            None => {
+                let response = tide::Response::builder(404)
+                    .body("did find the Id node, but cannot find the Image node.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+        println!("image_node_index: {:?}", image_node_index);
+
+
         let mut found_node_index: Option<NodeIndex> = None;
         for node_index in graph.node_indices() {
             let node: &NodeData = &graph[node_index];
@@ -796,5 +847,5 @@ impl TemplateItemEdge {
 struct FindNodePixel {
     x: u8,
     y: u8,
-    image: String,
+    id: String,
 }
