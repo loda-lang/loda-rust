@@ -45,6 +45,7 @@ struct ShapeTypeImage {
     image_l_with_45degree_line: Image,
     image_x_without_one_corner: Image,
     image_l_skew: Image,
+    image_uptack_skew: Image,
 }
 
 impl ShapeTypeImage {
@@ -228,6 +229,12 @@ impl ShapeTypeImage {
             0, 1, 1,
         ])?;
 
+        let image_uptack_skew: Image = Image::try_create(3, 3, vec![
+            1, 0, 0,
+            0, 1, 0,
+            1, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -260,6 +267,7 @@ impl ShapeTypeImage {
             image_l_with_45degree_line,
             image_x_without_one_corner,
             image_l_skew,
+            image_uptack_skew,
         };
         Ok(instance)
     }
@@ -606,6 +614,17 @@ pub enum ShapeType {
     /// ```
     LSkew,
 
+    /// Skewed variant of the shape `⊥` with a top-left corner.
+    /// 
+    /// https://en.wikipedia.org/wiki/Up_tack
+    /// 
+    /// ````
+    /// 1, 0, 0
+    /// 0, 1, 0
+    /// 1, 1, 1
+    /// ```
+    UpTackSkew,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -652,6 +671,7 @@ impl ShapeType {
             Self::LWith45DegreeLine => "L45",
             Self::XWithoutOneCorner => "⋋",
             Self::LSkew => "Ꝇ",
+            Self::UpTackSkew => "⊥1",
             Self::Unclassified => "unclassified",
         }
     }
@@ -844,6 +864,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l_with_45degree_line, ShapeType::LWith45DegreeLine));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_x_without_one_corner, ShapeType::XWithoutOneCorner));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l_skew, ShapeType::LSkew));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_uptack_skew, ShapeType::UpTackSkew));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2457,6 +2478,25 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "Ꝇ");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+    }
+
+    #[test]
+    fn test_330000_image_uptack_skew() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+            1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⊥1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
     }
 
