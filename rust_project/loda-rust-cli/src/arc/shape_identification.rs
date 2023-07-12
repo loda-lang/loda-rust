@@ -35,6 +35,7 @@ struct ShapeTypeImage {
     image_left_plus: Image,
     image_leftwards_harpoon_with_barb_upwards: Image,
     image_box_without_one_corner: Image,
+    image_rotated_d: Image,
 }
 
 impl ShapeTypeImage {
@@ -158,6 +159,12 @@ impl ShapeTypeImage {
             1, 1, 1,
         ])?;
 
+        let image_rotated_d: Image = Image::try_create(3, 3, vec![
+            0, 1, 0,
+            1, 0, 1,
+            1, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -180,6 +187,7 @@ impl ShapeTypeImage {
             image_left_plus,
             image_leftwards_harpoon_with_barb_upwards,
             image_box_without_one_corner,
+            image_rotated_d,
         };
         Ok(instance)
     }
@@ -421,6 +429,17 @@ pub enum ShapeType {
     /// ```
     BoxWithoutOneCorner,
 
+    /// Shape `⌓`, similar to an rotated `D` symbol.
+    /// 
+    /// Top half of a hollow circle.
+    /// 
+    /// ````
+    /// 0, 1, 0
+    /// 1, 0, 1
+    /// 1, 1, 1
+    /// ```
+    RotatedD,
+
     Unclassified,
 
     // Future experiments
@@ -456,6 +475,7 @@ impl ShapeType {
             Self::LeftPlus => "ഺ",
             Self::LeftwardsHarpoonWithBarbUpwards => "↼",
             Self::BoxWithoutOneCorner => "box1",
+            Self::RotatedD => "⌓",
             Self::Unclassified => "unclassified",
         }
     }
@@ -638,6 +658,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_left_plus, ShapeType::LeftPlus));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_leftwards_harpoon_with_barb_upwards, ShapeType::LeftwardsHarpoonWithBarbUpwards));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_without_one_corner, ShapeType::BoxWithoutOneCorner));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_d, ShapeType::RotatedD));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2056,6 +2077,25 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "box1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw180]));
+    }
+
+    #[test]
+    fn test_230000_image_rotated_d() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1,
+            1, 0, 0, 1,
+            1, 0, 0, 1,
+            0, 1, 1, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⌓");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
     }
 
     #[test]
