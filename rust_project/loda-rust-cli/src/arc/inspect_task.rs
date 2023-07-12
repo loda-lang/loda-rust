@@ -109,7 +109,8 @@ impl InspectTask {
         }
         {
             self.row_input_image += "<td>";
-            self.row_input_image += &pair.input.image.to_interactive_html("");
+            let image_id: String = format!("pair_{}_input", pair.pair_index);
+            self.row_input_image += &pair.input.image.to_interactive_html("", Some(image_id));
             if let Some(pattern) = &pair.input.grid_pattern {
                 self.row_input_image += "<br>";
                 self.row_input_image += &pattern.line_mask.to_html();
@@ -140,12 +141,13 @@ impl InspectTask {
         }
         {
             self.row_output_image += "<td>";
+            let image_id: String = format!("pair_{}_output", pair.pair_index);
             match pair.pair_type {
                 arc_work_model::PairType::Train => {
-                    self.row_output_image += &pair.output.image.to_interactive_html("");
+                    self.row_output_image += &pair.output.image.to_interactive_html("", Some(image_id));
                 },
                 arc_work_model::PairType::Test => {
-                    self.row_output_image += &pair.output.test_image.to_interactive_html("Expected ");
+                    self.row_output_image += &pair.output.test_image.to_interactive_html("Expected ", Some(image_id));
                 },
             };
             self.row_output_image += "</td>";
