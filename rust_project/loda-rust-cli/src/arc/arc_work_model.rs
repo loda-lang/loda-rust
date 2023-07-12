@@ -127,7 +127,20 @@ pub type PredictionSet = HashSet<Prediction>;
 
 #[derive(Clone, Debug)]
 pub struct Pair {
+    /// The position in the `task.pairs` vector.
+    /// 
+    /// This is different than in the ARC dataset json file. 
+    /// Where there are two vectors with pairs, one for the `train` pairs, and one for the `test` pairs.
+    pub pair_index: u8,
+
+    /// Shows the position in the ARC dataset json file.
+    /// Where there are two vectors with pairs, one for the `train` pairs, and one for the `test` pairs.
+    /// 
+    /// When the pair is contained in the `train` pairs vector, then the id is `train[train_index]`.
+    /// 
+    /// When the pair is contained in the `test` pairs vector, then the id is `train[test_index]`.
     pub id: String,
+
     pub pair_type: PairType,
     pub input: Input,
     pub output: Output,

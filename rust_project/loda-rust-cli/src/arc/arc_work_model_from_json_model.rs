@@ -11,6 +11,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
         let task_id: String = json_task.id().identifier();
         let mut result_pairs: Vec<arc_work_model::Pair> = vec!();
 
+        let mut pair_index: u8 = 0;
         let mut input_histogram_union: Histogram = Histogram::new();
         let mut input_histogram_intersection: Histogram = Histogram::new();
         let mut output_histogram_union: Histogram = Histogram::new();
@@ -64,6 +65,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     image_meta: ImageMeta::new(),
                 };
                 let result_pair = arc_work_model::Pair {
+                    pair_index,
                     id: format!("{},pair{},train", task_id, index),
                     pair_type: arc_work_model::PairType::Train,
                     input: buffer_input,
@@ -77,6 +79,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     input_output_image_properties: HashMap::new(),
                 };
                 result_pairs.push(result_pair);
+                pair_index += 1;
             }
         }
         {
@@ -104,6 +107,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     image_meta: ImageMeta::new(),
                 };
                 let result_pair = arc_work_model::Pair {
+                    pair_index,
                     id: format!("{},pair{},test", task_id, index),
                     pair_type: arc_work_model::PairType::Test,
                     input: buffer_input,
@@ -117,6 +121,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     input_output_image_properties: HashMap::new(),
                 };
                 result_pairs.push(result_pair);
+                pair_index += 1;
             }
         }
     
