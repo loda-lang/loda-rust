@@ -44,6 +44,7 @@ struct ShapeTypeImage {
     image_gameoflife_boat: Image,
     image_l_with_45degree_line: Image,
     image_x_without_one_corner: Image,
+    image_l_skew: Image,
 }
 
 impl ShapeTypeImage {
@@ -221,6 +222,12 @@ impl ShapeTypeImage {
             1, 0, 1,
         ])?;
 
+        let image_l_skew: Image = Image::try_create(3, 3, vec![
+            1, 0, 0,
+            0, 1, 0,
+            0, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -252,6 +259,7 @@ impl ShapeTypeImage {
             image_gameoflife_boat,
             image_l_with_45degree_line,
             image_x_without_one_corner,
+            image_l_skew,
         };
         Ok(instance)
     }
@@ -587,6 +595,17 @@ pub enum ShapeType {
     /// ```
     XWithoutOneCorner,
 
+    /// Shape `Ꝇ` is similar to an `L` where the top-left corner has been skewed.
+    /// 
+    /// Unicode: Latin capital letter broken l
+    /// 
+    /// ````
+    /// 1, 0, 0
+    /// 0, 1, 0
+    /// 0, 1, 1
+    /// ```
+    LSkew,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -632,6 +651,7 @@ impl ShapeType {
             Self::GameOfLifeBoat => "boat",
             Self::LWith45DegreeLine => "L45",
             Self::XWithoutOneCorner => "⋋",
+            Self::LSkew => "Ꝇ",
             Self::Unclassified => "unclassified",
         }
     }
@@ -823,6 +843,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_gameoflife_boat, ShapeType::GameOfLifeBoat));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l_with_45degree_line, ShapeType::LWith45DegreeLine));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_x_without_one_corner, ShapeType::XWithoutOneCorner));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l_skew, ShapeType::LSkew));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2418,6 +2439,25 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⋋");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+    }
+
+    #[test]
+    fn test_320000_image_l_skew() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "Ꝇ");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
     }
 
     #[test]
