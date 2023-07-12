@@ -1,6 +1,6 @@
 //! Identification of shape type and transformations.
 //! 
-//! Invariant to translation, scaling, flipping, rotation (90, 180, 270) and deformations.
+//! Invariant to translation, scaling, flipping, rotation (90, 180, 270), horizontal/vertical-compression.
 //! 
 //! Similar to SIFT (Scale-invariant feature transform) but without using points.
 //! https://en.wikipedia.org/wiki/Scale-invariant_feature_transform
@@ -42,6 +42,7 @@ struct ShapeTypeImage {
     image_plus_with_one_corner: Image,
     image_square_without_diagonal_corners: Image,
     image_gameoflife_boat: Image,
+    image_l_with_45degree_line: Image,
 }
 
 impl ShapeTypeImage {
@@ -207,6 +208,12 @@ impl ShapeTypeImage {
             1, 1, 0,
         ])?;
 
+        let image_l_with_45degree_line: Image = Image::try_create(3, 3, vec![
+            0, 1, 0,
+            0, 1, 1,
+            1, 0, 0,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -236,6 +243,7 @@ impl ShapeTypeImage {
             image_plus_with_one_corner,
             image_square_without_diagonal_corners,
             image_gameoflife_boat,
+            image_l_with_45degree_line,
         };
         Ok(instance)
     }
@@ -446,9 +454,9 @@ pub enum ShapeType {
     /// ```
     LeftPlus,
 
-    /// Shape `↼` corresponding to one of the states in the game-of-life glider.
+    /// Shape `↼` corresponding to one of the 2 states in the game-of-life `glider`.
     /// 
-    /// The glider is the smallest, most common, and first-discovered spaceship in Game of Life.
+    /// The `glider` is the smallest, most common, and first-discovered spaceship in Game of Life.
     /// 
     /// https://conwaylife.com/wiki/Glider
     /// 
@@ -551,6 +559,15 @@ pub enum ShapeType {
     /// ```
     GameOfLifeBoat,
 
+    /// The `L` shape where its corner has a line attached at a 45 degree angle.
+    /// 
+    /// ````
+    /// 0, 1, 0
+    /// 0, 1, 1
+    /// 1, 0, 0
+    /// ```
+    LWith45DegreeLine,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -594,6 +611,7 @@ impl ShapeType {
             Self::PlusWithOneCorner => "+1",
             Self::SquareWithoutDiagonalCorners => "square2",
             Self::GameOfLifeBoat => "boat",
+            Self::LWith45DegreeLine => "L45",
             Self::Unclassified => "unclassified",
         }
     }
@@ -783,6 +801,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_plus_with_one_corner, ShapeType::PlusWithOneCorner));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_square_without_diagonal_corners, ShapeType::SquareWithoutDiagonalCorners));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_gameoflife_boat, ShapeType::GameOfLifeBoat));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l_with_45degree_line, ShapeType::LWith45DegreeLine));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2340,7 +2359,28 @@ mod tests {
     }
 
     #[test]
-    fn test_290000_unclassified() {
+    fn test_300000_image_l_with_45degree_line() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 1, 1, 1,
+            1, 1, 0, 0, 0,
+            1, 1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 6, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "L45");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+    }
+
+    #[test]
+    fn test_400000_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 1,
@@ -2367,7 +2407,7 @@ mod tests {
     }
 
     #[test]
-    fn test_290001_unclassified() {
+    fn test_400001_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 0,
@@ -2394,7 +2434,7 @@ mod tests {
     }
 
     #[test]
-    fn test_290002_unclassified() {
+    fn test_400002_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -2448,7 +2488,7 @@ mod tests {
     }
 
     #[test]
-    fn test_300000_normalize() {
+    fn test_500000_normalize() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 1,
@@ -2476,7 +2516,7 @@ mod tests {
     }
 
     #[test]
-    fn test_300001_normalize() {
+    fn test_500001_normalize() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1,
@@ -2505,7 +2545,7 @@ mod tests {
     }
 
     #[test]
-    fn test_300002_normalize() {
+    fn test_500002_normalize() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1,
