@@ -109,7 +109,7 @@ impl InspectTask {
         }
         {
             self.row_input_image += "<td>";
-            let image_id: String = format!("pair_{}_input", pair.pair_index);
+            let image_id: String = pair.id_input_image();
             self.row_input_image += &pair.input.image.to_interactive_html("", Some(image_id));
             if let Some(pattern) = &pair.input.grid_pattern {
                 self.row_input_image += "<br>";
@@ -141,7 +141,7 @@ impl InspectTask {
         }
         {
             self.row_output_image += "<td>";
-            let image_id: String = format!("pair_{}_output", pair.pair_index);
+            let image_id: String = pair.id_output_image();
             match pair.pair_type {
                 arc_work_model::PairType::Train => {
                     self.row_output_image += &pair.output.image.to_interactive_html("", Some(image_id));
