@@ -36,6 +36,7 @@ struct ShapeTypeImage {
     image_leftwards_harpoon_with_barb_upwards: Image,
     image_box_without_one_corner: Image,
     image_rotated_d: Image,
+    image_rotated_j_round: Image,
 }
 
 impl ShapeTypeImage {
@@ -165,6 +166,12 @@ impl ShapeTypeImage {
             1, 1, 1,
         ])?;
 
+        let image_rotated_j_round: Image = Image::try_create(3, 3, vec![
+            0, 1, 0,
+            1, 0, 0,
+            0, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -188,6 +195,7 @@ impl ShapeTypeImage {
             image_leftwards_harpoon_with_barb_upwards,
             image_box_without_one_corner,
             image_rotated_d,
+            image_rotated_j_round,
         };
         Ok(instance)
     }
@@ -440,6 +448,18 @@ pub enum ShapeType {
     /// ```
     RotatedD,
 
+    /// Shape `ᓚ`, similar to an rotated lowercase `j` symbol with round corners.
+    /// 
+    /// Unicode name: Canadian syllabics la
+    /// Codepoint (hexadecimal): 0x14DA
+    /// 
+    /// ````
+    /// 0, 1, 0
+    /// 1, 0, 0
+    /// 0, 1, 1
+    /// ```
+    RotatedJRound,
+
     Unclassified,
 
     // Future experiments
@@ -476,6 +496,7 @@ impl ShapeType {
             Self::LeftwardsHarpoonWithBarbUpwards => "↼",
             Self::BoxWithoutOneCorner => "box1",
             Self::RotatedD => "⌓",
+            Self::RotatedJRound => "ᓚ",
             Self::Unclassified => "unclassified",
         }
     }
@@ -659,6 +680,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_leftwards_harpoon_with_barb_upwards, ShapeType::LeftwardsHarpoonWithBarbUpwards));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_without_one_corner, ShapeType::BoxWithoutOneCorner));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_d, ShapeType::RotatedD));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_j_round, ShapeType::RotatedJRound));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2096,6 +2118,25 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⌓");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
+    }
+
+    #[test]
+    fn test_240000_image_rotated_j_round() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0, 0,
+            1, 0, 1, 1,
+            1, 0, 1, 1,
+            1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "ᓚ");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270]));
     }
 
     #[test]
