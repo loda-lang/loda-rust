@@ -47,6 +47,7 @@ struct ShapeTypeImage {
     image_l_skew: Image,
     image_uptack_skew: Image,
     image_lower_left_triangle_with_corner: Image,
+    image_i_uppercase_moved_corner: Image,
 }
 
 impl ShapeTypeImage {
@@ -242,6 +243,12 @@ impl ShapeTypeImage {
             1, 1, 1,
         ])?;
 
+        let image_i_uppercase_moved_corner: Image = Image::try_create(3, 3, vec![
+            1, 1, 0,
+            0, 1, 1,
+            1, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -276,6 +283,7 @@ impl ShapeTypeImage {
             image_l_skew,
             image_uptack_skew,
             image_lower_left_triangle_with_corner,
+            image_i_uppercase_moved_corner,
         };
         Ok(instance)
     }
@@ -642,6 +650,15 @@ pub enum ShapeType {
     /// ```
     LowerLeftTriangleWithCorner,
 
+    /// Variant of shape `I` with the top-right corner fallen down 1 pixel.
+    /// 
+    /// ````
+    /// 1, 1, 0
+    /// 0, 1, 1
+    /// 1, 1, 1
+    /// ```
+    IUppercaseMovedCorner,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -690,6 +707,7 @@ impl ShapeType {
             Self::LSkew => "Ꝇ",
             Self::UpTackSkew => "⊥1",
             Self::LowerLeftTriangleWithCorner => "◣1",
+            Self::IUppercaseMovedCorner => "I1",
             Self::Unclassified => "unclassified",
         }
     }
@@ -884,6 +902,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l_skew, ShapeType::LSkew));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_uptack_skew, ShapeType::UpTackSkew));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle_with_corner, ShapeType::LowerLeftTriangleWithCorner));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_i_uppercase_moved_corner, ShapeType::IUppercaseMovedCorner));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2536,6 +2555,25 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "◣1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+    }
+
+    #[test]
+    fn test_350000_image_i_uppercase_moved_corner() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 0, 0,
+            1, 1, 1, 0, 0,
+            0, 0, 1, 1, 1,
+            1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "I1");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
     }
 
     #[test]
