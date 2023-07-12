@@ -37,6 +37,7 @@ struct ShapeTypeImage {
     image_box_without_one_corner: Image,
     image_rotated_d: Image,
     image_rotated_j_round: Image,
+    image_box_without_diagonal: Image,
 }
 
 impl ShapeTypeImage {
@@ -172,6 +173,12 @@ impl ShapeTypeImage {
             0, 1, 1,
         ])?;
 
+        let image_box_without_diagonal: Image = Image::try_create(3, 3, vec![
+            1, 1, 0,
+            1, 0, 1,
+            0, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -196,6 +203,7 @@ impl ShapeTypeImage {
             image_box_without_one_corner,
             image_rotated_d,
             image_rotated_j_round,
+            image_box_without_diagonal,
         };
         Ok(instance)
     }
@@ -460,6 +468,16 @@ pub enum ShapeType {
     /// ```
     RotatedJRound,
 
+    /// Two `L` symbols combined, or a hollow box without the diagonal corners.
+    /// 
+    /// ````
+    /// 1, 1, 0
+    /// 1, 0, 1
+    /// 0, 1, 1
+    /// ```
+    BoxWithoutDiagonal,
+
+    /// Shapes that could not be recognized.
     Unclassified,
 
     // Future experiments
@@ -497,6 +515,7 @@ impl ShapeType {
             Self::BoxWithoutOneCorner => "box1",
             Self::RotatedD => "⌓",
             Self::RotatedJRound => "ᓚ",
+            Self::BoxWithoutDiagonal => "box2",
             Self::Unclassified => "unclassified",
         }
     }
@@ -681,6 +700,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_without_one_corner, ShapeType::BoxWithoutOneCorner));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_d, ShapeType::RotatedD));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_j_round, ShapeType::RotatedJRound));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_without_diagonal, ShapeType::BoxWithoutDiagonal));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2137,6 +2157,27 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "ᓚ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270]));
+    }
+
+    #[test]
+    fn test_250000_image_box_without_diagonal() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 1,
+            0, 1, 1, 1,
+            1, 0, 0, 1,
+            1, 0, 0, 1,
+            1, 1, 1, 0,
+            1, 1, 1, 0,
+        ];
+        let input: Image = Image::try_create(4, 6, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "box2");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
     }
 
     #[test]
