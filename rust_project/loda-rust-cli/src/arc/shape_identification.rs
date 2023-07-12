@@ -39,6 +39,7 @@ struct ShapeTypeImage {
     image_rotated_j_round: Image,
     image_box_without_diagonal: Image,
     image_rotated_s: Image,
+    image_plus_with_one_corner: Image,
 }
 
 impl ShapeTypeImage {
@@ -186,6 +187,12 @@ impl ShapeTypeImage {
             0, 0, 1,
         ])?;
 
+        let image_plus_with_one_corner: Image = Image::try_create(3, 3, vec![
+            0, 1, 0,
+            1, 1, 1,
+            1, 1, 0,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -212,6 +219,7 @@ impl ShapeTypeImage {
             image_rotated_j_round,
             image_box_without_diagonal,
             image_rotated_s,
+            image_plus_with_one_corner,
         };
         Ok(instance)
     }
@@ -496,6 +504,15 @@ pub enum ShapeType {
     /// ```
     RotatedS,
 
+    /// Shape `+` with 1 filled corner. Or a square without 3 corners.
+    /// 
+    /// ````
+    /// 0, 1, 0
+    /// 1, 1, 1
+    /// 1, 1, 0
+    /// ```
+    PlusWithOneCorner,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -536,6 +553,7 @@ impl ShapeType {
             Self::RotatedJRound => "ᓚ",
             Self::BoxWithoutDiagonal => "box2",
             Self::RotatedS => "⥊",
+            Self::PlusWithOneCorner => "+1",
             Self::Unclassified => "unclassified",
         }
     }
@@ -722,6 +740,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_j_round, ShapeType::RotatedJRound));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_without_diagonal, ShapeType::BoxWithoutDiagonal));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_s, ShapeType::RotatedS));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_plus_with_one_corner, ShapeType::PlusWithOneCorner));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2219,6 +2238,25 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⥊");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270]));
+    }
+
+    #[test]
+    fn test_270000_image_plus_with_one_corner() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 0, 0,
+            1, 1, 1, 1, 1,
+            1, 1, 1, 0, 0,
+            1, 1, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "+1");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
     }
 
     #[test]
