@@ -43,6 +43,7 @@ struct ShapeTypeImage {
     image_square_without_diagonal_corners: Image,
     image_gameoflife_boat: Image,
     image_l_with_45degree_line: Image,
+    image_x_without_one_corner: Image,
 }
 
 impl ShapeTypeImage {
@@ -214,6 +215,12 @@ impl ShapeTypeImage {
             1, 0, 0,
         ])?;
 
+        let image_x_without_one_corner: Image = Image::try_create(3, 3, vec![
+            1, 0, 0,
+            0, 1, 0,
+            1, 0, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -244,6 +251,7 @@ impl ShapeTypeImage {
             image_square_without_diagonal_corners,
             image_gameoflife_boat,
             image_l_with_45degree_line,
+            image_x_without_one_corner,
         };
         Ok(instance)
     }
@@ -568,6 +576,17 @@ pub enum ShapeType {
     /// ```
     LWith45DegreeLine,
 
+    /// Shape `⋋` is similar to an `X` where the top-right corner has been removed.
+    /// 
+    /// Unicode: Left semidirect product
+    /// 
+    /// ````
+    /// 1, 0, 0
+    /// 0, 1, 0
+    /// 1, 0, 1
+    /// ```
+    XWithoutOneCorner,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -612,6 +631,7 @@ impl ShapeType {
             Self::SquareWithoutDiagonalCorners => "square2",
             Self::GameOfLifeBoat => "boat",
             Self::LWith45DegreeLine => "L45",
+            Self::XWithoutOneCorner => "⋋",
             Self::Unclassified => "unclassified",
         }
     }
@@ -802,6 +822,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_square_without_diagonal_corners, ShapeType::SquareWithoutDiagonalCorners));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_gameoflife_boat, ShapeType::GameOfLifeBoat));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l_with_45degree_line, ShapeType::LWith45DegreeLine));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_x_without_one_corner, ShapeType::XWithoutOneCorner));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2376,6 +2397,26 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "L45");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+    }
+
+    #[test]
+    fn test_310000_image_x_without_one_corner() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+            1, 1, 0, 1, 1,
+            1, 1, 0, 1, 1,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⋋");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
     }
 
