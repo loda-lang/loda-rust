@@ -260,7 +260,7 @@ impl SubcommandARCWeb {
     async fn find_node_pixel(req: Request<State>) -> tide::Result {
         let task_id: &str = req.param("task_id").unwrap_or("world");
         let query: FindNodePixel = req.query()?;
-        let s = format!("find_node_pixel x: {}, y: {}", query.x, query.y);
+        println!("find_node_pixel x: {}, y: {} image: {}", query.x, query.y, query.image);
 
         let task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
             Ok(value) => value,
@@ -797,4 +797,5 @@ impl TemplateItemEdge {
 struct FindNodePixel {
     x: u8,
     y: u8,
+    image: String,
 }

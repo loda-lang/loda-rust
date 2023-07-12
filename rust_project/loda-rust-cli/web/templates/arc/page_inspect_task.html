@@ -43,6 +43,7 @@
         const imageDivs = document.querySelectorAll('[data-image]');
       
         Array.from(imageDivs).forEach((imageDiv) => {
+          const datasetImageValue = imageDiv.dataset.image;
           const divs = imageDiv.querySelectorAll('.json-data');
           const div = divs[0];
           const json = div.innerText;
@@ -61,7 +62,7 @@
               spanPixel.textContent = pixel;
               spanPixel.addEventListener('click', () => {
                 const host = window.location.href;
-                const url = `${host}/find-node-pixel?x=${columnIndex}&y=${rowIndex}`;
+                const url = `${host}/find-node-pixel?x=${columnIndex}&y=${rowIndex}&image=${datasetImageValue}`;
                 window.open(url, '_blank');
               });
               spanRow.appendChild(spanPixel);
