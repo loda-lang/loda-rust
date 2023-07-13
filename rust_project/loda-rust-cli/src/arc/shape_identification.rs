@@ -53,6 +53,7 @@ struct ShapeTypeImage {
     image_turned_w: Image,
     image_line_around_obstacle: Image,
     image_box_with_two_holes: Image,
+    image_box_with_2x2_holes: Image,
 }
 
 impl ShapeTypeImage {
@@ -281,6 +282,14 @@ impl ShapeTypeImage {
             1, 1, 1, 1, 1,
         ])?;
 
+        let image_box_with_2x2_holes: Image = Image::try_create(5, 5, vec![
+            1, 1, 1, 1, 1,
+            1, 0, 1, 0, 1,
+            1, 1, 1, 1, 1,
+            1, 0, 1, 0, 1,
+            1, 1, 1, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -321,6 +330,7 @@ impl ShapeTypeImage {
             image_turned_w,
             image_line_around_obstacle,
             image_box_with_two_holes,
+            image_box_with_2x2_holes,
         };
         Ok(instance)
     }
@@ -747,6 +757,19 @@ pub enum ShapeType {
     /// ```
     BoxWithTwoHoles,
 
+    /// Shape `𐌎` is similar to 2x2 boxes sharing the middle edges.
+    /// 
+    /// Unicode: Old italic letter esh
+    /// 
+    /// ````
+    /// 1, 1, 1, 1, 1
+    /// 1, 0, 1, 0, 1
+    /// 1, 1, 1, 1, 1
+    /// 1, 0, 1, 0, 1
+    /// 1, 1, 1, 1, 1
+    /// ```
+    BoxWith2x2Holes,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -801,6 +824,7 @@ impl ShapeType {
             Self::TurnedW => "ʍ",
             Self::LineAroundObstacle => "▟▀▙",
             Self::BoxWithTwoHoles => "◫",
+            Self::BoxWith2x2Holes => "𐌎",
             Self::Unclassified => "unclassified",
         }
     }
@@ -1001,6 +1025,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_turned_w, ShapeType::TurnedW));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_line_around_obstacle, ShapeType::LineAroundObstacle));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_with_two_holes, ShapeType::BoxWithTwoHoles));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_with_2x2_holes, ShapeType::BoxWith2x2Holes));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2776,6 +2801,26 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "◫");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90, ShapeTransformation::FlipXRotateCw270]));
+    }
+
+    #[test]
+    fn test_410000_image_box_with_2x2_holes() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 0, 0, 1, 0, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 0, 0, 1, 0, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(8, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "𐌎");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]
