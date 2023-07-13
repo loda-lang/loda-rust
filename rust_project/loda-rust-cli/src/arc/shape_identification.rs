@@ -4,7 +4,7 @@
 //! 
 //! Similar to SIFT (Scale-invariant feature transform) but without using points.
 //! https://en.wikipedia.org/wiki/Scale-invariant_feature_transform
-use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop};
+use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop, ImageResize};
 use std::fmt;
 use std::collections::HashSet;
 use lazy_static::lazy_static;
@@ -909,6 +909,100 @@ impl ShapeTransformation {
         transformations.insert(ShapeTransformation::FlipXRotateCw270);
         transformations
     }
+
+    fn perform_all_transformations(image: &Image) -> anyhow::Result<Vec<(ShapeTransformation, Image)>> {
+        let mut transformations = Vec::<(ShapeTransformation, Image)>::new();
+        {
+            let degree0: Image = image.clone();
+            let degree90: Image = degree0.rotate_cw()?;
+            let degree180: Image = degree90.rotate_cw()?;
+            let degree270: Image = degree180.rotate_cw()?;
+            transformations.push((ShapeTransformation::Normal, degree0));
+            transformations.push((ShapeTransformation::RotateCw90, degree90));
+            transformations.push((ShapeTransformation::RotateCw180, degree180));
+            transformations.push((ShapeTransformation::RotateCw270, degree270));
+        }
+        {
+            let degree0: Image = image.flip_x()?;
+            let degree90: Image = degree0.rotate_cw()?;
+            let degree180: Image = degree90.rotate_cw()?;
+            let degree270: Image = degree180.rotate_cw()?;
+            transformations.push((ShapeTransformation::FlipX, degree0));
+            transformations.push((ShapeTransformation::FlipXRotateCw90, degree90));
+            transformations.push((ShapeTransformation::FlipXRotateCw180, degree180));
+            transformations.push((ShapeTransformation::FlipXRotateCw270, degree270));
+        }
+        Ok(transformations)
+    }
+
+    fn apply(&self, image: &Image) -> anyhow::Result<Image> {
+        let result_image: Image = match self {
+            Self::Normal => image.clone(),
+            Self::RotateCw90 => image.rotate_cw()?,
+            Self::RotateCw180 => image.rotate(2)?,
+            Self::RotateCw270 => image.rotate(3)?,
+            Self::FlipX => image.flip_x()?,
+            Self::FlipXRotateCw90 => image.flip_x()?.rotate_cw()?,
+            Self::FlipXRotateCw180 => image.flip_x()?.rotate(2)?,
+            Self::FlipXRotateCw270 => image.flip_x()?.rotate(3)?,
+        };
+        Ok(result_image)
+    }
+
+    fn detect_scale(&self, trimmed_mask: &Image, compact_mask: &Image) -> anyhow::Result<Option<ScaleXY>> {
+        if trimmed_mask.is_empty() || compact_mask.is_empty() {
+            return Ok(None);
+        }
+
+        let transformed_trimmed_mask: Image = self.apply(trimmed_mask)?;
+
+        let size0: ImageSize = transformed_trimmed_mask.size();
+        let size1: ImageSize = compact_mask.size();
+        if size0.is_empty() || size1.is_empty() {
+            return Ok(None);
+        }
+
+        let remainder_width: u8 = size0.width % size1.width;
+        let remainder_height: u8 = size0.height % size1.height;
+        if remainder_width != 0 || remainder_height != 0 {
+            return Ok(None);
+        }
+
+        let scale_x: u8 = size0.width / size1.width;
+        let scale_y: u8 = size0.height / size1.height;
+        if scale_x == 0 || scale_y == 0 {
+            return Ok(None);
+        }
+
+        let scaled_compact_mask: Image = compact_mask.resize(size0.width, size0.height)?;
+        if transformed_trimmed_mask != scaled_compact_mask {
+            return Ok(None);
+        }
+
+        let scale: ScaleXY = if self.is_preserving_orientation() {
+            ScaleXY { x: scale_x, y: scale_y }
+        } else {
+            ScaleXY { x: scale_y, y: scale_x }
+        };
+
+        Ok(Some(scale))
+    }
+
+    /// Returns `true` if the transformation preserves the orientation.
+    /// 
+    /// Returns `false` if the transformation changes the orientation.
+    fn is_preserving_orientation(&self) -> bool {
+        match self {
+            Self::Normal | Self::RotateCw180 | Self::FlipX | Self::FlipXRotateCw180 => true,
+            Self::RotateCw90 | Self::RotateCw270 | Self::FlipXRotateCw90 | Self::FlipXRotateCw270 => false
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScaleXY {
+    pub x: u8,
+    pub y: u8,
 }
 
 #[allow(dead_code)]
@@ -929,8 +1023,10 @@ pub struct ShapeIdentification {
     /// The compacted mask, that is the smallest representation of the shape.
     pub normalized_mask: Option<Image>,
 
+    /// is it scaled down without losing information, apply scale factor to get original size.
+    pub scale: Option<ScaleXY>,
+
     // Future experiments
-    // is scaled down without losing information, apply scale factor to get original size.
     // diagonal compression, so that a 10pixel long diagonal line and a 13pixel long diagonal line, gets the same representation.
 }
 
@@ -952,12 +1048,14 @@ impl ShapeIdentification {
 
         // After trimming, if it's a 1x1 shape, then it's a square
         if shape_size == ImageSize::new(1, 1) {
+            let scale = ScaleXY { x: 1, y: 1 };
             let shape = Self {
                 shape_type: ShapeType::Square,
                 mask_uncropped: mask.clone(),
                 rect,
                 transformations: ShapeTransformation::all(),
                 normalized_mask: None,
+                scale: Some(scale),
             };
             return Ok(shape);
         }
@@ -965,8 +1063,9 @@ impl ShapeIdentification {
         // Compact the shape even more by removing duplicate rows and columns
         let compact_mask: Image = trimmed_mask.remove_duplicates()?;
 
-        // If it compacted into a 1x1 pixel then it's a square or rectangle
+        // If it compacts into a 1x1 pixel then it's a square or rectangle
         if compact_mask.size() == ImageSize::new(1, 1) {
+            let scale = ScaleXY { x: trimmed_mask.width(), y: trimmed_mask.height() };
             let is_square: bool = trimmed_mask.width() == trimmed_mask.height();
             if is_square {
                 let shape = Self {
@@ -975,6 +1074,7 @@ impl ShapeIdentification {
                     rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
+                    scale: Some(scale),
                 };
                 return Ok(shape);
             } else {
@@ -984,66 +1084,20 @@ impl ShapeIdentification {
                     rect,
                     transformations: ShapeTransformation::all(),
                     normalized_mask: None,
+                    scale: Some(scale),
                 };
                 return Ok(shape);    
             }
         }
 
-        // If it compacted into a 3x3 image, then it may be some basic shapes
-        // these basic shapes are easy to recognize because are symmetric and thus doesn't require flipping or rotating.
-        if compact_mask.size() == ImageSize::new(3, 3) {
-            if compact_mask == SHAPE_TYPE_IMAGE.image_box {
-                let shape = Self {
-                    shape_type: ShapeType::Box,
-                    mask_uncropped: mask.clone(),
-                    rect,
-                    transformations: ShapeTransformation::all(),
-                    normalized_mask: None,
-                };
-                return Ok(shape);
-            }
-
-            if compact_mask == SHAPE_TYPE_IMAGE.image_plus {
-                let shape = Self {
-                    shape_type: ShapeType::Plus,
-                    mask_uncropped: mask.clone(),
-                    rect,
-                    transformations: ShapeTransformation::all(),
-                    normalized_mask: None,
-                };
-                return Ok(shape);
-            }
-
-            if compact_mask == SHAPE_TYPE_IMAGE.image_crosshair {
-                let shape = Self {
-                    shape_type: ShapeType::Crosshair,
-                    mask_uncropped: mask.clone(),
-                    rect,
-                    transformations: ShapeTransformation::all(),
-                    normalized_mask: None,
-                };
-                return Ok(shape);
-            }
-
-            if compact_mask == SHAPE_TYPE_IMAGE.image_x {
-                let shape = Self {
-                    shape_type: ShapeType::X,
-                    mask_uncropped: mask.clone(),
-                    rect,
-                    transformations: ShapeTransformation::all(),
-                    normalized_mask: None,
-                };
-                return Ok(shape);
-            }
-        }
-
-        // The image is a slighly more complex shape, so we need to apply expensive transformations
-        // in order to recognize it.
-
-        let transformations: Vec<(ShapeTransformation, Image)> = Self::make_transformations(&compact_mask)?;
+        let transformations: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&compact_mask)?;
 
         {
             let mut images_to_recognize = Vec::<(&Image, ShapeType)>::new();
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box, ShapeType::Box));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_plus, ShapeType::Plus));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_crosshair, ShapeType::Crosshair));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_x, ShapeType::X));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_h_uppercase, ShapeType::HUppercase));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_diagonal2, ShapeType::Diagonal2));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_diagonal3, ShapeType::Diagonal3));
@@ -1092,13 +1146,15 @@ impl ShapeIdentification {
                     }
                 }
                 if !found_transformations.is_empty() {
-                    let shape = Self {
+                    let mut shape = Self {
                         shape_type: *recognized_shape_type,
                         mask_uncropped: mask.clone(),
                         rect,
                         transformations: found_transformations,
                         normalized_mask: None,
+                        scale: None,
                     };
+                    shape.autodetect_scale(&trimmed_mask, &compact_mask)?;
                     return Ok(shape);
                 }
             }
@@ -1107,39 +1163,44 @@ impl ShapeIdentification {
         // The shape is more advanced than the basic ones we can recognize
         // apply even more expensive transformations to recognize it.
         let (transformation, normalized_mask) = Self::normalize(compact_mask.size(), transformations)?;
-        let shape = Self {
+        let mut shape = Self {
             shape_type: ShapeType::Unclassified,
             mask_uncropped: mask.clone(),
             rect,
             transformations: HashSet::<ShapeTransformation>::from([transformation]),
             normalized_mask: Some(normalized_mask),
+            scale: None,
         };
+        shape.autodetect_scale(&trimmed_mask, &compact_mask)?;
         Ok(shape)
     }
 
-    fn make_transformations(image: &Image) -> anyhow::Result<Vec<(ShapeTransformation, Image)>> {
-        let mut transformations = Vec::<(ShapeTransformation, Image)>::new();
-        {
-            let degree0: Image = image.clone();
-            let degree90: Image = degree0.rotate_cw()?;
-            let degree180: Image = degree90.rotate_cw()?;
-            let degree270: Image = degree180.rotate_cw()?;
-            transformations.push((ShapeTransformation::Normal, degree0));
-            transformations.push((ShapeTransformation::RotateCw90, degree90));
-            transformations.push((ShapeTransformation::RotateCw180, degree180));
-            transformations.push((ShapeTransformation::RotateCw270, degree270));
+    fn autodetect_scale(&mut self, trimmed_mask: &Image, compact_mask: &Image) -> anyhow::Result<()> {
+        let mut primary_transformation: Option<ShapeTransformation> = None;
+        let mut secondary_transformation: Option<ShapeTransformation> = None;
+        for transformation in &self.transformations {
+            if transformation.is_preserving_orientation() {
+                primary_transformation = Some(transformation.clone());
+            } else {
+                secondary_transformation = Some(transformation.clone());
+            }
         }
-        {
-            let degree0: Image = image.flip_x()?;
-            let degree90: Image = degree0.rotate_cw()?;
-            let degree180: Image = degree90.rotate_cw()?;
-            let degree270: Image = degree180.rotate_cw()?;
-            transformations.push((ShapeTransformation::FlipX, degree0));
-            transformations.push((ShapeTransformation::FlipXRotateCw90, degree90));
-            transformations.push((ShapeTransformation::FlipXRotateCw180, degree180));
-            transformations.push((ShapeTransformation::FlipXRotateCw270, degree270));
+        let transformation: ShapeTransformation = match (primary_transformation, secondary_transformation) {
+            (Some(value), _) => value,
+            (None, Some(value)) => value,
+            (None, None) => return Ok(()),
+        };
+
+        match transformation.detect_scale(trimmed_mask, compact_mask)? {
+            Some(scale) => {
+                self.scale = Some(scale);
+            },
+            None => {
+                // no scale detected
+            }
         }
-        Ok(transformations)
+
+        Ok(())
     }
 
     /// The intention is to always yield the same image, no matter if the input is rotated or flipped.
@@ -1189,6 +1250,12 @@ impl ShapeIdentification {
         Ok((transformation, image))
     }
 
+    fn scale_to_string(&self) -> String {
+        match &self.scale {
+            Some(scale) => format!("{}x{}", scale.x, scale.y),
+            None => "none".to_string(),
+        }
+    }
 }
 
 impl fmt::Display for ShapeIdentification {
@@ -1236,6 +1303,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "square");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "1x1");
     }
 
     #[test]
@@ -1253,6 +1321,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "square");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "2x2");
     }
 
     #[test]
@@ -1270,6 +1339,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "rectangle");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "3x2");
     }
 
     #[test]
@@ -1286,6 +1356,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "rectangle");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "6x1");
     }
 
     #[test]
@@ -1305,6 +1376,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "box");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1324,6 +1396,26 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "box");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "none");
+    }
+
+    #[test]
+    fn test_30002_box() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1, 1,
+            1, 1, 0, 0, 1, 1,
+            1, 1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(6, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "box");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
@@ -1343,20 +1435,21 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "+");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
     fn test_40001_plus() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            0, 0, 1, 0,
-            0, 0, 1, 0,
-            1, 1, 1, 1,
-            1, 1, 1, 1,
-            0, 0, 1, 0,
-            0, 0, 1, 0,
+            0, 1, 0,
+            0, 1, 0,
+            1, 1, 1,
+            1, 1, 1,
+            0, 1, 0,
+            0, 1, 0,
         ];
-        let input: Image = Image::try_create(4, 6, pixels).expect("image");
+        let input: Image = Image::try_create(3, 6, pixels).expect("image");
 
         // Act
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
@@ -1364,6 +1457,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "+");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "1x2");
     }
 
     #[test]
@@ -1384,6 +1478,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "✜");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1403,6 +1498,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "✜");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1422,6 +1518,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "L");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1441,6 +1538,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "L");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -3041,7 +3139,7 @@ mod tests {
 
     fn normalize(image_with_unknown_orientation: &Image) -> anyhow::Result<Image> {
         let size: ImageSize = image_with_unknown_orientation.size();
-        let transformations: Vec<(ShapeTransformation, Image)> = ShapeIdentification::make_transformations(&image_with_unknown_orientation)?;
+        let transformations: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&image_with_unknown_orientation)?;
         let (_transformation, output) = ShapeIdentification::normalize(size, transformations)?;
         Ok(output)
     }
