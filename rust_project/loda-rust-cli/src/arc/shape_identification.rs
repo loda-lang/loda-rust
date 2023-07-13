@@ -56,6 +56,7 @@ struct ShapeTypeImage {
     image_box_with_2x2_holes: Image,
     image_x_moved_corner: Image,
     image_lower_left_triangle_without_corner: Image,
+    image_lower_left_triangle_moved_corner: Image,
 }
 
 impl ShapeTypeImage {
@@ -304,6 +305,12 @@ impl ShapeTypeImage {
             0, 1, 1,
         ])?;
 
+        let image_lower_left_triangle_moved_corner: Image = Image::try_create(3, 3, vec![
+            1, 0, 1,
+            1, 1, 0,
+            0, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -347,6 +354,7 @@ impl ShapeTypeImage {
             image_box_with_2x2_holes,
             image_x_moved_corner,
             image_lower_left_triangle_without_corner,
+            image_lower_left_triangle_moved_corner,
         };
         Ok(instance)
     }
@@ -804,6 +812,15 @@ pub enum ShapeType {
     /// ```
     LowerLeftTriangleWithoutCorner,
 
+    /// Variant of shape `◣` where the bottom-left corner has been moved to the top-right corner.
+    /// 
+    /// ````
+    /// 1, 0, 1
+    /// 1, 1, 0
+    /// 0, 1, 1
+    /// ```
+    LowerLeftTriangleMovedCorner,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -861,6 +878,7 @@ impl ShapeType {
             Self::BoxWith2x2Holes => "𐌎",
             Self::XMovedCorner => "X1",
             Self::LowerLeftTriangleWithoutCorner => "◣-1",
+            Self::LowerLeftTriangleMovedCorner => "◣move",
             Self::Unclassified => "unclassified",
         }
     }
@@ -1064,6 +1082,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_with_2x2_holes, ShapeType::BoxWith2x2Holes));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_x_moved_corner, ShapeType::XMovedCorner));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle_without_corner, ShapeType::LowerLeftTriangleWithoutCorner));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle_moved_corner, ShapeType::LowerLeftTriangleMovedCorner));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2897,6 +2916,25 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "◣-1");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+    }
+
+    #[test]
+    fn test_440000_image_lower_left_triangle_moved_corner() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 1,
+            1, 0, 1,
+            1, 1, 0,
+            0, 1, 1,
+        ];
+        let input: Image = Image::try_create(3, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "◣move");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
     }
 
