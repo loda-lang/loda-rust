@@ -426,10 +426,7 @@ impl SubcommandARCWeb {
             return Ok(response);
         }
 
-        let node: &NodeData = &graph[node_index];
-        println!("node: {:?}", node);
-
-        match node {
+        match &graph[node_index] {
             NodeData::Pixel => {
                 return Self::page_node_pixel(graph, node_index, task_id, tera);
             },

@@ -308,7 +308,7 @@ impl TaskGraph {
         Ok(object_index)
     }
 
-    fn process_shapes_inner(&mut self, image_index: NodeIndex, name: &str, sco: &SingleColorObject, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+    fn process_shapes_inner(&mut self, image_index: NodeIndex, _name: &str, sco: &SingleColorObject, connectivity: PixelConnectivity) -> anyhow::Result<()> {
         for color in 0..=9 {
             let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
                 Ok(value) => value,
@@ -330,7 +330,7 @@ impl TaskGraph {
                         continue;
                     }
                 };
-                println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
+                // println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
                 let object_index: NodeIndex = match self.add_object(image_index, &shape_id.mask_uncropped, connectivity) {
                     Ok(value) => value,
                     Err(error) => {
@@ -338,7 +338,7 @@ impl TaskGraph {
                         continue;
                     }
                 };
-                println!("name: {} object_index: {:?}", name, object_index);
+                // println!("name: {} object_index: {:?}", name, object_index);
 
                 {
                     let property = NodeData::ShapeType { shape_type: shape_id.shape_type.clone() };
@@ -361,7 +361,7 @@ impl TaskGraph {
         let sco: &SingleColorObject = match sco {
             Some(value) => value,
             None => {
-                println!("{}: no sco", name);
+                // println!("{}: no sco", name);
                 return;
             }
         };
@@ -389,7 +389,7 @@ impl TaskGraph {
                 return Err(anyhow::anyhow!("pair[{}].input.image cannot add image. {:?}", pair.pair_index, error));
             }
         };
-        println!("image_input_node_index: {:?}", image_input_node_index);
+        // println!("image_input_node_index: {:?}", image_input_node_index);
         self.graph.add_edge(pair_node_index, image_input_node_index, EdgeData::Child);
         self.graph.add_edge(image_input_node_index, pair_node_index, EdgeData::Parent);
 
@@ -399,7 +399,7 @@ impl TaskGraph {
                 return Err(anyhow::anyhow!("pair[{}].output.image cannot add image. {:?}", pair.pair_index, error));
             }
         };
-        println!("image_output_node_index: {:?}", image_output_node_index);
+        // println!("image_output_node_index: {:?}", image_output_node_index);
         self.graph.add_edge(pair_node_index, image_output_node_index, EdgeData::Child);
         self.graph.add_edge(image_output_node_index, pair_node_index, EdgeData::Parent);
 
