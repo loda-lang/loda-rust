@@ -363,15 +363,9 @@ impl ShapeTypeImage {
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ShapeType {
-    /// Solid square or rectangle.
+    /// Solid rectangle, such as a square, horizontal/vertical line.
     /// ````
     /// 1
-    /// ```
-    Square,
-
-    /// Solid rectangle.
-    /// ````
-    /// 1, 1
     /// ```
     Rectangle,
 
@@ -834,7 +828,6 @@ pub enum ShapeType {
 impl ShapeType {
     fn name(&self) -> &str {
         match self {
-            Self::Square => "square",
             Self::Rectangle => "rectangle",
             Self::Box => "box",
             Self::Plus => "+",
@@ -1060,7 +1053,7 @@ impl ShapeIdentification {
         if shape_size == ImageSize::new(1, 1) {
             let scale = ScaleXY { x: 1, y: 1 };
             let shape = Self {
-                shape_type: ShapeType::Square,
+                shape_type: ShapeType::Rectangle,
                 mask_uncropped: mask.clone(),
                 rect,
                 transformations: ShapeTransformation::all(),
@@ -1076,28 +1069,15 @@ impl ShapeIdentification {
         // If it compacts into a 1x1 pixel then it's a square or rectangle
         if compact_mask.size() == ImageSize::new(1, 1) {
             let scale = ScaleXY { x: trimmed_mask.width(), y: trimmed_mask.height() };
-            let is_square: bool = trimmed_mask.width() == trimmed_mask.height();
-            if is_square {
-                let shape = Self {
-                    shape_type: ShapeType::Square,
-                    mask_uncropped: mask.clone(),
-                    rect,
-                    transformations: ShapeTransformation::all(),
-                    normalized_mask: None,
-                    scale: Some(scale),
-                };
-                return Ok(shape);
-            } else {
-                let shape = Self {
-                    shape_type: ShapeType::Rectangle,
-                    mask_uncropped: mask.clone(),
-                    rect,
-                    transformations: ShapeTransformation::all(),
-                    normalized_mask: None,
-                    scale: Some(scale),
-                };
-                return Ok(shape);    
-            }
+            let shape = Self {
+                shape_type: ShapeType::Rectangle,
+                mask_uncropped: mask.clone(),
+                rect,
+                transformations: ShapeTransformation::all(),
+                normalized_mask: None,
+                scale: Some(scale),
+            };
+            return Ok(shape);    
         }
 
         let transformations: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&compact_mask)?;
@@ -1280,7 +1260,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_square() {
+    fn test_20000_rectangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0,
@@ -1293,13 +1273,13 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "square");
+        assert_eq!(actual.to_string(), "rectangle");
         assert_eq!(actual.transformations, ShapeTransformation::all());
         assert_eq!(actual.scale_to_string(), "1x1");
     }
 
     #[test]
-    fn test_20001_square() {
+    fn test_20001_rectangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1,
@@ -1311,7 +1291,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "square");
+        assert_eq!(actual.to_string(), "rectangle");
         assert_eq!(actual.transformations, ShapeTransformation::all());
         assert_eq!(actual.scale_to_string(), "2x2");
     }
