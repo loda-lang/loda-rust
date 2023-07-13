@@ -52,6 +52,7 @@ struct ShapeTypeImage {
     image_rotated_uppercase_e: Image,
     image_turned_w: Image,
     image_line_around_obstacle: Image,
+    image_box_with_two_holes: Image,
 }
 
 impl ShapeTypeImage {
@@ -274,6 +275,12 @@ impl ShapeTypeImage {
             1, 1, 0, 1, 1,
         ])?;
 
+        let image_box_with_two_holes: Image = Image::try_create(5, 3, vec![
+            1, 1, 1, 1, 1,
+            1, 0, 1, 0, 1,
+            1, 1, 1, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -313,6 +320,7 @@ impl ShapeTypeImage {
             image_rotated_uppercase_e,
             image_turned_w,
             image_line_around_obstacle,
+            image_box_with_two_holes,
         };
         Ok(instance)
     }
@@ -728,6 +736,17 @@ pub enum ShapeType {
     /// ```
     LineAroundObstacle,
 
+    /// Shape `◫` is similar to 2 boxes sharing the middle edge.
+    /// 
+    /// Unicode: White square with vertical bisecting line
+    /// 
+    /// ````
+    /// 1, 1, 1, 1, 1
+    /// 1, 0, 1, 0, 1
+    /// 1, 1, 1, 1, 1
+    /// ```
+    BoxWithTwoHoles,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -781,6 +800,7 @@ impl ShapeType {
             Self::RotatedUppercaseE => "⧢",
             Self::TurnedW => "ʍ",
             Self::LineAroundObstacle => "▟▀▙",
+            Self::BoxWithTwoHoles => "◫",
             Self::Unclassified => "unclassified",
         }
     }
@@ -980,6 +1000,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_uppercase_e, ShapeType::RotatedUppercaseE));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_turned_w, ShapeType::TurnedW));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_line_around_obstacle, ShapeType::LineAroundObstacle));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_with_two_holes, ShapeType::BoxWithTwoHoles));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -2738,7 +2759,27 @@ mod tests {
     }
 
     #[test]
-    fn test_400000_unclassified() {
+    fn test_400000_image_box_with_two_holes() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1,
+            1, 1, 0, 0, 1,
+            1, 1, 1, 1, 1,
+            1, 1, 0, 0, 1,
+            1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "◫");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90, ShapeTransformation::FlipXRotateCw270]));
+    }
+
+    #[test]
+    fn test_500000_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 1,
@@ -2765,7 +2806,7 @@ mod tests {
     }
 
     #[test]
-    fn test_400001_unclassified() {
+    fn test_500001_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 0,
@@ -2792,7 +2833,7 @@ mod tests {
     }
 
     #[test]
-    fn test_400002_unclassified() {
+    fn test_500002_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -2846,7 +2887,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500000_normalize() {
+    fn test_600000_normalize() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 1,
@@ -2874,7 +2915,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500001_normalize() {
+    fn test_600001_normalize() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1,
@@ -2903,7 +2944,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500002_normalize() {
+    fn test_600002_normalize() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1,
