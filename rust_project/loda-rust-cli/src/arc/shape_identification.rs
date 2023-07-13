@@ -3152,6 +3152,7 @@ mod tests {
         let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
         assert_eq!(actual.normalized_mask, Some(expected_compact));
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -3179,6 +3180,7 @@ mod tests {
         let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
         assert_eq!(actual.normalized_mask, Some(expected_compact));
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -3206,6 +3208,64 @@ mod tests {
         let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
         assert_eq!(actual.normalized_mask, Some(expected_compact));
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
+    }
+
+    #[test]
+    fn test_500003_unclassified() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+            1, 1, 0, 1,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "unclassified");
+
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+            1, 1, 0, 1,
+        ];
+        let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual.normalized_mask, Some(expected_compact));
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_500004_unclassified() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+            1, 0, 0, 0,
+            1, 1, 0, 1,
+            1, 1, 0, 1,
+        ];
+        let input: Image = Image::try_create(4, 6, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "unclassified");
+
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+            1, 1, 0, 1,
+        ];
+        let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual.normalized_mask, Some(expected_compact));
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "1x2");
     }
 
     fn transform(input: &Image, mode: u8) -> anyhow::Result<Image> {
