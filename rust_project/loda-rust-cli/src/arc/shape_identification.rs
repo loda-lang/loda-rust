@@ -935,67 +935,77 @@ impl ShapeTransformation {
         Ok(transformations)
     }
 
-    fn apply(&self, image: &Image) -> anyhow::Result<Image> {
+    fn apply_forward(&self, image: &Image) -> anyhow::Result<Image> {
         let result_image: Image = match self {
             Self::Normal => image.clone(),
             Self::RotateCw90 => image.rotate_cw()?,
             Self::RotateCw180 => image.rotate(2)?,
-            Self::RotateCw270 => image.rotate(3)?,
+            Self::RotateCw270 => image.rotate_ccw()?,
             Self::FlipX => image.flip_x()?,
             Self::FlipXRotateCw90 => image.flip_x()?.rotate_cw()?,
             Self::FlipXRotateCw180 => image.flip_x()?.rotate(2)?,
-            Self::FlipXRotateCw270 => image.flip_x()?.rotate(3)?,
+            Self::FlipXRotateCw270 => image.flip_x()?.rotate_ccw()?,
         };
         Ok(result_image)
     }
 
-    fn detect_scale(&self, trimmed_mask: &Image, compact_mask: &Image) -> anyhow::Result<Option<ScaleXY>> {
-        if trimmed_mask.is_empty() || compact_mask.is_empty() {
+    fn apply_backward(&self, image: &Image) -> anyhow::Result<Image> {
+        let result_image: Image = match self {
+            Self::Normal => image.clone(),
+            Self::RotateCw90 => image.rotate_ccw()?,
+            Self::RotateCw180 => image.rotate(2)?,
+            Self::RotateCw270 => image.rotate_cw()?,
+            Self::FlipX => image.flip_x()?,
+            Self::FlipXRotateCw90 => image.rotate_ccw()?.flip_x()?,
+            Self::FlipXRotateCw180 => image.rotate(2)?.flip_x()?,
+            Self::FlipXRotateCw270 => image.rotate_cw()?.flip_x()?,
+        };
+        Ok(result_image)
+    }
+
+    fn detect_scale(&self, trimmed_mask: &Image, shape_mask: &Image) -> anyhow::Result<Option<ScaleXY>> {
+        if trimmed_mask.is_empty() || shape_mask.is_empty() {
+            // println!("{:?} images must be 1x1 or bigger", self);
             return Ok(None);
         }
 
-        let transformed_trimmed_mask: Image = self.apply(trimmed_mask)?;
+        let transformed_shape_mask: Image = self.apply_backward(shape_mask)?;
 
-        let size0: ImageSize = transformed_trimmed_mask.size();
-        let size1: ImageSize = compact_mask.size();
+        let size0: ImageSize = trimmed_mask.size();
+        let size1: ImageSize = transformed_shape_mask.size();
         if size0.is_empty() || size1.is_empty() {
+            // println!("{:?} images after transform must be 1x1 or bigger", self);
             return Ok(None);
         }
 
         let remainder_width: u8 = size0.width % size1.width;
         let remainder_height: u8 = size0.height % size1.height;
         if remainder_width != 0 || remainder_height != 0 {
+            // println!("{:?} not divisible. {} {} {} {}", self, size0.width, size0.height, size1.width, size1.height);
             return Ok(None);
         }
 
         let scale_x: u8 = size0.width / size1.width;
         let scale_y: u8 = size0.height / size1.height;
         if scale_x == 0 || scale_y == 0 {
+            // println!("{:?} scale factor is zero", self);
             return Ok(None);
         }
 
-        let scaled_compact_mask: Image = compact_mask.resize(size0.width, size0.height)?;
-        if transformed_trimmed_mask != scaled_compact_mask {
+        let scaled_transformed_shape_mask: Image = transformed_shape_mask.resize(size0.width, size0.height)?;
+
+        // println!("{:?} trimmed_mask: {:?}", self, trimmed_mask);
+        // println!("{:?} shape_mask: {:?}", self, shape_mask);
+        // println!("{:?} transformed_shape_mask: {:?}", self, transformed_shape_mask);
+        // println!("{:?} scaled_transformed_shape_mask: {:?}", self, scaled_transformed_shape_mask);
+
+        if *trimmed_mask != scaled_transformed_shape_mask {
+            // println!("{:?} images does not match.", self);
             return Ok(None);
         }
 
-        let scale: ScaleXY = if self.is_preserving_orientation() {
-            ScaleXY { x: scale_x, y: scale_y }
-        } else {
-            ScaleXY { x: scale_y, y: scale_x }
-        };
-
+        let scale: ScaleXY = ScaleXY { x: scale_x, y: scale_y };
         Ok(Some(scale))
-    }
-
-    /// Returns `true` if the transformation preserves the orientation.
-    /// 
-    /// Returns `false` if the transformation changes the orientation.
-    fn is_preserving_orientation(&self) -> bool {
-        match self {
-            Self::Normal | Self::RotateCw180 | Self::FlipX | Self::FlipXRotateCw180 => true,
-            Self::RotateCw90 | Self::RotateCw270 | Self::FlipXRotateCw90 | Self::FlipXRotateCw270 => false
-        }
     }
 }
 
@@ -1154,7 +1164,7 @@ impl ShapeIdentification {
                         normalized_mask: None,
                         scale: None,
                     };
-                    shape.autodetect_scale(&trimmed_mask, &compact_mask)?;
+                    shape.autodetect_scale(&trimmed_mask, &image_to_recognize)?;
                     return Ok(shape);
                 }
             }
@@ -1175,31 +1185,13 @@ impl ShapeIdentification {
         Ok(shape)
     }
 
-    fn autodetect_scale(&mut self, trimmed_mask: &Image, compact_mask: &Image) -> anyhow::Result<()> {
-        let mut primary_transformation: Option<ShapeTransformation> = None;
-        let mut secondary_transformation: Option<ShapeTransformation> = None;
+    fn autodetect_scale(&mut self, trimmed_mask: &Image, shape_mask: &Image) -> anyhow::Result<()> {
         for transformation in &self.transformations {
-            if transformation.is_preserving_orientation() {
-                primary_transformation = Some(transformation.clone());
-            } else {
-                secondary_transformation = Some(transformation.clone());
-            }
-        }
-        let transformation: ShapeTransformation = match (primary_transformation, secondary_transformation) {
-            (Some(value), _) => value,
-            (None, Some(value)) => value,
-            (None, None) => return Ok(()),
-        };
-
-        match transformation.detect_scale(trimmed_mask, compact_mask)? {
-            Some(scale) => {
+            if let Some(scale) = transformation.detect_scale(trimmed_mask, shape_mask)? {
                 self.scale = Some(scale);
-            },
-            None => {
-                // no scale detected
+                return Ok(());
             }
         }
-
         Ok(())
     }
 
@@ -1558,6 +1550,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "L");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "1x2");
     }
 
     #[test]
@@ -1576,6 +1569,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "L");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1596,6 +1590,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊥");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1614,6 +1609,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊥");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1632,6 +1628,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊥");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
@@ -1650,6 +1647,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊥");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "1x1");
     }
 
     #[test]
@@ -1658,11 +1656,12 @@ mod tests {
         let pixels: Vec<u8> = vec![
             1, 1, 1,
             1, 1, 1,
+            1, 1, 1,
             1, 0, 1,
             1, 0, 1,
             1, 0, 1,
         ];
-        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+        let input: Image = Image::try_create(3, 6, pixels).expect("image");
 
         // Act
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
@@ -1670,6 +1669,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊔");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "1x3");
     }
 
     #[test]
@@ -1688,6 +1688,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊔");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1706,6 +1707,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊔");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
@@ -1724,6 +1726,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊔");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "1x1");
     }
 
     #[test]
@@ -1744,6 +1747,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "U4");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1754,9 +1758,8 @@ mod tests {
             0, 1, 1,
             1, 0, 1,
             1, 0, 1,
-            1, 0, 1,
         ];
-        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+        let input: Image = Image::try_create(3, 4, pixels).expect("image");
 
         // Act
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
@@ -1764,6 +1767,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "U4");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180]));
+        assert_eq!(actual.scale_to_string(), "1x2");
     }
 
     #[test]
@@ -1782,6 +1786,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "U4");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1800,6 +1805,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "U4");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1818,6 +1824,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "U4");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270]));
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
@@ -1836,6 +1843,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "U4");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
@@ -1854,6 +1862,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "U4");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90]));
+        assert_eq!(actual.scale_to_string(), "1x1");
     }
 
     #[test]
@@ -1872,6 +1881,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "U4");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "1x1");
     }
 
     #[test]
@@ -1892,6 +1902,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "H");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1910,6 +1921,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "H");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::RotateCw180, ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1930,17 +1942,18 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "X");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
     fn test_110001_x() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1, 1, 0, 0, 1,
-            0, 0, 1, 1, 0,
-            1, 1, 0, 0, 1,
+            1, 1, 0, 0, 1, 1,
+            0, 0, 1, 1, 0, 0,
+            1, 1, 0, 0, 1, 1,
         ];
-        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+        let input: Image = Image::try_create(6, 3, pixels).expect("image");
 
         // Act
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
@@ -1948,6 +1961,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "X");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
@@ -1966,6 +1980,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⋀");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -1984,6 +1999,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⋀");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2002,16 +2018,17 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⋀");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
     fn test_120003_turnedv() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            0, 1, 1, 0, 0,
-            1, 0, 0, 1, 1,
+            0, 0, 1, 1, 0, 0,
+            1, 1, 0, 0, 1, 1,
         ];
-        let input: Image = Image::try_create(5, 2, pixels).expect("image");
+        let input: Image = Image::try_create(6, 2, pixels).expect("image");
 
         // Act
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
@@ -2019,6 +2036,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⋀");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
@@ -2036,6 +2054,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "▞");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2054,6 +2073,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "▞");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2072,6 +2092,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⋰");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2090,6 +2111,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⋰");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2107,6 +2129,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "skew");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::RotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2124,6 +2147,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "skew");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2142,6 +2166,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "skew");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270]));
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
@@ -2160,6 +2185,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "skew");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
@@ -2178,6 +2204,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "Ⴙ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2196,6 +2223,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "Ⴙ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2214,6 +2242,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "Ⴙ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2232,6 +2261,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "Ⴙ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2250,6 +2280,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⑃");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2268,6 +2299,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⑃");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2288,19 +2320,21 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⑃");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
     fn test_170003_inverted_fork() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1, 0, 0, 1,
-            1, 0, 0, 1,
-            1, 1, 1, 1,
-            1, 1, 1, 1,
-            0, 1, 1, 0,
+            1, 0, 1,
+            1, 0, 1,
+            1, 1, 1,
+            1, 1, 1,
+            0, 1, 0,
+            0, 1, 0,
         ];
-        let input: Image = Image::try_create(4, 5, pixels).expect("image");
+        let input: Image = Image::try_create(3, 6, pixels).expect("image");
 
         // Act
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
@@ -2308,6 +2342,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⑃");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "1x2");
     }
 
     #[test]
@@ -2328,6 +2363,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊻");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2348,6 +2384,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊻");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2368,6 +2405,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊻");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2388,6 +2426,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊻");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2409,6 +2448,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "◣");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "2x2");
     }
 
     #[test]
@@ -2427,6 +2467,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "◣");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2445,6 +2486,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "◣");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2463,6 +2505,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "◣");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2482,6 +2525,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "𐐢");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2501,6 +2545,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "𐐢");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2520,6 +2565,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "𐐢");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2539,6 +2585,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "𐐢");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2559,6 +2606,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "ഺ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2579,6 +2627,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "↼");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2599,6 +2648,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "box1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2618,6 +2668,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⌓");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2637,6 +2688,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "ᓚ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2658,6 +2710,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "box2");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2678,6 +2731,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⥊");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2697,6 +2751,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "+1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2716,6 +2771,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "square2");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2735,6 +2791,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "boat");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2756,6 +2813,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "L45");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2776,6 +2834,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⋋");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2795,6 +2854,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "Ꝇ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2814,6 +2874,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⊥1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2833,6 +2894,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "◣+1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2852,6 +2914,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "I1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2872,6 +2935,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "skew1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2893,6 +2957,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "⧢");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2914,6 +2979,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "ʍ");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2936,6 +3002,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "▟▀▙");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2956,6 +3023,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "◫");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2976,6 +3044,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "𐌎");
         assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -2996,6 +3065,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "X1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
@@ -3015,6 +3085,26 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "◣-1");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
+    }
+
+    #[test]
+    fn test_430001_image_lower_left_triangle_without_corner() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 1, 1, 1,
+            1, 1, 1, 1, 0, 0,
+            1, 1, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "◣-1");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
@@ -3034,6 +3124,7 @@ mod tests {
         // Assert
         assert_eq!(actual.to_string(), "◣move");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
