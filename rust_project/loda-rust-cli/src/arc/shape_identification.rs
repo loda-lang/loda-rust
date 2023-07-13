@@ -1178,10 +1178,10 @@ impl ShapeIdentification {
             mask_uncropped: mask.clone(),
             rect,
             transformations: HashSet::<ShapeTransformation>::from([transformation]),
-            normalized_mask: Some(normalized_mask),
+            normalized_mask: Some(normalized_mask.clone()),
             scale: None,
         };
-        shape.autodetect_scale(&trimmed_mask, &compact_mask)?;
+        shape.autodetect_scale(&trimmed_mask, &normalized_mask)?;
         Ok(shape)
     }
 
@@ -3267,6 +3267,35 @@ mod tests {
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
         assert_eq!(actual.scale_to_string(), "1x2");
     }
+
+    #[test]
+    fn test_500005_unclassified() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 0, 0,
+            1, 1, 0, 0, 1, 1,
+            0, 0, 0, 0, 1, 1,
+            1, 1, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "unclassified");
+
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+            1, 1, 0, 1,
+        ];
+        let expected_compact: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual.normalized_mask, Some(expected_compact));
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270]));
+        assert_eq!(actual.scale_to_string(), "2x1");
+    }
+
 
     fn transform(input: &Image, mode: u8) -> anyhow::Result<Image> {
         let output: Image = match mode {
