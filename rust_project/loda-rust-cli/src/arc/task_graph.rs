@@ -40,6 +40,7 @@ pub enum NodeData {
     PositionY { y: u8 },
     Object { connectivity: PixelConnectivity },
     ShapeType { shape_type: ShapeType },
+    ObjectsInsideImage,
     // Input,
     // Output,
     // PairTrain,
@@ -309,6 +310,14 @@ impl TaskGraph {
     }
 
     fn process_shapes_inner(&mut self, image_index: NodeIndex, _name: &str, sco: &SingleColorObject, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+        let objectsinsideimage_index: NodeIndex;
+        {
+            let node = NodeData::ObjectsInsideImage;
+            let index: NodeIndex = self.graph.add_node(node);
+            objectsinsideimage_index = index;
+            self.graph.add_edge(image_index, index, EdgeData::Link);
+        }
+
         for color in 0..=9 {
             let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
                 Ok(value) => value,
@@ -339,16 +348,20 @@ impl TaskGraph {
                     }
                 };
                 // println!("name: {} object_index: {:?}", name, object_index);
+                {
+                    self.graph.add_edge(objectsinsideimage_index, object_index, EdgeData::Child);
+                    self.graph.add_edge(object_index, objectsinsideimage_index, EdgeData::Parent);
+                }
 
                 {
-                    let property = NodeData::ShapeType { shape_type: shape_id.shape_type.clone() };
-                    let index: NodeIndex = self.graph.add_node(property);
+                    let node = NodeData::ShapeType { shape_type: shape_id.shape_type.clone() };
+                    let index: NodeIndex = self.graph.add_node(node);
                     self.graph.add_edge(object_index, index, EdgeData::Link);
                 }
 
                 {
-                    let property = NodeData::Color { color };
-                    let index: NodeIndex = self.graph.add_node(property);
+                    let node = NodeData::Color { color };
+                    let index: NodeIndex = self.graph.add_node(node);
                     self.graph.add_edge(object_index, index, EdgeData::Link);
                 }
             }
@@ -403,9 +416,6 @@ impl TaskGraph {
         self.graph.add_edge(pair_node_index, image_output_node_index, EdgeData::Child);
         self.graph.add_edge(image_output_node_index, pair_node_index, EdgeData::Parent);
 
-        self.process_shapes(image_input_node_index, "input", &pair.input.image_meta.single_color_object);
-        self.process_shapes(image_output_node_index, "output", &pair.output.image_meta.single_color_object);
-
         {
             let id: String = pair.id_input_image();
             let node = NodeData::Id { id };
@@ -419,6 +429,9 @@ impl TaskGraph {
             let id_node_index: NodeIndex = self.graph.add_node(node);
             self.graph.add_edge(id_node_index, image_output_node_index, EdgeData::Link);
         }
+
+        self.process_shapes(image_input_node_index, "input", &pair.input.image_meta.single_color_object);
+        self.process_shapes(image_output_node_index, "output", &pair.output.image_meta.single_color_object);
 
         Ok(())
     }
