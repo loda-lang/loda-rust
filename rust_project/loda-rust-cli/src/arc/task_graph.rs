@@ -309,7 +309,7 @@ impl TaskGraph {
         Ok(object_index)
     }
 
-    fn process_shapes_inner(&mut self, image_index: NodeIndex, _name: &str, sco: &SingleColorObject, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+    fn process_shapes_inner(&mut self, image_index: NodeIndex, _name: &str, sco: &SingleColorObject) -> anyhow::Result<()> {
         let objectsinsideimage_index: NodeIndex;
         {
             let node = NodeData::ObjectsInsideImage;
@@ -318,51 +318,54 @@ impl TaskGraph {
             self.graph.add_edge(image_index, index, EdgeData::Link);
         }
 
-        for color in 0..=9 {
-            let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
-                Ok(value) => value,
-                Err(_error) => {
-                    // println!("error: {:?}", error);
-                    continue;
-                }
-            };
-            let histogram: Histogram = enumerated_objects.histogram_all();
-            for (count, object_id) in histogram.pairs_ordered_by_color() {
-                if count == 0 || object_id == 0 {
-                    continue;
-                }
-                let mask: Image = enumerated_objects.to_mask_where_color_is(object_id);
-                let shape_id: ShapeIdentification = match ShapeIdentification::compute(&mask) {
+        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+        for connectivity in connectivity_vec {
+            for color in 0..=9 {
+                let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
                     Ok(value) => value,
-                    Err(error) => {
-                        println!("unable to find shape. error: {:?}", error);
+                    Err(_error) => {
+                        // println!("error: {:?}", error);
                         continue;
                     }
                 };
-                // println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
-                let object_index: NodeIndex = match self.add_object(image_index, &shape_id.mask_uncropped, connectivity) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        println!("unable to add object to graph. error: {:?}", error);
+                let histogram: Histogram = enumerated_objects.histogram_all();
+                for (count, object_id) in histogram.pairs_ordered_by_color() {
+                    if count == 0 || object_id == 0 {
                         continue;
                     }
-                };
-                // println!("name: {} object_index: {:?}", name, object_index);
-                {
-                    self.graph.add_edge(objectsinsideimage_index, object_index, EdgeData::Child);
-                    self.graph.add_edge(object_index, objectsinsideimage_index, EdgeData::Parent);
-                }
+                    let mask: Image = enumerated_objects.to_mask_where_color_is(object_id);
+                    let shape_id: ShapeIdentification = match ShapeIdentification::compute(&mask) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            println!("unable to find shape. error: {:?}", error);
+                            continue;
+                        }
+                    };
+                    // println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
+                    let object_index: NodeIndex = match self.add_object(image_index, &shape_id.mask_uncropped, connectivity) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            println!("unable to add object to graph. error: {:?}", error);
+                            continue;
+                        }
+                    };
+                    // println!("name: {} object_index: {:?}", name, object_index);
+                    {
+                        self.graph.add_edge(objectsinsideimage_index, object_index, EdgeData::Child);
+                        self.graph.add_edge(object_index, objectsinsideimage_index, EdgeData::Parent);
+                    }
 
-                {
-                    let node = NodeData::ShapeType { shape_type: shape_id.shape_type.clone() };
-                    let index: NodeIndex = self.graph.add_node(node);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
-                }
+                    {
+                        let node = NodeData::ShapeType { shape_type: shape_id.shape_type.clone() };
+                        let index: NodeIndex = self.graph.add_node(node);
+                        self.graph.add_edge(object_index, index, EdgeData::Link);
+                    }
 
-                {
-                    let node = NodeData::Color { color };
-                    let index: NodeIndex = self.graph.add_node(node);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                    {
+                        let node = NodeData::Color { color };
+                        let index: NodeIndex = self.graph.add_node(node);
+                        self.graph.add_edge(object_index, index, EdgeData::Link);
+                    }
                 }
             }
         }
@@ -370,7 +373,6 @@ impl TaskGraph {
     }
 
     fn process_shapes(&mut self, image_index: NodeIndex, name: &str, sco: &Option<SingleColorObject>) {
-        let connectivity: PixelConnectivity = PixelConnectivity::Connectivity8;
         let sco: &SingleColorObject = match sco {
             Some(value) => value,
             None => {
@@ -378,7 +380,7 @@ impl TaskGraph {
                 return;
             }
         };
-        match self.process_shapes_inner(image_index, name, sco, connectivity) {
+        match self.process_shapes_inner(image_index, name, sco) {
             Ok(()) => {},
             Err(error) => {
                 println!("{}: unable to process shapes error: {:?}", name, error);
