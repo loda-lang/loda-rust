@@ -25,7 +25,7 @@
 //!
 use std::collections::HashSet;
 
-use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType};
+use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType, ImageMaskCount};
 use super::{ImageMask, ShapeIdentification};
 use super::arc_work_model::{Task, Pair, PairType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
@@ -38,6 +38,7 @@ pub enum NodeData {
     Image { size: ImageSize },
     Pixel,
     Color { color: u8 },
+    Mass { mass: u16 },
     PositionX { x: u8 },
     PositionY { y: u8 },
     PositionReverseX { x: u8 },
@@ -426,6 +427,13 @@ impl TaskGraph {
                     if y_reverse >= 0 {
                         let property = NodeData::PositionReverseY { y: y_reverse as u8 };
                         let index: NodeIndex = self.graph.add_node(property);
+                        self.graph.add_edge(object_index, index, EdgeData::Link);
+                    }
+
+                    {
+                        let mass: u16 = mask.mask_count_nonzero();
+                        let node = NodeData::Mass { mass };
+                        let index: NodeIndex = self.graph.add_node(node);
                         self.graph.add_edge(object_index, index, EdgeData::Link);
                     }
                 }
