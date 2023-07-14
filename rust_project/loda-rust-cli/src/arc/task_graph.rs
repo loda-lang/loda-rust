@@ -23,9 +23,11 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
+use std::collections::HashSet;
+
 use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType};
 use super::{ImageMask, ShapeIdentification};
-use super::arc_work_model::{Task, Pair};
+use super::arc_work_model::{Task, Pair, PairType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -380,6 +382,50 @@ impl TaskGraph {
         Ok(objectsinsideimage_index)
     }
 
+    fn shapetype_set(&self, objectsinsideimage_index: NodeIndex, the_connectivity: PixelConnectivity) -> anyhow::Result<HashSet<ShapeType>> {
+        let mut shapetype_set = HashSet::<ShapeType>::new(); 
+        for edge in self.graph.edges(objectsinsideimage_index) {
+            let object_index: NodeIndex = edge.target();
+            match &self.graph[object_index] {
+                NodeData::Object { connectivity } => {
+                    if *connectivity != the_connectivity {
+                        continue;
+                    }
+                },
+                _ => continue
+            }
+            for edge2 in self.graph.edges(object_index) {
+                let shapetype_index: NodeIndex = edge2.target();
+                match &self.graph[shapetype_index] {
+                    NodeData::ShapeType { shape_type } => {
+                        shapetype_set.insert(shape_type.clone());
+                    },
+                    _ => {}
+                }
+            }
+        }
+        Ok(shapetype_set)
+    }
+
+    fn compare_objects_between_input_and_output(&mut self, input_objectsinsideimage_index: NodeIndex, output_objectsinsideimage_index: NodeIndex) -> anyhow::Result<()> {
+
+        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+        for connectivity in connectivity_vec {
+            println!("connectivity: {:?}", connectivity);
+
+            let input_shapetype_set: HashSet<ShapeType> = self.shapetype_set(input_objectsinsideimage_index, connectivity)?;
+            println!("input_shapetype_set: {:?}", input_shapetype_set);
+
+            let output_shapetype_set: HashSet<ShapeType> = self.shapetype_set(output_objectsinsideimage_index, connectivity)?;
+            println!("output_shapetype_set: {:?}", output_shapetype_set);
+
+            let intersection_shapetype_set: HashSet<ShapeType> = input_shapetype_set.intersection(&output_shapetype_set).cloned().collect();
+            println!("intersection_shapetype_set: {:?}", intersection_shapetype_set);
+        }
+
+        Ok(())
+    }
+
     fn populate_with_pair(&mut self, pair: &Pair, task_node_index: NodeIndex) -> anyhow::Result<()> {
         let pair_node_index: NodeIndex;
         {
@@ -425,6 +471,10 @@ impl TaskGraph {
 
         let input_objectsinsideimage_index: NodeIndex = self.process_shapes(image_input_node_index, "input", &pair.input.image_meta.single_color_object)?;
         let output_objectsinsideimage_index: NodeIndex = self.process_shapes(image_output_node_index, "output", &pair.output.image_meta.single_color_object)?;
+
+        if pair.pair_type == PairType::Train {
+            self.compare_objects_between_input_and_output(input_objectsinsideimage_index, output_objectsinsideimage_index)?;
+        }
 
         Ok(())
     }
