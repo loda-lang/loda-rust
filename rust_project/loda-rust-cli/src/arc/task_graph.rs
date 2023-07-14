@@ -309,7 +309,7 @@ impl TaskGraph {
         Ok(object_index)
     }
 
-    fn process_shapes_inner(&mut self, image_index: NodeIndex, _name: &str, sco: &SingleColorObject) -> anyhow::Result<()> {
+    fn process_shapes(&mut self, image_index: NodeIndex, _name: &str, sco: &Option<SingleColorObject>) -> anyhow::Result<NodeIndex> {
         let objectsinsideimage_index: NodeIndex;
         {
             let node = NodeData::ObjectsInsideImage;
@@ -317,6 +317,14 @@ impl TaskGraph {
             objectsinsideimage_index = index;
             self.graph.add_edge(image_index, index, EdgeData::Link);
         }
+
+        let sco: &SingleColorObject = match sco {
+            Some(value) => value,
+            None => {
+                // println!("{}: no sco", name);
+                return Ok(objectsinsideimage_index);
+            }
+        };
 
         let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
         for connectivity in connectivity_vec {
@@ -369,24 +377,7 @@ impl TaskGraph {
                 }
             }
         }
-        Ok(())
-    }
-
-    fn process_shapes(&mut self, image_index: NodeIndex, name: &str, sco: &Option<SingleColorObject>) {
-        let sco: &SingleColorObject = match sco {
-            Some(value) => value,
-            None => {
-                // println!("{}: no sco", name);
-                return;
-            }
-        };
-        match self.process_shapes_inner(image_index, name, sco) {
-            Ok(()) => {},
-            Err(error) => {
-                println!("{}: unable to process shapes error: {:?}", name, error);
-                return;
-            }
-        }
+        Ok(objectsinsideimage_index)
     }
 
     fn populate_with_pair(&mut self, pair: &Pair, task_node_index: NodeIndex) -> anyhow::Result<()> {
@@ -432,8 +423,8 @@ impl TaskGraph {
             self.graph.add_edge(id_node_index, image_output_node_index, EdgeData::Link);
         }
 
-        self.process_shapes(image_input_node_index, "input", &pair.input.image_meta.single_color_object);
-        self.process_shapes(image_output_node_index, "output", &pair.output.image_meta.single_color_object);
+        let input_objectsinsideimage_index: NodeIndex = self.process_shapes(image_input_node_index, "input", &pair.input.image_meta.single_color_object)?;
+        let output_objectsinsideimage_index: NodeIndex = self.process_shapes(image_output_node_index, "output", &pair.output.image_meta.single_color_object)?;
 
         Ok(())
     }
