@@ -40,9 +40,10 @@ pub enum NodeData {
     Color { color: u8 },
     PositionX { x: u8 },
     PositionY { y: u8 },
+    ObjectsInsideImage,
     Object { connectivity: PixelConnectivity },
     ShapeType { shape_type: ShapeType },
-    ObjectsInsideImage,
+    ShapeScale { x: u8, y: u8 },
     // Input,
     // Output,
     // PairTrain,
@@ -373,6 +374,12 @@ impl TaskGraph {
 
                     {
                         let node = NodeData::Color { color };
+                        let index: NodeIndex = self.graph.add_node(node);
+                        self.graph.add_edge(object_index, index, EdgeData::Link);
+                    }
+
+                    if let Some(scale) = &shape_id.scale {
+                        let node = NodeData::ShapeScale { x: scale.x, y: scale.y };
                         let index: NodeIndex = self.graph.add_node(node);
                         self.graph.add_edge(object_index, index, EdgeData::Link);
                     }
