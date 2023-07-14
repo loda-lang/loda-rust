@@ -43,7 +43,7 @@ pub enum NodeData {
     PositionY { y: u8 },
     PositionReverseX { x: u8 },
     PositionReverseY { y: u8 },
-    ObjectsInsideImage,
+    ObjectsInsideImage { connectivity: PixelConnectivity },
     Object { connectivity: PixelConnectivity },
     ShapeType { shape_type: ShapeType },
     ShapeScale { x: u8, y: u8 },
@@ -324,10 +324,10 @@ impl TaskGraph {
         Ok(object_index)
     }
 
-    fn process_shapes(&mut self, image_index: NodeIndex, _name: &str, sco: &Option<SingleColorObject>) -> anyhow::Result<NodeIndex> {
+    fn process_shapes(&mut self, image_index: NodeIndex, _name: &str, sco: &Option<SingleColorObject>, connectivity: PixelConnectivity) -> anyhow::Result<NodeIndex> {
         let objectsinsideimage_index: NodeIndex;
         {
-            let node = NodeData::ObjectsInsideImage;
+            let node = NodeData::ObjectsInsideImage { connectivity };
             let index: NodeIndex = self.graph.add_node(node);
             objectsinsideimage_index = index;
             self.graph.add_edge(image_index, index, EdgeData::Link);
@@ -341,101 +341,98 @@ impl TaskGraph {
             }
         };
 
-        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-        for connectivity in connectivity_vec {
-            for color in 0..=9 {
-                let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
+        for color in 0..=9 {
+            let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
+                Ok(value) => value,
+                Err(_error) => {
+                    // println!("error: {:?}", error);
+                    continue;
+                }
+            };
+            let image_size: ImageSize = enumerated_objects.size();
+            let histogram: Histogram = enumerated_objects.histogram_all();
+            for (count, object_id) in histogram.pairs_ordered_by_color() {
+                if count == 0 || object_id == 0 {
+                    continue;
+                }
+                let mask: Image = enumerated_objects.to_mask_where_color_is(object_id);
+                let shape_id: ShapeIdentification = match ShapeIdentification::compute(&mask) {
                     Ok(value) => value,
-                    Err(_error) => {
-                        // println!("error: {:?}", error);
+                    Err(error) => {
+                        println!("unable to find shape. error: {:?}", error);
                         continue;
                     }
                 };
-                let image_size: ImageSize = enumerated_objects.size();
-                let histogram: Histogram = enumerated_objects.histogram_all();
-                for (count, object_id) in histogram.pairs_ordered_by_color() {
-                    if count == 0 || object_id == 0 {
+                // println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
+                let object_index: NodeIndex = match self.add_object(image_index, &shape_id.mask_uncropped, connectivity) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        println!("unable to add object to graph. error: {:?}", error);
                         continue;
                     }
-                    let mask: Image = enumerated_objects.to_mask_where_color_is(object_id);
-                    let shape_id: ShapeIdentification = match ShapeIdentification::compute(&mask) {
-                        Ok(value) => value,
-                        Err(error) => {
-                            println!("unable to find shape. error: {:?}", error);
-                            continue;
-                        }
-                    };
-                    // println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
-                    let object_index: NodeIndex = match self.add_object(image_index, &shape_id.mask_uncropped, connectivity) {
-                        Ok(value) => value,
-                        Err(error) => {
-                            println!("unable to add object to graph. error: {:?}", error);
-                            continue;
-                        }
-                    };
-                    // println!("name: {} object_index: {:?}", name, object_index);
-                    {
-                        self.graph.add_edge(objectsinsideimage_index, object_index, EdgeData::Child);
-                        self.graph.add_edge(object_index, objectsinsideimage_index, EdgeData::Parent);
-                    }
+                };
+                // println!("name: {} object_index: {:?}", name, object_index);
+                {
+                    self.graph.add_edge(objectsinsideimage_index, object_index, EdgeData::Child);
+                    self.graph.add_edge(object_index, objectsinsideimage_index, EdgeData::Parent);
+                }
 
-                    {
-                        let node = NodeData::ShapeType { shape_type: shape_id.shape_type.clone() };
-                        let index: NodeIndex = self.graph.add_node(node);
-                        self.graph.add_edge(object_index, index, EdgeData::Link);
-                    }
+                {
+                    let node = NodeData::ShapeType { shape_type: shape_id.shape_type.clone() };
+                    let index: NodeIndex = self.graph.add_node(node);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                }
 
-                    {
-                        let node = NodeData::Color { color };
-                        let index: NodeIndex = self.graph.add_node(node);
-                        self.graph.add_edge(object_index, index, EdgeData::Link);
-                    }
+                {
+                    let node = NodeData::Color { color };
+                    let index: NodeIndex = self.graph.add_node(node);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                }
 
-                    if let Some(scale) = &shape_id.scale {
-                        let node = NodeData::ShapeScale { x: scale.x, y: scale.y };
-                        let index: NodeIndex = self.graph.add_node(node);
-                        self.graph.add_edge(object_index, index, EdgeData::Link);
-                    }
-                    
-                    {
-                        let size: ImageSize = shape_id.rect.size();
-                        let node = NodeData::ShapeSize { width: size.width, height: size.height };
-                        let index: NodeIndex = self.graph.add_node(node);
-                        self.graph.add_edge(object_index, index, EdgeData::Link);
-                    }
+                if let Some(scale) = &shape_id.scale {
+                    let node = NodeData::ShapeScale { x: scale.x, y: scale.y };
+                    let index: NodeIndex = self.graph.add_node(node);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                }
+                
+                {
+                    let size: ImageSize = shape_id.rect.size();
+                    let node = NodeData::ShapeSize { width: size.width, height: size.height };
+                    let index: NodeIndex = self.graph.add_node(node);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                }
 
-                    {
-                        let node = NodeData::PositionX { x: shape_id.rect.x() };
-                        let index: NodeIndex = self.graph.add_node(node);
-                        self.graph.add_edge(object_index, index, EdgeData::Link);
-                    }
+                {
+                    let node = NodeData::PositionX { x: shape_id.rect.x() };
+                    let index: NodeIndex = self.graph.add_node(node);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                }
 
-                    {
-                        let node = NodeData::PositionY { y: shape_id.rect.y() };
-                        let index: NodeIndex = self.graph.add_node(node);
-                        self.graph.add_edge(object_index, index, EdgeData::Link);
-                    }
+                {
+                    let node = NodeData::PositionY { y: shape_id.rect.y() };
+                    let index: NodeIndex = self.graph.add_node(node);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                }
 
-                    let x_reverse: i32 = (image_size.width as i32) - 1 - shape_id.rect.max_x();
-                    if x_reverse >= 0 {
-                        let property = NodeData::PositionReverseX { x: x_reverse as u8 };
-                        let index: NodeIndex = self.graph.add_node(property);
-                        self.graph.add_edge(object_index, index, EdgeData::Link);
-                    }
+                let x_reverse: i32 = (image_size.width as i32) - 1 - shape_id.rect.max_x();
+                if x_reverse >= 0 {
+                    let property = NodeData::PositionReverseX { x: x_reverse as u8 };
+                    let index: NodeIndex = self.graph.add_node(property);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                }
 
-                    let y_reverse: i32 = (image_size.height as i32) - 1 - shape_id.rect.max_y();
-                    if y_reverse >= 0 {
-                        let property = NodeData::PositionReverseY { y: y_reverse as u8 };
-                        let index: NodeIndex = self.graph.add_node(property);
-                        self.graph.add_edge(object_index, index, EdgeData::Link);
-                    }
+                let y_reverse: i32 = (image_size.height as i32) - 1 - shape_id.rect.max_y();
+                if y_reverse >= 0 {
+                    let property = NodeData::PositionReverseY { y: y_reverse as u8 };
+                    let index: NodeIndex = self.graph.add_node(property);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
+                }
 
-                    {
-                        let mass: u16 = mask.mask_count_nonzero();
-                        let node = NodeData::Mass { mass };
-                        let index: NodeIndex = self.graph.add_node(node);
-                        self.graph.add_edge(object_index, index, EdgeData::Link);
-                    }
+                {
+                    let mass: u16 = mask.mask_count_nonzero();
+                    let node = NodeData::Mass { mass };
+                    let index: NodeIndex = self.graph.add_node(node);
+                    self.graph.add_edge(object_index, index, EdgeData::Link);
                 }
             }
         }
@@ -467,21 +464,17 @@ impl TaskGraph {
         Ok(shapetype_set)
     }
 
-    fn compare_objects_between_input_and_output(&mut self, input_objectsinsideimage_index: NodeIndex, output_objectsinsideimage_index: NodeIndex) -> anyhow::Result<()> {
+    fn compare_objects_between_input_and_output(&mut self, input_objectsinsideimage_index: NodeIndex, output_objectsinsideimage_index: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+        println!("connectivity: {:?}", connectivity);
 
-        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-        for connectivity in connectivity_vec {
-            println!("connectivity: {:?}", connectivity);
+        let input_shapetype_set: HashSet<ShapeType> = self.shapetype_set(input_objectsinsideimage_index, connectivity)?;
+        println!("input_shapetype_set: {:?}", input_shapetype_set);
 
-            let input_shapetype_set: HashSet<ShapeType> = self.shapetype_set(input_objectsinsideimage_index, connectivity)?;
-            println!("input_shapetype_set: {:?}", input_shapetype_set);
+        let output_shapetype_set: HashSet<ShapeType> = self.shapetype_set(output_objectsinsideimage_index, connectivity)?;
+        println!("output_shapetype_set: {:?}", output_shapetype_set);
 
-            let output_shapetype_set: HashSet<ShapeType> = self.shapetype_set(output_objectsinsideimage_index, connectivity)?;
-            println!("output_shapetype_set: {:?}", output_shapetype_set);
-
-            let intersection_shapetype_set: HashSet<ShapeType> = input_shapetype_set.intersection(&output_shapetype_set).cloned().collect();
-            println!("intersection_shapetype_set: {:?}", intersection_shapetype_set);
-        }
+        let intersection_shapetype_set: HashSet<ShapeType> = input_shapetype_set.intersection(&output_shapetype_set).cloned().collect();
+        println!("intersection_shapetype_set: {:?}", intersection_shapetype_set);
 
         Ok(())
     }
@@ -529,11 +522,24 @@ impl TaskGraph {
             self.graph.add_edge(id_node_index, image_output_node_index, EdgeData::Link);
         }
 
-        let input_objectsinsideimage_index: NodeIndex = self.process_shapes(image_input_node_index, "input", &pair.input.image_meta.single_color_object)?;
-        let output_objectsinsideimage_index: NodeIndex = self.process_shapes(image_output_node_index, "output", &pair.output.image_meta.single_color_object)?;
+        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+        for connectivity in connectivity_vec {
+            let input_objectsinsideimage_index: NodeIndex = self.process_shapes(
+                image_input_node_index, 
+                "input", 
+                &pair.input.image_meta.single_color_object, 
+                connectivity
+            )?;
+            let output_objectsinsideimage_index: NodeIndex = self.process_shapes(
+                image_output_node_index, 
+                "output", 
+                &pair.output.image_meta.single_color_object, 
+                connectivity
+            )?;
 
-        if pair.pair_type == PairType::Train {
-            self.compare_objects_between_input_and_output(input_objectsinsideimage_index, output_objectsinsideimage_index)?;
+            if pair.pair_type == PairType::Train {
+                self.compare_objects_between_input_and_output(input_objectsinsideimage_index, output_objectsinsideimage_index, connectivity)?;
+            }
         }
 
         Ok(())
