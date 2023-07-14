@@ -40,6 +40,8 @@ pub enum NodeData {
     Color { color: u8 },
     PositionX { x: u8 },
     PositionY { y: u8 },
+    PositionReverseX { x: u8 },
+    PositionReverseY { y: u8 },
     ObjectsInsideImage,
     Object { connectivity: PixelConnectivity },
     ShapeType { shape_type: ShapeType },
@@ -51,8 +53,6 @@ pub enum NodeData {
     // PairTest,
     // PairInputImage,
     // PairOutputImage,
-    // PositionReverseX { x: u8 },
-    // PositionReverseY { y: u8 },
     // ImageWall { side: ImageWallSide },
     // ImageCorner { corner: ImageCornerType },
     // PixelColumn,
@@ -134,6 +134,16 @@ impl TaskGraph {
                 }
                 {
                     let property = NodeData::PositionY { y };
+                    let index: NodeIndex = self.graph.add_node(property);
+                    self.graph.add_edge(pixel_index, index, EdgeData::Link);
+                }
+                {
+                    let property = NodeData::PositionReverseX { x: image.width() - x - 1 };
+                    let index: NodeIndex = self.graph.add_node(property);
+                    self.graph.add_edge(pixel_index, index, EdgeData::Link);
+                }
+                {
+                    let property = NodeData::PositionReverseY { y: image.height() - y - 1 };
                     let index: NodeIndex = self.graph.add_node(property);
                     self.graph.add_edge(pixel_index, index, EdgeData::Link);
                 }
@@ -340,6 +350,7 @@ impl TaskGraph {
                         continue;
                     }
                 };
+                let image_size: ImageSize = enumerated_objects.size();
                 let histogram: Histogram = enumerated_objects.histogram_all();
                 for (count, object_id) in histogram.pairs_ordered_by_color() {
                     if count == 0 || object_id == 0 {
@@ -401,6 +412,20 @@ impl TaskGraph {
                     {
                         let node = NodeData::PositionY { y: shape_id.rect.y() };
                         let index: NodeIndex = self.graph.add_node(node);
+                        self.graph.add_edge(object_index, index, EdgeData::Link);
+                    }
+
+                    let x_reverse: i32 = (image_size.width as i32) - 1 - shape_id.rect.max_x();
+                    if x_reverse >= 0 {
+                        let property = NodeData::PositionReverseX { x: x_reverse as u8 };
+                        let index: NodeIndex = self.graph.add_node(property);
+                        self.graph.add_edge(object_index, index, EdgeData::Link);
+                    }
+
+                    let y_reverse: i32 = (image_size.height as i32) - 1 - shape_id.rect.max_y();
+                    if y_reverse >= 0 {
+                        let property = NodeData::PositionReverseY { y: y_reverse as u8 };
+                        let index: NodeIndex = self.graph.add_node(property);
                         self.graph.add_edge(object_index, index, EdgeData::Link);
                     }
                 }
