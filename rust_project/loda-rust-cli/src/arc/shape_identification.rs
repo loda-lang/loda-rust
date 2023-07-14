@@ -59,6 +59,7 @@ struct ShapeTypeImage {
     image_lower_left_triangle_moved_corner: Image,
     image_rotated_p: Image,
     image_rotated_lowercase_f: Image,
+    image_box_with_rightwards_tick: Image,
 }
 
 impl ShapeTypeImage {
@@ -325,6 +326,12 @@ impl ShapeTypeImage {
             0, 1, 0, 1,
         ])?;
 
+        let image_box_with_rightwards_tick: Image = Image::try_create(4, 3, vec![
+            1, 1, 1, 0,
+            1, 0, 1, 1,
+            1, 1, 1, 0,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -371,6 +378,7 @@ impl ShapeTypeImage {
             image_lower_left_triangle_moved_corner,
             image_rotated_p,
             image_rotated_lowercase_f,
+            image_box_with_rightwards_tick,
         };
         Ok(instance)
     }
@@ -853,6 +861,17 @@ pub enum ShapeType {
     /// ```
     RotatedLowercaseF,
 
+    /// Shape `⟥` or a box with a pixel extending out at the center row.
+    /// 
+    /// Unicode: White square with rightwards tick
+    /// 
+    /// ````
+    /// 1, 1, 1, 0
+    /// 1, 0, 1, 1
+    /// 1, 1, 1, 0
+    /// ```
+    BoxWithRightwardsTick,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -912,6 +931,7 @@ impl ShapeType {
             Self::LowerLeftTriangleMovedCorner => "◣move",
             Self::RotatedP => "ᓇ",
             Self::RotatedLowercaseF => "╋┓",
+            Self::BoxWithRightwardsTick => "⟥",
             Self::Unclassified => "unclassified",
         }
     }
@@ -1169,6 +1189,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle_moved_corner, ShapeType::LowerLeftTriangleMovedCorner));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_p, ShapeType::RotatedP));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_lowercase_f, ShapeType::RotatedLowercaseF));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_with_rightwards_tick, ShapeType::BoxWithRightwardsTick));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -3187,6 +3208,26 @@ mod tests {
         assert_eq!(actual.to_string(), "╋┓");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90]));
         assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_470000_image_box_with_rightwards_tick() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1, 1,
+            1, 1, 0, 0, 1, 1,
+            1, 1, 1, 1, 1, 1,
+            0, 0, 1, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⟥");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "2x1");
     }
 
     #[test]
