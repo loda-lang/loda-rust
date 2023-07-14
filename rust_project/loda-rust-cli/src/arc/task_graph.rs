@@ -44,6 +44,7 @@ pub enum NodeData {
     Object { connectivity: PixelConnectivity },
     ShapeType { shape_type: ShapeType },
     ShapeScale { x: u8, y: u8 },
+    ShapeSize { width: u8, height: u8 },
     // Input,
     // Output,
     // PairTrain,
@@ -380,6 +381,25 @@ impl TaskGraph {
 
                     if let Some(scale) = &shape_id.scale {
                         let node = NodeData::ShapeScale { x: scale.x, y: scale.y };
+                        let index: NodeIndex = self.graph.add_node(node);
+                        self.graph.add_edge(object_index, index, EdgeData::Link);
+                    }
+                    
+                    {
+                        let size: ImageSize = shape_id.rect.size();
+                        let node = NodeData::ShapeSize { width: size.width, height: size.height };
+                        let index: NodeIndex = self.graph.add_node(node);
+                        self.graph.add_edge(object_index, index, EdgeData::Link);
+                    }
+
+                    {
+                        let node = NodeData::PositionX { x: shape_id.rect.x() };
+                        let index: NodeIndex = self.graph.add_node(node);
+                        self.graph.add_edge(object_index, index, EdgeData::Link);
+                    }
+
+                    {
+                        let node = NodeData::PositionY { y: shape_id.rect.y() };
                         let index: NodeIndex = self.graph.add_node(node);
                         self.graph.add_edge(object_index, index, EdgeData::Link);
                     }
