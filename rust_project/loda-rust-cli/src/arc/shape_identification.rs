@@ -60,6 +60,7 @@ struct ShapeTypeImage {
     image_rotated_p: Image,
     image_rotated_lowercase_f: Image,
     image_box_with_rightwards_tick: Image,
+    image_open_box_with_hole_in_border: Image,
 }
 
 impl ShapeTypeImage {
@@ -332,6 +333,12 @@ impl ShapeTypeImage {
             1, 1, 1, 0,
         ])?;
 
+        let image_open_box_with_hole_in_border: Image = Image::try_create(5, 3, vec![
+            1, 1, 0, 1, 1,
+            1, 0, 0, 0, 1,
+            1, 1, 1, 1, 1,
+        ])?;
+
         let instance = Self {
             image_box,
             image_plus,
@@ -379,6 +386,7 @@ impl ShapeTypeImage {
             image_rotated_p,
             image_rotated_lowercase_f,
             image_box_with_rightwards_tick,
+            image_open_box_with_hole_in_border,
         };
         Ok(instance)
     }
@@ -872,6 +880,15 @@ pub enum ShapeType {
     /// ```
     BoxWithRightwardsTick,
 
+    /// Shape `[_]` or a box with a pixel missing in the center of the top border.
+    /// 
+    /// ````
+    /// 1, 1, 0, 1, 1
+    /// 1, 0, 0, 0, 1
+    /// 1, 1, 1, 1, 1
+    /// ```
+    OpenBoxWithHoleInBorder,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -932,6 +949,7 @@ impl ShapeType {
             Self::RotatedP => "ᓇ",
             Self::RotatedLowercaseF => "╋┓",
             Self::BoxWithRightwardsTick => "⟥",
+            Self::OpenBoxWithHoleInBorder => "[_]",
             Self::Unclassified => "unclassified",
         }
     }
@@ -1190,6 +1208,7 @@ impl ShapeIdentification {
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_p, ShapeType::RotatedP));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_lowercase_f, ShapeType::RotatedLowercaseF));
             images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_with_rightwards_tick, ShapeType::BoxWithRightwardsTick));
+            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_open_box_with_hole_in_border, ShapeType::OpenBoxWithHoleInBorder));
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
@@ -3228,6 +3247,27 @@ mod tests {
         assert_eq!(actual.to_string(), "⟥");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw270]));
         assert_eq!(actual.scale_to_string(), "2x1");
+    }
+
+    #[test]
+    fn test_480000_image_open_box_with_hole_in_border() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1,
+            1, 0, 1,
+            1, 0, 0,
+            1, 0, 1,
+            1, 1, 1,
+        ];
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "[_]");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "1x1");
     }
 
     #[test]
