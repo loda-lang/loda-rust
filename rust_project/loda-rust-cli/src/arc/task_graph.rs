@@ -324,7 +324,7 @@ impl TaskGraph {
         Ok(object_index)
     }
 
-    fn process_shapes(&mut self, image_index: NodeIndex, _name: &str, sco: &Option<SingleColorObject>, connectivity: PixelConnectivity) -> anyhow::Result<NodeIndex> {
+    fn process_shapes(&mut self, image_index: NodeIndex, _name: &str, sco: &Option<SingleColorObject>, connectivity: PixelConnectivity) -> anyhow::Result<ProcessShapes> {
         let objectsinsideimage_index: NodeIndex;
         {
             let node = NodeData::ObjectsInsideImage { connectivity };
@@ -337,7 +337,11 @@ impl TaskGraph {
             Some(value) => value,
             None => {
                 // println!("{}: no sco", name);
-                return Ok(objectsinsideimage_index);
+                let instance = ProcessShapes {
+                    objectsinsideimage_index,
+                    shape_identification_from_single_color_object: None
+                };
+                return Ok(instance);
             }
         };
 
@@ -413,7 +417,11 @@ impl TaskGraph {
             }
         }
 
-        Ok(objectsinsideimage_index)
+        let instance = ProcessShapes {
+            objectsinsideimage_index,
+            shape_identification_from_single_color_object: Some(sifsco),
+        };
+        Ok(instance)
     }
 
     fn shapetype_set(&self, objectsinsideimage_index: NodeIndex, the_connectivity: PixelConnectivity) -> anyhow::Result<HashSet<ShapeType>> {
@@ -441,8 +449,11 @@ impl TaskGraph {
         Ok(shapetype_set)
     }
 
-    fn compare_objects_between_input_and_output(&mut self, input_objectsinsideimage_index: NodeIndex, output_objectsinsideimage_index: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+    fn compare_objects_between_input_and_output(&mut self, input_process_shapes: &ProcessShapes, output_process_shapes: &ProcessShapes, connectivity: PixelConnectivity) -> anyhow::Result<()> {
         println!("connectivity: {:?}", connectivity);
+
+        let input_objectsinsideimage_index: NodeIndex = input_process_shapes.objectsinsideimage_index;
+        let output_objectsinsideimage_index: NodeIndex = output_process_shapes.objectsinsideimage_index;
 
         let input_shapetype_set: HashSet<ShapeType> = self.shapetype_set(input_objectsinsideimage_index, connectivity)?;
         println!("input_shapetype_set: {:?}", input_shapetype_set);
@@ -525,13 +536,13 @@ impl TaskGraph {
 
         let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
         for connectivity in connectivity_vec {
-            let input_objectsinsideimage_index: NodeIndex = self.process_shapes(
+            let input_process_shapes: ProcessShapes = self.process_shapes(
                 image_input_node_index, 
                 "input", 
                 &pair.input.image_meta.single_color_object, 
                 connectivity
             )?;
-            let output_objectsinsideimage_index: NodeIndex = self.process_shapes(
+            let output_process_shapes: ProcessShapes = self.process_shapes(
                 image_output_node_index, 
                 "output", 
                 &pair.output.image_meta.single_color_object, 
@@ -539,7 +550,11 @@ impl TaskGraph {
             )?;
 
             if pair.pair_type == PairType::Train {
-                self.compare_objects_between_input_and_output(input_objectsinsideimage_index, output_objectsinsideimage_index, connectivity)?;
+                self.compare_objects_between_input_and_output(
+                    &input_process_shapes, 
+                    &output_process_shapes, 
+                    connectivity
+                )?;
             }
         }
 
@@ -558,6 +573,11 @@ impl TaskGraph {
         }
         Ok(())
     }
+}
+
+struct ProcessShapes {
+    objectsinsideimage_index: NodeIndex,
+    shape_identification_from_single_color_object: Option<ShapeIdentificationFromSingleColorObject>,
 }
 
 #[cfg(test)]
