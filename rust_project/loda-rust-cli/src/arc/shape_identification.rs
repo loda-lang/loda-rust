@@ -4,7 +4,7 @@
 //! 
 //! Similar to SIFT (Scale-invariant feature transform) but without using points.
 //! https://en.wikipedia.org/wiki/Scale-invariant_feature_transform
-use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop, ImageResize};
+use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop, ImageResize, ImageMaskCount};
 use std::fmt;
 use std::collections::HashSet;
 use lazy_static::lazy_static;
@@ -1107,6 +1107,9 @@ pub struct ShapeIdentification {
     /// is it scaled down without losing information, apply scale factor to get original size.
     pub scale: Option<ScaleXY>,
 
+    /// The number of solid pixels in the shape. Transparent pixels does not count.
+    pub mass: u16,
+
     // Future experiments
     // diagonal compression, so that a 10pixel long diagonal line and a 13pixel long diagonal line, gets the same representation.
 }
@@ -1127,6 +1130,12 @@ impl ShapeIdentification {
             return Err(anyhow::anyhow!("Integrity error. Empty crop rect should have been rejected earlier"));
         }
 
+        // Measure the mass of the shape
+        let mass: u16 = trimmed_mask.mask_count_nonzero();
+        if mass == 0 {
+            return Err(anyhow::anyhow!("Integrity error. The trim should have rejected it earlier"));
+        }
+
         // After trimming, if it's a 1x1 shape, then it's a square
         if shape_size == ImageSize::new(1, 1) {
             let scale = ScaleXY { x: 1, y: 1 };
@@ -1137,6 +1146,7 @@ impl ShapeIdentification {
                 transformations: ShapeTransformation::all(),
                 normalized_mask: None,
                 scale: Some(scale),
+                mass,
             };
             return Ok(shape);
         }
@@ -1154,6 +1164,7 @@ impl ShapeIdentification {
                 transformations: ShapeTransformation::all(),
                 normalized_mask: None,
                 scale: Some(scale),
+                mass,
             };
             return Ok(shape);    
         }
@@ -1225,6 +1236,7 @@ impl ShapeIdentification {
                         transformations: found_transformations,
                         normalized_mask: None,
                         scale: None,
+                        mass,
                     };
                     shape.autodetect_scale(&trimmed_mask, &image_to_recognize)?;
                     return Ok(shape);
@@ -1244,6 +1256,7 @@ impl ShapeIdentification {
             transformations: HashSet::<ShapeTransformation>::from([transformation]),
             normalized_mask: Some(normalized_mask.clone()),
             scale: None,
+            mass,
         };
         shape.autodetect_scale(&trimmed_mask, &normalized_mask)?;
         Ok(shape)
@@ -1360,6 +1373,7 @@ mod tests {
         assert_eq!(actual.to_string(), "rectangle");
         assert_eq!(actual.transformations, ShapeTransformation::all());
         assert_eq!(actual.scale_to_string(), "1x1");
+        assert_eq!(actual.mass, 1);
     }
 
     #[test]
@@ -1378,6 +1392,7 @@ mod tests {
         assert_eq!(actual.to_string(), "rectangle");
         assert_eq!(actual.transformations, ShapeTransformation::all());
         assert_eq!(actual.scale_to_string(), "2x2");
+        assert_eq!(actual.mass, 4);
     }
 
     #[test]
@@ -1396,6 +1411,7 @@ mod tests {
         assert_eq!(actual.to_string(), "rectangle");
         assert_eq!(actual.transformations, ShapeTransformation::all());
         assert_eq!(actual.scale_to_string(), "3x2");
+        assert_eq!(actual.mass, 6);
     }
 
     #[test]
@@ -1413,6 +1429,7 @@ mod tests {
         assert_eq!(actual.to_string(), "rectangle");
         assert_eq!(actual.transformations, ShapeTransformation::all());
         assert_eq!(actual.scale_to_string(), "6x1");
+        assert_eq!(actual.mass, 6);
     }
 
     #[test]
@@ -1433,6 +1450,7 @@ mod tests {
         assert_eq!(actual.to_string(), "box");
         assert_eq!(actual.transformations, ShapeTransformation::all());
         assert_eq!(actual.scale_to_string(), "none");
+        assert_eq!(actual.mass, 10);
     }
 
     #[test]
