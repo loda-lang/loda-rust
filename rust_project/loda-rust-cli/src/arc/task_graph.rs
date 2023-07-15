@@ -341,7 +341,6 @@ impl TaskGraph {
             }
         };
 
-        let image_size: ImageSize = sco.image_size;
         let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(sco, connectivity)?;
 
         for color_and_shape in &sifsco.color_and_shape_vec {
@@ -384,27 +383,25 @@ impl TaskGraph {
             }
 
             {
-                let node = NodeData::PositionX { x: color_and_shape.shape_identification.rect.x() };
+                let node = NodeData::PositionX { x: color_and_shape.position_x };
                 let index: NodeIndex = self.graph.add_node(node);
                 self.graph.add_edge(object_index, index, EdgeData::Link);
             }
 
             {
-                let node = NodeData::PositionY { y: color_and_shape.shape_identification.rect.y() };
+                let node = NodeData::PositionY { y: color_and_shape.position_y };
                 let index: NodeIndex = self.graph.add_node(node);
                 self.graph.add_edge(object_index, index, EdgeData::Link);
             }
 
-            let x_reverse: i32 = (image_size.width as i32) - 1 - color_and_shape.shape_identification.rect.max_x();
-            if x_reverse >= 0 {
-                let property = NodeData::PositionReverseX { x: x_reverse as u8 };
+            if let Some(x) = color_and_shape.position_x_reverse {
+                let property = NodeData::PositionReverseX { x };
                 let index: NodeIndex = self.graph.add_node(property);
                 self.graph.add_edge(object_index, index, EdgeData::Link);
             }
 
-            let y_reverse: i32 = (image_size.height as i32) - 1 - color_and_shape.shape_identification.rect.max_y();
-            if y_reverse >= 0 {
-                let property = NodeData::PositionReverseY { y: y_reverse as u8 };
+            if let Some(y) = color_and_shape.position_y_reverse {
+                let property = NodeData::PositionReverseY { y };
                 let index: NodeIndex = self.graph.add_node(property);
                 self.graph.add_edge(object_index, index, EdgeData::Link);
             }
