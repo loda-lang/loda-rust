@@ -458,7 +458,12 @@ impl TaskGraph {
                     let same_mass: bool = input_color_and_shape.shape_identification.mass == output_color_and_shape.shape_identification.mass;
                     let same_width: bool = input_color_and_shape.shape_identification.rect.width() == output_color_and_shape.shape_identification.rect.width();
                     let same_height: bool = input_color_and_shape.shape_identification.rect.height() == output_color_and_shape.shape_identification.rect.height();
-                    let same_data = [same_color, same_mass, same_width, same_height];
+                    let same_transformations: bool = input_color_and_shape.shape_identification.transformations == output_color_and_shape.shape_identification.transformations;
+                    // Future experiments:
+                    // if input.histogram and output.histogram has the same mass for the color and the current shape has that color, then it's likely to be the same object.
+                    // for same size input/output - does the shape occupy the exact same pixels in both input and output.
+                    // for same size input/output - does the input shape overlap with the output shape. Then it's likely the shapes are related.
+                    let same_data = [same_color, same_mass, same_width, same_height, same_transformations];
                     let same_count: usize = same_data.into_iter().filter(|x| *x).count();
                     let similarity_score: f64 = same_count as f64 / same_data.len() as f64;
                     println!("  input_index: {}  output_index: {}  same_count: {}  similarity_score: {}", input_index, output_index, same_count, similarity_score);
