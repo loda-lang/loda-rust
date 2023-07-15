@@ -25,7 +25,7 @@
 //!
 use std::collections::HashSet;
 
-use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType, ImageMaskCount, ShapeIdentificationFromSingleColorObject};
+use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType, ImageMaskCount, ShapeIdentificationFromSingleColorObject, ColorAndShape};
 use super::{ImageMask, ShapeIdentification};
 use super::arc_work_model::{Task, Pair, PairType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
@@ -424,45 +424,47 @@ impl TaskGraph {
         Ok(instance)
     }
 
-    fn shapetype_set(&self, objectsinsideimage_index: NodeIndex, the_connectivity: PixelConnectivity) -> anyhow::Result<HashSet<ShapeType>> {
-        let mut shapetype_set = HashSet::<ShapeType>::new(); 
-        for edge in self.graph.edges(objectsinsideimage_index) {
-            let object_index: NodeIndex = edge.target();
-            match &self.graph[object_index] {
-                NodeData::Object { connectivity } => {
-                    if *connectivity != the_connectivity {
-                        continue;
-                    }
-                },
-                _ => continue
-            }
-            for edge2 in self.graph.edges(object_index) {
-                let shapetype_index: NodeIndex = edge2.target();
-                match &self.graph[shapetype_index] {
-                    NodeData::ShapeType { shape_type } => {
-                        shapetype_set.insert(shape_type.clone());
-                    },
-                    _ => {}
-                }
-            }
-        }
-        Ok(shapetype_set)
-    }
-
     fn compare_objects_between_input_and_output(&mut self, input_process_shapes: &ProcessShapes, output_process_shapes: &ProcessShapes, connectivity: PixelConnectivity) -> anyhow::Result<()> {
         println!("connectivity: {:?}", connectivity);
 
         let input_objectsinsideimage_index: NodeIndex = input_process_shapes.objectsinsideimage_index;
         let output_objectsinsideimage_index: NodeIndex = output_process_shapes.objectsinsideimage_index;
 
-        let input_shapetype_set: HashSet<ShapeType> = self.shapetype_set(input_objectsinsideimage_index, connectivity)?;
+        let input_shapetype_set: HashSet<ShapeType> = input_process_shapes.shapetype_set();
         println!("input_shapetype_set: {:?}", input_shapetype_set);
 
-        let output_shapetype_set: HashSet<ShapeType> = self.shapetype_set(output_objectsinsideimage_index, connectivity)?;
+        let output_shapetype_set: HashSet<ShapeType> = output_process_shapes.shapetype_set();
         println!("output_shapetype_set: {:?}", output_shapetype_set);
 
         let intersection_shapetype_set: HashSet<ShapeType> = input_shapetype_set.intersection(&output_shapetype_set).cloned().collect();
         println!("intersection_shapetype_set: {:?}", intersection_shapetype_set);
+
+        for shapetype in &intersection_shapetype_set {
+
+            let input_items: Vec<(usize, &ColorAndShape)> = input_process_shapes.obtain_color_and_shape_vec(shapetype);
+            let output_items: Vec<(usize, &ColorAndShape)> = output_process_shapes.obtain_color_and_shape_vec(shapetype);
+
+            println!("shapetype: {:?}  compare {} input shapes with {} output shapes", shapetype, input_items.len(), output_items.len());
+
+            let number_of_comparisons: usize = input_items.len() * output_items.len();
+            if number_of_comparisons > 30 {
+                println!("too many comparisons, skipping");
+                continue;
+            }
+
+            for (input_index, input_color_and_shape) in input_items {
+                for (output_index, output_color_and_shape) in &output_items {
+                    let same_color: bool = input_color_and_shape.color == output_color_and_shape.color;
+                    let same_mass: bool = input_color_and_shape.shape_identification.mass == output_color_and_shape.shape_identification.mass;
+                    let same_width: bool = input_color_and_shape.shape_identification.rect.width() == output_color_and_shape.shape_identification.rect.width();
+                    let same_height: bool = input_color_and_shape.shape_identification.rect.height() == output_color_and_shape.shape_identification.rect.height();
+                    let same_data = [same_color, same_mass, same_width, same_height];
+                    let same_count: usize = same_data.into_iter().filter(|x| *x).count();
+                    let similarity_score: f64 = same_count as f64 / same_data.len() as f64;
+                    println!("  input_index: {}  output_index: {}  same_count: {}  similarity_score: {}", input_index, output_index, same_count, similarity_score);
+                }
+            }
+        }
 
         // loop over the `intersection_shapetype_set`
         // with the input shapetype, obtain reference to its ShapeIdentification instance
@@ -578,6 +580,30 @@ impl TaskGraph {
 struct ProcessShapes {
     objectsinsideimage_index: NodeIndex,
     shape_identification_from_single_color_object: Option<ShapeIdentificationFromSingleColorObject>,
+}
+
+impl ProcessShapes {
+    fn shapetype_set(&self) -> HashSet<ShapeType> {
+        let mut shapetype_set = HashSet::<ShapeType>::new();
+        if let Some(sifsco) = &self.shape_identification_from_single_color_object {
+            for color_and_shape in &sifsco.color_and_shape_vec {
+                shapetype_set.insert(color_and_shape.shape_identification.shape_type.clone());
+            }
+        }
+        shapetype_set
+    }
+
+    fn obtain_color_and_shape_vec(&self, filter_shapetype: &ShapeType) -> Vec<(usize, &ColorAndShape)> {
+        let mut items = Vec::<(usize, &ColorAndShape)>::new();
+        if let Some(sifsco) = &self.shape_identification_from_single_color_object {
+            for (index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                if color_and_shape.shape_identification.shape_type == *filter_shapetype {
+                    items.push((index, color_and_shape));
+                }
+            }
+        }
+        items
+    }
 }
 
 #[cfg(test)]
