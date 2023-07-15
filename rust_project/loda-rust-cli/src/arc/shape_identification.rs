@@ -1235,6 +1235,8 @@ impl ShapeIdentification {
         // The shape is more advanced than the basic ones we can recognize
         // apply even more expensive transformations to recognize it.
         let (transformation, normalized_mask) = Self::normalize(compact_mask.size(), transformations)?;
+        // Weakness: Only detects one transformation, but the image can have multiple transformations.
+        // This can be improved by looping over all transformations and keeping those that matches.
         let mut shape = Self {
             shape_type: ShapeType::Unclassified,
             mask_uncropped: mask.clone(),
