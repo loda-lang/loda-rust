@@ -476,6 +476,30 @@ impl TaskGraph {
         let intersection_shapetype_set: HashSet<ShapeType> = input_shapetype_set.intersection(&output_shapetype_set).cloned().collect();
         println!("intersection_shapetype_set: {:?}", intersection_shapetype_set);
 
+        // loop over the `intersection_shapetype_set`
+        // with the input shapetype, obtain reference to its ShapeIdentification instance
+        // with the output shapetype, obtain reference to its ShapeIdentification instance
+        // compare the two ShapeIdentification instances
+        //
+        // Add edge between the input and output objects they have the same color.
+        //
+        // Add edge between the input and output objects they have the same shape.
+        //
+        // Add edge between the input and output objects they have the same size of bounding box.
+        //
+        // Add edge between the input and output objects if they are similar, with the edge data being the similarity score:
+        // - identical (same size, no transformation, same color), `HighlySimilarObject { mode: Identical }`
+        // - scaled (scaled size, no transformation, same color), `HighlySimilarObject { mode: Scaled }`
+        // - transformed (same size, transformed, same color), `HighlySimilarObject { mode: Transformed { transformation } }`
+        // - scaled and transformed (scaled size, transformed, same color), `MediumSimilarObject { mode: ScaledAndTransformed { transformation } }`
+        // - identical (same size, no transformation, different color), `MediumSimilarObject { mode: Identical }`
+        // - scaled (scaled size, no transformation, different color), `MediumSimilarObject { mode: Scaled }`
+        // - transformed (same size, transformed, different color), `MediumSimilarObject { mode: Transformed { transformation } }`
+        // - scaled and transformed (scaled size, transformed, different color), `MediumSimilarObject { mode: ScaledAndTransformed { transformation } }`
+        // - compressed (different size, no transformation, same color), `WeaklySimilarObject { mode: Identical }`
+        // - compressed (different size, transformed, same color), `WeaklySimilarObject { mode: Transformed }`
+        // - compressed (different size, transformed, different color), `WeaklySimilarObject { mode: TransformedAndDifferentColor }`
+
         Ok(())
     }
 
