@@ -25,7 +25,7 @@
 //!
 use std::collections::HashSet;
 
-use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType, ImageMaskCount};
+use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType, ImageMaskCount, ShapeIdentificationFromSingleColorObject};
 use super::{ImageMask, ShapeIdentification};
 use super::arc_work_model::{Task, Pair, PairType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
@@ -341,101 +341,81 @@ impl TaskGraph {
             }
         };
 
-        for color in 0..=9 {
-            let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
+        let image_size: ImageSize = sco.image_size;
+        let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(sco, connectivity)?;
+
+        for color_and_shape in &sifsco.color_and_shape_vec {
+            let object_index: NodeIndex = match self.add_object(image_index, &color_and_shape.shape_identification.mask_uncropped, connectivity) {
                 Ok(value) => value,
-                Err(_error) => {
-                    // println!("error: {:?}", error);
+                Err(error) => {
+                    println!("unable to add object to graph. error: {:?}", error);
                     continue;
                 }
             };
-            let image_size: ImageSize = enumerated_objects.size();
-            let histogram: Histogram = enumerated_objects.histogram_all();
-            for (count, object_id) in histogram.pairs_ordered_by_color() {
-                if count == 0 || object_id == 0 {
-                    continue;
-                }
-                let mask: Image = enumerated_objects.to_mask_where_color_is(object_id);
-                let shape_id: ShapeIdentification = match ShapeIdentification::compute(&mask) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        println!("unable to find shape. error: {:?}", error);
-                        continue;
-                    }
-                };
-                // println!("{} {}, {}, {}  shape: {}  rect: {:?}", name, count, color, object_id, shape_id, shape_id.rect);
-                let object_index: NodeIndex = match self.add_object(image_index, &shape_id.mask_uncropped, connectivity) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        println!("unable to add object to graph. error: {:?}", error);
-                        continue;
-                    }
-                };
-                // println!("name: {} object_index: {:?}", name, object_index);
-                {
-                    self.graph.add_edge(objectsinsideimage_index, object_index, EdgeData::Child);
-                    self.graph.add_edge(object_index, objectsinsideimage_index, EdgeData::Parent);
-                }
+            // println!("name: {} object_index: {:?}", name, object_index);
+            {
+                self.graph.add_edge(objectsinsideimage_index, object_index, EdgeData::Child);
+                self.graph.add_edge(object_index, objectsinsideimage_index, EdgeData::Parent);
+            }
 
-                {
-                    let node = NodeData::ShapeType { shape_type: shape_id.shape_type.clone() };
-                    let index: NodeIndex = self.graph.add_node(node);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
-                }
+            {
+                let node = NodeData::ShapeType { shape_type: color_and_shape.shape_identification.shape_type.clone() };
+                let index: NodeIndex = self.graph.add_node(node);
+                self.graph.add_edge(object_index, index, EdgeData::Link);
+            }
 
-                {
-                    let node = NodeData::Color { color };
-                    let index: NodeIndex = self.graph.add_node(node);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
-                }
+            {
+                let node = NodeData::Color { color: color_and_shape.color };
+                let index: NodeIndex = self.graph.add_node(node);
+                self.graph.add_edge(object_index, index, EdgeData::Link);
+            }
 
-                if let Some(scale) = &shape_id.scale {
-                    let node = NodeData::ShapeScale { x: scale.x, y: scale.y };
-                    let index: NodeIndex = self.graph.add_node(node);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
-                }
-                
-                {
-                    let size: ImageSize = shape_id.rect.size();
-                    let node = NodeData::ShapeSize { width: size.width, height: size.height };
-                    let index: NodeIndex = self.graph.add_node(node);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
-                }
+            if let Some(scale) = &color_and_shape.shape_identification.scale {
+                let node = NodeData::ShapeScale { x: scale.x, y: scale.y };
+                let index: NodeIndex = self.graph.add_node(node);
+                self.graph.add_edge(object_index, index, EdgeData::Link);
+            }
+            
+            {
+                let size: ImageSize = color_and_shape.shape_identification.rect.size();
+                let node = NodeData::ShapeSize { width: size.width, height: size.height };
+                let index: NodeIndex = self.graph.add_node(node);
+                self.graph.add_edge(object_index, index, EdgeData::Link);
+            }
 
-                {
-                    let node = NodeData::PositionX { x: shape_id.rect.x() };
-                    let index: NodeIndex = self.graph.add_node(node);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
-                }
+            {
+                let node = NodeData::PositionX { x: color_and_shape.shape_identification.rect.x() };
+                let index: NodeIndex = self.graph.add_node(node);
+                self.graph.add_edge(object_index, index, EdgeData::Link);
+            }
 
-                {
-                    let node = NodeData::PositionY { y: shape_id.rect.y() };
-                    let index: NodeIndex = self.graph.add_node(node);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
-                }
+            {
+                let node = NodeData::PositionY { y: color_and_shape.shape_identification.rect.y() };
+                let index: NodeIndex = self.graph.add_node(node);
+                self.graph.add_edge(object_index, index, EdgeData::Link);
+            }
 
-                let x_reverse: i32 = (image_size.width as i32) - 1 - shape_id.rect.max_x();
-                if x_reverse >= 0 {
-                    let property = NodeData::PositionReverseX { x: x_reverse as u8 };
-                    let index: NodeIndex = self.graph.add_node(property);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
-                }
+            let x_reverse: i32 = (image_size.width as i32) - 1 - color_and_shape.shape_identification.rect.max_x();
+            if x_reverse >= 0 {
+                let property = NodeData::PositionReverseX { x: x_reverse as u8 };
+                let index: NodeIndex = self.graph.add_node(property);
+                self.graph.add_edge(object_index, index, EdgeData::Link);
+            }
 
-                let y_reverse: i32 = (image_size.height as i32) - 1 - shape_id.rect.max_y();
-                if y_reverse >= 0 {
-                    let property = NodeData::PositionReverseY { y: y_reverse as u8 };
-                    let index: NodeIndex = self.graph.add_node(property);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
-                }
+            let y_reverse: i32 = (image_size.height as i32) - 1 - color_and_shape.shape_identification.rect.max_y();
+            if y_reverse >= 0 {
+                let property = NodeData::PositionReverseY { y: y_reverse as u8 };
+                let index: NodeIndex = self.graph.add_node(property);
+                self.graph.add_edge(object_index, index, EdgeData::Link);
+            }
 
-                {
-                    let mass: u16 = mask.mask_count_nonzero();
-                    let node = NodeData::Mass { mass };
-                    let index: NodeIndex = self.graph.add_node(node);
-                    self.graph.add_edge(object_index, index, EdgeData::Link);
-                }
+            {
+                let node = NodeData::Mass { mass: color_and_shape.shape_identification.mass };
+                let index: NodeIndex = self.graph.add_node(node);
+                self.graph.add_edge(object_index, index, EdgeData::Link);
             }
         }
+
         Ok(objectsinsideimage_index)
     }
 
@@ -481,11 +461,11 @@ impl TaskGraph {
         // with the output shapetype, obtain reference to its ShapeIdentification instance
         // compare the two ShapeIdentification instances
         //
-        // Add edge between the input and output objects they have the same color.
+        // Add edge between the input and output objects if they have the same color.
         //
-        // Add edge between the input and output objects they have the same shape.
+        // Add edge between the input and output objects if they have the same shape.
         //
-        // Add edge between the input and output objects they have the same size of bounding box.
+        // Add edge between the input and output objects if they have the same size of bounding box.
         //
         // Add edge between the input and output objects if they are similar, with the edge data being the similarity score:
         // - identical (same size, no transformation, same color), `HighlySimilarObject { mode: Identical }`
