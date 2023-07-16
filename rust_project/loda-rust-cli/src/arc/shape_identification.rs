@@ -15,57 +15,11 @@ use std::collections::HashSet;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref SHAPE_TYPE_IMAGE: ShapeTypeImage = ShapeTypeImage::new().expect("Unable to create shape type image");
+    static ref SHAPE_TYPE_IMAGE: ShapeTypeImage = ShapeTypeImage::new().expect("Unable to create ShapeTypeImage");
 }
 
 struct ShapeTypeImage {
-    image_box: Image,
-    image_plus: Image,
-    image_crosshair: Image,
-    image_x: Image,
-    image_h_uppercase: Image,
-    image_h_lowercase: Image,
-    image_diagonal2: Image,
-    image_diagonal3: Image,
-    image_l: Image,
-    image_uptack: Image,
-    image_u5: Image,
-    image_u4: Image,
-    image_turned_v: Image,
-    image_skew_tetromino: Image,
-    image_flipped_j: Image,
-    image_inverted_fork: Image,
-    image_rotated_k: Image,
-    image_lower_left_triangle: Image,
-    image_left_plus: Image,
-    image_leftwards_harpoon_with_barb_upwards: Image,
-    image_box_without_one_corner: Image,
-    image_rotated_d: Image,
-    image_rotated_j_round: Image,
-    image_box_without_diagonal: Image,
-    image_rotated_s: Image,
-    image_plus_with_one_corner: Image,
-    image_square_without_diagonal_corners: Image,
-    image_gameoflife_boat: Image,
-    image_l_with_45degree_line: Image,
-    image_x_without_one_corner: Image,
-    image_l_skew: Image,
-    image_uptack_skew: Image,
-    image_lower_left_triangle_with_corner: Image,
-    image_i_uppercase_moved_corner: Image,
-    image_skew_tetromino_with_top_left_corner: Image,
-    image_rotated_uppercase_e: Image,
-    image_turned_w: Image,
-    image_line_around_obstacle: Image,
-    image_box_with_two_holes: Image,
-    image_box_with_2x2_holes: Image,
-    image_x_moved_corner: Image,
-    image_lower_left_triangle_without_corner: Image,
-    image_lower_left_triangle_moved_corner: Image,
-    image_rotated_p: Image,
-    image_rotated_lowercase_f: Image,
-    image_box_with_rightwards_tick: Image,
-    image_open_box_with_hole_in_border: Image,
+    image_shapetype_vec: Vec::<(Image, ShapeType)>,
 }
 
 impl ShapeTypeImage {
@@ -344,54 +298,57 @@ impl ShapeTypeImage {
             1, 1, 1, 1, 1,
         ])?;
 
+        let mut items = Vec::<(Image, ShapeType)>::new();
+        items.push((image_box, ShapeType::Box));
+        items.push((image_plus, ShapeType::Plus));
+        items.push((image_crosshair, ShapeType::Crosshair));
+        items.push((image_x, ShapeType::X));
+        items.push((image_h_uppercase, ShapeType::HUppercase));
+        items.push((image_diagonal2, ShapeType::Diagonal2));
+        items.push((image_diagonal3, ShapeType::Diagonal3));
+        items.push((image_l, ShapeType::L));
+        items.push((image_uptack, ShapeType::UpTack));
+        items.push((image_u5, ShapeType::U5));
+        items.push((image_turned_v, ShapeType::TurnedV));
+        items.push((image_u4, ShapeType::U4));
+        items.push((image_skew_tetromino, ShapeType::SkewTetromino));
+        items.push((image_h_lowercase, ShapeType::HLowercase));
+        items.push((image_flipped_j, ShapeType::FlippedJ));
+        items.push((image_inverted_fork, ShapeType::InvertedFork));
+        items.push((image_rotated_k, ShapeType::RotatedK));
+        items.push((image_lower_left_triangle, ShapeType::LowerLeftTriangle));
+        items.push((image_left_plus, ShapeType::LeftPlus));
+        items.push((image_leftwards_harpoon_with_barb_upwards, ShapeType::LeftwardsHarpoonWithBarbUpwards));
+        items.push((image_box_without_one_corner, ShapeType::BoxWithoutOneCorner));
+        items.push((image_rotated_d, ShapeType::RotatedD));
+        items.push((image_rotated_j_round, ShapeType::RotatedJRound));
+        items.push((image_box_without_diagonal, ShapeType::BoxWithoutDiagonal));
+        items.push((image_rotated_s, ShapeType::RotatedS));
+        items.push((image_plus_with_one_corner, ShapeType::PlusWithOneCorner));
+        items.push((image_square_without_diagonal_corners, ShapeType::SquareWithoutDiagonalCorners));
+        items.push((image_gameoflife_boat, ShapeType::GameOfLifeBoat));
+        items.push((image_l_with_45degree_line, ShapeType::LWith45DegreeLine));
+        items.push((image_x_without_one_corner, ShapeType::XWithoutOneCorner));
+        items.push((image_l_skew, ShapeType::LSkew));
+        items.push((image_uptack_skew, ShapeType::UpTackSkew));
+        items.push((image_lower_left_triangle_with_corner, ShapeType::LowerLeftTriangleWithCorner));
+        items.push((image_i_uppercase_moved_corner, ShapeType::IUppercaseMovedCorner));
+        items.push((image_skew_tetromino_with_top_left_corner, ShapeType::SkewTetrominoWithTopLeftCorner));
+        items.push((image_rotated_uppercase_e, ShapeType::RotatedUppercaseE));
+        items.push((image_turned_w, ShapeType::TurnedW));
+        items.push((image_line_around_obstacle, ShapeType::LineAroundObstacle));
+        items.push((image_box_with_two_holes, ShapeType::BoxWithTwoHoles));
+        items.push((image_box_with_2x2_holes, ShapeType::BoxWith2x2Holes));
+        items.push((image_x_moved_corner, ShapeType::XMovedCorner));
+        items.push((image_lower_left_triangle_without_corner, ShapeType::LowerLeftTriangleWithoutCorner));
+        items.push((image_lower_left_triangle_moved_corner, ShapeType::LowerLeftTriangleMovedCorner));
+        items.push((image_rotated_p, ShapeType::RotatedP));
+        items.push((image_rotated_lowercase_f, ShapeType::RotatedLowercaseF));
+        items.push((image_box_with_rightwards_tick, ShapeType::BoxWithRightwardsTick));
+        items.push((image_open_box_with_hole_in_border, ShapeType::OpenBoxWithHoleInBorder));
+
         let instance = Self {
-            image_box,
-            image_plus,
-            image_crosshair,
-            image_x,
-            image_h_uppercase,
-            image_h_lowercase,
-            image_diagonal2,
-            image_diagonal3,
-            image_l,
-            image_uptack,
-            image_u5,
-            image_u4,
-            image_turned_v,
-            image_skew_tetromino,
-            image_flipped_j,
-            image_inverted_fork,
-            image_rotated_k,
-            image_lower_left_triangle,
-            image_left_plus,
-            image_leftwards_harpoon_with_barb_upwards,
-            image_box_without_one_corner,
-            image_rotated_d,
-            image_rotated_j_round,
-            image_box_without_diagonal,
-            image_rotated_s,
-            image_plus_with_one_corner,
-            image_square_without_diagonal_corners,
-            image_gameoflife_boat,
-            image_l_with_45degree_line,
-            image_x_without_one_corner,
-            image_l_skew,
-            image_uptack_skew,
-            image_lower_left_triangle_with_corner,
-            image_i_uppercase_moved_corner,
-            image_skew_tetromino_with_top_left_corner,
-            image_rotated_uppercase_e,
-            image_turned_w,
-            image_line_around_obstacle,
-            image_box_with_two_holes,
-            image_box_with_2x2_holes,
-            image_x_moved_corner,
-            image_lower_left_triangle_without_corner,
-            image_lower_left_triangle_moved_corner,
-            image_rotated_p,
-            image_rotated_lowercase_f,
-            image_box_with_rightwards_tick,
-            image_open_box_with_hole_in_border,
+            image_shapetype_vec: items,
         };
         Ok(instance)
     }
@@ -1184,60 +1141,14 @@ impl ShapeIdentification {
 
         let transformation_image_vec: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&compact_mask)?;
 
+        // Loop over all the basic shapes and see if any of them matches the transformed image
+        // It's computationally cheaper to check for basic shapes, than analyzing an `Unclassified` shape.
         {
-            let mut images_to_recognize = Vec::<(&Image, ShapeType)>::new();
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box, ShapeType::Box));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_plus, ShapeType::Plus));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_crosshair, ShapeType::Crosshair));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_x, ShapeType::X));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_h_uppercase, ShapeType::HUppercase));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_diagonal2, ShapeType::Diagonal2));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_diagonal3, ShapeType::Diagonal3));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l, ShapeType::L));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_uptack, ShapeType::UpTack));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_u5, ShapeType::U5));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_turned_v, ShapeType::TurnedV));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_u4, ShapeType::U4));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_skew_tetromino, ShapeType::SkewTetromino));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_h_lowercase, ShapeType::HLowercase));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_flipped_j, ShapeType::FlippedJ));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_inverted_fork, ShapeType::InvertedFork));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_k, ShapeType::RotatedK));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle, ShapeType::LowerLeftTriangle));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_left_plus, ShapeType::LeftPlus));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_leftwards_harpoon_with_barb_upwards, ShapeType::LeftwardsHarpoonWithBarbUpwards));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_without_one_corner, ShapeType::BoxWithoutOneCorner));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_d, ShapeType::RotatedD));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_j_round, ShapeType::RotatedJRound));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_without_diagonal, ShapeType::BoxWithoutDiagonal));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_s, ShapeType::RotatedS));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_plus_with_one_corner, ShapeType::PlusWithOneCorner));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_square_without_diagonal_corners, ShapeType::SquareWithoutDiagonalCorners));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_gameoflife_boat, ShapeType::GameOfLifeBoat));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l_with_45degree_line, ShapeType::LWith45DegreeLine));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_x_without_one_corner, ShapeType::XWithoutOneCorner));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_l_skew, ShapeType::LSkew));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_uptack_skew, ShapeType::UpTackSkew));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle_with_corner, ShapeType::LowerLeftTriangleWithCorner));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_i_uppercase_moved_corner, ShapeType::IUppercaseMovedCorner));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_skew_tetromino_with_top_left_corner, ShapeType::SkewTetrominoWithTopLeftCorner));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_uppercase_e, ShapeType::RotatedUppercaseE));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_turned_w, ShapeType::TurnedW));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_line_around_obstacle, ShapeType::LineAroundObstacle));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_with_two_holes, ShapeType::BoxWithTwoHoles));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_with_2x2_holes, ShapeType::BoxWith2x2Holes));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_x_moved_corner, ShapeType::XMovedCorner));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle_without_corner, ShapeType::LowerLeftTriangleWithoutCorner));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_lower_left_triangle_moved_corner, ShapeType::LowerLeftTriangleMovedCorner));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_p, ShapeType::RotatedP));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_rotated_lowercase_f, ShapeType::RotatedLowercaseF));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_box_with_rightwards_tick, ShapeType::BoxWithRightwardsTick));
-            images_to_recognize.push((&SHAPE_TYPE_IMAGE.image_open_box_with_hole_in_border, ShapeType::OpenBoxWithHoleInBorder));
-
+            let images_to_recognize: &Vec::<(Image, ShapeType)> = &SHAPE_TYPE_IMAGE.image_shapetype_vec;
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
-            for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
+            for (image_to_recognize, recognized_shape_type) in images_to_recognize {
                 for (transformation_type, transformed_image) in &transformation_image_vec {
-                    if *transformed_image == **image_to_recognize {
+                    if *transformed_image == *image_to_recognize {
                         found_transformations.insert(transformation_type.clone());
                     }
                 }
@@ -1259,7 +1170,7 @@ impl ShapeIdentification {
         }
 
         // The shape is more advanced than the basic ones we can recognize
-        // apply even more expensive transformations to recognize it.
+        // apply even more computational expensive transformations.
         let (transformations, normalized_mask) = Self::normalize(compact_mask.size(), transformation_image_vec)?;
         let mut shape = Self {
             shape_type: ShapeType::Unclassified,
