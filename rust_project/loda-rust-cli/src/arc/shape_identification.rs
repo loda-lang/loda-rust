@@ -1093,9 +1093,15 @@ pub struct ShapeIdentification {
     pub shape_type: ShapeType,
 
     /// The original mask, without any cropping.
+    /// No compression is applied. No transformation is applied.
     pub mask_uncropped: Image,
 
+    /// The shape cropped out from the original mask. 
+    /// No compression is applied. No transformation is applied.
+    pub mask_cropped: Image,
+
     /// Bounding box of the shape, which is used for cropping.
+    /// The size of the bounding box is the same as the size of the `mask_cropped`.
     pub rect: Rectangle,
 
     /// The transformations that converts from the original shape to the normalized shape.
@@ -1142,6 +1148,7 @@ impl ShapeIdentification {
             let shape = Self {
                 shape_type: ShapeType::Rectangle,
                 mask_uncropped: mask.clone(),
+                mask_cropped: trimmed_mask.clone(),
                 rect,
                 transformations: ShapeTransformation::all(),
                 normalized_mask: None,
@@ -1160,6 +1167,7 @@ impl ShapeIdentification {
             let shape = Self {
                 shape_type: ShapeType::Rectangle,
                 mask_uncropped: mask.clone(),
+                mask_cropped: trimmed_mask.clone(),
                 rect,
                 transformations: ShapeTransformation::all(),
                 normalized_mask: None,
@@ -1232,6 +1240,7 @@ impl ShapeIdentification {
                     let mut shape = Self {
                         shape_type: *recognized_shape_type,
                         mask_uncropped: mask.clone(),
+                        mask_cropped: trimmed_mask.clone(),
                         rect,
                         transformations: found_transformations,
                         normalized_mask: None,
@@ -1252,6 +1261,7 @@ impl ShapeIdentification {
         let mut shape = Self {
             shape_type: ShapeType::Unclassified,
             mask_uncropped: mask.clone(),
+            mask_cropped: trimmed_mask.clone(),
             rect,
             transformations: HashSet::<ShapeTransformation>::from([transformation]),
             normalized_mask: Some(normalized_mask.clone()),
@@ -1374,6 +1384,7 @@ mod tests {
         assert_eq!(actual.transformations, ShapeTransformation::all());
         assert_eq!(actual.scale_to_string(), "1x1");
         assert_eq!(actual.mass, 1);
+        assert_eq!(actual.mask_cropped, Image::color(1, 1, 1));
     }
 
     #[test]
@@ -1652,6 +1663,33 @@ mod tests {
         assert_eq!(actual.to_string(), "L");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw270]));
         assert_eq!(actual.scale_to_string(), "none");
+    }
+
+    #[test]
+    fn test_60004_l_shape() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 1, 1, 0,
+            0, 1, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "L");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "1x1");
+
+        let expected_pixels: Vec<u8> = vec![
+            1, 1,
+            1, 0,
+        ];
+        let expected_mask_cropped: Image = Image::try_create(2, 2, expected_pixels).expect("image");
+        assert_eq!(actual.mask_cropped, expected_mask_cropped);
     }
 
     #[test]
