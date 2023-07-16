@@ -4,6 +4,11 @@
 //! 
 //! Similar to SIFT (Scale-invariant feature transform) but without using points.
 //! https://en.wikipedia.org/wiki/Scale-invariant_feature_transform
+//! 
+//! Known problem: Cannot detect diagonal structures.
+//! One diagonal line that is 11 pixels long, gets classified as `ShapeType::Unclassified`.
+//! Another diagonal line that is 13 pixels long, also gets classified as `ShapeType::Unclassified`.
+//! There is no way to tell that the diagonal lines are similar.
 use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop, ImageResize, ImageMaskCount};
 use std::fmt;
 use std::collections::HashSet;
