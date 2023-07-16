@@ -1421,7 +1421,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10000_empty() {
+    fn test_110000_empty() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0,
@@ -1438,7 +1438,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_rectangle() {
+    fn test_120000_rectangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0,
@@ -1459,7 +1459,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_rectangle() {
+    fn test_120001_rectangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1,
@@ -1478,7 +1478,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20002_rectangle() {
+    fn test_120002_rectangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -1497,7 +1497,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_rectangle() {
+    fn test_120003_rectangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1,
@@ -1515,7 +1515,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_box() {
+    fn test_130000_box() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -1536,7 +1536,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30001_box() {
+    fn test_130001_box() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -1556,7 +1556,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30002_box() {
+    fn test_130002_box() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1,
@@ -1575,7 +1575,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_plus() {
+    fn test_140000_plus() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0, 0,
@@ -1595,7 +1595,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_plus() {
+    fn test_140001_plus() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 0,
@@ -1617,7 +1617,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_crosshair_shape() {
+    fn test_160000_crosshair_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -1638,7 +1638,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60001_crosshair_shape() {
+    fn test_160001_crosshair_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 0, 0,
@@ -1658,7 +1658,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_l_shape() {
+    fn test_160000_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -1678,7 +1678,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60001_l_shape() {
+    fn test_160001_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0,
@@ -1698,7 +1698,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60002_l_shape() {
+    fn test_160002_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1,
@@ -1718,7 +1718,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60003_l_shape() {
+    fn test_160003_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -1737,7 +1737,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60004_l_shape() {
+    fn test_160004_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -1764,7 +1764,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70000_uptack() {
+    fn test_170000_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -1785,7 +1785,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70001_uptack() {
+    fn test_170001_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -1804,7 +1804,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70002_uptack() {
+    fn test_170002_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0,
@@ -1823,7 +1823,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70003_uptack() {
+    fn test_170003_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1,
@@ -1842,7 +1842,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80000_u5() {
+    fn test_180000_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -1864,7 +1864,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80001_u5() {
+    fn test_180001_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
@@ -1883,7 +1883,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80002_u5() {
+    fn test_180002_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -1902,7 +1902,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80003_u5() {
+    fn test_180003_u5() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1,
@@ -1921,7 +1921,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90000_u4() {
+    fn test_190000_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0,
@@ -1942,7 +1942,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90001_u4() {
+    fn test_190001_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1,
@@ -1962,7 +1962,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90002_u4() {
+    fn test_190002_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
@@ -1981,7 +1981,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90003_u4() {
+    fn test_190003_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
@@ -2000,7 +2000,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90004_u4() {
+    fn test_190004_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -2019,7 +2019,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90005_u4() {
+    fn test_190005_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1,
@@ -2038,7 +2038,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90006_u4() {
+    fn test_190006_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0,
@@ -2057,7 +2057,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90007_u4() {
+    fn test_190007_u4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1,
@@ -2076,7 +2076,7 @@ mod tests {
     }
 
     #[test]
-    fn test_100000_h_uppercase() {
+    fn test_200000_h_uppercase() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -2097,7 +2097,7 @@ mod tests {
     }
 
     #[test]
-    fn test_100001_h_uppercase() {
+    fn test_200001_h_uppercase() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 1,
@@ -2116,7 +2116,7 @@ mod tests {
     }
 
     #[test]
-    fn test_110000_x() {
+    fn test_210000_x() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 1, 1,
@@ -2137,7 +2137,7 @@ mod tests {
     }
 
     #[test]
-    fn test_110001_x() {
+    fn test_210001_x() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 1, 1,
@@ -2156,7 +2156,7 @@ mod tests {
     }
 
     #[test]
-    fn test_120000_turnedv() {
+    fn test_220000_turnedv() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 0,
@@ -2175,7 +2175,7 @@ mod tests {
     }
 
     #[test]
-    fn test_120001_turnedv() {
+    fn test_220001_turnedv() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 1,
@@ -2194,7 +2194,7 @@ mod tests {
     }
 
     #[test]
-    fn test_120002_turnedv() {
+    fn test_220002_turnedv() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
@@ -2213,7 +2213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_120003_turnedv() {
+    fn test_220003_turnedv() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 0, 0,
@@ -2231,7 +2231,7 @@ mod tests {
     }
 
     #[test]
-    fn test_130000_diagonal2() {
+    fn test_230000_diagonal2() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 0,
@@ -2249,7 +2249,7 @@ mod tests {
     }
 
     #[test]
-    fn test_130001_diagonal2() {
+    fn test_230001_diagonal2() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1,
@@ -2268,7 +2268,7 @@ mod tests {
     }
 
     #[test]
-    fn test_140000_diagonal3() {
+    fn test_240000_diagonal3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 0,
@@ -2287,7 +2287,7 @@ mod tests {
     }
 
     #[test]
-    fn test_140001_diagonal3() {
+    fn test_240001_diagonal3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 1,
@@ -2306,7 +2306,7 @@ mod tests {
     }
 
     #[test]
-    fn test_150000_skew_tetramino() {
+    fn test_250000_skew_tetramino() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 1, 1,
@@ -2324,7 +2324,7 @@ mod tests {
     }
 
     #[test]
-    fn test_150001_skew_tetramino() {
+    fn test_250001_skew_tetramino() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 0, 0, 0,
@@ -2342,7 +2342,7 @@ mod tests {
     }
 
     #[test]
-    fn test_150002_skew_tetramino() {
+    fn test_250002_skew_tetramino() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0,
@@ -2361,7 +2361,7 @@ mod tests {
     }
 
     #[test]
-    fn test_150003_skew_tetramino() {
+    fn test_250003_skew_tetramino() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1,
@@ -2380,7 +2380,7 @@ mod tests {
     }
 
     #[test]
-    fn test_160000_h_lowercase() {
+    fn test_260000_h_lowercase() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 0,
@@ -2399,7 +2399,7 @@ mod tests {
     }
 
     #[test]
-    fn test_160001_h_lowercase() {
+    fn test_260001_h_lowercase() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1,
@@ -2418,7 +2418,7 @@ mod tests {
     }
 
     #[test]
-    fn test_160002_h_lowercase() {
+    fn test_260002_h_lowercase() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -2437,7 +2437,7 @@ mod tests {
     }
 
     #[test]
-    fn test_160003_h_lowercase() {
+    fn test_260003_h_lowercase() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 0,
@@ -2456,7 +2456,7 @@ mod tests {
     }
 
     #[test]
-    fn test_170000_inverted_fork() {
+    fn test_270000_inverted_fork() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 0,
@@ -2475,7 +2475,7 @@ mod tests {
     }
 
     #[test]
-    fn test_170001_inverted_fork() {
+    fn test_270001_inverted_fork() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 1,
@@ -2494,7 +2494,7 @@ mod tests {
     }
 
     #[test]
-    fn test_170002_inverted_fork() {
+    fn test_270002_inverted_fork() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -2515,7 +2515,7 @@ mod tests {
     }
 
     #[test]
-    fn test_170003_inverted_fork() {
+    fn test_270003_inverted_fork() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 1,
@@ -2537,7 +2537,7 @@ mod tests {
     }
 
     #[test]
-    fn test_180000_rotated_k() {
+    fn test_280000_rotated_k() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1,
@@ -2558,7 +2558,7 @@ mod tests {
     }
 
     #[test]
-    fn test_180001_rotated_k() {
+    fn test_280001_rotated_k() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -2579,7 +2579,7 @@ mod tests {
     }
 
     #[test]
-    fn test_180002_rotated_k() {
+    fn test_280002_rotated_k() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 1,
@@ -2600,7 +2600,7 @@ mod tests {
     }
 
     #[test]
-    fn test_180003_rotated_k() {
+    fn test_280003_rotated_k() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 1,
@@ -2621,7 +2621,7 @@ mod tests {
     }
 
     #[test]
-    fn test_190000_lower_left_triangle() {
+    fn test_290000_lower_left_triangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 0, 0,
@@ -2643,7 +2643,7 @@ mod tests {
     }
 
     #[test]
-    fn test_190001_lower_left_triangle() {
+    fn test_290001_lower_left_triangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -2662,7 +2662,7 @@ mod tests {
     }
 
     #[test]
-    fn test_190002_lower_left_triangle() {
+    fn test_290002_lower_left_triangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -2681,7 +2681,7 @@ mod tests {
     }
 
     #[test]
-    fn test_190003_lower_left_triangle() {
+    fn test_290003_lower_left_triangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 1,
@@ -2700,7 +2700,7 @@ mod tests {
     }
 
     #[test]
-    fn test_200000_flipped_j() {
+    fn test_300000_flipped_j() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 0,
@@ -2720,7 +2720,7 @@ mod tests {
     }
 
     #[test]
-    fn test_200001_flipped_j() {
+    fn test_300001_flipped_j() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 1,
@@ -2740,7 +2740,7 @@ mod tests {
     }
 
     #[test]
-    fn test_200002_flipped_j() {
+    fn test_300002_flipped_j() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -2760,7 +2760,7 @@ mod tests {
     }
 
     #[test]
-    fn test_200003_flipped_j() {
+    fn test_300003_flipped_j() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -2780,7 +2780,7 @@ mod tests {
     }
 
     #[test]
-    fn test_200000_left_plus() {
+    fn test_300000_left_plus() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0,
@@ -2801,7 +2801,7 @@ mod tests {
     }
 
     #[test]
-    fn test_210000_leftwards_harpoon_with_barb_upwards() {
+    fn test_310000_leftwards_harpoon_with_barb_upwards() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -2822,7 +2822,7 @@ mod tests {
     }
 
     #[test]
-    fn test_220000_image_box_without_one_corner() {
+    fn test_320000_image_box_without_one_corner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -2843,7 +2843,7 @@ mod tests {
     }
 
     #[test]
-    fn test_230000_image_rotated_d() {
+    fn test_330000_image_rotated_d() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -2863,7 +2863,7 @@ mod tests {
     }
 
     #[test]
-    fn test_240000_image_rotated_j_round() {
+    fn test_340000_image_rotated_j_round() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 0, 0,
@@ -2883,7 +2883,7 @@ mod tests {
     }
 
     #[test]
-    fn test_250000_image_box_without_diagonal() {
+    fn test_350000_image_box_without_diagonal() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 1,
@@ -2905,7 +2905,7 @@ mod tests {
     }
 
     #[test]
-    fn test_260000_image_rotated_s() {
+    fn test_360000_image_rotated_s() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 1,
@@ -2926,7 +2926,7 @@ mod tests {
     }
 
     #[test]
-    fn test_270000_image_plus_with_one_corner() {
+    fn test_370000_image_plus_with_one_corner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 0, 0,
@@ -2946,7 +2946,7 @@ mod tests {
     }
 
     #[test]
-    fn test_280000_image_square_without_two_diagonal_corners() {
+    fn test_380000_image_square_without_two_diagonal_corners() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 1,
@@ -2966,7 +2966,7 @@ mod tests {
     }
 
     #[test]
-    fn test_290000_image_gameoflife_boat() {
+    fn test_390000_image_gameoflife_boat() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 0,
@@ -2986,7 +2986,7 @@ mod tests {
     }
 
     #[test]
-    fn test_300000_image_l_with_45degree_line() {
+    fn test_400000_image_l_with_45degree_line() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 0, 0,
@@ -3008,7 +3008,7 @@ mod tests {
     }
 
     #[test]
-    fn test_310000_image_x_without_one_corner() {
+    fn test_410000_image_x_without_one_corner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 0,
@@ -3029,7 +3029,7 @@ mod tests {
     }
 
     #[test]
-    fn test_320000_image_l_skew() {
+    fn test_420000_image_l_skew() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 0,
@@ -3049,7 +3049,7 @@ mod tests {
     }
 
     #[test]
-    fn test_330000_image_uptack_skew() {
+    fn test_430000_image_uptack_skew() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 0,
@@ -3069,7 +3069,7 @@ mod tests {
     }
 
     #[test]
-    fn test_340000_image_lower_left_triangle_with_corner() {
+    fn test_440000_image_lower_left_triangle_with_corner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 1, 1,
@@ -3089,7 +3089,7 @@ mod tests {
     }
 
     #[test]
-    fn test_350000_image_i_uppercase_moved_corner() {
+    fn test_450000_image_i_uppercase_moved_corner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 0, 0,
@@ -3109,7 +3109,7 @@ mod tests {
     }
 
     #[test]
-    fn test_360000_image_skew_tetromino_with_top_left_corner() {
+    fn test_460000_image_skew_tetromino_with_top_left_corner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 0,
@@ -3130,7 +3130,7 @@ mod tests {
     }
 
     #[test]
-    fn test_370000_image_rotated_uppercase_e() {
+    fn test_470000_image_rotated_uppercase_e() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1,
@@ -3152,7 +3152,7 @@ mod tests {
     }
 
     #[test]
-    fn test_380000_image_turned_w() {
+    fn test_480000_image_turned_w() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 1,
@@ -3174,7 +3174,7 @@ mod tests {
     }
 
     #[test]
-    fn test_390000_image_line_around_obstacle() {
+    fn test_490000_image_line_around_obstacle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 1,
@@ -3197,7 +3197,7 @@ mod tests {
     }
 
     #[test]
-    fn test_400000_image_box_with_two_holes() {
+    fn test_500000_image_box_with_two_holes() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1,
@@ -3218,7 +3218,7 @@ mod tests {
     }
 
     #[test]
-    fn test_410000_image_box_with_2x2_holes() {
+    fn test_510000_image_box_with_2x2_holes() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1, 1, 1,
@@ -3239,7 +3239,7 @@ mod tests {
     }
 
     #[test]
-    fn test_420000_image_x_moved_corner() {
+    fn test_520000_image_x_moved_corner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0,
@@ -3260,7 +3260,7 @@ mod tests {
     }
 
     #[test]
-    fn test_430000_image_lower_left_triangle_without_corner() {
+    fn test_530000_image_lower_left_triangle_without_corner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0,
@@ -3280,7 +3280,7 @@ mod tests {
     }
 
     #[test]
-    fn test_430001_image_lower_left_triangle_without_corner() {
+    fn test_530001_image_lower_left_triangle_without_corner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 1, 1,
@@ -3299,7 +3299,7 @@ mod tests {
     }
 
     #[test]
-    fn test_440000_image_lower_left_triangle_moved_corner() {
+    fn test_540000_image_lower_left_triangle_moved_corner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 1,
@@ -3319,7 +3319,7 @@ mod tests {
     }
 
     #[test]
-    fn test_450000_image_rotated_p() {
+    fn test_550000_image_rotated_p() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -3339,7 +3339,7 @@ mod tests {
     }
 
     #[test]
-    fn test_460000_image_rotated_lowercase_f() {
+    fn test_560000_image_rotated_lowercase_f() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1,
@@ -3359,7 +3359,7 @@ mod tests {
     }
 
     #[test]
-    fn test_470000_image_box_with_rightwards_tick() {
+    fn test_570000_image_box_with_rightwards_tick() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1,
@@ -3379,7 +3379,7 @@ mod tests {
     }
 
     #[test]
-    fn test_480000_image_open_box_with_hole_in_border() {
+    fn test_580000_image_open_box_with_hole_in_border() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
