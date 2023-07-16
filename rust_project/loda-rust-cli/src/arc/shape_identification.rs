@@ -1177,7 +1177,7 @@ impl ShapeIdentification {
             return Ok(shape);    
         }
 
-        let transformations: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&compact_mask)?;
+        let transformation_image_vec: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&compact_mask)?;
 
         {
             let mut images_to_recognize = Vec::<(&Image, ShapeType)>::new();
@@ -1231,7 +1231,7 @@ impl ShapeIdentification {
 
             let mut found_transformations = HashSet::<ShapeTransformation>::new();
             for (image_to_recognize, recognized_shape_type) in &images_to_recognize {
-                for (transformation_type, transformed_image) in &transformations {
+                for (transformation_type, transformed_image) in &transformation_image_vec {
                     if *transformed_image == **image_to_recognize {
                         found_transformations.insert(transformation_type.clone());
                     }
@@ -1255,15 +1255,13 @@ impl ShapeIdentification {
 
         // The shape is more advanced than the basic ones we can recognize
         // apply even more expensive transformations to recognize it.
-        let (transformation, normalized_mask) = Self::normalize(compact_mask.size(), transformations)?;
-        // Weakness: Only detects one transformation, but the image can have multiple transformations.
-        // This can be improved by looping over all transformations and keeping those that matches.
+        let (transformations, normalized_mask) = Self::normalize(compact_mask.size(), transformation_image_vec)?;
         let mut shape = Self {
             shape_type: ShapeType::Unclassified,
             mask_uncropped: mask.clone(),
             mask_cropped: trimmed_mask.clone(),
             rect,
-            transformations: HashSet::<ShapeTransformation>::from([transformation]),
+            transformations,
             normalized_mask: Some(normalized_mask.clone()),
             scale: None,
             mass,
@@ -1288,7 +1286,10 @@ impl ShapeIdentification {
     /// - The most massive side is resting on the floor.
     /// - If there is a tie, the prefer object towards the left side.
     /// - If there is a tie, then sort using the raw pixel data.
-    fn normalize(size: ImageSize, transformations: Vec<(ShapeTransformation, Image)>) -> anyhow::Result<(ShapeTransformation, Image)> {
+    /// 
+    /// Returns a set of transformations. At least one transformation is always returned.
+    /// In case the image can be flipped/rotated then multiple transformations may be returned.
+    fn normalize(size: ImageSize, transformation_image_vec: Vec<(ShapeTransformation, Image)>) -> anyhow::Result<(HashSet<ShapeTransformation>, Image)> {
         // Ensure the image is always in landscape orientation
         let width: u8 = size.width.max(size.height);
         let height: u8 = size.width.min(size.height);
@@ -1297,7 +1298,7 @@ impl ShapeIdentification {
         // Obtain center of mass for each image
         type Record = (i32, u32, Image, ShapeTransformation);
         let mut y_x_image_transformation_vec: Vec<Record> = Vec::new();
-        for (transformation, image) in &transformations {
+        for (transformation, image) in &transformation_image_vec {
             if image.size() != landscape_size {
                 // Ignore portrait images
                 continue;
@@ -1322,13 +1323,27 @@ impl ShapeIdentification {
         if y_x_image_transformation_vec.is_empty() {
             return Err(anyhow::anyhow!("Image vector is empty"));
         }
-        // Pick the first image
+        // Pick the first image and first transformation
         let record: &Record = &y_x_image_transformation_vec[0];
-        let image: Image = record.2.clone();
-        let transformation: ShapeTransformation = record.3.clone();
-        Ok((transformation, image))
+        let first_image: Image = record.2.clone();
+        let first_transformation: ShapeTransformation = record.3.clone();
+
+        // Identify multiple transformations that yield the same image, and remember the transformations
+        let mut transformations = HashSet::<ShapeTransformation>::new();
+        for (transformation, image) in &transformation_image_vec {
+            if *transformation == first_transformation {
+                // No need to do expensive image comparison
+                continue;
+            }
+            if *image == first_image {
+                transformations.insert(transformation.clone());
+            }
+        }
+        transformations.insert(first_transformation);
+        Ok((transformations, first_image))
     }
 
+    #[cfg(test)]
     fn scale_to_string(&self) -> String {
         match &self.scale {
             Some(scale) => format!("{}x{}", scale.x, scale.y),
@@ -3497,6 +3512,66 @@ mod tests {
         assert_eq!(actual.scale_to_string(), "2x1");
     }
 
+    #[test]
+    fn test_500006_unclassified_multiple_transformations() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 0, 0,
+            0, 1, 1, 1, 0,
+            1, 1, 0, 1, 1,
+            1, 0, 0, 0, 1,
+            1, 1, 0, 1, 1,
+            0, 1, 1, 1, 0,
+        ];
+        let input: Image = Image::try_create(5, 6, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "unclassified");
+
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 1, 1, 0, 0,
+            1, 1, 0, 1, 1, 0,
+            1, 0, 0, 0, 1, 1,
+            1, 1, 0, 1, 1, 0,
+            0, 1, 1, 1, 0, 0,
+        ];
+        let expected_compact: Image = Image::try_create(6, 5, expected_pixels).expect("image");
+        assert_eq!(actual.normalized_mask, Some(expected_compact));
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_500007_unclassified_scale2x1() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 1, 1, 0, 0,
+            0, 0, 1, 1, 0, 0, 1, 1,
+            1, 1, 0, 0, 0, 0, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(8, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "unclassified");
+
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 0, 0,
+            1, 0, 1, 0,
+            1, 0, 0, 1,
+            1, 1, 1, 1,
+        ];
+        let expected_compact: Image = Image::try_create(4, 4, expected_pixels).expect("image");
+        assert_eq!(actual.normalized_mask, Some(expected_compact));
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "2x1");
+    }
 
     fn transform(input: &Image, mode: u8) -> anyhow::Result<Image> {
         let output: Image = match mode {
