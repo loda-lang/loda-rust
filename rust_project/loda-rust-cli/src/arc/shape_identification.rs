@@ -97,8 +97,8 @@ impl ShapeTypeImage {
         ])?;
 
         let image_skew_tetromino: Image = Image::try_create(3, 2, vec![
-            0, 1, 1,
             1, 1, 0,
+            0, 1, 1,
         ])?;
 
         let image_flipped_j: Image = Image::try_create(3, 3, vec![
@@ -515,8 +515,8 @@ pub enum ShapeType {
     /// https://mathworld.wolfram.com/Tetromino.html
     /// 
     /// ````
-    /// 0, 1, 1
     /// 1, 1, 0
+    /// 0, 1, 1
     /// ```
     SkewTetromino,
 
@@ -2309,8 +2309,8 @@ mod tests {
     fn test_250000_skew_tetramino() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            0, 0, 1, 1, 1, 1,
             1, 1, 1, 0, 0, 0,
+            0, 0, 1, 1, 1, 1,
         ];
         let input: Image = Image::try_create(6, 2, pixels).expect("image");
 
@@ -2327,8 +2327,8 @@ mod tests {
     fn test_250001_skew_tetramino() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1, 1, 1, 0, 0, 0,
             0, 0, 1, 1, 1, 1,
+            1, 1, 1, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 2, pixels).expect("image");
 
@@ -2345,9 +2345,9 @@ mod tests {
     fn test_250002_skew_tetramino() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1, 1, 0, 0,
-            1, 1, 1, 1,
             0, 0, 1, 1,
+            1, 1, 1, 1,
+            1, 1, 0, 0,
         ];
         let input: Image = Image::try_create(4, 3, pixels).expect("image");
 
@@ -2364,9 +2364,9 @@ mod tests {
     fn test_250003_skew_tetramino() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            0, 0, 1, 1,
-            1, 1, 1, 1,
             1, 1, 0, 0,
+            1, 1, 1, 1,
+            0, 0, 1, 1,
         ];
         let input: Image = Image::try_create(4, 3, pixels).expect("image");
 
