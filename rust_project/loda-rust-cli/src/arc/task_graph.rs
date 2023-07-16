@@ -23,12 +23,11 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
-use std::collections::HashSet;
-
 use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType, ImageMaskCount, ShapeIdentificationFromSingleColorObject, ColorAndShape};
 use super::{ImageMask, ShapeIdentification};
 use super::arc_work_model::{Task, Pair, PairType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
+use std::collections::{HashSet, HashMap};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NodeData {
@@ -83,6 +82,7 @@ pub enum EdgeData {
     PixelNeighbor { edge_type: PixelNeighborEdgeType },
     Parent,
     Child,
+    ObjectSimilarity { numerator: u8, denominator: u8 },
     // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
@@ -339,16 +339,17 @@ impl TaskGraph {
                 // println!("{}: no sco", name);
                 let instance = ProcessShapes {
                     objectsinsideimage_index,
-                    shape_identification_from_single_color_object: None
+                    color_and_shape_vec: vec!(),
+                    color_and_shape_to_object_nodeindex: HashMap::new(),
                 };
                 return Ok(instance);
             }
         };
 
         let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(sco, connectivity)?;
-
-        for color_and_shape in &sifsco.color_and_shape_vec {
-            let object_index: NodeIndex = match self.add_object(image_index, &color_and_shape.shape_identification.mask_uncropped, connectivity) {
+        let mut color_and_shape_to_object_nodeindex = HashMap::<usize, NodeIndex>::new();
+        for (color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+            let object_nodeindex: NodeIndex = match self.add_object(image_index, &color_and_shape.shape_identification.mask_uncropped, connectivity) {
                 Ok(value) => value,
                 Err(error) => {
                     println!("unable to add object to graph. error: {:?}", error);
@@ -356,70 +357,72 @@ impl TaskGraph {
                 }
             };
             // println!("name: {} object_index: {:?}", name, object_index);
+            color_and_shape_to_object_nodeindex.insert(color_and_shape_index, object_nodeindex);
             {
-                self.graph.add_edge(objectsinsideimage_index, object_index, EdgeData::Child);
-                self.graph.add_edge(object_index, objectsinsideimage_index, EdgeData::Parent);
+                self.graph.add_edge(objectsinsideimage_index, object_nodeindex, EdgeData::Child);
+                self.graph.add_edge(object_nodeindex, objectsinsideimage_index, EdgeData::Parent);
             }
 
             {
                 let node = NodeData::ShapeType { shape_type: color_and_shape.shape_identification.shape_type.clone() };
                 let index: NodeIndex = self.graph.add_node(node);
-                self.graph.add_edge(object_index, index, EdgeData::Link);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }
 
             {
                 let node = NodeData::Color { color: color_and_shape.color };
                 let index: NodeIndex = self.graph.add_node(node);
-                self.graph.add_edge(object_index, index, EdgeData::Link);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }
 
             if let Some(scale) = &color_and_shape.shape_identification.scale {
                 let node = NodeData::ShapeScale { x: scale.x, y: scale.y };
                 let index: NodeIndex = self.graph.add_node(node);
-                self.graph.add_edge(object_index, index, EdgeData::Link);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }
             
             {
                 let size: ImageSize = color_and_shape.shape_identification.rect.size();
                 let node = NodeData::ShapeSize { width: size.width, height: size.height };
                 let index: NodeIndex = self.graph.add_node(node);
-                self.graph.add_edge(object_index, index, EdgeData::Link);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }
 
             {
                 let node = NodeData::PositionX { x: color_and_shape.position_x };
                 let index: NodeIndex = self.graph.add_node(node);
-                self.graph.add_edge(object_index, index, EdgeData::Link);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }
 
             {
                 let node = NodeData::PositionY { y: color_and_shape.position_y };
                 let index: NodeIndex = self.graph.add_node(node);
-                self.graph.add_edge(object_index, index, EdgeData::Link);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }
 
             if let Some(x) = color_and_shape.position_x_reverse {
                 let property = NodeData::PositionReverseX { x };
                 let index: NodeIndex = self.graph.add_node(property);
-                self.graph.add_edge(object_index, index, EdgeData::Link);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }
 
             if let Some(y) = color_and_shape.position_y_reverse {
                 let property = NodeData::PositionReverseY { y };
                 let index: NodeIndex = self.graph.add_node(property);
-                self.graph.add_edge(object_index, index, EdgeData::Link);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }
 
             {
                 let node = NodeData::Mass { mass: color_and_shape.shape_identification.mass };
                 let index: NodeIndex = self.graph.add_node(node);
-                self.graph.add_edge(object_index, index, EdgeData::Link);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }
         }
 
         let instance = ProcessShapes {
             objectsinsideimage_index,
-            shape_identification_from_single_color_object: Some(sifsco),
+            color_and_shape_vec: sifsco.color_and_shape_vec,
+            color_and_shape_to_object_nodeindex,
         };
         Ok(instance)
     }
@@ -460,13 +463,28 @@ impl TaskGraph {
                     let same_height: bool = input_color_and_shape.shape_identification.rect.height() == output_color_and_shape.shape_identification.rect.height();
                     let same_transformations: bool = input_color_and_shape.shape_identification.transformations == output_color_and_shape.shape_identification.transformations;
                     // Future experiments:
+                    // for similar objects, then check if the mask pixel data is the same after transformation.
                     // if input.histogram and output.histogram has the same mass for the color and the current shape has that color, then it's likely to be the same object.
                     // for same size input/output - does the shape occupy the exact same pixels in both input and output.
                     // for same size input/output - does the input shape overlap with the output shape. Then it's likely the shapes are related.
                     let same_data = [same_color, same_mass, same_width, same_height, same_transformations];
                     let same_count: usize = same_data.into_iter().filter(|x| *x).count();
-                    let similarity_score: f64 = same_count as f64 / same_data.len() as f64;
-                    println!("  input_index: {}  output_index: {}  same_count: {}  similarity_score: {}", input_index, output_index, same_count, similarity_score);
+                    let numerator_u8: u8 = same_count as u8;
+                    let denominator_u8: u8 = same_data.len() as u8;
+                    let similarity_score_f64: f64 = numerator_u8 as f64 / denominator_u8 as f64;
+                    let similarity_score_percent: usize = (numerator_u8 as usize) * 100 / (denominator_u8 as usize);
+                    println!("  input_index: {}  output_index: {}  same_count: {}  similarity_score: {}", input_index, output_index, same_count, similarity_score_f64);
+                    if similarity_score_percent < 50 {
+                        continue;
+                    }
+                    let nodeindex0: Option<&NodeIndex> = input_process_shapes.color_and_shape_to_object_nodeindex.get(&input_index);
+                    let nodeindex1: Option<&NodeIndex> = output_process_shapes.color_and_shape_to_object_nodeindex.get(&output_index);
+                    if let (Some(nodeindex0), Some(nodeindex1)) = (nodeindex0, nodeindex1) {
+                        println!("  adding edge between input and output objects");
+                        let edge_data = EdgeData::ObjectSimilarity { numerator: numerator_u8, denominator: denominator_u8 };
+                        self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
+                        self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
+                    }
                 }
             }
         }
@@ -584,27 +602,24 @@ impl TaskGraph {
 
 struct ProcessShapes {
     objectsinsideimage_index: NodeIndex,
-    shape_identification_from_single_color_object: Option<ShapeIdentificationFromSingleColorObject>,
+    color_and_shape_vec: Vec<ColorAndShape>,
+    color_and_shape_to_object_nodeindex: HashMap<usize, NodeIndex>,
 }
 
 impl ProcessShapes {
     fn shapetype_set(&self) -> HashSet<ShapeType> {
         let mut shapetype_set = HashSet::<ShapeType>::new();
-        if let Some(sifsco) = &self.shape_identification_from_single_color_object {
-            for color_and_shape in &sifsco.color_and_shape_vec {
-                shapetype_set.insert(color_and_shape.shape_identification.shape_type.clone());
-            }
+        for color_and_shape in &self.color_and_shape_vec {
+            shapetype_set.insert(color_and_shape.shape_identification.shape_type.clone());
         }
         shapetype_set
     }
 
     fn obtain_color_and_shape_vec(&self, filter_shapetype: &ShapeType) -> Vec<(usize, &ColorAndShape)> {
         let mut items = Vec::<(usize, &ColorAndShape)>::new();
-        if let Some(sifsco) = &self.shape_identification_from_single_color_object {
-            for (index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
-                if color_and_shape.shape_identification.shape_type == *filter_shapetype {
-                    items.push((index, color_and_shape));
-                }
+        for (index, color_and_shape) in self.color_and_shape_vec.iter().enumerate() {
+            if color_and_shape.shape_identification.shape_type == *filter_shapetype {
+                items.push((index, color_and_shape));
             }
         }
         items
