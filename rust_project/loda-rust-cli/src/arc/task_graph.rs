@@ -458,9 +458,24 @@ impl TaskGraph {
             for (input_index, input_color_and_shape) in input_items {
                 for (output_index, output_color_and_shape) in &output_items {
                     let same_color: bool = input_color_and_shape.color == output_color_and_shape.color;
-                    let same_mass: bool = input_color_and_shape.shape_identification.mass == output_color_and_shape.shape_identification.mass;
-                    let same_width: bool = input_color_and_shape.shape_identification.rect.width() == output_color_and_shape.shape_identification.rect.width();
-                    let same_height: bool = input_color_and_shape.shape_identification.rect.height() == output_color_and_shape.shape_identification.rect.height();
+
+                    // Determine if the shapes have the same mass or a clean multiple of each other.
+                    let mass0: u16 = input_color_and_shape.shape_identification.mass;
+                    let mass1: u16 = output_color_and_shape.shape_identification.mass;
+                    let mut same_mass: bool = false;
+                    if mass0 > 0 && mass1 > 0 {
+                        let value_max: u16 = mass0.max(mass1);
+                        let value_min: u16 = mass0.min(mass1);
+                        let remain: u16 = value_max % value_min;
+                        if remain == 0 {
+                            same_mass = true;
+                        }
+                    }
+
+                    let size0: ImageSize = input_color_and_shape.shape_identification.rect.size();
+                    let size1: ImageSize = output_color_and_shape.shape_identification.rect.size();
+                    let same_width: bool = size0.width == size1.width;
+                    let same_height: bool = size0.height == size1.height;
                     let same_transformations: bool = input_color_and_shape.shape_identification.transformations == output_color_and_shape.shape_identification.transformations;
                     // Future experiments:
                     // for similar objects, then check if the mask pixel data is the same after transformation.
