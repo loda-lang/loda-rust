@@ -25,6 +25,7 @@
     border-left: 1px solid var(--image-pixel-border);
     border-top: 1px solid var(--image-pixel-border);
     overflow: hidden;
+    cursor: pointer;
 }
 
 .themearc.image .json-data {
