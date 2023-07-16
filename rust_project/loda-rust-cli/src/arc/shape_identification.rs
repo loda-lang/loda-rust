@@ -862,6 +862,7 @@ pub enum ShapeType {
 }
 
 impl ShapeType {
+    #[allow(dead_code)]
     fn name(&self) -> &str {
         match self {
             Self::Rectangle => "rectangle",
@@ -917,6 +918,7 @@ impl ShapeType {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ShapeTransformation {
     Normal,
@@ -930,6 +932,7 @@ pub enum ShapeTransformation {
 }
 
 impl ShapeTransformation {
+    #[allow(dead_code)]
     fn all() -> HashSet<ShapeTransformation> {
         let mut transformations = HashSet::<ShapeTransformation>::new();
         transformations.insert(ShapeTransformation::Normal);
@@ -943,6 +946,7 @@ impl ShapeTransformation {
         transformations
     }
 
+    #[allow(dead_code)]
     fn perform_all_transformations(image: &Image) -> anyhow::Result<Vec<(ShapeTransformation, Image)>> {
         let mut transformations = Vec::<(ShapeTransformation, Image)>::new();
         {
@@ -968,7 +972,8 @@ impl ShapeTransformation {
         Ok(transformations)
     }
 
-    fn apply_forward(&self, image: &Image) -> anyhow::Result<Image> {
+    #[allow(dead_code)]
+    fn forward(&self, image: &Image) -> anyhow::Result<Image> {
         let result_image: Image = match self {
             Self::Normal => image.clone(),
             Self::RotateCw90 => image.rotate_cw()?,
@@ -982,7 +987,8 @@ impl ShapeTransformation {
         Ok(result_image)
     }
 
-    fn apply_backward(&self, image: &Image) -> anyhow::Result<Image> {
+    #[allow(dead_code)]
+    fn backward(&self, image: &Image) -> anyhow::Result<Image> {
         let result_image: Image = match self {
             Self::Normal => image.clone(),
             Self::RotateCw90 => image.rotate_ccw()?,
@@ -1002,7 +1008,7 @@ impl ShapeTransformation {
             return Ok(None);
         }
 
-        let transformed_shape_mask: Image = self.apply_backward(shape_mask)?;
+        let transformed_shape_mask: Image = self.backward(shape_mask)?;
 
         let size0: ImageSize = trimmed_mask.size();
         let size1: ImageSize = transformed_shape_mask.size();
@@ -1042,6 +1048,7 @@ impl ShapeTransformation {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScaleXY {
     pub x: u8,
@@ -1281,6 +1288,139 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
+    fn test_10000_forward_backward() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 1,
+            1, 0, 0, 1,
+            1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+        let transformations = ShapeTransformation::all();
+
+        // Act & Assert
+        for transformation in &transformations {
+            let transformed_image: Image = transformation.forward(&input).expect("image");
+            let restored_image: Image = transformation.backward(&transformed_image).expect("image");
+            assert_eq!(restored_image, input);
+        }
+    }
+
+    fn transform(input: &Image, mode: u8) -> anyhow::Result<Image> {
+        let output: Image = match mode {
+            0 => input.clone(),
+            1 => input.flip_x()?,
+            2 => input.flip_y()?,
+            3 => input.rotate_cw()?,
+            4 => input.rotate_ccw()?,
+            _ => return Err(anyhow::anyhow!("invalid mode")),
+        };
+        Ok(output)
+    }
+
+    fn transformed_images(input: &Image) -> anyhow::Result<Vec<Image>> {
+        let mut images: Vec<Image> = Vec::new();
+        for mode in 0..=4 {
+            images.push(transform(&input, mode)?);
+        }
+        Ok(images)
+    }
+
+    fn normalize(image_with_unknown_orientation: &Image) -> anyhow::Result<Image> {
+        let size: ImageSize = image_with_unknown_orientation.size();
+        let transformations: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&image_with_unknown_orientation)?;
+        let (_transformation, output) = ShapeIdentification::normalize(size, transformations)?;
+        Ok(output)
+    }
+
+    #[test]
+    fn test_20000_normalize() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 1,
+            1, 0, 0, 1,
+            1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
+
+        // Act
+        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
+            normalize(i).expect("ok")
+        ).collect();
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 1,
+            1, 0, 0, 1,
+            1, 1, 1, 0,
+        ];
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        for actual in actual_vec {
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn test_20001_normalize() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1,
+            1, 1, 0,
+            0, 0, 1,
+            0, 1, 0,
+        ];
+        let input: Image = Image::try_create(3, 4, pixels).expect("image");
+        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
+
+        // Act
+        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
+            normalize(i).expect("ok")
+        ).collect();
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 0, 0,
+            1, 1, 0, 1,
+            1, 0, 1, 0,
+        ];
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        for actual in actual_vec {
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn test_20002_normalize() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1,
+            1, 1, 0,
+            0, 0, 1,
+            0, 1, 0,
+            1, 0, 1,
+        ];
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
+
+        // Act
+        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
+            normalize(i).expect("ok")
+        ).collect();
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 0, 0, 1,
+            1, 1, 0, 1, 0,
+            1, 0, 1, 0, 1,
+        ];
+        let expected: Image = Image::try_create(5, 3, expected_pixels).expect("image");
+        for actual in actual_vec {
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
     fn test_10000_empty() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -1477,7 +1617,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_crosshair_shape() {
+    fn test_60000_crosshair_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -1498,7 +1638,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_crosshair_shape() {
+    fn test_60001_crosshair_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 0, 0,
@@ -3260,7 +3400,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500000_unclassified() {
+    fn test_600000_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 1,
@@ -3288,7 +3428,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500001_unclassified() {
+    fn test_600001_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 0,
@@ -3316,7 +3456,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500002_unclassified() {
+    fn test_600002_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -3344,7 +3484,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500003_unclassified() {
+    fn test_600003_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -3371,7 +3511,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500004_unclassified() {
+    fn test_600004_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0,
@@ -3401,7 +3541,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500005_unclassified() {
+    fn test_600005_unclassified() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 0, 0,
@@ -3429,7 +3569,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500006_unclassified_multiple_transformations() {
+    fn test_600006_unclassified_multiple_transformations() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 0, 0,
@@ -3461,7 +3601,7 @@ mod tests {
     }
 
     #[test]
-    fn test_500007_unclassified_scale2x1() {
+    fn test_600007_unclassified_scale2x1() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 1, 1, 0, 0,
@@ -3487,119 +3627,5 @@ mod tests {
         assert_eq!(actual.normalized_mask, Some(expected_compact));
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipX]));
         assert_eq!(actual.scale_to_string(), "2x1");
-    }
-
-    fn transform(input: &Image, mode: u8) -> anyhow::Result<Image> {
-        let output: Image = match mode {
-            0 => input.clone(),
-            1 => input.flip_x()?,
-            2 => input.flip_y()?,
-            3 => input.rotate_cw()?,
-            4 => input.rotate_ccw()?,
-            _ => return Err(anyhow::anyhow!("invalid mode")),
-        };
-        Ok(output)
-    }
-
-    fn transformed_images(input: &Image) -> anyhow::Result<Vec<Image>> {
-        let mut images: Vec<Image> = Vec::new();
-        for mode in 0..=4 {
-            images.push(transform(&input, mode)?);
-        }
-        Ok(images)
-    }
-
-    fn normalize(image_with_unknown_orientation: &Image) -> anyhow::Result<Image> {
-        let size: ImageSize = image_with_unknown_orientation.size();
-        let transformations: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&image_with_unknown_orientation)?;
-        let (_transformation, output) = ShapeIdentification::normalize(size, transformations)?;
-        Ok(output)
-    }
-
-    #[test]
-    fn test_600000_normalize() {
-        // Arrange
-        let pixels: Vec<u8> = vec![
-            0, 1, 1, 1,
-            1, 0, 0, 1,
-            1, 0, 0, 0,
-        ];
-        let input: Image = Image::try_create(4, 3, pixels).expect("image");
-        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
-
-        // Act
-        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
-            normalize(i).expect("ok")
-        ).collect();
-
-        // Assert
-        let expected_pixels: Vec<u8> = vec![
-            0, 0, 0, 1,
-            1, 0, 0, 1,
-            1, 1, 1, 0,
-        ];
-        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
-        for actual in actual_vec {
-            assert_eq!(actual, expected);
-        }
-    }
-
-    #[test]
-    fn test_600001_normalize() {
-        // Arrange
-        let pixels: Vec<u8> = vec![
-            0, 1, 1,
-            1, 1, 0,
-            0, 0, 1,
-            0, 1, 0,
-        ];
-        let input: Image = Image::try_create(3, 4, pixels).expect("image");
-        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
-
-        // Act
-        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
-            normalize(i).expect("ok")
-        ).collect();
-
-        // Assert
-        let expected_pixels: Vec<u8> = vec![
-            0, 1, 0, 0,
-            1, 1, 0, 1,
-            1, 0, 1, 0,
-        ];
-        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
-        for actual in actual_vec {
-            assert_eq!(actual, expected);
-        }
-    }
-
-    #[test]
-    fn test_600002_normalize() {
-        // Arrange
-        let pixels: Vec<u8> = vec![
-            0, 1, 1,
-            1, 1, 0,
-            0, 0, 1,
-            0, 1, 0,
-            1, 0, 1,
-        ];
-        let input: Image = Image::try_create(3, 5, pixels).expect("image");
-        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
-
-        // Act
-        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
-            normalize(i).expect("ok")
-        ).collect();
-
-        // Assert
-        let expected_pixels: Vec<u8> = vec![
-            0, 1, 0, 0, 1,
-            1, 1, 0, 1, 0,
-            1, 0, 1, 0, 1,
-        ];
-        let expected: Image = Image::try_create(5, 3, expected_pixels).expect("image");
-        for actual in actual_vec {
-            assert_eq!(actual, expected);
-        }
     }
 }
