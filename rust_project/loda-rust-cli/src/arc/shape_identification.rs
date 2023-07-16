@@ -66,9 +66,9 @@ impl ShapeTypeImage {
         ])?;
     
         let image_diagonal3: Image = Image::try_create(3, 3, vec![
-            0, 0, 1,
-            0, 1, 0,
             1, 0, 0,
+            0, 1, 0,
+            0, 0, 1,
         ])?;
 
         let image_l: Image = Image::try_create(2, 2, vec![
@@ -498,14 +498,14 @@ pub enum ShapeType {
     /// ```
     Diagonal2,
 
-    /// Shape `⋰` with 3 pixels, similar to the unicode `Up Right Diagonal Ellipsis` symbol or a forward slash `/` symbol
+    /// Shape `⋱` with 3 pixels, similar to the unicode `Down Right Diagonal Ellipsis` symbol or a backslash character
     /// 
-    /// https://en.wikipedia.org/wiki/Slash_(punctuation)
+    /// https://en.wikipedia.org/wiki/Backslash
     /// 
     /// ````
-    /// 0, 0, 1
-    /// 0, 1, 0
     /// 1, 0, 0
+    /// 0, 1, 0
+    /// 0, 0, 1
     /// ```
     Diagonal3,
 
@@ -880,7 +880,7 @@ impl ShapeType {
             Self::RotatedK => "⊻",
             Self::TurnedV => "⋀",
             Self::Diagonal2 => "▚",
-            Self::Diagonal3 => "⋰",
+            Self::Diagonal3 => "⋱",
             Self::SkewTetromino => "skew",
             Self::LowerLeftTriangle => "◣",
             Self::FlippedJ => "𐐢",
@@ -2271,9 +2271,9 @@ mod tests {
     fn test_240000_diagonal3() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1, 1, 0, 0, 0,
-            0, 0, 1, 0, 0,
             0, 0, 0, 1, 1,
+            0, 0, 1, 0, 0,
+            1, 1, 0, 0, 0,
         ];
         let input: Image = Image::try_create(5, 3, pixels).expect("image");
 
@@ -2281,7 +2281,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "⋰");
+        assert_eq!(actual.to_string(), "⋱");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
         assert_eq!(actual.scale_to_string(), "none");
     }
@@ -2290,9 +2290,9 @@ mod tests {
     fn test_240001_diagonal3() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            0, 0, 0, 0, 1,
-            0, 1, 1, 1, 0,
             1, 0, 0, 0, 0,
+            0, 1, 1, 1, 0,
+            0, 0, 0, 0, 1,
         ];
         let input: Image = Image::try_create(5, 3, pixels).expect("image");
 
@@ -2300,7 +2300,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "⋰");
+        assert_eq!(actual.to_string(), "⋱");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw90, ShapeTransformation::FlipXRotateCw270]));
         assert_eq!(actual.scale_to_string(), "none");
     }
