@@ -1818,7 +1818,7 @@ dependencies = [
 
 [[package]]
 name = "loda-rust-cli"
-version = "2023.7.11"
+version = "2023.7.12"
 dependencies = [
  "anyhow",
  "bastion",
