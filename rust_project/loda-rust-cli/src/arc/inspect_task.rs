@@ -362,13 +362,13 @@ impl InspectTask {
     }
 
     pub fn inspect_to_html(task: &arc_work_model::Task) -> anyhow::Result<String> {
-        let instance: InspectTask = InspectTask::task(task)?;
+        let instance: InspectTask = Self::task(task)?;
         let html: String = instance.to_html(task);
         Ok(html)
     }
 
     pub fn inspect(task: &arc_work_model::Task) -> anyhow::Result<()> {
-        let html: String = InspectTask::inspect_to_html(task)?;
+        let html: String = Self::inspect_to_html(task)?;
         HtmlLog::html(html);
         Ok(())
     }

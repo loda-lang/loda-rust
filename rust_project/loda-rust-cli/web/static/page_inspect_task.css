@@ -25,17 +25,19 @@
     border-left: 1px solid var(--image-pixel-border);
     border-top: 1px solid var(--image-pixel-border);
     overflow: hidden;
-    cursor: pointer;
 }
 
 .themearc.image .json-data {
     display: none;
 }
 
-.themearc.image.row span:hover {
+.interactive-image .themearc.image.row span {
+    cursor: pointer;
+}
+.interactive-image .themearc.image.row span:hover {
     background-color: white;
 }
-.themearc.rows:hover {
+.interactive-image .themearc.rows:hover {
     outline: 2px solid var(--image-pixel-border);
     outline-offset: 2px;
 }

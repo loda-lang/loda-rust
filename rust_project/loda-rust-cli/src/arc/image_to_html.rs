@@ -41,7 +41,7 @@ impl ImageToHTML for Image {
 
         let resolved_context: String = context.unwrap_or("".to_string());
 
-        let mut s = "<div class=\"themearc image nonempty\">".to_string();
+        let mut s = "<div class=\"themearc image nonempty interactive-image\">".to_string();
         s += &format!("<span class=\"size\">{}{}x{}</span>", prefix, self.width(), self.height());
         s += "<div class=\"themearc image\" ";
         s += &format!("data-image=\"{}\">", resolved_context);
