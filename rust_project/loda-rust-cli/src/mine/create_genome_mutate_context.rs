@@ -5,6 +5,8 @@ use std::path::PathBuf;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CreateGenomeMutateContextMode {
     OEIS,
+
+    #[allow(dead_code)]
     ARC,
 }
 

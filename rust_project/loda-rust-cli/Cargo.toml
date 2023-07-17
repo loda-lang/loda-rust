@@ -12,9 +12,9 @@ name = "loda-rust"
 path = "src/main.rs"
 
 [features]
-default = ["petgraph"]
+default = ["loda-rust-arc"]
 linfa = ["dep:linfa", "dep:linfa-logistic", "dep:linfa-preprocessing", "dep:ndarray"]
-petgraph = ["dep:petgraph"]
+loda-rust-arc = ["dep:petgraph"]
 
 [dependencies]
 loda-rust-core = { path = "../loda-rust-core" }

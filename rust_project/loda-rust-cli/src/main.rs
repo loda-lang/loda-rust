@@ -9,8 +9,10 @@ use std::{str::FromStr, path::PathBuf};
 use regex::Regex;
 use loda_rust_core::control::*;
 
-mod analytics;
+#[cfg(feature = "loda-rust-arc")]
 mod arc;
+
+mod analytics;
 mod common;
 mod config;
 mod lodacpp;

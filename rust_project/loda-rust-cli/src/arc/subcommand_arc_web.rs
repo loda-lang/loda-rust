@@ -1,6 +1,7 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
 use super::arc_work_model::Task;
+use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType};
 use http_types::Url;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
@@ -11,11 +12,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::num::NonZeroUsize;
 use cached::{SizedCache, Cached};
-
-#[cfg(feature = "petgraph")]
-use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType};
-
-#[cfg(feature = "petgraph")]
 use petgraph::{Graph, stable_graph::NodeIndex, visit::EdgeRef};
 
 const DEFAULT_CACHE_CAPACITY: usize = 10;
@@ -108,7 +104,6 @@ impl SubcommandARCWeb {
 
         app.at("/task/:task_id/find-node-pixel").get(Self::find_node_pixel);
 
-        #[cfg(feature = "petgraph")]
         app.at("/task/:task_id/node/:node_id").get(Self::get_node);
 
         app.at("/static").serve_dir(&dir_static)?;
@@ -383,7 +378,6 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
-    #[cfg(feature = "petgraph")]
     async fn get_node(req: Request<State>) -> tide::Result {
         let tera: &Tera = &req.state().tera;
         let task_id: &str = req.param("task_id").unwrap_or("world");
@@ -651,7 +645,6 @@ impl SubcommandARCWeb {
 
 }
 
-#[cfg(feature = "petgraph")]
 #[derive(Clone, Debug, Default)]
 struct WrapNonPixelNode {
     task_id: Option<String>,
@@ -667,7 +660,6 @@ impl WrapNonPixelNode {
     }
 }
 
-#[cfg(feature = "petgraph")]
 #[derive(Clone, Debug, Default)]
 struct WrapPixel {
     is_center_pixel: bool,

@@ -1,7 +1,6 @@
 use crate::common::{oeis_id_from_path, SimpleLog};
 use loda_rust_core;
 use super::{AnalyticsError, AnalyticsMode};
-use crate::arc::RunWithProgram;
 use loda_rust_core::parser::ParsedProgram;
 use std::path::PathBuf;
 use std::error::Error;
@@ -11,6 +10,9 @@ use std::rc::Rc;
 use core::cell::RefCell;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
+
+#[cfg(feature = "loda-rust-arc")]
+use crate::arc::RunWithProgram;
 
 pub struct BatchProgramAnalyzerContext {
     pub program_path: PathBuf,
@@ -132,6 +134,7 @@ impl BatchProgramAnalyzer {
             },
         }
 
+        #[allow(unused_mut)]
         let mut contents: String = match fs::read_to_string(&program_path) {
             Ok(value) => value,
             Err(error) => {
@@ -140,6 +143,7 @@ impl BatchProgramAnalyzer {
                 return Ok(());
             }
         };
+        #[cfg(feature = "loda-rust-arc")]
         if self.analytics_mode == AnalyticsMode::ARC {
             // detect if it's a "simple" program, and wrap it in the "advanced" template
             let is_simple: bool = contents.contains("Program Type: simple");

@@ -68,6 +68,7 @@ impl GenomeItem {
         self.mutation_locked
     }
 
+    #[allow(dead_code)]
     pub fn set_mutation_locked(&mut self, mutation_locked: bool) {
         self.mutation_locked = mutation_locked;
     }

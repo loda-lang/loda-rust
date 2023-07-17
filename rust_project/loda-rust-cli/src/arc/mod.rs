@@ -125,6 +125,7 @@ mod subcommand_arc_web;
 mod substitution_rule;
 mod symmetry;
 mod symmetry_to_label;
+mod task_graph;
 mod test_convert;
 mod time_util;
 mod traverse_programs_and_models;
@@ -242,6 +243,7 @@ pub use subcommand_arc_web::SubcommandARCWeb;
 pub use substitution_rule::SubstitutionRule;
 pub use symmetry::Symmetry;
 pub use symmetry_to_label::SymmetryToLabel;
+pub use task_graph::*;
 pub use time_util::*;
 pub use traverse_programs_and_models::TraverseProgramsAndModels;
 
@@ -250,9 +252,3 @@ mod experiment_with_logisticregression;
 
 #[cfg(feature = "linfa")]
 pub use experiment_with_logisticregression::ExperimentWithLogisticRegression;
-
-#[cfg(feature = "petgraph")]
-mod task_graph;
-
-#[cfg(feature = "petgraph")]
-pub use task_graph::*;
