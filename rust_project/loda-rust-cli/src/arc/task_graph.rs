@@ -499,7 +499,7 @@ impl TaskGraph {
                     let similarity_score_f64: f64 = numerator_u8 as f64 / denominator_u8 as f64;
                     let similarity_score_percent: usize = (numerator_u8 as usize) * 100 / (denominator_u8 as usize);
                     println!("  input_index: {}  output_index: {}  same_count: {}  similarity_score: {}", input_index, output_index, same_count, similarity_score_f64);
-                    if similarity_score_percent < 50 {
+                    if similarity_score_percent < 20 {
                         continue;
                     }
                     let nodeindex0: Option<&NodeIndex> = input_process_shapes.color_and_shape_to_object_nodeindex.get(&input_index);
