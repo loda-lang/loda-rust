@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_10002_format() {
-        let dt: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms_micro(21, 59, 33, 453_829);
+        let dt: DateTime<Utc> = Utc.with_ymd_and_hms(1999, 3, 24, 21, 59, 33).unwrap();
         let s = AnalyticsTimestampFile::format_date(&dt);
         assert_eq!(s, "1999-03-24T21:59:33Z"); // release date of "the matrix"
     }
@@ -116,7 +116,7 @@ mod tests {
         let basedir = PathBuf::from(&tempdir.path()).join("test_20000_save_datetime_create_new_file");
         fs::create_dir(&basedir)?;
         let path: PathBuf = basedir.join("timestamp.asm");
-        let dt: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms_micro(21, 59, 33, 453_829);
+        let dt: DateTime<Utc> = Utc.with_ymd_and_hms(1999, 3, 24, 21, 59, 33).unwrap();
 
         // Act
         AnalyticsTimestampFile::save_datetime(&path, &dt)?;
@@ -134,7 +134,7 @@ mod tests {
         let basedir = PathBuf::from(&tempdir.path()).join("test_20001_save_datetime_overwrite_existing_file");
         fs::create_dir(&basedir)?;
         let path: PathBuf = basedir.join("timestamp.asm");
-        let dt: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms_micro(21, 59, 33, 453_829);
+        let dt: DateTime<Utc> = Utc.with_ymd_and_hms(1999, 3, 24, 21, 59, 33).unwrap();
         fs::write(&path, "overwrite me")?;
 
         // Act
@@ -151,7 +151,7 @@ mod tests {
         let date_str = "1999-03-24T00:00:00Z".to_string();
         let dt: DateTime<Utc> = AnalyticsTimestampFile::parse_utc_string(&date_str).unwrap();
         let timestamp = AnalyticsTimestampFile { datetime: dt };
-        let now: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms(0, 1, 0);
+        let now: DateTime<Utc> = Utc.with_ymd_and_hms(1999, 3, 24, 0, 1, 0).unwrap();
         assert_eq!(timestamp.is_expired_inner(now, Duration::minutes(30)), false);
         assert_eq!(timestamp.is_expired_inner(now, Duration::minutes(2)), false);
         assert_eq!(timestamp.is_expired_inner(now, Duration::minutes(1)), true);

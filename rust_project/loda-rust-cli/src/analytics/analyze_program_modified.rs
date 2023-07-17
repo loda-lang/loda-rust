@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn test_10000_obtain_timestamps() {
-        let dt: DateTime<Utc> = Utc.ymd(1999, 3, 9).and_hms_micro(21, 59, 33, 453_829);
+        let dt: DateTime<Utc> = Utc.with_ymd_and_hms(1999, 3, 9, 21, 59, 33).unwrap();
         let s = AnalyzeProgramModified::format_timestamp(dt);
         assert_eq!(s, "19990309");
     }
