@@ -477,12 +477,22 @@ impl TaskGraph {
                     let same_width: bool = size0.width == size1.width;
                     let same_height: bool = size0.height == size1.height;
                     let same_transformations: bool = input_color_and_shape.shape_identification.transformations == output_color_and_shape.shape_identification.transformations;
+
+                    // for very similar objects, then check if the mask pixel data is identical.
+                    let mut same_mask: bool = false;
+                    if same_width && same_height && same_transformations && same_mass {
+                        println!("same_width: {}  same_height: {}  same_transformations: {}", same_width, same_height, same_transformations);
+                        let mask0: &Image = &input_color_and_shape.shape_identification.mask_cropped;
+                        let mask1: &Image = &output_color_and_shape.shape_identification.mask_cropped;
+                        same_mask = mask0 == mask1;
+                    }
+
                     // Future experiments:
-                    // for similar objects, then check if the mask pixel data is the same after transformation.
+                    // for very similar objects, then check if the mask pixel data is the same after transformation.
                     // if input.histogram and output.histogram has the same mass for the color and the current shape has that color, then it's likely to be the same object.
                     // for same size input/output - does the shape occupy the exact same pixels in both input and output.
                     // for same size input/output - does the input shape overlap with the output shape. Then it's likely the shapes are related.
-                    let same_data = [same_color, same_mass, same_width, same_height, same_transformations];
+                    let same_data = [same_color, same_mass, same_width, same_height, same_transformations, same_mask];
                     let same_count: usize = same_data.into_iter().filter(|x| *x).count();
                     let numerator_u8: u8 = same_count as u8;
                     let denominator_u8: u8 = same_data.len() as u8;
