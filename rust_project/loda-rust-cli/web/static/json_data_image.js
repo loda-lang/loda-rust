@@ -1,11 +1,11 @@
-function onloadRenderAllInteractiveImages() {
-    const imageDivs = document.querySelectorAll('[data-image]');
-    Array.from(imageDivs).forEach((imageDiv) => {
-      renderInteractiveImage(imageDiv);
-    });
+function onloadRenderAllJsonDataImages() {
+  const imageDivs = document.querySelectorAll('[data-image]');
+  Array.from(imageDivs).forEach((imageDiv) => {
+    renderJsonDataImage(imageDiv);
+  });
 }
 
-function renderInteractiveImage(imageDiv) {
+function renderJsonDataImage(imageDiv) {
     const datasetImageValue = imageDiv.dataset.image;
     const divs = imageDiv.querySelectorAll('.json-data');
     const div = divs[0];
