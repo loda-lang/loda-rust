@@ -59,7 +59,9 @@ impl ProgramSerializer {
     }
 
     pub fn append_comment<S>(&mut self, content: S) where S: Into<String> {
-        self.append_raw(format!("; {}", content.into()));
+        for part in content.into().split("\n") {
+            self.append_raw(format!("; {}", part));
+        }
     }
 
     pub fn append_empty_line(&mut self) {
@@ -92,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_append_comment() {
+    fn test_10001_append_comment_singleline() {
         let mut ps = ProgramSerializer::new();
         ps.append_comment("root");
         ps.indent_increment();
@@ -108,7 +110,19 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_append_empty_line() {
+    fn test_10002_append_comment_multiline() {
+        let mut ps = ProgramSerializer::new();
+        ps.append_comment("a\nb\nc");
+        ps.indent_increment();
+        ps.append_comment("x\n\ny\n\nz");
+        ps.indent_decrement();
+        ps.append_comment("1\n2\n3");
+        let expected = "; a\n; b\n; c\n  ; x\n  ; \n  ; y\n  ; \n  ; z\n; 1\n; 2\n; 3";
+        assert_eq!(ps.to_string(), expected);
+    }
+
+    #[test]
+    fn test_10003_append_empty_line() {
         let mut ps = ProgramSerializer::new();
         ps.append_raw("a");
         ps.indent_increment();
