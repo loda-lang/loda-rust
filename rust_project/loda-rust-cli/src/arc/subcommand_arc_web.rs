@@ -1,9 +1,6 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
-use super::arc_work_model::{PairType, Task};
-use super::{Image, ImageSize, Histogram};
-use super::{ShapeIdentification, ShapeTransformation, ShapeType};
-use super::{SingleColorObject, PixelConnectivity, ImageHistogram, ImageMask};
+use super::arc_work_model::Task;
 use http_types::Url;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
@@ -506,7 +503,6 @@ impl SubcommandARCWeb {
                         PixelNeighborEdgeType::DownRight => { 
                             node_index_downright = Some(child_index); 
                         },
-                        _ => {}
                     }
                 },
                 _ => {},

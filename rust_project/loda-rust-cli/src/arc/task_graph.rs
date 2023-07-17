@@ -23,8 +23,7 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
-use super::{Image, ImageSize, Histogram, PixelConnectivity, SingleColorObject, ImageHistogram, ShapeType, ImageMaskCount, ShapeIdentificationFromSingleColorObject, ColorAndShape};
-use super::{ImageMask, ShapeIdentification};
+use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape};
 use super::arc_work_model::{Task, Pair, PairType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
@@ -428,30 +427,61 @@ impl TaskGraph {
     }
 
     fn compare_objects_between_input_and_output(&mut self, input_process_shapes: &ProcessShapes, output_process_shapes: &ProcessShapes, connectivity: PixelConnectivity) -> anyhow::Result<()> {
-        println!("connectivity: {:?}", connectivity);
+        let verbose = false;
+        if verbose {
+            println!("connectivity: {:?}", connectivity);
+        }
 
-        let input_objectsinsideimage_index: NodeIndex = input_process_shapes.objectsinsideimage_index;
-        let output_objectsinsideimage_index: NodeIndex = output_process_shapes.objectsinsideimage_index;
+        let _input_objectsinsideimage_index: NodeIndex = input_process_shapes.objectsinsideimage_index;
+        let _output_objectsinsideimage_index: NodeIndex = output_process_shapes.objectsinsideimage_index;
 
         let input_shapetype_set: HashSet<ShapeType> = input_process_shapes.shapetype_set();
-        println!("input_shapetype_set: {:?}", input_shapetype_set);
-
-        let output_shapetype_set: HashSet<ShapeType> = output_process_shapes.shapetype_set();
-        println!("output_shapetype_set: {:?}", output_shapetype_set);
-
+        let output_shapetype_set: HashSet<ShapeType> = output_process_shapes.shapetype_set();        
         let intersection_shapetype_set: HashSet<ShapeType> = input_shapetype_set.intersection(&output_shapetype_set).cloned().collect();
-        println!("intersection_shapetype_set: {:?}", intersection_shapetype_set);
 
+        if verbose {
+            println!("input_shapetype_set: {:?}", input_shapetype_set);
+            println!("output_shapetype_set: {:?}", output_shapetype_set);
+            println!("intersection_shapetype_set: {:?}", intersection_shapetype_set);
+        }
+
+        // loop over the `intersection_shapetype_set`
+        // with the input shapetype, obtain reference to its ShapeIdentification instance
+        // with the output shapetype, obtain reference to its ShapeIdentification instance
+        // compare the two ShapeIdentification instances
+        //
+        // Add edge between the input and output objects if they have the same color.
+        //
+        // Add edge between the input and output objects if they have the same shape.
+        //
+        // Add edge between the input and output objects if they have the same size of bounding box.
+        //
+        // Add edge between the input and output objects if they are similar, with the edge data being the similarity score:
+        // - identical (same size, no transformation, same color), `HighlySimilarObject { mode: Identical }`
+        // - scaled (scaled size, no transformation, same color), `HighlySimilarObject { mode: Scaled }`
+        // - transformed (same size, transformed, same color), `HighlySimilarObject { mode: Transformed { transformation } }`
+        // - scaled and transformed (scaled size, transformed, same color), `MediumSimilarObject { mode: ScaledAndTransformed { transformation } }`
+        // - identical (same size, no transformation, different color), `MediumSimilarObject { mode: Identical }`
+        // - scaled (scaled size, no transformation, different color), `MediumSimilarObject { mode: Scaled }`
+        // - transformed (same size, transformed, different color), `MediumSimilarObject { mode: Transformed { transformation } }`
+        // - scaled and transformed (scaled size, transformed, different color), `MediumSimilarObject { mode: ScaledAndTransformed { transformation } }`
+        // - compressed (different size, no transformation, same color), `WeaklySimilarObject { mode: Identical }`
+        // - compressed (different size, transformed, same color), `WeaklySimilarObject { mode: Transformed }`
+        // - compressed (different size, transformed, different color), `WeaklySimilarObject { mode: TransformedAndDifferentColor }`
         for shapetype in &intersection_shapetype_set {
 
             let input_items: Vec<(usize, &ColorAndShape)> = input_process_shapes.obtain_color_and_shape_vec(shapetype);
             let output_items: Vec<(usize, &ColorAndShape)> = output_process_shapes.obtain_color_and_shape_vec(shapetype);
 
-            println!("shapetype: {:?}  compare {} input shapes with {} output shapes", shapetype, input_items.len(), output_items.len());
+            if verbose {
+                println!("shapetype: {:?}  compare {} input shapes with {} output shapes", shapetype, input_items.len(), output_items.len());
+            }
 
             let number_of_comparisons: usize = input_items.len() * output_items.len();
             if number_of_comparisons > 30 {
-                println!("too many comparisons, skipping");
+                if verbose {
+                    println!("too many comparisons, skipping");
+                }
                 continue;
             }
 
@@ -481,7 +511,9 @@ impl TaskGraph {
                     // for very similar objects, then check if the mask pixel data is identical.
                     let mut same_mask: bool = false;
                     if same_width && same_height && same_transformations && same_mass {
-                        println!("same_width: {}  same_height: {}  same_transformations: {}", same_width, same_height, same_transformations);
+                        if verbose {
+                            println!("same_width: {}  same_height: {}  same_transformations: {}", same_width, same_height, same_transformations);
+                        }
                         let mask0: &Image = &input_color_and_shape.shape_identification.mask_cropped;
                         let mask1: &Image = &output_color_and_shape.shape_identification.mask_cropped;
                         same_mask = mask0 == mask1;
@@ -498,14 +530,18 @@ impl TaskGraph {
                     let denominator_u8: u8 = same_data.len() as u8;
                     let similarity_score_f64: f64 = numerator_u8 as f64 / denominator_u8 as f64;
                     let similarity_score_percent: usize = (numerator_u8 as usize) * 100 / (denominator_u8 as usize);
-                    println!("  input_index: {}  output_index: {}  same_count: {}  similarity_score: {}", input_index, output_index, same_count, similarity_score_f64);
+                    if verbose {
+                        println!("  input_index: {}  output_index: {}  same_count: {}  similarity_score: {}", input_index, output_index, same_count, similarity_score_f64);
+                    }
                     if similarity_score_percent < 20 {
                         continue;
                     }
                     let nodeindex0: Option<&NodeIndex> = input_process_shapes.color_and_shape_to_object_nodeindex.get(&input_index);
                     let nodeindex1: Option<&NodeIndex> = output_process_shapes.color_and_shape_to_object_nodeindex.get(&output_index);
                     if let (Some(nodeindex0), Some(nodeindex1)) = (nodeindex0, nodeindex1) {
-                        println!("  adding edge between input and output objects");
+                        if verbose {
+                            println!("  adding edge between input and output objects");
+                        }
                         let edge_data = EdgeData::ObjectSimilarity { numerator: numerator_u8, denominator: denominator_u8 };
                         self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
                         self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
@@ -513,30 +549,6 @@ impl TaskGraph {
                 }
             }
         }
-
-        // loop over the `intersection_shapetype_set`
-        // with the input shapetype, obtain reference to its ShapeIdentification instance
-        // with the output shapetype, obtain reference to its ShapeIdentification instance
-        // compare the two ShapeIdentification instances
-        //
-        // Add edge between the input and output objects if they have the same color.
-        //
-        // Add edge between the input and output objects if they have the same shape.
-        //
-        // Add edge between the input and output objects if they have the same size of bounding box.
-        //
-        // Add edge between the input and output objects if they are similar, with the edge data being the similarity score:
-        // - identical (same size, no transformation, same color), `HighlySimilarObject { mode: Identical }`
-        // - scaled (scaled size, no transformation, same color), `HighlySimilarObject { mode: Scaled }`
-        // - transformed (same size, transformed, same color), `HighlySimilarObject { mode: Transformed { transformation } }`
-        // - scaled and transformed (scaled size, transformed, same color), `MediumSimilarObject { mode: ScaledAndTransformed { transformation } }`
-        // - identical (same size, no transformation, different color), `MediumSimilarObject { mode: Identical }`
-        // - scaled (scaled size, no transformation, different color), `MediumSimilarObject { mode: Scaled }`
-        // - transformed (same size, transformed, different color), `MediumSimilarObject { mode: Transformed { transformation } }`
-        // - scaled and transformed (scaled size, transformed, different color), `MediumSimilarObject { mode: ScaledAndTransformed { transformation } }`
-        // - compressed (different size, no transformation, same color), `WeaklySimilarObject { mode: Identical }`
-        // - compressed (different size, transformed, same color), `WeaklySimilarObject { mode: Transformed }`
-        // - compressed (different size, transformed, different color), `WeaklySimilarObject { mode: TransformedAndDifferentColor }`
 
         Ok(())
     }
