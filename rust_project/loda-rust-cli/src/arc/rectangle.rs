@@ -1,7 +1,7 @@
 use super::ImageSize;
 
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Rectangle {
     x: u8,
     y: u8,

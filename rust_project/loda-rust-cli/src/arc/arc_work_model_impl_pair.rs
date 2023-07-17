@@ -616,4 +616,12 @@ impl arc_work_model::Pair {
         image_properties.extend(&self.input_output_image_properties);
         image_properties
     }
+
+    pub fn id_input_image(&self) -> String {
+        format!("pair_{}_input", self.pair_index)
+    }
+
+    pub fn id_output_image(&self) -> String {
+        format!("pair_{}_output", self.pair_index)
+    }
 }

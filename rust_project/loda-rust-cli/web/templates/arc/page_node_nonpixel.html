@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+    <meta name="robots" content="noindex">
+    <title>Node {{node_id}}, {{task_id}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="format-detection" content="telephone=no">
+    <link media="all" rel="stylesheet" type="text/css" href="/static/page_shared.css">
+    <link media="all" rel="stylesheet" type="text/css" href="/static/arc_color.css">
+    <link media="all" rel="stylesheet" type="text/css" href="/static/page_graph.css">
+    <script src="/static/page_graph.js"></script>
+</head>
+
+<body>
+    <header class="titlebar-container">
+    <div class="titlebar-item titlebar-item-left">
+      <a class="seconday-button" href="{{ task_href }}">Task</a>
+    </div>
+    
+    <div class="titlebar-item titlebar-item-center">Task {{task_id}} &gt; Node {{ node_id }}</div>
+    
+    <div class="titlebar-item titlebar-item-right">
+        <!-- button -->
+    </div>
+    </header>
+    
+    <main id="main-outer">
+    <div id="main-inner">
+      <div id="page-graph-node">
+        <h1>Node</h1>
+
+        <pre>{{ inspect_data }}</pre>
+
+
+        {% if incoming_edges %}
+        <h1>Incoming edges</h1>
+        <ul>
+            {% for item in incoming_edges %}
+                <li>{{ item.edge_index }} - {{ item.edge_name }} - <a href="{{ item.node_href }}">{{ item.node_index }} - {{ item.node_name }}</a></li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <h1>Incoming edges - none</h1>
+        {% endif %}
+    
+        {% if outgoing_edges %}
+        <h1>Outgoing edges</h1>
+        <ul>
+            {% for item in outgoing_edges %}
+                <li>{{ item.edge_index }} - {{ item.edge_name }} - <a href="{{ item.node_href }}">{{ item.node_index }} - {{ item.node_name }}</a></li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <h1>Outgoing edges - none</h1>
+        {% endif %}
+    
+      </div>
+    </div>
+    </main>
+    
+    <footer id="page-footer">
+    <div id="page-footer-item0" class="page-footer-item">
+        <!-- footer -->
+    </div>
+    <div id="page-footer-item1" class="page-footer-item">
+        <!-- footer -->
+    </div>
+    </footer>
+</body>
+</html>

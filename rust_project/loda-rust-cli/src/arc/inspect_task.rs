@@ -18,6 +18,29 @@ pub struct InspectTask {
 }
 
 impl InspectTask {
+    fn task(task: &arc_work_model::Task) -> anyhow::Result<Self> {
+        let mut instance = Self::new();
+
+        for pair in &task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Train {
+                continue;
+            }
+            instance.push_pair(pair)?;
+        }
+
+        instance.push_column_analysis(task)?;
+
+        for pair in &task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Test {
+                continue;
+            }
+            instance.push_pair(pair)?;
+        }
+
+        instance.end_of_row();
+        Ok(instance)
+    }
+
     fn new() -> Self {
         Self {
             row_colgroup: "<colgroup><col>".to_string(),
@@ -86,7 +109,8 @@ impl InspectTask {
         }
         {
             self.row_input_image += "<td>";
-            self.row_input_image += &pair.input.image.to_html();
+            let image_id: String = pair.id_input_image();
+            self.row_input_image += &pair.input.image.to_interactive_html("", Some(image_id));
             if let Some(pattern) = &pair.input.grid_pattern {
                 self.row_input_image += "<br>";
                 self.row_input_image += &pattern.line_mask.to_html();
@@ -117,12 +141,13 @@ impl InspectTask {
         }
         {
             self.row_output_image += "<td>";
+            let image_id: String = pair.id_output_image();
             match pair.pair_type {
                 arc_work_model::PairType::Train => {
-                    self.row_output_image += &pair.output.image.to_html();
+                    self.row_output_image += &pair.output.image.to_interactive_html("", Some(image_id));
                 },
                 arc_work_model::PairType::Test => {
-                    self.row_output_image += &pair.output.test_image.to_html_with_prefix("Expected ");
+                    self.row_output_image += &pair.output.test_image.to_interactive_html("Expected ", Some(image_id));
                 },
             };
             self.row_output_image += "</td>";
@@ -336,28 +361,14 @@ impl InspectTask {
         html
     }
 
-    pub fn inspect(task: &arc_work_model::Task) -> anyhow::Result<()> {
-        let mut instance = Self::new();
-
-        for pair in &task.pairs {
-            if pair.pair_type != arc_work_model::PairType::Train {
-                continue;
-            }
-            instance.push_pair(pair)?;
-        }
-
-        instance.push_column_analysis(task)?;
-
-        for pair in &task.pairs {
-            if pair.pair_type != arc_work_model::PairType::Test {
-                continue;
-            }
-            instance.push_pair(pair)?;
-        }
-
-        instance.end_of_row();
-
+    pub fn inspect_to_html(task: &arc_work_model::Task) -> anyhow::Result<String> {
+        let instance: InspectTask = Self::task(task)?;
         let html: String = instance.to_html(task);
+        Ok(html)
+    }
+
+    pub fn inspect(task: &arc_work_model::Task) -> anyhow::Result<()> {
+        let html: String = Self::inspect_to_html(task)?;
         HtmlLog::html(html);
         Ok(())
     }

@@ -3,6 +3,7 @@ use super::Image;
 pub trait ImageToHTML {
     fn to_html(&self) -> String;
     fn to_html_with_prefix(&self, prefix: &str) -> String;
+    fn to_interactive_html(&self, prefix: &str, context: Option<String>) -> String;
 }
 
 impl ImageToHTML for Image {
@@ -29,6 +30,38 @@ impl ImageToHTML for Image {
         }
         s += "</span>";
         s += "</div>";
+        s += "</div>";
+        s
+    }
+
+    fn to_interactive_html(&self, prefix: &str, context: Option<String>) -> String {
+        if self.is_empty() {
+            return format!("<div class=\"themearc image empty\"><span class=\"themearc image size\">{}0x0</span></div>", prefix);
+        }
+
+        let resolved_context: String = context.unwrap_or("".to_string());
+
+        let mut s = "<div class=\"themearc image nonempty interactive-image\">".to_string();
+        s += &format!("<span class=\"size\">{}{}x{}</span>", prefix, self.width(), self.height());
+        s += "<div class=\"themearc image\" ";
+        s += &format!("data-image=\"{}\">", resolved_context);
+        s += "<span class=\"json-data\">[";
+        for y in 0..self.height() {
+            if y > 0 {
+                s += ", ";
+            }
+            s += "[";
+            for x in 0..self.width() {
+                if x > 0 {
+                    s += ", ";
+                }
+                let pixel_value: u8 = self.get(x as i32, y as i32).unwrap_or(255);
+                s += &format!("{}", pixel_value);
+            }
+            s += "]";
+        }
+        s += "]</span></div>";
+
         s += "</div>";
         s
     }

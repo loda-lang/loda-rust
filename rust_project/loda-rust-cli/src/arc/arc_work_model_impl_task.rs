@@ -2526,6 +2526,11 @@ impl arc_work_model::Task {
         InspectTask::inspect(self)
     }
 
+    #[allow(dead_code)]
+    pub fn inspect_to_html(&self) -> anyhow::Result<String> {
+        InspectTask::inspect_to_html(self)
+    }
+
     pub fn count_train(&self) -> usize {
         let mut count: usize = 0;
         for pair in &self.pairs {

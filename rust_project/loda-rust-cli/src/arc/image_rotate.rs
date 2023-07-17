@@ -7,7 +7,9 @@ pub trait ImageRotate {
     /// Rotate counter clockwise (CCW)
     fn rotate_ccw(&self) -> anyhow::Result<Image>;
 
-    /// Rotate by 90 degrees in any direction
+    /// Rotate by `N * 90` degrees in any direction
+    /// 
+    /// Rotate 180 degrees is the same as the `flip_xy` operation.
     fn rotate(&self, direction: i8) -> anyhow::Result<Image>;
 }
 

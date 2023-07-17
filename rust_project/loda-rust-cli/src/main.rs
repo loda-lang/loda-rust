@@ -9,8 +9,10 @@ use std::{str::FromStr, path::PathBuf};
 use regex::Regex;
 use loda_rust_core::control::*;
 
-mod analytics;
+#[cfg(feature = "loda-rust-arc")]
 mod arc;
+
+mod analytics;
 mod common;
 mod config;
 mod lodacpp;
@@ -188,6 +190,11 @@ async fn main() -> anyhow::Result<()> {
                         .required(true)
                 )
         )
+        .subcommand(
+            Command::new("arc-web")
+                .about("Web server with UI for ARC.")
+                .hide(true)
+        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -352,6 +359,11 @@ async fn main() -> anyhow::Result<()> {
         let task_json_file: PathBuf = PathBuf::from(path_raw);
         let mode = SubcommandARCMode::PredictOutputSizesForSingleTask { task_json_file };
         SubcommandARC::run(mode)?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("arc-web") {
+        SubcommandARC::run_web_server().await?;
         return Ok(());
     }
 
