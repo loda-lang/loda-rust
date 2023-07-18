@@ -238,7 +238,7 @@ impl SubcommandARCWeb {
         context.insert("inspect_html", &inspect_html);
         context.insert("task_id", task_id);
         context.insert("tasklist_href", "/task");
-        context.insert("node_href", &format!("/task/{}/node/1", task_id));
+        context.insert("node_href", &format!("/task/{}/node/0", task_id));
         let html: String = tera.render("page_inspect_task.html", &context).unwrap();
     
         let response = Response::builder(200)
