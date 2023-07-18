@@ -633,6 +633,13 @@ impl TaskGraph {
         for pair in &task.pairs {
             self.populate_with_pair(pair, task_node_index)?;
         }
+
+        // Future experiments:
+        // Determine what objects gets passed on from the input to the output.
+        // Determine if an object gets inserted just once or multiple times into the output.
+        // Determine if all the pairs use the same objects, or if each pair use its own objects.
+        // Determine if a new object gets inserted into the output, that is not present in the input.
+        // Determine if an object gets removed from the input, that is not present in the output.
         Ok(())
     }
 }
