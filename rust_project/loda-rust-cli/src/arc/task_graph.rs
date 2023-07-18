@@ -611,12 +611,26 @@ impl TaskGraph {
                 connectivity
             )?;
 
+            // Future experiments:
+            // Determine if an object is contained inside another object.
+            // Example ARC task 776ffc46, where the plus sign is inside a grey box.
+            // Example ARC task 6b9890af, where the output image is box with an object scaled up to fill the box.
+            //
+            // Determine if an object is touching another object.
+            // Example ARC task 48d8fb45, where the object that is to be extracted is touching a grey pixel.
+
             if pair.pair_type == PairType::Train {
                 self.compare_objects_between_input_and_output(
                     &input_process_shapes, 
                     &output_process_shapes, 
                     connectivity
                 )?;
+
+                // Future experiment:
+                // When input size == output size.
+                // Detect if there is an another shape type that is occupying the same area both in the input image and output image.
+                // if so, then add an edge between the two shapes, since it may be a transformation of the input shape.
+                // such as change from a solid rectangle to a hollow box, as in ARC task 4347f46a
             }
         }
 
@@ -640,6 +654,8 @@ impl TaskGraph {
         // Determine if all the pairs use the same objects, or if each pair use its own objects.
         // Determine if a new object gets inserted into the output, that is not present in the input.
         // Determine if an object gets removed from the input, that is not present in the output.
+        // Determine if one/multiple object gets moved around and all the other objects stay in the same place.
+        // Do they move in the same direction? Do they move the same distance? Do they align with each other?
         Ok(())
     }
 }
