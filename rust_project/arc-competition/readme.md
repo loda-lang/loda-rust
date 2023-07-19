@@ -168,7 +168,7 @@ Verify that a +100mb file gets downloaded.
 Verify that the file can get loaded by docker:
 
 ```
-PROMPT> docker load < 2023-02-26T13-03.tar
+PROMPT> docker load < 2023-07-19T15-56.tgz
 ```
 
 Verify that the docker image can run:
