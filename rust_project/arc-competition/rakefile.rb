@@ -41,14 +41,14 @@ task "shell" do
     system("docker run --platform linux/amd64 -it --mount type=bind,source=#{pwd}/secret_data,target=/data #{image} /bin/bash")
 end
 
-desc "Export docker image to tar file"
-task "save-tar" do
+desc "Export docker image to a tgz file"
+task "save-tgz" do
     pwd = Dir.pwd
     image = DOCKER_IMAGE
     timestamp = Time.now.utc.iso8601
-    filename = "docker_lodarust_arc_#{timestamp}.tar" 
+    filename = "docker_lodarust_arc_#{timestamp}.tgz" 
     system("docker pull --platform linux/amd64 #{image}")
-    system("docker save #{image} > '#{filename}'")
+    system("docker save #{image} | gzip > '#{filename}'")
 end
 
 desc "Remove the buildx instance - after building the docker image, it's no longer needed."
