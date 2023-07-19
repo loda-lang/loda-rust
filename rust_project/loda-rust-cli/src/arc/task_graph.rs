@@ -82,6 +82,7 @@ pub enum EdgeData {
     Parent,
     Child,
     ObjectSimilarity { numerator: u8, denominator: u8 },
+    ObjectTouching { connectivity: PixelConnectivity },
     // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
@@ -553,6 +554,112 @@ impl TaskGraph {
         Ok(())
     }
 
+    /// Determine which objects are touching each other.
+    /// 
+    /// Establishes `ObjectTouching` edges between these objects.
+    fn determine_what_objects_are_touching(&mut self, image_nodeindex: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+        // Future experiments:
+        // Parameter for treating a particular color as transparent, so these pixels does not count as touching.
+        // Parameter for considering diagonal pixels as touching.
+
+        // println!("determine_what_objects_are_touching image_nodeindex: {:?}", image_nodeindex);
+
+        let image_size: ImageSize;
+        match &self.graph[image_nodeindex] {
+            NodeData::Image { size } => { image_size = *size; },
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Image"));
+            }
+        }
+
+        let mut position_to_object: HashMap<(u8, u8), NodeIndex> = HashMap::new();
+
+        for edge_image in self.graph.edges(image_nodeindex) {
+            let pixel_index: NodeIndex = edge_image.target();
+            match &self.graph[pixel_index] {
+                NodeData::Pixel => {},
+                _ => continue
+            }
+
+            // Obtain coordinates (x, y) and object index for this pixel.
+            let mut found_object: Option<NodeIndex> = None;
+            let mut found_x: Option<u8> = None;
+            let mut found_y: Option<u8> = None;
+            for edge_pixel in self.graph.edges(pixel_index) {
+                let node_index: NodeIndex = edge_pixel.target();
+                match &self.graph[node_index] {
+                    NodeData::Object { connectivity: node_connectivity } => {
+                        if *node_connectivity != connectivity {
+                            continue;
+                        }
+                        found_object = Some(node_index);
+                    },
+                    NodeData::PositionX { x } => { found_x = Some(*x); },
+                    NodeData::PositionY { y } => { found_y = Some(*y); },
+                    _ => continue
+                }
+            }
+
+            let (x, y, object_index) = match (found_x, found_y, found_object) {
+                (Some(x), Some(y), Some(object_index)) => (x, y, object_index),
+                _ => continue
+            };
+            position_to_object.insert((x, y), object_index);
+        }
+        // println!("position_to_object: {:?}", position_to_object);
+
+        let mut object_touching_object: HashSet<(NodeIndex, NodeIndex)> = HashSet::new();
+
+        // Determine if two objects are connected, going from left to right.
+        for y in 0..image_size.height {
+            for x in 0..image_size.width {
+                let object_index0: NodeIndex = match position_to_object.get(&(x, y)) {
+                    Some(object_index) => *object_index,
+                    None => continue
+                };
+                let object_index1: NodeIndex = match position_to_object.get(&((x + 1), y)) {
+                    Some(object_index) => *object_index,
+                    None => continue
+                };
+                let min_index: NodeIndex = object_index0.min(object_index1);
+                let max_index: NodeIndex = object_index0.max(object_index1);
+                if min_index == max_index {
+                    continue;
+                }
+                object_touching_object.insert((min_index, max_index));
+            }
+        }
+
+        // Determine if two objects are connected, going from top to bottom.
+        for y in 0..image_size.height {
+            for x in 0..image_size.width {
+                let object_index0: NodeIndex = match position_to_object.get(&(x, y)) {
+                    Some(object_index) => *object_index,
+                    None => continue
+                };
+                let object_index1: NodeIndex = match position_to_object.get(&(x, (y + 1))) {
+                    Some(object_index) => *object_index,
+                    None => continue
+                };
+                let min_index: NodeIndex = object_index0.min(object_index1);
+                let max_index: NodeIndex = object_index0.max(object_index1);
+                if min_index == max_index {
+                    continue;
+                }
+                object_touching_object.insert((min_index, max_index));
+            }
+        }
+
+        println!("object_touching_object: {:?}", object_touching_object.len());
+
+        for (object_index0, object_index1) in object_touching_object {
+            let edge_data = EdgeData::ObjectTouching { connectivity };
+            self.graph.add_edge(object_index0, object_index1, edge_data);
+            self.graph.add_edge(object_index1, object_index0, edge_data);
+        }
+        Ok(())
+    }
+
     fn populate_with_pair(&mut self, pair: &Pair, task_node_index: NodeIndex) -> anyhow::Result<()> {
         let pair_node_index: NodeIndex;
         {
@@ -615,9 +722,11 @@ impl TaskGraph {
             // Determine if an object is contained inside another object.
             // Example ARC task 776ffc46, where the plus sign is inside a grey box.
             // Example ARC task 6b9890af, where the output image is box with an object scaled up to fill the box.
-            //
+
             // Determine if an object is touching another object.
             // Example ARC task 48d8fb45, where the object that is to be extracted is touching a grey pixel.
+            self.determine_what_objects_are_touching(image_input_node_index, connectivity)?;
+            self.determine_what_objects_are_touching(image_output_node_index, connectivity)?;
 
             if pair.pair_type == PairType::Train {
                 self.compare_objects_between_input_and_output(
