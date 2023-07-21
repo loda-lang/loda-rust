@@ -46,6 +46,7 @@ pub enum NodeData {
     ShapeType { shape_type: ShapeType },
     ShapeScale { x: u8, y: u8 },
     ShapeSize { width: u8, height: u8 },
+    ObjectDoesNotMove,
     // Input,
     // Output,
     // PairTrain,
@@ -660,6 +661,27 @@ impl TaskGraph {
         Ok(())
     }
 
+    fn analyze_output_size_same_as_input_size(&mut self, task: &Task, task_node_index: NodeIndex) -> anyhow::Result<()> {
+        if !task.is_output_size_same_as_input_size() {
+            return Ok(())
+        }
+        for pair in &task.pairs {
+            self.analyze_output_size_same_as_input_size_for_pair(pair, task_node_index)?;
+        }    
+        Ok(())
+    }
+
+    fn analyze_output_size_same_as_input_size_for_pair(&mut self, pair: &Pair, task_node_index: NodeIndex) -> anyhow::Result<()> {
+        if pair.pair_type == PairType::Test {
+            return Ok(());
+        }
+
+        // Insert `NodeData::ObjectDoesNotMove` where the positions are the same.
+
+        
+        Ok(())
+    }
+
     fn populate_with_pair(&mut self, pair: &Pair, task_node_index: NodeIndex) -> anyhow::Result<()> {
         let pair_node_index: NodeIndex;
         {
@@ -756,6 +778,8 @@ impl TaskGraph {
         for pair in &task.pairs {
             self.populate_with_pair(pair, task_node_index)?;
         }
+
+        self.analyze_output_size_same_as_input_size(task, task_node_index)?;
 
         // Future experiments:
         // Determine what objects gets passed on from the input to the output.
