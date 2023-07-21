@@ -111,7 +111,7 @@ PROMPT> rake buildx-build
 ### Step 8 - Save the docker image to a tar file
 
 ```
-PROMPT> rake save-tar
+PROMPT> rake save-tgz
 latest: Pulling from username/loda-rust-cli
 bb263680fde1: Pull complete 
 6055b99811ee: Pull complete 
@@ -120,7 +120,7 @@ Digest: sha256:9c93f5982d4f85b8bc3e6b78fa4b39de4d04ac63b49bf9445bbdcddd7da61660
 Status: Downloaded newer image for username/loda-rust-cli:latest
 docker.io/username/loda-rust-cli:latest
 PROMPT> ls -la
--rw-r--r--   1 neoneye  staff  101791744 Feb 26 13:03 docker_lodarust_arc_2023-02-26T12:03:03Z.tar
+-rw-r--r--   1 neoneye  staff  38066792 Jul 19 15:56 docker_lodarust_arc_2023-07-19T13:56:04Z.tgz
 PROMPT>
 ```
 
@@ -145,18 +145,18 @@ Verify that the architecture is `x86_64`. This is the only platform that is acce
 
 Great this looks like the content of the `secret_data` has been mounted correct and the file has been discovered correct.
 
-Now the `.tar` can be uploaded to the contest.
+Now the `.tgz` can be uploaded to the contest.
 
 ### Step 10 - Publish the docker image
 
-Add the docker image `.tar` file to the [arcathon-docker-image](https://github.com/neoneye/arcathon-docker-image) repository.
+Add the docker image `.tgz` file to the [arcathon-docker-image](https://github.com/neoneye/arcathon-docker-image) repository.
 
 After `git push` has finished.
 
-Obtain the url for the docker image `.tar` file, that looks like this:
+Obtain the url for the docker image `.tgz` file, that looks like this:
 
 ```
-https://github.com/neoneye/arcathon-docker-image/raw/main/ARCathon2023/2023-02-26T13-03.tar
+https://github.com/neoneye/arcathon-docker-image/raw/main/ARCathon2023/2023-07-19T15-56.tgz
 ```
 
 ## Step 11 - Check that the docker image url actually downloads the file
@@ -168,7 +168,7 @@ Verify that a +100mb file gets downloaded.
 Verify that the file can get loaded by docker:
 
 ```
-PROMPT> docker load < 2023-02-26T13-03.tar
+PROMPT> docker load < 2023-07-19T15-56.tgz
 ```
 
 Verify that the docker image can run:
