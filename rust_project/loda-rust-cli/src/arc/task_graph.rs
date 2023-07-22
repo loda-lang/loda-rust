@@ -93,6 +93,11 @@ pub enum EdgeData {
     /// However the colors do change.
     ObjectChangeColor { color_input: u8, color_output: u8 },
 
+    /// When input size is the same the the output size for all pairs.
+    /// Has the same color. The mask is the same. 
+    /// However the object has moved to another position.
+    ObjectChangePosition { relative_x: i8, relative_y: i8 },
+
     // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
@@ -531,15 +536,16 @@ impl TaskGraph {
                     let same_rect: bool = rect0 == rect1;
                     let size0: ImageSize = rect0.size();
                     let size1: ImageSize = rect1.size();
+                    let same_size: bool = size0 == size1;
                     let same_width: bool = size0.width == size1.width;
                     let same_height: bool = size0.height == size1.height;
                     let same_transformations: bool = input_color_and_shape.shape_identification.transformations == output_color_and_shape.shape_identification.transformations;
 
                     // for very similar objects, then check if the mask pixel data is identical.
                     let mut same_mask: bool = false;
-                    if same_width && same_height && same_transformations && same_mass {
+                    if same_size && same_transformations && same_mass {
                         if verbose {
-                            println!("same_width: {}  same_height: {}  same_transformations: {}", same_width, same_height, same_transformations);
+                            println!("same_size: {}  same_transformations: {}", same_size, same_transformations);
                         }
                         let mask0: &Image = &input_color_and_shape.shape_identification.mask_cropped;
                         let mask1: &Image = &output_color_and_shape.shape_identification.mask_cropped;
@@ -554,6 +560,19 @@ impl TaskGraph {
                         } else {
                             edge_data = EdgeData::ObjectChangeColor { color_input: input_color_and_shape.color, color_output: output_color_and_shape.color };
                         }
+                        self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
+                        self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
+                        continue;
+                    }
+
+                    // When the input and output are the same size, then we can do this strong similarity check.
+                    let relative_x_i32: i32 = (rect1.min_x() - rect0.min_x()) as i32;
+                    let relative_y_i32: i32 = (rect1.min_y() - rect0.min_y()) as i32;
+                    let has_moved: bool = relative_x_i32 != 0 || relative_y_i32 != 0;
+                    if has_moved && same_color && same_size && same_mask && same_transformations && is_output_size_same_as_input_size {
+                        let relative_x: i8 = relative_x_i32.max(i8::MIN as i32).min(i8::MAX as i32) as i8;
+                        let relative_y: i8 = relative_y_i32.max(i8::MIN as i32).min(i8::MAX as i32) as i8;
+                        let edge_data: EdgeData = EdgeData::ObjectChangePosition { relative_x, relative_y };
                         self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
                         self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
                         continue;
