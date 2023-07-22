@@ -23,7 +23,7 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
-use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape};
+use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle};
 use super::arc_work_model::{Task, Pair, PairType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
@@ -46,7 +46,6 @@ pub enum NodeData {
     ShapeType { shape_type: ShapeType },
     ShapeScale { x: u8, y: u8 },
     ShapeSize { width: u8, height: u8 },
-    ObjectDoesNotMove,
     // Input,
     // Output,
     // PairTrain,
@@ -84,6 +83,16 @@ pub enum EdgeData {
     Child,
     ObjectSimilarity { numerator: u8, denominator: u8 },
     ObjectTouching { connectivity: PixelConnectivity },
+
+    /// When input size is the same the the output size for all pairs.
+    /// Has the same color. The mask is the same. The object does not move.
+    ObjectIdentical,
+
+    /// When input size is the same the the output size for all pairs.
+    /// The mask is the same. The object does not move.
+    /// However the colors do change.
+    ObjectChangeColor { from: u8, to: u8 },
+
     // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
@@ -428,7 +437,13 @@ impl TaskGraph {
         Ok(instance)
     }
 
-    fn compare_objects_between_input_and_output(&mut self, input_process_shapes: &ProcessShapes, output_process_shapes: &ProcessShapes, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+    fn compare_objects_between_input_and_output(&mut self, task: &Task, pair: &Pair, input_process_shapes: &ProcessShapes, output_process_shapes: &ProcessShapes, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+        if pair.pair_type == PairType::Test {
+            return Ok(());
+        }
+
+        let is_output_size_same_as_input_size: bool = task.is_output_size_same_as_input_size();
+
         let verbose = false;
         if verbose {
             println!("connectivity: {:?}", connectivity);
@@ -489,6 +504,13 @@ impl TaskGraph {
 
             for (input_index, input_color_and_shape) in input_items {
                 for (output_index, output_color_and_shape) in &output_items {
+                    let nodeindex0_option: Option<&NodeIndex> = input_process_shapes.color_and_shape_to_object_nodeindex.get(&input_index);
+                    let nodeindex1_option: Option<&NodeIndex> = output_process_shapes.color_and_shape_to_object_nodeindex.get(&output_index);
+                    let (nodeindex0, nodeindex1) = match (nodeindex0_option, nodeindex1_option) {
+                        (Some(nodeindex0), Some(nodeindex1)) => (nodeindex0, nodeindex1),
+                        _ => continue,
+                    };
+
                     let same_color: bool = input_color_and_shape.color == output_color_and_shape.color;
 
                     // Determine if the shapes have the same mass or a clean multiple of each other.
@@ -504,8 +526,11 @@ impl TaskGraph {
                         }
                     }
 
-                    let size0: ImageSize = input_color_and_shape.shape_identification.rect.size();
-                    let size1: ImageSize = output_color_and_shape.shape_identification.rect.size();
+                    let rect0: Rectangle = input_color_and_shape.shape_identification.rect;
+                    let rect1: Rectangle = output_color_and_shape.shape_identification.rect;
+                    let same_rect: bool = rect0 == rect1;
+                    let size0: ImageSize = rect0.size();
+                    let size1: ImageSize = rect1.size();
                     let same_width: bool = size0.width == size1.width;
                     let same_height: bool = size0.height == size1.height;
                     let same_transformations: bool = input_color_and_shape.shape_identification.transformations == output_color_and_shape.shape_identification.transformations;
@@ -519,6 +544,19 @@ impl TaskGraph {
                         let mask0: &Image = &input_color_and_shape.shape_identification.mask_cropped;
                         let mask1: &Image = &output_color_and_shape.shape_identification.mask_cropped;
                         same_mask = mask0 == mask1;
+                    }
+
+                    // When the input and output are the same size, then we can do this strong similarity check.
+                    if same_rect && same_mask && same_transformations && is_output_size_same_as_input_size {
+                        let edge_data: EdgeData;
+                        if same_color {
+                            edge_data = EdgeData::ObjectIdentical;
+                        } else {
+                            edge_data = EdgeData::ObjectChangeColor { from: input_color_and_shape.color, to: output_color_and_shape.color };
+                        }
+                        self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
+                        self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
+                        continue;
                     }
 
                     // Future experiments:
@@ -536,18 +574,15 @@ impl TaskGraph {
                         println!("  input_index: {}  output_index: {}  same_count: {}  similarity_score: {}", input_index, output_index, same_count, similarity_score_f64);
                     }
                     if similarity_score_percent < 20 {
+                        // Too dissimilar. Don't add an edge.
                         continue;
                     }
-                    let nodeindex0: Option<&NodeIndex> = input_process_shapes.color_and_shape_to_object_nodeindex.get(&input_index);
-                    let nodeindex1: Option<&NodeIndex> = output_process_shapes.color_and_shape_to_object_nodeindex.get(&output_index);
-                    if let (Some(nodeindex0), Some(nodeindex1)) = (nodeindex0, nodeindex1) {
-                        if verbose {
-                            println!("  adding edge between input and output objects");
-                        }
-                        let edge_data = EdgeData::ObjectSimilarity { numerator: numerator_u8, denominator: denominator_u8 };
-                        self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
-                        self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
+                    if verbose {
+                        println!("  adding edge between input and output objects");
                     }
+                    let edge_data = EdgeData::ObjectSimilarity { numerator: numerator_u8, denominator: denominator_u8 };
+                    self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
+                    self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
                 }
             }
         }
@@ -651,7 +686,7 @@ impl TaskGraph {
             }
         }
 
-        println!("object_touching_object: {:?}", object_touching_object.len());
+        // println!("object_touching_object: {:?}", object_touching_object.len());
 
         for (object_index0, object_index1) in object_touching_object {
             let edge_data = EdgeData::ObjectTouching { connectivity };
@@ -661,28 +696,7 @@ impl TaskGraph {
         Ok(())
     }
 
-    fn analyze_output_size_same_as_input_size(&mut self, task: &Task, task_node_index: NodeIndex) -> anyhow::Result<()> {
-        if !task.is_output_size_same_as_input_size() {
-            return Ok(())
-        }
-        for pair in &task.pairs {
-            self.analyze_output_size_same_as_input_size_for_pair(pair, task_node_index)?;
-        }    
-        Ok(())
-    }
-
-    fn analyze_output_size_same_as_input_size_for_pair(&mut self, pair: &Pair, task_node_index: NodeIndex) -> anyhow::Result<()> {
-        if pair.pair_type == PairType::Test {
-            return Ok(());
-        }
-
-        // Insert `NodeData::ObjectDoesNotMove` where the positions are the same.
-
-        
-        Ok(())
-    }
-
-    fn populate_with_pair(&mut self, pair: &Pair, task_node_index: NodeIndex) -> anyhow::Result<()> {
+    fn populate_with_pair(&mut self, task: &Task, pair: &Pair, task_node_index: NodeIndex) -> anyhow::Result<()> {
         let pair_node_index: NodeIndex;
         {
             let node = NodeData::Pair { pair_index: pair.pair_index };
@@ -750,19 +764,19 @@ impl TaskGraph {
             self.determine_what_objects_are_touching(image_input_node_index, connectivity)?;
             self.determine_what_objects_are_touching(image_output_node_index, connectivity)?;
 
-            if pair.pair_type == PairType::Train {
-                self.compare_objects_between_input_and_output(
-                    &input_process_shapes, 
-                    &output_process_shapes, 
-                    connectivity
-                )?;
+            self.compare_objects_between_input_and_output(
+                task,
+                pair,
+                &input_process_shapes, 
+                &output_process_shapes, 
+                connectivity
+            )?;
 
-                // Future experiment:
-                // When input size == output size.
-                // Detect if there is an another shape type that is occupying the same area both in the input image and output image.
-                // if so, then add an edge between the two shapes, since it may be a transformation of the input shape.
-                // such as change from a solid rectangle to a hollow box, as in ARC task 4347f46a
-            }
+            // Future experiment:
+            // When input size == output size.
+            // Detect if there is an another shape type that is occupying the same area both in the input image and output image.
+            // if so, then add an edge between the two shapes, since it may be a transformation of the input shape.
+            // such as change from a solid rectangle to a hollow box, as in ARC task 4347f46a
         }
 
         Ok(())
@@ -776,10 +790,8 @@ impl TaskGraph {
         }
 
         for pair in &task.pairs {
-            self.populate_with_pair(pair, task_node_index)?;
+            self.populate_with_pair(task, pair, task_node_index)?;
         }
-
-        self.analyze_output_size_same_as_input_size(task, task_node_index)?;
 
         // Future experiments:
         // Determine what objects gets passed on from the input to the output.
