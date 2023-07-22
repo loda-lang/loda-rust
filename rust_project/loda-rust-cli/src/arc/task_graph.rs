@@ -671,8 +671,9 @@ impl TaskGraph {
 
         for (index0, color_and_shape0) in &items {
             for (index1, color_and_shape1) in &items {
-                if index0 == index1 {
-                    // don't compare the object with itself
+                if index0 >= index1 {
+                    // ignore the diagonal by using == because we don't want to compare the object with itself.
+                    // ignore half of the triangle, by using `>` so that we don't compare the same pair of objects twice.
                     continue;
                 }
 
