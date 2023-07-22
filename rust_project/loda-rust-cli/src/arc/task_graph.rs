@@ -91,7 +91,7 @@ pub enum EdgeData {
     /// When input size is the same the the output size for all pairs.
     /// The mask is the same. The object does not move.
     /// However the colors do change.
-    ObjectChangeColor { from: u8, to: u8 },
+    ObjectChangeColor { color_input: u8, color_output: u8 },
 
     // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
@@ -552,7 +552,7 @@ impl TaskGraph {
                         if same_color {
                             edge_data = EdgeData::ObjectIdentical;
                         } else {
-                            edge_data = EdgeData::ObjectChangeColor { from: input_color_and_shape.color, to: output_color_and_shape.color };
+                            edge_data = EdgeData::ObjectChangeColor { color_input: input_color_and_shape.color, color_output: output_color_and_shape.color };
                         }
                         self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
                         self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
