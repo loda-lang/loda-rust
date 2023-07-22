@@ -98,6 +98,12 @@ pub enum EdgeData {
     /// However the object has moved to another position.
     ObjectChangePosition { relative_x: i8, relative_y: i8 },
 
+    /// When input size is the same the the output size for all pairs.
+    /// The mask is the same. 
+    /// However the colors have changed.
+    /// However the object has moved to another position.
+    ObjectChangePositionAndColor { relative_x: i8, relative_y: i8, color_input: u8, color_output: u8 },
+
     // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
@@ -569,10 +575,15 @@ impl TaskGraph {
                     let relative_x_i32: i32 = (rect1.min_x() - rect0.min_x()) as i32;
                     let relative_y_i32: i32 = (rect1.min_y() - rect0.min_y()) as i32;
                     let has_moved: bool = relative_x_i32 != 0 || relative_y_i32 != 0;
-                    if has_moved && same_color && same_size && same_mask && same_transformations && is_output_size_same_as_input_size {
+                    if has_moved && same_size && same_mask && same_transformations && is_output_size_same_as_input_size {
                         let relative_x: i8 = relative_x_i32.max(i8::MIN as i32).min(i8::MAX as i32) as i8;
                         let relative_y: i8 = relative_y_i32.max(i8::MIN as i32).min(i8::MAX as i32) as i8;
-                        let edge_data: EdgeData = EdgeData::ObjectChangePosition { relative_x, relative_y };
+                        let edge_data: EdgeData;
+                        if same_color {
+                            edge_data = EdgeData::ObjectChangePosition { relative_x, relative_y };
+                        } else {
+                            edge_data = EdgeData::ObjectChangePositionAndColor { relative_x, relative_y, color_input: input_color_and_shape.color, color_output: output_color_and_shape.color };
+                        }
                         self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
                         self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
                         continue;
