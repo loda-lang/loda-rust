@@ -28,6 +28,12 @@ use super::arc_work_model::{Task, Pair, PairType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
 
+/// The number of pair-wise comparisons that are allowed between the same shape type.
+/// 
+/// This is to prevent the solver from getting stuck in an almost infinite loop.
+/// if it's all single pixel shapes that are to be compared.
+static SHAPETYPE_COMPARISON_LIMIT: usize = 100;
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NodeData {
     Task,
@@ -506,7 +512,7 @@ impl TaskGraph {
             }
 
             let number_of_comparisons: usize = input_items.len() * output_items.len();
-            if number_of_comparisons > 30 {
+            if number_of_comparisons > SHAPETYPE_COMPARISON_LIMIT {
                 if verbose {
                     println!("too many comparisons, skipping");
                 }
