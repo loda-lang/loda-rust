@@ -292,10 +292,16 @@ impl ShapeTypeImage {
             1, 1, 1, 0,
         ])?;
 
-        let image_open_box_with_hole_in_border: Image = Image::try_create(5, 3, vec![
+        let image_open_box_with_hole_in_center_of_top_border: Image = Image::try_create(5, 3, vec![
             1, 1, 0, 1, 1,
             1, 0, 0, 0, 1,
             1, 1, 1, 1, 1,
+        ])?;
+
+        let image_open_box_with_hole_in_right_side_of_top_border: Image = Image::try_create(4, 3, vec![
+            1, 1, 0, 1,
+            1, 0, 0, 1,
+            1, 1, 1, 1,
         ])?;
 
         let mut items = Vec::<(Image, ShapeType)>::new();
@@ -345,7 +351,8 @@ impl ShapeTypeImage {
         items.push((image_rotated_p, ShapeType::RotatedP));
         items.push((image_rotated_lowercase_f, ShapeType::RotatedLowercaseF));
         items.push((image_box_with_rightwards_tick, ShapeType::BoxWithRightwardsTick));
-        items.push((image_open_box_with_hole_in_border, ShapeType::OpenBoxWithHoleInBorder));
+        items.push((image_open_box_with_hole_in_center_of_top_border, ShapeType::OpenBoxWithHoleInCenterOfTopBorder));
+        items.push((image_open_box_with_hole_in_right_side_of_top_border, ShapeType::OpenBoxWithHoleInRightSideOfTopBorder));
 
         let instance = Self {
             image_shapetype_vec: items,
@@ -849,7 +856,16 @@ pub enum ShapeType {
     /// 1, 0, 0, 0, 1
     /// 1, 1, 1, 1, 1
     /// ```
-    OpenBoxWithHoleInBorder,
+    OpenBoxWithHoleInCenterOfTopBorder,
+
+    /// Shape `[_|` or a box with a pixel missing in the right side of the top border.
+    /// 
+    /// ````
+    /// 1, 1, 0, 1
+    /// 1, 0, 0, 1
+    /// 1, 1, 1, 1
+    /// ```
+    OpenBoxWithHoleInRightSideOfTopBorder,
 
     /// Shapes that could not be recognized.
     Unclassified,
@@ -912,7 +928,8 @@ impl ShapeType {
             Self::RotatedP => "ᓇ",
             Self::RotatedLowercaseF => "╋┓",
             Self::BoxWithRightwardsTick => "⟥",
-            Self::OpenBoxWithHoleInBorder => "[_]",
+            Self::OpenBoxWithHoleInCenterOfTopBorder => "[_]",
+            Self::OpenBoxWithHoleInRightSideOfTopBorder => "[_|",
             Self::Unclassified => "unclassified",
         }
     }
@@ -3379,7 +3396,7 @@ mod tests {
     }
 
     #[test]
-    fn test_580000_image_open_box_with_hole_in_border() {
+    fn test_580000_image_open_box_with_hole_in_center_of_top_border() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -3397,6 +3414,28 @@ mod tests {
         assert_eq!(actual.to_string(), "[_]");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw90]));
         assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_590000_image_open_box_with_hole_in_right_side_of_top_border() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1,
+            1, 0, 1,
+            1, 0, 0,
+            1, 0, 0,
+            1, 1, 1,
+            1, 1, 1,
+        ];
+        let input: Image = Image::try_create(3, 6, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "[_|");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
