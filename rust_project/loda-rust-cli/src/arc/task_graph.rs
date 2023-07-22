@@ -88,8 +88,13 @@ pub enum EdgeData {
     PixelNeighbor { edge_type: PixelNeighborEdgeType },
     Parent,
     Child,
-    ObjectSimilarity { numerator: u8, denominator: u8 },
     ObjectTouching { connectivity: PixelConnectivity },
+
+    /// When comparing objects inside a single image, what objects are similar.
+    ImageObjectSimilarity { numerator: u8, denominator: u8 },
+
+    /// When comparing input and output, what objects are similar.
+    ObjectSimilarity { numerator: u8, denominator: u8 },
 
     /// When input size is the same the the output size for all pairs.
     /// Has the same color. The mask is the same. The object does not move.
@@ -501,7 +506,7 @@ impl TaskGraph {
         // - compressed (different size, transformed, same color), `WeaklySimilarObject { mode: Transformed }`
         // - compressed (different size, transformed, different color), `WeaklySimilarObject { mode: TransformedAndDifferentColor }`
         for shapetype in &intersection_shapetype_set {
-            self.compare_objects_of_shapetype(
+            self.compare_objects_between_input_and_output_shapetype(
                 is_output_size_same_as_input_size, 
                 shapetype, 
                 input_process_shapes, 
@@ -512,7 +517,7 @@ impl TaskGraph {
         Ok(())
     }
 
-    fn compare_objects_of_shapetype(&mut self, is_output_size_same_as_input_size: bool, shapetype: &ShapeType, input_process_shapes: &ProcessShapes, output_process_shapes: &ProcessShapes) -> anyhow::Result<()> {
+    fn compare_objects_between_input_and_output_shapetype(&mut self, is_output_size_same_as_input_size: bool, shapetype: &ShapeType, input_process_shapes: &ProcessShapes, output_process_shapes: &ProcessShapes) -> anyhow::Result<()> {
         let verbose = false;
 
         let input_items: Vec<(usize, &ColorAndShape)> = input_process_shapes.obtain_color_and_shape_vec(shapetype);
@@ -628,6 +633,111 @@ impl TaskGraph {
                     println!("  adding edge between input and output objects");
                 }
                 let edge_data = EdgeData::ObjectSimilarity { numerator: numerator_u8, denominator: denominator_u8 };
+                self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
+                self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
+            }
+        }
+        Ok(())
+    }
+
+    /// Determine what objects are occurring multiple times in an image.
+    fn find_similar_objects_inside_image(&mut self, process_shapes: &ProcessShapes) -> anyhow::Result<()> {
+        let shapetype_set: HashSet<ShapeType> = process_shapes.shapetype_set();
+        for shapetype in &shapetype_set {
+            self.find_similar_objects_inside_image_shapetype(
+                shapetype, 
+                process_shapes, 
+            )?;
+        }
+        Ok(())
+    }
+
+    fn find_similar_objects_inside_image_shapetype(&mut self, shapetype: &ShapeType, process_shapes: &ProcessShapes) -> anyhow::Result<()> {
+        let verbose = false;
+
+        let items: Vec<(usize, &ColorAndShape)> = process_shapes.obtain_color_and_shape_vec(shapetype);
+
+        if verbose {
+            println!("shapetype: {:?}  compare {}x{} shapes", shapetype, items.len(), items.len());
+        }
+
+        let number_of_comparisons: usize = items.len() * items.len();
+        if number_of_comparisons > SHAPETYPE_COMPARISON_LIMIT {
+            if verbose {
+                println!("too many comparisons, skipping");
+            }
+            return Ok(());
+        }
+
+        for (index0, color_and_shape0) in &items {
+            for (index1, color_and_shape1) in &items {
+                if index0 == index1 {
+                    // don't compare the object with itself
+                    continue;
+                }
+
+                let nodeindex0_option: Option<&NodeIndex> = process_shapes.color_and_shape_to_object_nodeindex.get(&index0);
+                let nodeindex1_option: Option<&NodeIndex> = process_shapes.color_and_shape_to_object_nodeindex.get(&index1);
+                let (nodeindex0, nodeindex1) = match (nodeindex0_option, nodeindex1_option) {
+                    (Some(nodeindex0), Some(nodeindex1)) => (nodeindex0, nodeindex1),
+                    _ => continue,
+                };
+
+                let same_color: bool = color_and_shape0.color == color_and_shape1.color;
+
+                // Determine if the shapes have the same mass or a clean multiple of each other.
+                let mass0: u16 = color_and_shape0.shape_identification.mass;
+                let mass1: u16 = color_and_shape1.shape_identification.mass;
+                let mut same_mass: bool = false;
+                if mass0 > 0 && mass1 > 0 {
+                    let value_max: u16 = mass0.max(mass1);
+                    let value_min: u16 = mass0.min(mass1);
+                    let remain: u16 = value_max % value_min;
+                    if remain == 0 {
+                        same_mass = true;
+                    }
+                }
+
+                let rect0: Rectangle = color_and_shape0.shape_identification.rect;
+                let rect1: Rectangle = color_and_shape1.shape_identification.rect;
+                let size0: ImageSize = rect0.size();
+                let size1: ImageSize = rect1.size();
+                let same_size: bool = size0 == size1;
+                let same_width: bool = size0.width == size1.width;
+                let same_height: bool = size0.height == size1.height;
+                let same_transformations: bool = color_and_shape0.shape_identification.transformations == color_and_shape1.shape_identification.transformations;
+
+                // for very similar objects, then check if the mask pixel data is identical.
+                let mut same_mask: bool = false;
+                if same_size && same_transformations && same_mass {
+                    if verbose {
+                        println!("same_size: {}  same_transformations: {}", same_size, same_transformations);
+                    }
+                    let mask0: &Image = &color_and_shape0.shape_identification.mask_cropped;
+                    let mask1: &Image = &color_and_shape1.shape_identification.mask_cropped;
+                    same_mask = mask0 == mask1;
+                }
+
+                // Future experiments:
+                // for very similar objects, then check if the mask pixel data is the same after transformation.
+                // if input.histogram and output.histogram has the same mass for the color and the current shape has that color, then it's likely to be the same object.
+                let same_data = [same_color, same_mass, same_width, same_height, same_transformations, same_mask];
+                let same_count: usize = same_data.into_iter().filter(|x| *x).count();
+                let numerator_u8: u8 = same_count as u8;
+                let denominator_u8: u8 = same_data.len() as u8;
+                let similarity_score_f64: f64 = numerator_u8 as f64 / denominator_u8 as f64;
+                let similarity_score_percent: usize = (numerator_u8 as usize) * 100 / (denominator_u8 as usize);
+                if verbose {
+                    println!("  input_index: {}  output_index: {}  same_count: {}  similarity_score: {}", index0, index1, same_count, similarity_score_f64);
+                }
+                if similarity_score_percent < 20 {
+                    // Too dissimilar. Don't add an edge.
+                    continue;
+                }
+                if verbose {
+                    println!("  adding edge between 2 similar objects");
+                }
+                let edge_data = EdgeData::ImageObjectSimilarity { numerator: numerator_u8, denominator: denominator_u8 };
                 self.graph.add_edge(*nodeindex0, *nodeindex1, edge_data);
                 self.graph.add_edge(*nodeindex1, *nodeindex0, edge_data);
             }
@@ -811,6 +921,12 @@ impl TaskGraph {
             // Example ARC task 48d8fb45, where the object that is to be extracted is touching a grey pixel.
             self.determine_what_objects_are_touching(image_input_node_index, connectivity)?;
             self.determine_what_objects_are_touching(image_output_node_index, connectivity)?;
+
+            // Determine what objects are occurring multiple times.
+            self.find_similar_objects_inside_image(&input_process_shapes)?;
+            if pair.pair_type == PairType::Train {
+                self.find_similar_objects_inside_image(&output_process_shapes)?;
+            }
 
             self.compare_objects_between_input_and_output(
                 task,
