@@ -117,6 +117,11 @@ pub enum EdgeData {
     ObjectChangePositionAndColor { relative_x: i8, relative_y: i8, color_input: u8, color_output: u8 },
 
     /// When input size is the same the the output size for all pairs.
+    /// When a pixel in the input image and a pixel in the output image, both have the same color.
+    /// However the pixels belong to different objects.
+    ObjectChangeShape { shape_type_input: ShapeType, shape_type_output: ShapeType },
+
+    /// When input size is the same the the output size for all pairs.
     /// the pixel has the same color in both input and output image.
     PixelIdentical,
 
@@ -820,6 +825,140 @@ impl TaskGraph {
         Ok(color)
     }
 
+    fn get_object_from_pixel(&self, pixel_nodeindex: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<NodeIndex> {
+        match &self.graph[pixel_nodeindex] {
+            NodeData::Pixel => {},
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Pixel"));
+            }
+        }
+
+        let mut found_object_nodeindex: Option<NodeIndex> = None;
+        let mut ambiguous_count: usize = 0;
+        for edge_pixel in self.graph.edges(pixel_nodeindex) {
+            let node_index: NodeIndex = edge_pixel.target();
+            match &self.graph[node_index] {
+                NodeData::Object { connectivity: the_connectivity } => { 
+                    if *the_connectivity != connectivity {
+                        continue;
+                    }
+                    found_object_nodeindex = Some(node_index);
+                    ambiguous_count += 1;
+                },
+                _ => continue
+            }
+        }
+        if ambiguous_count > 1 {
+            return Err(anyhow::anyhow!("Pixel is linked with multiple objects. Is supposed to be linked with only one object."));
+        }
+        if let Some(nodeindex) = found_object_nodeindex {
+            return Ok(nodeindex);
+        }
+        Err(anyhow::anyhow!("Pixel is not linked with an object. Is supposed to be linked with only one object."))
+    }
+
+    fn get_shapetype_from_object(&self, object_nodeindex: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<ShapeType> {
+        match &self.graph[object_nodeindex] {
+            NodeData::Object { connectivity: the_connectivity } => { 
+                if *the_connectivity != connectivity {
+                    return Err(anyhow::anyhow!("connectivity mismatch"));
+                }
+            },
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Pixel"));
+            }
+        }
+
+        let mut found_shapetype: Option<ShapeType> = None;
+        let mut ambiguous_count: usize = 0;
+        for edge in self.graph.edges(object_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::ShapeType { shape_type } => { 
+                    found_shapetype = Some(*shape_type);
+                    ambiguous_count += 1;
+                },
+                _ => continue
+            }
+        }
+        if ambiguous_count > 1 {
+            return Err(anyhow::anyhow!("Object is linked with multiple shapetypes. Is supposed to be linked with only one shapetype."));
+        }
+        if let Some(shapetype) = found_shapetype {
+            return Ok(shapetype);
+        }
+        Err(anyhow::anyhow!("Object is not linked with a shapetype. Is supposed to be linked with only one shapetype."))
+    }
+
+    fn find_shapetype_changes_between_input_and_output(&mut self, task: &Task, pair: &Pair, input_image_nodeindex: NodeIndex, output_image_nodeindex: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<()> {
+        if pair.pair_type == PairType::Test {
+            return Ok(());
+        }
+
+        if !task.is_output_size_same_as_input_size() {
+            return Ok(());
+        }
+
+        let input_pixel_nodeindex_hashmap: HashMap<(u8, u8), NodeIndex> = self.pixel_nodeindexes_from_image(input_image_nodeindex)?;
+        let output_pixel_nodeindex_hashmap: HashMap<(u8, u8), NodeIndex> = self.pixel_nodeindexes_from_image(output_image_nodeindex)?;
+        
+        let size: ImageSize = pair.input.image.size();
+
+        let mut same_color_object_pairs: HashSet<(usize, usize)> = HashSet::new();
+
+        // loop over the pixels in both input and output image.
+        // if the pixels are different, then continue.
+        // we now have 2 pixels wit the same color value.
+        // obtain the object id for the pixels.
+        // obtain the shape id for the objects.
+        // insert an edge (ObjectChangeShape) between the 2 object nodes.
+        for y in 0..size.height {
+            for x in 0..size.width {
+                let pixel_nodeindex0: NodeIndex = match input_pixel_nodeindex_hashmap.get(&(x, y)) {
+                    Some(nodeindex) => *nodeindex,
+                    None => continue
+                };
+                let pixel_nodeindex1: NodeIndex = match output_pixel_nodeindex_hashmap.get(&(x, y)) {
+                    Some(nodeindex) => *nodeindex,
+                    None => continue
+                };
+
+                let color0: u8 = self.get_color_of_pixel(pixel_nodeindex0)?;
+                let color1: u8 = self.get_color_of_pixel(pixel_nodeindex1)?;
+                let same_color: bool = color0 == color1;
+
+                if !same_color {
+                    continue;
+                }
+
+                let object_nodeindex0: NodeIndex = self.get_object_from_pixel(pixel_nodeindex0, connectivity)?;
+                let object_nodeindex1: NodeIndex = self.get_object_from_pixel(pixel_nodeindex1, connectivity)?;
+        
+                let value0: usize = object_nodeindex0.index();
+                let value1: usize = object_nodeindex1.index();
+                let value_min: usize = value0.min(value1);
+                let value_max: usize = value0.max(value1);
+                same_color_object_pairs.insert((value_min, value_max));
+            }
+        }
+        // println!("connectivity: {:?} object_pairs: {:?}", connectivity, same_color_object_pairs.len());
+
+        for (value_min, value_max) in same_color_object_pairs {
+            let nodeindex0: NodeIndex = NodeIndex::new(value_min);
+            let nodeindex1: NodeIndex = NodeIndex::new(value_max);
+
+            let shapetype0: ShapeType = self.get_shapetype_from_object(nodeindex0, connectivity)?;
+            let shapetype1: ShapeType = self.get_shapetype_from_object(nodeindex1, connectivity)?;
+            if shapetype0 == shapetype1 {
+                continue;
+            }
+            let edge = EdgeData::ObjectChangeShape { shape_type_input: shapetype0, shape_type_output: shapetype1 };
+            self.graph.add_edge(nodeindex0, nodeindex1, edge);
+        }
+
+        Ok(())
+    }
+
     /// Establish edges between the input pixels and the output pixels.
     /// 
     /// This is only relevant when the task uses same size for input and output.
@@ -1042,9 +1181,6 @@ impl TaskGraph {
             )?;
 
             // Future experiments:
-            // Compare all objects inside the input image.
-            // Compare all objects inside the output image.
-
             // Determine if an object is contained inside another object.
             // Example ARC task 776ffc46, where the plus sign is inside a grey box.
             // Example ARC task 6b9890af, where the output image is box with an object scaled up to fill the box.
@@ -1065,6 +1201,14 @@ impl TaskGraph {
                 pair,
                 &input_process_shapes, 
                 &output_process_shapes, 
+                connectivity
+            )?;
+
+            self.find_shapetype_changes_between_input_and_output(
+                task,
+                pair,
+                image_input_node_index, 
+                image_output_node_index, 
                 connectivity
             )?;
 
