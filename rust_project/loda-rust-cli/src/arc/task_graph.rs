@@ -116,6 +116,14 @@ pub enum EdgeData {
     /// However the object has moved to another position.
     ObjectChangePositionAndColor { relative_x: i8, relative_y: i8, color_input: u8, color_output: u8 },
 
+    /// When input size is the same the the output size for all pairs.
+    /// the pixel has the same color in both input and output image.
+    PixelIdentical,
+
+    /// When input size is the same the the output size for all pairs.
+    /// the pixel color differs between input and output.
+    PixelChangeColor { color_input: u8, color_output: u8 },
+
     // PixelNearbyWithSameColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // PixelNearbyWithDifferentColor { edge_type: PixelNeighborEdgeType, distance: u8 },
     // SymmetricPixel { edge_type: PixelNeighborEdgeType },
@@ -746,6 +754,122 @@ impl TaskGraph {
         Ok(())
     }
 
+    fn pixel_nodeindexes_from_image(&self, image_nodeindex: NodeIndex) -> anyhow::Result<HashMap<(u8, u8), NodeIndex>> {
+        match &self.graph[image_nodeindex] {
+            NodeData::Image { size: _ } => {},
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Image"));
+            }
+        }
+
+        let mut position_to_pixelnodeindex: HashMap<(u8, u8), NodeIndex> = HashMap::new();
+
+        for edge_image in self.graph.edges(image_nodeindex) {
+            let pixel_index: NodeIndex = edge_image.target();
+            match &self.graph[pixel_index] {
+                NodeData::Pixel => {},
+                _ => continue
+            }
+
+            // Obtain coordinates (x, y) for this pixel.
+            let mut found_x: Option<u8> = None;
+            let mut found_y: Option<u8> = None;
+            for edge_pixel in self.graph.edges(pixel_index) {
+                let node_index: NodeIndex = edge_pixel.target();
+                match &self.graph[node_index] {
+                    NodeData::PositionX { x } => { found_x = Some(*x); },
+                    NodeData::PositionY { y } => { found_y = Some(*y); },
+                    _ => continue
+                }
+            }
+
+            let (x, y) = match (found_x, found_y) {
+                (Some(x), Some(y)) => (x, y),
+                _ => continue
+            };
+            position_to_pixelnodeindex.insert((x, y), pixel_index);
+        }
+
+        Ok(position_to_pixelnodeindex)
+    }
+
+    fn get_color_of_pixel(&self, pixel_nodeindex: NodeIndex) -> anyhow::Result<u8> {
+        match &self.graph[pixel_nodeindex] {
+            NodeData::Pixel => {},
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Pixel"));
+            }
+        }
+
+        let mut found_color: Option<u8> = None;
+        for edge_pixel in self.graph.edges(pixel_nodeindex) {
+            let node_index: NodeIndex = edge_pixel.target();
+            match &self.graph[node_index] {
+                NodeData::Color { color } => { found_color = Some(*color); },
+                _ => continue
+            }
+        }
+
+        let color: u8 = match found_color {
+            Some(color) => color,
+            None => {
+                return Err(anyhow::anyhow!("expected NodeData::Color"));
+            }
+        };
+
+        Ok(color)
+    }
+
+    /// Establish edges between the input pixels and the output pixels.
+    /// 
+    /// This is only relevant when the task uses same size for input and output.
+    fn find_pixel_color_changes_between_input_and_output(&mut self, task: &Task, pair: &Pair, input_image_nodeindex: NodeIndex, output_image_nodeindex: NodeIndex) -> anyhow::Result<()> {
+        if pair.pair_type == PairType::Test {
+            return Ok(());
+        }
+
+        if !task.is_output_size_same_as_input_size() {
+            return Ok(());
+        }
+        
+        let input_pixel_nodeindex_hashmap: HashMap<(u8, u8), NodeIndex> = self.pixel_nodeindexes_from_image(input_image_nodeindex)?;
+        let output_pixel_nodeindex_hashmap: HashMap<(u8, u8), NodeIndex> = self.pixel_nodeindexes_from_image(output_image_nodeindex)?;
+        
+        let size: ImageSize = pair.input.image.size();
+
+        // loop over the pixels in both input and output image.
+        // if the pixels are the same then insert: `EdgeData::PixelIdentical`
+        // if the pixels are different, then insert: `EdgeData::PixelColorChange`
+        for y in 0..size.height {
+            for x in 0..size.width {
+                let pixel_nodeindex0: NodeIndex = match input_pixel_nodeindex_hashmap.get(&(x, y)) {
+                    Some(nodeindex) => *nodeindex,
+                    None => continue
+                };
+                let pixel_nodeindex1: NodeIndex = match output_pixel_nodeindex_hashmap.get(&(x, y)) {
+                    Some(nodeindex) => *nodeindex,
+                    None => continue
+                };
+
+                let color0: u8 = self.get_color_of_pixel(pixel_nodeindex0)?;
+                let color1: u8 = self.get_color_of_pixel(pixel_nodeindex1)?;
+                let same_color: bool = color0 == color1;
+
+                if same_color {
+                    let edge_data = EdgeData::PixelIdentical;
+                    self.graph.add_edge(pixel_nodeindex0, pixel_nodeindex1, edge_data);
+                    self.graph.add_edge(pixel_nodeindex1, pixel_nodeindex0, edge_data);
+                } else{
+                    let edge_data = EdgeData::PixelChangeColor { color_input: color0, color_output: color1 };
+                    self.graph.add_edge(pixel_nodeindex0, pixel_nodeindex1, edge_data);
+                    self.graph.add_edge(pixel_nodeindex1, pixel_nodeindex0, edge_data);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Determine which objects are touching each other.
     /// 
     /// Establishes `ObjectTouching` edges between these objects.
@@ -895,6 +1019,13 @@ impl TaskGraph {
             self.graph.add_edge(id_node_index, image_output_node_index, EdgeData::Link);
         }
 
+        self.find_pixel_color_changes_between_input_and_output(
+            task,
+            pair,
+            image_input_node_index, 
+            image_output_node_index, 
+        )?;
+
         let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
         for connectivity in connectivity_vec {
             let input_process_shapes: ProcessShapes = self.process_shapes(
@@ -959,6 +1090,8 @@ impl TaskGraph {
         }
 
         // Future experiments:
+        // input images: Compare all the shapes with each other, are there any shapes that are similar?
+        // output images: Compare all the shapes with each other, are there any shapes that are similar?
         // Determine what objects gets passed on from the input to the output.
         // Determine if an object gets inserted just once or multiple times into the output.
         // Determine if all the pairs use the same objects, or if each pair use its own objects.
