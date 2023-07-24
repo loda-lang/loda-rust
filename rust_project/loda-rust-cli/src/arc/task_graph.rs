@@ -864,6 +864,104 @@ impl TaskGraph {
         Err(anyhow::anyhow!("Pixel is not linked with an object. Is supposed to be linked with only one object."))
     }
 
+    /// Find the `Pair` node with the given `pair_index`.
+    fn get_pair(&self, pair_index: u8) -> anyhow::Result<NodeIndex> {
+        let mut found_nodeindex: Option<NodeIndex> = None;
+        let mut ambiguous_count: usize = 0;
+        for node_index in self.graph.node_indices() {
+            match &self.graph[node_index] {
+                NodeData::Pair { pair_index: the_pair_index } => {
+                    if *the_pair_index != pair_index {
+                        continue;
+                    }
+                    found_nodeindex = Some(node_index);
+                    ambiguous_count += 1;
+                },
+                _ => {}
+            }
+        }
+        if ambiguous_count > 1 {
+            return Err(anyhow::anyhow!("Multiple pairs with the same index. There is supposed to be only one pair with the same index."));
+        }
+        let pair_nodeindex: NodeIndex = match found_nodeindex {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("No pair with index {}", pair_index));
+            }
+        };
+        Ok(pair_nodeindex)
+    }
+
+    /// Find the `Image` node via the `Pair` node.
+    fn get_image_for_pair(&self, pair_nodeindex: NodeIndex, image_type: ImageType) -> anyhow::Result<NodeIndex> {
+        let mut found_nodeindex: Option<NodeIndex> = None;
+        let mut ambiguous_count: usize = 0;
+        for edge in self.graph.edges(pair_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::Image { size: _, image_type: the_image_type } => {
+                    if *the_image_type != image_type {
+                        continue;
+                    }
+                    found_nodeindex = Some(node_index);
+                    ambiguous_count += 1;
+                },
+                _ => {}
+            }
+        }
+        if ambiguous_count > 1 {
+            return Err(anyhow::anyhow!("Multiple images with the same ImageType. A pair node is supposed to have have images with unique ImageTypes"));
+        }
+        let image_nodeindex: NodeIndex = match found_nodeindex {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("No image for pair"));
+            }
+        };
+        Ok(image_nodeindex)
+    }
+
+    /// Find the `ObjectsInsideImage` node via the `Image` node.
+    fn get_objectsinsideimage_for_image(&self, image_nodeindex: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<NodeIndex> {
+        let mut found_nodeindex: Option<NodeIndex> = None;
+        let mut ambiguous_count: usize = 0;
+        for edge in self.graph.edges(image_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::ObjectsInsideImage { connectivity: the_connectivity } => {
+                    if *the_connectivity != connectivity {
+                        continue;
+                    }
+                    found_nodeindex = Some(node_index);
+                    ambiguous_count += 1;
+                },
+                _ => {}
+            }
+        }
+        if ambiguous_count > 1 {
+            return Err(anyhow::anyhow!("Multiple ObjectsInsideImage nodes with the same connectivity. Connectivity is supposed to be unique."));
+        }
+        let nodeindex: NodeIndex = match found_nodeindex {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Cannot find ObjectsInsideImage"));
+            }
+        };
+        Ok(nodeindex)
+    }
+
+    fn get_objectsinsideimage_for_pair(&self, pair_index: u8, image_type: ImageType, connectivity: PixelConnectivity) -> anyhow::Result<NodeIndex> {
+        // Find the pair node
+        let pair_nodeindex: NodeIndex = self.get_pair(pair_index)?;
+
+        // Find the image node
+        let image_nodeindex: NodeIndex = self.get_image_for_pair(pair_nodeindex, image_type)?;
+
+        // Find the ObjectsInsideImage node
+        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_image(image_nodeindex, connectivity)?;
+        Ok(objectsinsideimage_nodeindex)
+    }
+
     fn get_shapetype_from_object(&self, object_nodeindex: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<ShapeType> {
         match &self.graph[object_nodeindex] {
             NodeData::Object { connectivity: the_connectivity } => { 
