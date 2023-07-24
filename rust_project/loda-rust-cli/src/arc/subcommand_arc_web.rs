@@ -643,7 +643,7 @@ impl SubcommandARCWeb {
     }
 
     async fn get_prompt(req: Request<State>) -> tide::Result {
-        let _tera: &Tera = &req.state().tera;
+        let tera: &Tera = &req.state().tera;
         let task_id: &str = req.param("task_id").unwrap_or("world");
 
         let task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
@@ -660,10 +660,17 @@ impl SubcommandARCWeb {
 
         let _graph: &Graph<NodeData, EdgeData> = task_graph.graph();
 
-        let response = tide::Response::builder(404)
-            .body("not implemented yet")
-            .content_type("text/plain; charset=utf-8")
+        let mut context2 = tera::Context::new();
+        context2.insert("main_html", &"hello world");
+        context2.insert("task_id", &task_id);
+        context2.insert("task_href", &format!("/task/{}", task_id));
+        let body: String = tera.render("page_prompt.html", &context2).unwrap();
+        
+        let response = Response::builder(200)
+            .body(body)
+            .content_type(mime::HTML)
             .build();
+    
         Ok(response)
     }
 }
