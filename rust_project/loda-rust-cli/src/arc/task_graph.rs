@@ -1364,30 +1364,125 @@ impl TaskGraph {
         let mut rows = Vec::<String>::new();
 
         rows.push("I'm doing Prolog experiments.\n\n".to_string());
+        rows.push("The x and y coordinates represent a 0-indexed grid.\n\n".to_string());
         rows.push("```prolog".to_string());
         for (pair_index, pair) in task.pairs.iter().enumerate() {
+            let pair_index_u8: u8 = pair_index.min(255) as u8;
             if pair.pair_type == PairType::Test {
                 continue;
             }
             if pair_index > 0 {
                 rows.push("\n".to_string());
             }
+
             {
                 let size: ImageSize = pair.input.image.size();
                 let s = format!("% Example {} input grid {}cols_{}rows", pair_index, size.width, size.height);
                 rows.push(s);
             }
+
+            {
+                let object_nodeindex_vec: Vec::<NodeIndex> = self.get_object_nodeindex_vec(pair_index_u8, ImageType::Input)?;
+                for object_nodeindex in &object_nodeindex_vec {
+                    let s0: String = self.natural_language_of_object(*object_nodeindex)?;
+                    let s1: String = format!("object(input{}_{}).", pair_index, s0);
+                    rows.push(s1);
+                }        
+            }
+
             rows.push("\n".to_string());
             {
                 let size: ImageSize = pair.output.image.size();
                 let s = format!("% Example {} output grid {}cols_{}rows", pair_index, size.width, size.height);
                 rows.push(s);
             }
+
+            {
+                let object_nodeindex_vec: Vec::<NodeIndex> = self.get_object_nodeindex_vec(pair_index_u8, ImageType::Output)?;
+                for object_nodeindex in &object_nodeindex_vec {
+                    let s0: String = self.natural_language_of_object(*object_nodeindex)?;
+                    let s1: String = format!("object(output{}_{}).", pair_index, s0);
+                    rows.push(s1);
+                }        
+            }
         }
         rows.push("```".to_string());
         rows.push("\n\nWhat example has the biggest number of columns?".to_string());
 
         Ok(rows.join("\n"))
+    }
+
+    fn get_object_nodeindex_vec(&self, pair_index: u8, image_type: ImageType) -> anyhow::Result<Vec<NodeIndex>> {
+        // Find the ObjectsInsideImage { connectivity: Connectivity8 } for the current pair's input image.
+        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, PixelConnectivity::Connectivity8)?;
+        let mut object_nodeindex_vec = Vec::<NodeIndex>::new();
+        for edge in self.graph.edges(objectsinsideimage_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::Object { connectivity: _ } => {
+                    object_nodeindex_vec.push(node_index);
+                },
+                _ => {}
+            }
+        }
+
+        // Ignore objects where the background color is black.
+        let mut object_nodeindex_vec2 = Vec::<NodeIndex>::new();
+        for object_nodeindex in &object_nodeindex_vec {
+            for edge in self.graph.edges(*object_nodeindex) {
+                let node_index: NodeIndex = edge.target();
+                match &self.graph[node_index] {
+                    NodeData::Color { color } => {
+                        if *color == 0 {
+                            continue;
+                        }
+                        object_nodeindex_vec2.push(*object_nodeindex);
+                    },
+                    _ => {}
+                }
+            }
+        }
+
+        Ok(object_nodeindex_vec2)
+    }
+
+    fn natural_language_of_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<String> {
+        let mut found_position_x: Option<u8> = None;
+        let mut found_position_y: Option<u8> = None;
+        let mut found_mass: Option<u16> = None;
+        let mut found_color: Option<u8> = None;
+        for edge in self.graph.edges(object_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::PositionX { x } => {
+                    found_position_x = Some(*x);
+                },
+                NodeData::PositionY { y } => {
+                    found_position_y = Some(*y);
+                },
+                NodeData::Mass { mass } => {
+                    found_mass = Some(*mass);
+                },
+                NodeData::Color { color } => {
+                    found_color = Some(*color);
+                },
+                _ => {}
+            }
+        }
+        let mut s = String::new();
+        if let Some(color) = found_color {
+            s += &format!("color{}_", color);
+        }
+        if let Some(position_x) = found_position_x {
+            s += &format!("x{}_", position_x);
+        }
+        if let Some(position_y) = found_position_y {
+            s += &format!("y{}_", position_y);
+        }
+        if let Some(mass) = found_mass {
+            s += &format!("mass{}", mass);
+        }
+        Ok(s)
     }
 }
 
