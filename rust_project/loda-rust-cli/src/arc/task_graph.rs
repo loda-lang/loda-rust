@@ -1372,7 +1372,7 @@ impl TaskGraph {
                 continue;
             }
             if pair_index > 0 {
-                rows.push("\n".to_string());
+                rows.push("".to_string());
             }
 
             {
@@ -1390,7 +1390,7 @@ impl TaskGraph {
                 }        
             }
 
-            rows.push("\n".to_string());
+            rows.push("".to_string());
             {
                 let size: ImageSize = pair.output.image.size();
                 let s = format!("% Example {} output grid {}cols_{}rows", pair_index, size.width, size.height);
@@ -1408,7 +1408,59 @@ impl TaskGraph {
         }
         rows.push("```".to_string());
         // rows.push("\n\nWhat example has the biggest number of columns?".to_string());
-        rows.push("\n\nWhat are the transformations across all the examples, that goes from the input to the output?".to_string());
+        // rows.push("\n\nWhat are the transformations across all the examples, that goes from the input to the output?".to_string());
+        rows.push("\n\nThink step by step, what are the transformations across all the examples, that goes from the input to the output.".to_string());
+
+        rows.push("With the following example, I want you to predict what the output should be\n\n".to_string());
+        rows.push("```prolog".to_string());
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            let pair_index_u8: u8 = pair_index.min(255) as u8;
+            if pair.pair_type == PairType::Train {
+                continue;
+            }
+            if pair_index > 0 {
+                rows.push("".to_string());
+            }
+
+            {
+                let size: ImageSize = pair.input.image.size();
+                let s = format!("% Example {} input grid {}cols_{}rows", pair_index, size.width, size.height);
+                rows.push(s);
+            }
+
+            {
+                let object_nodeindex_vec: Vec::<NodeIndex> = self.get_object_nodeindex_vec(pair_index_u8, ImageType::Input)?;
+                for object_nodeindex in &object_nodeindex_vec {
+                    let s0: String = self.natural_language_of_object(*object_nodeindex)?;
+                    let s1: String = format!("object(input{}_{}).", pair_index, s0);
+                    rows.push(s1);
+                }        
+            }
+
+            rows.push("".to_string());
+            {
+                let grid_size: String = match task.predict_output_size_for_pair(pair) {
+                    Ok(size) => {
+                        format!("{}cols_{}rows", size.width, size.height)
+                    },
+                    Err(_) => {
+                        format!("PREDICTcols_PREDICTrows")
+                    }
+                };
+                let s = format!("% Example {} output grid {}", pair_index, grid_size);
+                rows.push(s);
+            }
+
+            {
+                rows.push(format!("PREDICT the lines that starts with object(output{}_", pair_index));
+            }
+
+            // Future experiment:
+            // process all the test pairs. Currently it's only 1 test pair.
+            break;
+        }
+        rows.push("```".to_string());
+        rows.push("Repeat the previous example prolog code, with the PREDICT replaced with your predictions.".to_string());
 
         Ok(rows.join("\n"))
     }
