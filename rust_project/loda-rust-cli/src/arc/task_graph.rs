@@ -141,6 +141,7 @@ pub enum EdgeData {
 #[derive(Clone, Debug)]
 pub struct TaskGraph {
     graph: petgraph::Graph<NodeData, EdgeData>,
+    task: Option<Task>,
 }
 
 impl TaskGraph {
@@ -148,6 +149,7 @@ impl TaskGraph {
     pub fn new() -> Self {
         Self {
             graph: petgraph::Graph::new(),
+            task: None,
         }
     }
 
@@ -1233,6 +1235,8 @@ impl TaskGraph {
             self.populate_with_pair(task, pair, task_node_index)?;
         }
 
+        self.task = Some(task.clone());
+
         // Future experiments:
         // input images: Compare all the shapes with each other, are there any shapes that are similar?
         // output images: Compare all the shapes with each other, are there any shapes that are similar?
@@ -1244,6 +1248,43 @@ impl TaskGraph {
         // Determine if one/multiple object gets moved around and all the other objects stay in the same place.
         // Do they move in the same direction? Do they move the same distance? Do they align with each other?
         Ok(())
+    }
+
+    pub fn to_prompt(&self) -> anyhow::Result<String> {
+        let task: &Task = match &self.task {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("graph is not initialized with a task"));
+            }
+        };
+
+        let mut rows = Vec::<String>::new();
+
+        rows.push("I'm doing Prolog experiments.\n\n".to_string());
+        rows.push("```prolog".to_string());
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            if pair.pair_type == PairType::Test {
+                continue;
+            }
+            if pair_index > 0 {
+                rows.push("\n".to_string());
+            }
+            {
+                let size: ImageSize = pair.input.image.size();
+                let s = format!("% Example {} input grid {}cols_{}rows", pair_index, size.width, size.height);
+                rows.push(s);
+            }
+            rows.push("\n".to_string());
+            {
+                let size: ImageSize = pair.output.image.size();
+                let s = format!("% Example {} output grid {}cols_{}rows", pair_index, size.width, size.height);
+                rows.push(s);
+            }
+        }
+        rows.push("```".to_string());
+        rows.push("\n\nWhat example has the biggest number of columns?".to_string());
+
+        Ok(rows.join("\n"))
     }
 }
 

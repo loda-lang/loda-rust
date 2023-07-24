@@ -658,10 +658,10 @@ impl SubcommandARCWeb {
             }
         };
 
-        let _graph: &Graph<NodeData, EdgeData> = task_graph.graph();
+        let prompt: String = task_graph.to_prompt()?;
 
         let mut context2 = tera::Context::new();
-        context2.insert("main_html", &"hello world");
+        context2.insert("prompt_text", &prompt);
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
         let body: String = tera.render("page_prompt.html", &context2).unwrap();
