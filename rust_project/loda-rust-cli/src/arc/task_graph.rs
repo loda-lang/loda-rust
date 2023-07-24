@@ -34,12 +34,18 @@ use std::collections::{HashSet, HashMap};
 /// if it's all single pixel shapes that are to be compared.
 static SHAPETYPE_COMPARISON_LIMIT: usize = 100;
 
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub enum ImageType {
+    Input,
+    Output,
+}
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NodeData {
     Task,
     Id { id: String },
     Pair { pair_index: u8 },
-    Image { size: ImageSize },
+    Image { size: ImageSize, image_type: ImageType },
     Pixel,
     Color { color: u8 },
     Mass { mass: u16 },
@@ -159,9 +165,8 @@ impl TaskGraph {
     }
 
     /// Returns the `NodeIndex` of the created image node.
-    #[allow(dead_code)]
-    pub fn add_image(&mut self, image: &Image) -> anyhow::Result<NodeIndex> {
-        let node_image = NodeData::Image { size: image.size() };
+    pub fn add_image(&mut self, image: &Image, image_type: ImageType) -> anyhow::Result<NodeIndex> {
+        let node_image = NodeData::Image { size: image.size(), image_type };
         let image_index: NodeIndex = self.graph.add_node(node_image);
 
         let mut indexes_pixels: Vec<NodeIndex> = Vec::new();
@@ -268,7 +273,7 @@ impl TaskGraph {
     #[allow(dead_code)]
     pub fn to_image(&self, image_index: NodeIndex) -> anyhow::Result<Image> {
         let size: ImageSize = match &self.graph[image_index] {
-            NodeData::Image { size } => *size,
+            NodeData::Image { size , image_type: _ } => *size,
             _ => { 
                 return Err(anyhow::anyhow!("Expected NodeData::Image at index {:?}.", image_index)); 
             }
@@ -318,7 +323,7 @@ impl TaskGraph {
         let object_index: NodeIndex = self.graph.add_node(node_object);
 
         let size = match &self.graph[image_index] {
-            NodeData::Image { size } => *size,
+            NodeData::Image { size, image_type: _ } => *size,
             _ => { 
                 return Err(anyhow::anyhow!("Expected NodeData::Image at index {:?}.", image_index)); 
             }
@@ -763,7 +768,7 @@ impl TaskGraph {
 
     fn pixel_nodeindexes_from_image(&self, image_nodeindex: NodeIndex) -> anyhow::Result<HashMap<(u8, u8), NodeIndex>> {
         match &self.graph[image_nodeindex] {
-            NodeData::Image { size: _ } => {},
+            NodeData::Image { size: _, image_type: _ } => {},
             _ => { 
                 return Err(anyhow::anyhow!("expected NodeData::Image"));
             }
@@ -1023,7 +1028,7 @@ impl TaskGraph {
 
         let image_size: ImageSize;
         match &self.graph[image_nodeindex] {
-            NodeData::Image { size } => { image_size = *size; },
+            NodeData::Image { size, image_type: _ } => { image_size = *size; },
             _ => { 
                 return Err(anyhow::anyhow!("expected NodeData::Image"));
             }
@@ -1126,7 +1131,7 @@ impl TaskGraph {
             self.graph.add_edge(pair_node_index, task_node_index, EdgeData::Parent);
         }
 
-        let image_input_node_index: NodeIndex = match self.add_image(&pair.input.image) {
+        let image_input_node_index: NodeIndex = match self.add_image(&pair.input.image, ImageType::Input) {
             Ok(value) => value,
             Err(error) => {
                 return Err(anyhow::anyhow!("pair[{}].input.image cannot add image. {:?}", pair.pair_index, error));
@@ -1136,7 +1141,7 @@ impl TaskGraph {
         self.graph.add_edge(pair_node_index, image_input_node_index, EdgeData::Child);
         self.graph.add_edge(image_input_node_index, pair_node_index, EdgeData::Parent);
 
-        let image_output_node_index: NodeIndex = match self.add_image(&pair.output.image) {
+        let image_output_node_index: NodeIndex = match self.add_image(&pair.output.image, ImageType::Output) {
             Ok(value) => value,
             Err(error) => {
                 return Err(anyhow::anyhow!("pair[{}].output.image cannot add image. {:?}", pair.pair_index, error));
@@ -1334,7 +1339,7 @@ mod tests {
         let mut instance = TaskGraph::new();
 
         // Act
-        let image_index: NodeIndex = instance.add_image(&input).expect("NodeIndex");
+        let image_index: NodeIndex = instance.add_image(&input, ImageType::Input).expect("NodeIndex");
         let actual: Image = instance.to_image(image_index).expect("Image");
 
         // Assert
@@ -1368,8 +1373,8 @@ mod tests {
         let mut instance = TaskGraph::new();
 
         // Act
-        let image_index0: NodeIndex = instance.add_image(&image0).expect("NodeIndex");
-        let _image_index1: NodeIndex = instance.add_image(&image1).expect("NodeIndex");
+        let image_index0: NodeIndex = instance.add_image(&image0, ImageType::Input).expect("NodeIndex");
+        let _image_index1: NodeIndex = instance.add_image(&image1, ImageType::Output).expect("NodeIndex");
 
         // Future experiment
         // compare both images, update metadata
