@@ -1418,6 +1418,17 @@ impl TaskGraph {
             if pair.pair_type == PairType::Train {
                 continue;
             }
+
+            // Future experiment:
+            // How do I loop over all the pairs. Can I do it with a single prompt, that contains all the pairs?
+            // Or do I have to do prompting for each pair individually?
+            // if pair_index == 4 {
+            //     continue;
+            // }
+            // if pair_index == 5 {
+            //     continue;
+            // }
+            
             if pair_index > 0 {
                 rows.push("".to_string());
             }
