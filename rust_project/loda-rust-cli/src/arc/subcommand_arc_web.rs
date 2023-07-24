@@ -101,11 +101,9 @@ impl SubcommandARCWeb {
         });
         app.at("/task").get(Self::get_task_list);
         app.at("/task/:task_id").get(Self::get_task_with_id);
-
+        app.at("/task/:task_id/prompt").get(Self::get_prompt);
         app.at("/task/:task_id/find-node-pixel").get(Self::find_node_pixel);
-
         app.at("/task/:task_id/node/:node_id").get(Self::get_node);
-
         app.at("/static").serve_dir(&dir_static)?;
         app.listen("127.0.0.1:8090").await?;
 
@@ -239,6 +237,7 @@ impl SubcommandARCWeb {
         context.insert("task_id", task_id);
         context.insert("tasklist_href", "/task");
         context.insert("node_href", &format!("/task/{}/node/0", task_id));
+        context.insert("prompt_href", &format!("/task/{}/prompt", task_id));
         let html: String = tera.render("page_inspect_task.html", &context).unwrap();
     
         let response = Response::builder(200)
@@ -643,6 +642,30 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
+    async fn get_prompt(req: Request<State>) -> tide::Result {
+        let _tera: &Tera = &req.state().tera;
+        let task_id: &str = req.param("task_id").unwrap_or("world");
+
+        let task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
+            Ok(value) => value,
+            Err(error) => {
+                error!("cannot load the task_graph. error: {:?}", error);
+                let response = tide::Response::builder(404)
+                    .body("cannot load the task_graph.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+
+        let _graph: &Graph<NodeData, EdgeData> = task_graph.graph();
+
+        let response = tide::Response::builder(404)
+            .body("not implemented yet")
+            .content_type("text/plain; charset=utf-8")
+            .build();
+        Ok(response)
+    }
 }
 
 #[derive(Clone, Debug, Default)]
