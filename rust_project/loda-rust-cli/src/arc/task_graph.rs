@@ -1407,7 +1407,8 @@ impl TaskGraph {
             }
         }
         rows.push("```".to_string());
-        rows.push("\n\nWhat example has the biggest number of columns?".to_string());
+        // rows.push("\n\nWhat example has the biggest number of columns?".to_string());
+        rows.push("\n\nWhat are the transformations across all the examples, that goes from the input to the output?".to_string());
 
         Ok(rows.join("\n"))
     }
@@ -1449,8 +1450,10 @@ impl TaskGraph {
     fn natural_language_of_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<String> {
         let mut found_position_x: Option<u8> = None;
         let mut found_position_y: Option<u8> = None;
+        let mut found_shapesize: Option<ImageSize> = None;
         let mut found_mass: Option<u16> = None;
         let mut found_color: Option<u8> = None;
+        let mut found_shapetype: Option<ShapeType> = None;
         for edge in self.graph.edges(object_nodeindex) {
             let node_index: NodeIndex = edge.target();
             match &self.graph[node_index] {
@@ -1460,11 +1463,17 @@ impl TaskGraph {
                 NodeData::PositionY { y } => {
                     found_position_y = Some(*y);
                 },
+                NodeData::ShapeSize { width, height } => {
+                    found_shapesize = Some(ImageSize::new(*width, *height));
+                },
                 NodeData::Mass { mass } => {
                     found_mass = Some(*mass);
                 },
                 NodeData::Color { color } => {
                     found_color = Some(*color);
+                },
+                NodeData::ShapeType { shape_type } => {
+                    found_shapetype = Some(*shape_type);
                 },
                 _ => {}
             }
@@ -1479,8 +1488,14 @@ impl TaskGraph {
         if let Some(position_y) = found_position_y {
             s += &format!("y{}_", position_y);
         }
+        if let Some(size) = found_shapesize {
+            s += &format!("width{}_height{}_", size.width, size.height);
+        }
         if let Some(mass) = found_mass {
-            s += &format!("mass{}", mass);
+            s += &format!("mass{}_", mass);
+        }
+        if let Some(shapetype) = found_shapetype {
+            s += &format!("shape{:?}", shapetype);
         }
         Ok(s)
     }
