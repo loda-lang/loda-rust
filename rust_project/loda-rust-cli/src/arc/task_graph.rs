@@ -23,7 +23,7 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
-use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle};
+use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle, ShapeTransformation};
 use super::arc_work_model::{Task, Pair, PairType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
@@ -58,6 +58,7 @@ pub enum NodeData {
     ShapeType { shape_type: ShapeType },
     ShapeScale { x: u8, y: u8 },
     ShapeSize { width: u8, height: u8 },
+    ShapeTransformations { transformations: Vec<ShapeTransformation> },
     // Input,
     // Output,
     // PairTrain,
@@ -467,6 +468,13 @@ impl TaskGraph {
 
             {
                 let node = NodeData::Mass { mass: color_and_shape.shape_identification.mass };
+                let index: NodeIndex = self.graph.add_node(node);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
+            }
+
+            {
+                let transformations: Vec<ShapeTransformation> = color_and_shape.shape_identification.transformations_sorted_vec();
+                let node = NodeData::ShapeTransformations { transformations };
                 let index: NodeIndex = self.graph.add_node(node);
                 self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }

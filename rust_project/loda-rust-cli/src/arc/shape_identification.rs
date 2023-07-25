@@ -1283,6 +1283,15 @@ impl ShapeIdentification {
         Ok((transformations, first_image))
     }
 
+    pub fn transformations_sorted_vec(&self) -> Vec<ShapeTransformation> {
+        let mut transformations = Vec::<ShapeTransformation>::new();
+        for transformation in &self.transformations {
+            transformations.push(transformation.clone());
+        }
+        transformations.sort();
+        transformations
+    }
+
     #[cfg(test)]
     fn scale_to_string(&self) -> String {
         match &self.scale {
