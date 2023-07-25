@@ -32,11 +32,11 @@ lazy_static! {
 
 /// XY coordinates for Top-Left corner and Bottom-Right corner. Aka. `TLBR`.
 #[derive(Clone, Debug)]
-struct TLBR {
-    top: i8,
-    left: i8,
-    bottom: i8,
-    right: i8,
+pub struct TLBR {
+    pub top: i8,
+    pub left: i8,
+    pub bottom: i8,
+    pub right: i8,
 }
 
 impl TryFrom<&str> for TLBR {
@@ -76,8 +76,8 @@ impl TryFrom<&str> for TLBR {
 /// In ARC the color is an opaque value that has no meaning other than being a symbol identifier,
 /// that uniquely identifies each color.
 #[derive(Clone, Debug)]
-struct FieldId {
-    id: String,
+pub struct FieldId {
+    pub id: String,
 }
 
 impl TryFrom<&str> for FieldId {
@@ -102,9 +102,9 @@ impl TryFrom<&str> for FieldId {
 
 /// The `FieldMass` holds the mass of the object.
 #[derive(Clone, Debug)]
-struct FieldMass {
+pub struct FieldMass {
     /// The max image size is 255x255, so it fits in a u16.
-    mass: u16,
+    pub mass: u16,
 }
 
 impl TryFrom<&str> for FieldMass {
@@ -130,8 +130,8 @@ impl TryFrom<&str> for FieldMass {
 
 /// The `FieldShape` holds the shape type.
 #[derive(Clone, Debug)]
-struct FieldShape {
-    shape_name: String,
+pub struct FieldShape {
+    pub shape_name: String,
 }
 
 impl TryFrom<&str> for FieldShape {
@@ -156,9 +156,9 @@ impl TryFrom<&str> for FieldShape {
 
 /// The `FieldTransform` holds the transformations of the object.
 #[derive(Clone, Debug)]
-struct FieldTransform {
-    raw: String,
-    transformations: HashSet<ShapeTransformation>,
+pub struct FieldTransform {
+    pub raw: String,
+    pub transformations: HashSet<ShapeTransformation>,
 }
 
 impl TryFrom<&str> for FieldTransform {
@@ -212,11 +212,11 @@ impl TryFrom<&str> for FieldTransform {
 }
 
 #[derive(Clone, Debug)]
-struct ParseNaturalLanguage {
-    lines: Vec<String>,
+pub struct NaturalLanguage {
+    pub lines: Vec<String>,
 }
 
-impl ParseNaturalLanguage {
+impl NaturalLanguage {
     fn interpret_line(line_index: usize, line: &str) {
         println!("line: {}", line_index);
         if let Ok(id) = FieldId::try_from(line) {
@@ -243,7 +243,7 @@ impl ParseNaturalLanguage {
     }
 }
 
-impl TryFrom<&str> for ParseNaturalLanguage {
+impl TryFrom<&str> for NaturalLanguage {
     type Error = anyhow::Error;
 
     /// Extract the interesting parts from the prompt response.
@@ -449,7 +449,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     #[test]
     fn test_60000_parse_ok() {
         // Act
-        let actual: ParseNaturalLanguage = ParseNaturalLanguage::try_from(RESPONSE1).expect("ok");
+        let actual: NaturalLanguage = NaturalLanguage::try_from(RESPONSE1).expect("ok");
         // actual.interpret();
 
         // Assert
@@ -462,7 +462,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
         let s = "Text without code block\n\njunk\nignore";
 
         // Act
-        let error = ParseNaturalLanguage::try_from(s).expect_err("is supposed to fail");
+        let error = NaturalLanguage::try_from(s).expect_err("is supposed to fail");
 
         // Assert
         let message = error.to_string();
@@ -480,7 +480,7 @@ junk2.
 "#;
 
         // Act
-        let error = ParseNaturalLanguage::try_from(s).expect_err("is supposed to fail");
+        let error = NaturalLanguage::try_from(s).expect_err("is supposed to fail");
 
         // Assert
         let message = error.to_string();
