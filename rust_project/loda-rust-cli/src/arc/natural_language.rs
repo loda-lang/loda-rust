@@ -3,7 +3,9 @@ struct ParseNaturalLanguage {
     lines: Vec<String>,
 }
 
-impl ParseNaturalLanguage {
+impl TryFrom<&str> for ParseNaturalLanguage {
+    type Error = anyhow::Error;
+
     /// Extract the interesting parts from the prompt response.
     /// 
     /// The response is supposed to contain a markdown formatted text
@@ -15,7 +17,7 @@ impl ParseNaturalLanguage {
     /// 
     /// It's the `object(output...` lines that are of interest,
     /// that gets extracted.
-    fn parse(multiline_text: &str) -> anyhow::Result<Self> {
+    fn try_from(multiline_text: &str) -> Result<Self, Self::Error> {
         let mut lines_with_prefix = Vec::<String>::new();
         let mut inside_code_block = false;
         let mut count_unrecognized_inside_code_block: usize = 0;
@@ -52,10 +54,10 @@ impl ParseNaturalLanguage {
             count_unrecognized_inside_code_block += 1;
         }
         if count_code_block == 0 {
-            anyhow::bail!("No code block found");
+            anyhow::bail!("No code block found. Expected a code block starting with 3 backticks and prolog.");
         }
         if count_code_block >= 2 {
-            anyhow::bail!("Multiple code blocks found");
+            anyhow::bail!("Multiple code blocks found. Expected just one code block starting with 3 backticks and prolog.");
         }
         if count_unrecognized_inside_code_block > 0 {
             anyhow::bail!("{} unrecognized lines inside the code block", count_unrecognized_inside_code_block);
@@ -105,7 +107,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     #[test]
     fn test_10000_parse_ok() {
         // Act
-        let actual: ParseNaturalLanguage = ParseNaturalLanguage::parse(RESPONSE1).expect("ok");
+        let actual: ParseNaturalLanguage = ParseNaturalLanguage::try_from(RESPONSE1).expect("ok");
 
         // Assert
         assert_eq!(actual.lines.len(), 3);
@@ -117,7 +119,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
         let s = "Text without code block\n\njunk\nignore";
 
         // Act
-        let error = ParseNaturalLanguage::parse(&s).expect_err("is supposed to fail");
+        let error = ParseNaturalLanguage::try_from(s).expect_err("is supposed to fail");
 
         // Assert
         let message = error.to_string();
@@ -135,7 +137,7 @@ junk2.
 "#;
 
         // Act
-        let error = ParseNaturalLanguage::parse(&s).expect_err("is supposed to fail");
+        let error = ParseNaturalLanguage::try_from(s).expect_err("is supposed to fail");
 
         // Assert
         let message = error.to_string();
