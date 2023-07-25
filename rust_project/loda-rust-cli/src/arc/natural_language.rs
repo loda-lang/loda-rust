@@ -2,13 +2,19 @@ use regex::Regex;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    /// Extract the bounding box from strings like: `t3_l7_b7_r11`
+    /// Extract the bounding box from strings like: `ignore_t3_l7_b7_r11_ignore`
     static ref EXTRACT_TLBR: Regex = Regex::new(
         "t(-?\\d+)_l(-?\\d+)_b(-?\\d+)_r(-?\\d+)"
+    ).unwrap();
+
+    /// Extract the `id` prefixed data from strings like: `ignore_idP3d53ef_ignore`
+    static ref EXTRACT_ID: Regex = Regex::new(
+        "id([A-Za-z0-9]{1,10})"
     ).unwrap();
 }
 
 /// XY coordinates for Top-Left corner and Bottom-Right corner. Aka. `TLBR`.
+#[derive(Clone, Debug)]
 struct TLBR {
     top: i8,
     left: i8,
@@ -19,13 +25,13 @@ struct TLBR {
 impl TryFrom<&str> for TLBR {
     type Error = anyhow::Error;
 
-    /// Extract the bounding box from strings like: `t3_l7_b7_r11`
+    /// Extract the bounding box from strings like: `ignore_t3_l7_b7_r11_ignore`
     fn try_from(singleline_text: &str) -> Result<Self, Self::Error> {
         let re = &EXTRACT_TLBR;
         let captures = match re.captures(&singleline_text) {
             Some(value) => value,
             None => {
-                anyhow::bail!("Unable to extract TLBR parameters from string");
+                anyhow::bail!("Unable to extract TLBR from string");
             }
         };
         let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
@@ -46,9 +52,58 @@ impl TryFrom<&str> for TLBR {
     }
 }
 
+/// The `FieldID` holds the obfuscated color value.
+///
+/// The non-obfuscated color value didn't work with the language models I have tried. 
+/// Often the language model would interpret the color as an integer value or RGB value.
+/// In ARC the color is an opaque value that has no meaning other than being a symbol identifier,
+/// that uniquely identifies each color.
+#[derive(Clone, Debug)]
+struct FieldId {
+    id: String,
+}
+
+impl TryFrom<&str> for FieldId {
+    type Error = anyhow::Error;
+
+    /// Extract the `id` prefixed data from strings like: `ignore_idP3d53ef_ignore`
+    fn try_from(singleline_text: &str) -> Result<Self, Self::Error> {
+        let re = &EXTRACT_ID;
+        let captures = match re.captures(&singleline_text) {
+            Some(value) => value,
+            None => {
+                anyhow::bail!("Unable to extract ID from string");
+            }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let instance = Self {
+            id: capture1.to_string(),
+        };
+        Ok(instance)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct ParseNaturalLanguage {
     lines: Vec<String>,
+}
+
+impl ParseNaturalLanguage {
+    fn interpret_line(line_index: usize, line: &str) {
+        println!("line: {}", line_index);
+        if let Ok(id) = FieldId::try_from(line) {
+            println!("id: {:?}", id);
+        }
+        if let Ok(tlbr) = TLBR::try_from(line) {
+            println!("tlbr: {:?}", tlbr);
+        }
+    }
+
+    fn interpret(&self) {
+        for (line_index, line) in self.lines.iter().enumerate() {
+            Self::interpret_line(line_index, line);
+        }
+    }
 }
 
 impl TryFrom<&str> for ParseNaturalLanguage {
@@ -177,16 +232,26 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_20000_parse_ok() {
+    fn test_20000_id_value() {
+        // Act
+        let actual: FieldId = FieldId::try_from("junk_idP33ffe7_junk").expect("ok");
+
+        // Assert
+        assert_eq!(actual.id, "P33ffe7");
+    }
+
+    #[test]
+    fn test_30000_parse_ok() {
         // Act
         let actual: ParseNaturalLanguage = ParseNaturalLanguage::try_from(RESPONSE1).expect("ok");
+        // actual.interpret();
 
         // Assert
         assert_eq!(actual.lines.len(), 3);
     }
 
     #[test]
-    fn test_20100_parse_error() {
+    fn test_30100_parse_error() {
         // Arrange
         let s = "Text without code block\n\njunk\nignore";
 
@@ -199,7 +264,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_20101_parse_unrecognized_stuff_inside_code_block() {
+    fn test_30101_parse_unrecognized_stuff_inside_code_block() {
         // Arrange
         let s = r#"
 ```prolog
