@@ -964,6 +964,20 @@ impl ShapeTransformation {
     }
 
     #[allow(dead_code)]
+    pub fn natural_language_name(&self) -> &str {
+        match self {
+            Self::Normal => "rot0",
+            Self::RotateCw90 => "rot90",
+            Self::RotateCw180 => "rot180",
+            Self::RotateCw270 => "rot270",
+            Self::FlipX => "flip",
+            Self::FlipXRotateCw90 => "flip90",
+            Self::FlipXRotateCw180 => "flip180",
+            Self::FlipXRotateCw270 => "flip270",
+        }
+    }
+
+    #[allow(dead_code)]
     fn perform_all_transformations(image: &Image) -> anyhow::Result<Vec<(ShapeTransformation, Image)>> {
         let mut transformations = Vec::<(ShapeTransformation, Image)>::new();
         {

@@ -1525,6 +1525,8 @@ impl TaskGraph {
         let mut found_mass: Option<u16> = None;
         let mut found_color: Option<u8> = None;
         let mut found_shapetype: Option<ShapeType> = None;
+        let mut found_shapetransformations: Option<String> = None;
+        let mut found_shapescale: Option<String> = None;
         for edge in self.graph.edges(object_nodeindex) {
             let node_index: NodeIndex = edge.target();
             match &self.graph[node_index] {
@@ -1546,27 +1548,50 @@ impl TaskGraph {
                 NodeData::ShapeType { shape_type } => {
                     found_shapetype = Some(*shape_type);
                 },
+                NodeData::ShapeTransformations { transformations } => {
+                    if transformations.len() == 8 {
+                        found_shapetransformations = Some("all".to_string());
+                        continue;
+                    }
+                    let items: Vec<String> = transformations.iter().map(|t| t.natural_language_name().to_string()).collect::<Vec<String>>();
+                    let s = format!("{}", items.join("_"));
+                    found_shapetransformations = Some(s);
+                },
+                NodeData::ShapeScale { x, y } => {
+                    let s = format!("scalex{}_scaley{}", x, y);
+                    found_shapescale = Some(s);
+            },
                 _ => {}
             }
         }
-        let mut s = String::new();
+        let mut items = Vec::<String>::new();
         if let Some(color) = found_color {
-            s += &format!("color{}_", color);
+            items.push(format!("color{}", color));
         }
         if let Some(position_x) = found_position_x {
-            s += &format!("x{}_", position_x);
+            items.push(format!("x{}", position_x));
         }
         if let Some(position_y) = found_position_y {
-            s += &format!("y{}_", position_y);
+            items.push(format!("y{}", position_y));
         }
         if let Some(size) = found_shapesize {
-            s += &format!("width{}_height{}_", size.width, size.height);
+            items.push(format!("width{}_height{}", size.width, size.height));
         }
         if let Some(mass) = found_mass {
-            s += &format!("mass{}_", mass);
+            items.push(format!("mass{}", mass));
         }
         if let Some(shapetype) = found_shapetype {
-            s += &format!("shape{:?}", shapetype);
+            items.push(format!("shape{:?}", shapetype));
+        }
+        if let Some(shapescale) = found_shapescale {
+            items.push(shapescale);
+        } else {
+            items.push(format!("scaleUnknown"));
+        }
+        let mut s = String::new();
+        s += &items.join("_");
+        if let Some(shapetransformations) = found_shapetransformations {
+            s += &format!(", transform({})", shapetransformations);
         }
         Ok(s)
     }
