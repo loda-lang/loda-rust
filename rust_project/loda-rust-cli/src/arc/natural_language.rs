@@ -21,6 +21,11 @@ lazy_static! {
     static ref EXTRACT_MASS: Regex = Regex::new(
         "mass(\\d+)"
     ).unwrap();
+
+    /// Extract the `transform(...)` values from strings like: `transform(rot90_rot270_flip90_flip270)`
+    static ref EXTRACT_TRANSFORM: Regex = Regex::new(
+        "transform[(]([a-z0-9_]{1,100})[)]"
+    ).unwrap();
 }
 
 /// XY coordinates for Top-Left corner and Bottom-Right corner. Aka. `TLBR`.
@@ -147,6 +152,33 @@ impl TryFrom<&str> for FieldShape {
     }
 }
 
+/// The `FieldTransform` holds the transformations of the object.
+#[derive(Clone, Debug)]
+struct FieldTransform {
+    raw: String,
+}
+
+impl TryFrom<&str> for FieldTransform {
+    type Error = anyhow::Error;
+
+    /// Extract the `transform` data from strings like: `transform(rot90_rot270)`
+    fn try_from(singleline_text: &str) -> Result<Self, Self::Error> {
+        let re = &EXTRACT_TRANSFORM;
+        let captures = match re.captures(&singleline_text) {
+            Some(value) => value,
+            None => {
+                anyhow::bail!("Unable to extract TRANSFORM from string");
+            }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let raw: String = capture1.to_string();
+        let instance = Self {
+            raw,
+        };
+        Ok(instance)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct ParseNaturalLanguage {
     lines: Vec<String>,
@@ -166,6 +198,9 @@ impl ParseNaturalLanguage {
         }
         if let Ok(mass) = FieldMass::try_from(line) {
             println!("mass: {:?}", mass);
+        }
+        if let Ok(transform) = FieldTransform::try_from(line) {
+            println!("transform: {:?}", transform);
         }
     }
 
@@ -338,7 +373,16 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_50000_parse_ok() {
+    fn test_50000_field_transform() {
+        // Act
+        let actual: FieldTransform = FieldTransform::try_from("mass16_shapeBoxWithTwoHoles_scaleUnknown, transform(rot90_rot270_flip90_flip270)).").expect("ok");
+
+        // Assert
+        assert_eq!(actual.raw, "rot90_rot270_flip90_flip270");
+    }
+
+    #[test]
+    fn test_60000_parse_ok() {
         // Act
         let actual: ParseNaturalLanguage = ParseNaturalLanguage::try_from(RESPONSE1).expect("ok");
         // actual.interpret();
@@ -348,7 +392,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_50100_parse_error() {
+    fn test_60100_parse_error() {
         // Arrange
         let s = "Text without code block\n\njunk\nignore";
 
@@ -361,7 +405,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_50101_parse_unrecognized_stuff_inside_code_block() {
+    fn test_60101_parse_unrecognized_stuff_inside_code_block() {
         // Arrange
         let s = r#"
 ```prolog
