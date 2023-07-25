@@ -1383,7 +1383,8 @@ impl TaskGraph {
         rows.push("The width of the object bounding box has a 'w' prefix, like 'w5' is width=5.".to_string());
         rows.push("The height of the object bounding box has a 'h' prefix, like 'h3' is height=3.\n\n".to_string());
 
-        rows.push("The color symbols have no integer value nor RGB value.\n\n".to_string());
+        // rows.push("The color symbols have no integer value nor RGB value.\n\n".to_string());
+        rows.push("The `id` prefixed text has no integer value and should not be considered.\n\n".to_string());
 
         rows.push("```prolog".to_string());
         for (pair_index, pair) in task.pairs.iter().enumerate() {
@@ -1596,7 +1597,7 @@ impl TaskGraph {
                 _ => "Unknown"
             };
             // items.push(format!("color{}", color));
-            items.push(format!("color{}", color_name));
+            items.push(format!("id{}", color_name));
         }
         if let Some(position_x) = found_position_x {
             // items.push(format!("x{}", position_x));
