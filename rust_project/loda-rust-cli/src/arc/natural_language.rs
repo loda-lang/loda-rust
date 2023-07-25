@@ -1,3 +1,5 @@
+use super::ShapeTransformation;
+use std::collections::HashSet;
 use regex::Regex;
 use lazy_static::lazy_static;
 
@@ -156,12 +158,14 @@ impl TryFrom<&str> for FieldShape {
 #[derive(Clone, Debug)]
 struct FieldTransform {
     raw: String,
+    transformations: HashSet<ShapeTransformation>,
 }
 
 impl TryFrom<&str> for FieldTransform {
     type Error = anyhow::Error;
 
     /// Extract the `transform` data from strings like: `transform(rot90_rot270)`
+    /// Split on underscore `_` to get the individual transformations.
     fn try_from(singleline_text: &str) -> Result<Self, Self::Error> {
         let re = &EXTRACT_TRANSFORM;
         let captures = match re.captures(&singleline_text) {
@@ -172,8 +176,36 @@ impl TryFrom<&str> for FieldTransform {
         };
         let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
         let raw: String = capture1.to_string();
+
+        let mut transforms = HashSet::<ShapeTransformation>::new();
+        if capture1 == "all" {
+            transforms = ShapeTransformation::all();
+        } else {
+            // Split on underscore `_` to get the individual transformations.
+            for item in capture1.split("_") {
+                let transform: ShapeTransformation = match item {
+                    "rot0" => ShapeTransformation::Normal,
+                    "rot90" => ShapeTransformation::RotateCw90,
+                    "rot180" => ShapeTransformation::RotateCw180,
+                    "rot270" => ShapeTransformation::RotateCw270,
+                    "flip" => ShapeTransformation::FlipX,
+                    "flip90" => ShapeTransformation::FlipXRotateCw90,
+                    "flip180" => ShapeTransformation::FlipXRotateCw180,
+                    "flip270" => ShapeTransformation::FlipXRotateCw270,
+                    _ => {
+                        anyhow::bail!("Unable to parse TRANSFORM from string. The item '{}' is not recognized.", item);
+                    }
+                };
+                transforms.insert(transform);
+            }
+        }
+        if transforms.is_empty() {
+            anyhow::bail!("Unable to parse TRANSFORM from string. The transforms set is empty");
+        }
+
         let instance = Self {
             raw,
+            transformations: transforms,
         };
         Ok(instance)
     }
@@ -379,6 +411,39 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
 
         // Assert
         assert_eq!(actual.raw, "rot90_rot270_flip90_flip270");
+        let expected_transformations = HashSet::<ShapeTransformation>::from([
+            ShapeTransformation::RotateCw90,
+            ShapeTransformation::RotateCw270,
+            ShapeTransformation::FlipXRotateCw90,
+            ShapeTransformation::FlipXRotateCw270,
+        ]);
+        assert_eq!(actual.transformations, expected_transformations);
+    }
+
+    #[test]
+    fn test_50001_field_transform() {
+        // Act
+        let actual: FieldTransform = FieldTransform::try_from("scalex1_scaley1, transform(rot0_rot180_flip_flip180)).").expect("ok");
+
+        // Assert
+        assert_eq!(actual.raw, "rot0_rot180_flip_flip180");
+        let expected_transformations = HashSet::<ShapeTransformation>::from([
+            ShapeTransformation::Normal,
+            ShapeTransformation::RotateCw180,
+            ShapeTransformation::FlipX,
+            ShapeTransformation::FlipXRotateCw180,
+        ]);
+        assert_eq!(actual.transformations, expected_transformations);
+    }
+
+    #[test]
+    fn test_50002_field_transform() {
+        // Act
+        let actual: FieldTransform = FieldTransform::try_from("scaley1, transform(all)).").expect("ok");
+
+        // Assert
+        assert_eq!(actual.raw, "all");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
     }
 
     #[test]

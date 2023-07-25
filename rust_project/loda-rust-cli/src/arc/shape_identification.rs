@@ -950,7 +950,7 @@ pub enum ShapeTransformation {
 
 impl ShapeTransformation {
     #[allow(dead_code)]
-    fn all() -> HashSet<ShapeTransformation> {
+    pub fn all() -> HashSet<ShapeTransformation> {
         let mut transformations = HashSet::<ShapeTransformation>::new();
         transformations.insert(ShapeTransformation::Normal);
         transformations.insert(ShapeTransformation::RotateCw90);
