@@ -16,6 +16,11 @@ lazy_static! {
     static ref EXTRACT_SHAPE: Regex = Regex::new(
         "shape([A-Za-z0-9]{1,30})"
     ).unwrap();
+
+    /// Extract the `mass` prefixed data from strings like: `ignore_mass42_ignore`
+    static ref EXTRACT_MASS: Regex = Regex::new(
+        "mass(\\d+)"
+    ).unwrap();
 }
 
 /// XY coordinates for Top-Left corner and Bottom-Right corner. Aka. `TLBR`.
@@ -88,6 +93,34 @@ impl TryFrom<&str> for FieldId {
     }
 }
 
+/// The `FieldMass` holds the mass of the object.
+#[derive(Clone, Debug)]
+struct FieldMass {
+    /// The max image size is 255x255, so it fits in a u16.
+    mass: u16,
+}
+
+impl TryFrom<&str> for FieldMass {
+    type Error = anyhow::Error;
+
+    /// Extract the `mass` prefixed data from strings like: `ignore_mass42_ignore`
+    fn try_from(singleline_text: &str) -> Result<Self, Self::Error> {
+        let re = &EXTRACT_MASS;
+        let captures = match re.captures(&singleline_text) {
+            Some(value) => value,
+            None => {
+                anyhow::bail!("Unable to extract MASS from string");
+            }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let mass = capture1.parse::<u16>()?;
+        let instance = Self {
+            mass,
+        };
+        Ok(instance)
+    }
+}
+
 /// The `FieldShape` holds the shape type.
 #[derive(Clone, Debug)]
 struct FieldShape {
@@ -130,6 +163,9 @@ impl ParseNaturalLanguage {
         }
         if let Ok(shape) = FieldShape::try_from(line) {
             println!("shape: {:?}", shape);
+        }
+        if let Ok(mass) = FieldMass::try_from(line) {
+            println!("mass: {:?}", mass);
         }
     }
 
@@ -275,7 +311,16 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_30000_field_shape() {
+    fn test_30000_field_mass() {
+        // Act
+        let actual: FieldMass = FieldMass::try_from("junk_mass42_junk").expect("ok");
+
+        // Assert
+        assert_eq!(actual.mass, 42);
+    }
+
+    #[test]
+    fn test_40000_field_shape() {
         // Act
         let actual: FieldShape = FieldShape::try_from("junk_shapeUnclassified_junk").expect("ok");
 
@@ -284,7 +329,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_30001_field_shape() {
+    fn test_40001_field_shape() {
         // Act
         let actual: FieldShape = FieldShape::try_from("junk_shapeRectangle_junk").expect("ok");
 
@@ -293,7 +338,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_40000_parse_ok() {
+    fn test_50000_parse_ok() {
         // Act
         let actual: ParseNaturalLanguage = ParseNaturalLanguage::try_from(RESPONSE1).expect("ok");
         // actual.interpret();
@@ -303,7 +348,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_40100_parse_error() {
+    fn test_50100_parse_error() {
         // Arrange
         let s = "Text without code block\n\njunk\nignore";
 
@@ -316,7 +361,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_40101_parse_unrecognized_stuff_inside_code_block() {
+    fn test_50101_parse_unrecognized_stuff_inside_code_block() {
         // Arrange
         let s = r#"
 ```prolog
