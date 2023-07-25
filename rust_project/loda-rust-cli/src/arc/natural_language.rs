@@ -177,13 +177,13 @@ impl TryFrom<&str> for FieldTransform {
         let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
         let raw: String = capture1.to_string();
 
-        let mut transforms = HashSet::<ShapeTransformation>::new();
+        let mut transformations = HashSet::<ShapeTransformation>::new();
         if capture1 == "all" {
-            transforms = ShapeTransformation::all();
+            transformations = ShapeTransformation::all();
         } else {
             // Split on underscore `_` to get the individual transformations.
             for item in capture1.split("_") {
-                let transform: ShapeTransformation = match item {
+                let transformation: ShapeTransformation = match item {
                     "rot0" => ShapeTransformation::Normal,
                     "rot90" => ShapeTransformation::RotateCw90,
                     "rot180" => ShapeTransformation::RotateCw180,
@@ -196,16 +196,16 @@ impl TryFrom<&str> for FieldTransform {
                         anyhow::bail!("Unable to parse TRANSFORM from string. The item '{}' is not recognized.", item);
                     }
                 };
-                transforms.insert(transform);
+                transformations.insert(transformation);
             }
         }
-        if transforms.is_empty() {
-            anyhow::bail!("Unable to parse TRANSFORM from string. The transforms set is empty");
+        if transformations.is_empty() {
+            anyhow::bail!("Unable to parse TRANSFORM from string. The transformations set is empty");
         }
 
         let instance = Self {
             raw,
-            transformations: transforms,
+            transformations,
         };
         Ok(instance)
     }
