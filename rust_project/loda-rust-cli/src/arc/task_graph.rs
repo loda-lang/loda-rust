@@ -1372,10 +1372,21 @@ impl TaskGraph {
         let mut rows = Vec::<String>::new();
 
         rows.push("I'm doing Prolog experiments.\n\n".to_string());
-        rows.push("The x and y coordinates represent a 0-indexed grid.\n\n".to_string());
+        // rows.push("The x and y coordinates represent a 0-indexed grid.\n\n".to_string());
+        // rows.push("The coordinates represent a 1-indexed grid.\n\n".to_string());
+        rows.push("The grid is 1-indexed and does allow negative indices.\n\n".to_string());
+        // rows.push("The coordinates are topleftx_toplefty_bottomrightx_bottomrighty.\n\n".to_string());
+        // rows.push("The coordinates are provided as tlX_Y_brX_Y where tl is topleft and br is bottomright.\n\n".to_string());
+        // rows.push("The coordinates are TLBR formatted, tY_lX_bY_rX where t=top l=left b=bottom r=right.\n\n".to_string());
+        rows.push("Top-Left Bottom-Right (TLBR) is used for object bounding boxes, like tY_lX_bY_rX where t=top l=left b=bottom r=right.\n\n".to_string());
+
+        rows.push("The width of the object bounding box has a 'w' prefix, like 'w5' is width=5.".to_string());
+        rows.push("The height of the object bounding box has a 'h' prefix, like 'h3' is height=3.\n\n".to_string());
+
         rows.push("```prolog".to_string());
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             let pair_index_u8: u8 = pair_index.min(255) as u8;
+            let natural_language_pair_index: String = format!("{}", pair_index + 1);
             if pair.pair_type == PairType::Test {
                 continue;
             }
@@ -1385,7 +1396,7 @@ impl TaskGraph {
 
             {
                 let size: ImageSize = pair.input.image.size();
-                let s = format!("% Example {} input grid {}cols_{}rows", pair_index, size.width, size.height);
+                let s = format!("% Example {} input grid_width{}_height{}", natural_language_pair_index, size.width, size.height);
                 rows.push(s);
             }
 
@@ -1393,7 +1404,7 @@ impl TaskGraph {
                 let object_nodeindex_vec: Vec::<NodeIndex> = self.get_object_nodeindex_vec(pair_index_u8, ImageType::Input)?;
                 for object_nodeindex in &object_nodeindex_vec {
                     let s0: String = self.natural_language_of_object(*object_nodeindex)?;
-                    let s1: String = format!("object(input{}_{}).", pair_index, s0);
+                    let s1: String = format!("object(input{}_{}).", natural_language_pair_index, s0);
                     rows.push(s1);
                 }        
             }
@@ -1401,7 +1412,7 @@ impl TaskGraph {
             rows.push("".to_string());
             {
                 let size: ImageSize = pair.output.image.size();
-                let s = format!("% Example {} output grid {}cols_{}rows", pair_index, size.width, size.height);
+                let s = format!("% Example {} output grid_width{}_height{}", natural_language_pair_index, size.width, size.height);
                 rows.push(s);
             }
 
@@ -1409,7 +1420,7 @@ impl TaskGraph {
                 let object_nodeindex_vec: Vec::<NodeIndex> = self.get_object_nodeindex_vec(pair_index_u8, ImageType::Output)?;
                 for object_nodeindex in &object_nodeindex_vec {
                     let s0: String = self.natural_language_of_object(*object_nodeindex)?;
-                    let s1: String = format!("object(output{}_{}).", pair_index, s0);
+                    let s1: String = format!("object(output{}_{}).", natural_language_pair_index, s0);
                     rows.push(s1);
                 }        
             }
@@ -1423,6 +1434,7 @@ impl TaskGraph {
         rows.push("```prolog".to_string());
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             let pair_index_u8: u8 = pair_index.min(255) as u8;
+            let natural_language_pair_index: String = format!("{}", pair_index + 1);
             if pair.pair_type == PairType::Train {
                 continue;
             }
@@ -1443,7 +1455,7 @@ impl TaskGraph {
 
             {
                 let size: ImageSize = pair.input.image.size();
-                let s = format!("% Example {} input grid {}cols_{}rows", pair_index, size.width, size.height);
+                let s = format!("% Example {} input grid_width{}_height{}", natural_language_pair_index, size.width, size.height);
                 rows.push(s);
             }
 
@@ -1451,7 +1463,7 @@ impl TaskGraph {
                 let object_nodeindex_vec: Vec::<NodeIndex> = self.get_object_nodeindex_vec(pair_index_u8, ImageType::Input)?;
                 for object_nodeindex in &object_nodeindex_vec {
                     let s0: String = self.natural_language_of_object(*object_nodeindex)?;
-                    let s1: String = format!("object(input{}_{}).", pair_index, s0);
+                    let s1: String = format!("object(input{}_{}).", natural_language_pair_index, s0);
                     rows.push(s1);
                 }        
             }
@@ -1460,18 +1472,18 @@ impl TaskGraph {
             {
                 let grid_size: String = match task.predict_output_size_for_pair(pair) {
                     Ok(size) => {
-                        format!("{}cols_{}rows", size.width, size.height)
+                        format!("width{}_height{}", size.width, size.height)
                     },
                     Err(_) => {
-                        format!("PREDICTcols_PREDICTrows")
+                        format!("widthPREDICT_heightPREDICT")
                     }
                 };
-                let s = format!("% Example {} output grid {}", pair_index, grid_size);
+                let s = format!("% Example {} output grid_{}", natural_language_pair_index, grid_size);
                 rows.push(s);
             }
 
             {
-                rows.push(format!("PREDICT the lines that starts with object(output{}_", pair_index));
+                rows.push(format!("PREDICT the lines that starts with object(output{}_", natural_language_pair_index));
             }
 
             // Future experiment:
@@ -1480,13 +1492,14 @@ impl TaskGraph {
         }
         rows.push("```".to_string());
         rows.push("Repeat the previous example prolog code, with the PREDICT replaced with your predictions.".to_string());
+        rows.push("There number of output rows may be different than the input rows.".to_string());
 
         Ok(rows.join("\n"))
     }
 
     fn get_object_nodeindex_vec(&self, pair_index: u8, image_type: ImageType) -> anyhow::Result<Vec<NodeIndex>> {
         // Find the ObjectsInsideImage { connectivity: Connectivity8 } for the current pair's input image.
-        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, PixelConnectivity::Connectivity8)?;
+        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, PixelConnectivity::Connectivity4)?;
         let mut object_nodeindex_vec = Vec::<NodeIndex>::new();
         for edge in self.graph.edges(objectsinsideimage_nodeindex) {
             let node_index: NodeIndex = edge.target();
@@ -1569,13 +1582,28 @@ impl TaskGraph {
             items.push(format!("color{}", color));
         }
         if let Some(position_x) = found_position_x {
-            items.push(format!("x{}", position_x));
+            // items.push(format!("x{}", position_x));
+            // items.push(format!("{}", position_x + 1));
         }
         if let Some(position_y) = found_position_y {
-            items.push(format!("y{}", position_y));
+            // items.push(format!("y{}", position_y));
+            // items.push(format!("{}", position_y + 1));
         }
         if let Some(size) = found_shapesize {
-            items.push(format!("width{}_height{}", size.width, size.height));
+            // items.push(format!("width{}_height{}", size.width, size.height));
+            // let x: i32 = size.width as i32 - 1;
+            // let y: i32 = size.height as i32 - 1;
+            // items.push(format!("{}_{}", x, y));
+            // items.push(format!("{}_{}", size.width, size.height));
+        }
+        match (found_position_x, found_position_y, found_shapesize) {
+            (Some(x), Some(y), Some(size)) => {
+                // items.push(format!("coord{}_{}_{}_{}", x + 1, y + 1, x + size.width, y + size.height));
+                // items.push(format!("tl{}_{}_br{}_{}", x + 1, y + 1, x + size.width, y + size.height));
+                items.push(format!("t{}_l{}_b{}_r{}", y + 1, x + 1, y + size.height, x + size.width));
+                items.push(format!("w{}_h{}", size.width, size.height));
+            },
+            _ => {}
         }
         if let Some(mass) = found_mass {
             items.push(format!("mass{}", mass));
