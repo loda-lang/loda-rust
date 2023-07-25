@@ -102,7 +102,7 @@ impl SubcommandARCWeb {
         app.at("/task").get(Self::get_task_list);
         app.at("/task/:task_id").get(Self::get_task_with_id);
         app.at("/task/:task_id/prompt").get(Self::get_prompt);
-        app.at("/task/:task_id/reply").get(Self::get_reply);
+        app.at("/task/:task_id/reply").get(Self::get_reply).post(Self::post_reply);
         app.at("/task/:task_id/find-node-pixel").get(Self::find_node_pixel);
         app.at("/task/:task_id/node/:node_id").get(Self::get_node);
         app.at("/static").serve_dir(&dir_static)?;
@@ -696,6 +696,39 @@ impl SubcommandARCWeb {
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
         context2.insert("prompt_href", &format!("/task/{}/prompt", task_id));
+        context2.insert("reply_text", "");
+        let body: String = tera.render("page_reply.html", &context2).unwrap();
+        
+        let response = Response::builder(200)
+            .body(body)
+            .content_type(mime::HTML)
+            .build();
+    
+        Ok(response)
+    }
+
+    async fn post_reply(req: Request<State>) -> tide::Result {
+        let tera: &Tera = &req.state().tera;
+        let task_id: &str = req.param("task_id").unwrap_or("world");
+
+        let _task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
+            Ok(value) => value,
+            Err(error) => {
+                error!("cannot load the task_graph. error: {:?}", error);
+                let response = tide::Response::builder(404)
+                    .body("cannot load the task_graph.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+
+        let mut context2 = tera::Context::new();
+        context2.insert("task_id", &task_id);
+        context2.insert("task_href", &format!("/task/{}", task_id));
+        context2.insert("prompt_href", &format!("/task/{}/prompt", task_id));
+        context2.insert("reply_text", "im the post reply page");
+        context2.insert("post_reply_result", "yay");
         let body: String = tera.render("page_reply.html", &context2).unwrap();
         
         let response = Response::builder(200)

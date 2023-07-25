@@ -25,7 +25,16 @@
     
     <main id="main-outer">
     <div id="main-inner">
-        <textarea id="prompt-reply-textarea" autofocus placeholder="Paste answer here, and submit"></textarea>
+        <form name="replyForm" method="post">
+            <input type="submit" value="Submit reply">
+            <textarea id="prompt-reply-textarea" name="replyText" autofocus placeholder="Paste answer here, and submit">{{reply_text}}</textarea>
+        </form>
+        {% if post_reply_result %}
+        <div>
+            <h1>Result</h1>
+            <pre>{{post_reply_result}}</pre>
+        </div>
+        {% endif %}
     </div>
     </main>
     
