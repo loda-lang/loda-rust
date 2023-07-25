@@ -708,10 +708,7 @@ impl SubcommandARCWeb {
     }
 
     async fn post_reply(mut req: Request<State>) -> tide::Result {
-        let body: Vec<u8> = req.body_bytes().await?;
-        // println!("body: {:?}", body);
-        let mut reply_data = PostReplyData::default();
-        reply_data.replyText = String::from_utf8(body).unwrap_or_default();
+        let reply_data: PostReplyData = req.body_form().await?;
 
         let task_id: &str = req.param("task_id").unwrap_or("world");
         
