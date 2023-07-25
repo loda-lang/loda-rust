@@ -1383,6 +1383,8 @@ impl TaskGraph {
         rows.push("The width of the object bounding box has a 'w' prefix, like 'w5' is width=5.".to_string());
         rows.push("The height of the object bounding box has a 'h' prefix, like 'h3' is height=3.\n\n".to_string());
 
+        rows.push("The color symbols have no integer value nor RGB value.\n\n".to_string());
+
         rows.push("```prolog".to_string());
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             let pair_index_u8: u8 = pair_index.min(255) as u8;
@@ -1483,7 +1485,7 @@ impl TaskGraph {
             }
 
             {
-                rows.push(format!("PREDICT the lines that starts with object(output{}_", natural_language_pair_index));
+                rows.push(format!("PREDICT the text that starts with object(output{}_", natural_language_pair_index));
             }
 
             // Future experiment:
@@ -1491,8 +1493,9 @@ impl TaskGraph {
             break;
         }
         rows.push("```".to_string());
-        rows.push("Repeat the previous example prolog code, with the PREDICT replaced with your predictions.".to_string());
-        rows.push("There number of output rows may be different than the input rows.".to_string());
+        rows.push("Repeat the previous example prolog code, with PREDICT replaced with your predictions.".to_string());
+        rows.push("There number of output objects may be different than the input objects.".to_string());
+        rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
 
         Ok(rows.join("\n"))
     }
@@ -1579,7 +1582,21 @@ impl TaskGraph {
         }
         let mut items = Vec::<String>::new();
         if let Some(color) = found_color {
-            items.push(format!("color{}", color));
+            let color_name: &str = match color {
+                0 => "P2a5e30",
+                1 => "P3d53ef",
+                2 => "Pfe7a8k",
+                3 => "P33ffe7",
+                4 => "P989a7f",
+                5 => "Pj8kdf4",
+                6 => "P48kmo7",
+                7 => "P847fa3",
+                8 => "Pz7ea0g",
+                9 => "P03hft3",
+                _ => "Unknown"
+            };
+            // items.push(format!("color{}", color));
+            items.push(format!("color{}", color_name));
         }
         if let Some(position_x) = found_position_x {
             // items.push(format!("x{}", position_x));
