@@ -1,3 +1,51 @@
+use regex::Regex;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    /// Extract the bounding box from strings like: `t3_l7_b7_r11`
+    static ref EXTRACT_TLBR: Regex = Regex::new(
+        "t(-?\\d+)_l(-?\\d+)_b(-?\\d+)_r(-?\\d+)"
+    ).unwrap();
+}
+
+/// XY coordinates for Top-Left corner and Bottom-Right corner. Aka. `TLBR`.
+struct TLBR {
+    top: i8,
+    left: i8,
+    bottom: i8,
+    right: i8,
+}
+
+impl TryFrom<&str> for TLBR {
+    type Error = anyhow::Error;
+
+    /// Extract the bounding box from strings like: `t3_l7_b7_r11`
+    fn try_from(singleline_text: &str) -> Result<Self, Self::Error> {
+        let re = &EXTRACT_TLBR;
+        let captures = match re.captures(&singleline_text) {
+            Some(value) => value,
+            None => {
+                anyhow::bail!("Unable to extract TLBR parameters from string");
+            }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let capture2: &str = captures.get(2).map_or("", |m| m.as_str());
+        let capture3: &str = captures.get(3).map_or("", |m| m.as_str());
+        let capture4: &str = captures.get(4).map_or("", |m| m.as_str());
+        let top = capture1.parse::<i8>()?;
+        let left = capture2.parse::<i8>()?;
+        let bottom = capture3.parse::<i8>()?;
+        let right = capture4.parse::<i8>()?;
+        let instance = Self {
+            top,
+            left,
+            bottom,
+            right,
+        };
+        Ok(instance)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct ParseNaturalLanguage {
     lines: Vec<String>,
@@ -105,7 +153,31 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
 "#;
 
     #[test]
-    fn test_10000_parse_ok() {
+    fn test_10000_tlbr_positive_values() {
+        // Act
+        let actual: TLBR = TLBR::try_from("junk_t1_l2_b3_r4_junk").expect("ok");
+
+        // Assert
+        assert_eq!(actual.top, 1);
+        assert_eq!(actual.left, 2);
+        assert_eq!(actual.bottom, 3);
+        assert_eq!(actual.right, 4);
+    }
+
+    #[test]
+    fn test_10001_tlbr_negative_values() {
+        // Act
+        let actual: TLBR = TLBR::try_from("junk_t-1_l-2_b-3_r-4_junk").expect("ok");
+
+        // Assert
+        assert_eq!(actual.top, -1);
+        assert_eq!(actual.left, -2);
+        assert_eq!(actual.bottom, -3);
+        assert_eq!(actual.right, -4);
+    }
+
+    #[test]
+    fn test_20000_parse_ok() {
         // Act
         let actual: ParseNaturalLanguage = ParseNaturalLanguage::try_from(RESPONSE1).expect("ok");
 
@@ -114,7 +186,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_10100_parse_error() {
+    fn test_20100_parse_error() {
         // Arrange
         let s = "Text without code block\n\njunk\nignore";
 
@@ -123,11 +195,11 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
 
         // Assert
         let message = error.to_string();
-        assert_eq!(message, "No code block found");
+        assert_eq!(message, "No code block found. Expected a code block starting with 3 backticks and prolog.");
     }
 
     #[test]
-    fn test_10101_parse_unrecognized_stuff_inside_code_block() {
+    fn test_20101_parse_unrecognized_stuff_inside_code_block() {
         // Arrange
         let s = r#"
 ```prolog
