@@ -95,6 +95,7 @@ mod index_for_pixel;
 mod inspect_task;
 mod lab_analyze_task;
 mod label;
+mod natural_language;
 mod ngram;
 mod number_to_image;
 mod object_with_different_color;
