@@ -6,36 +6,26 @@
     <meta name="format-detection" content="telephone=no">
     <link media="all" rel="stylesheet" type="text/css" href="/static/page_shared.css">
     <link media="all" rel="stylesheet" type="text/css" href="/static/page_inspect_task.css">
-    <script>
-        async function copyPromptToClipboard() {
-            let text = document.getElementById('prompt-text').innerText;
-            try {
-                await navigator.clipboard.writeText(text);
-                console.log('Content copied to clipboard');
-            } catch (err) {
-                console.error('Failed to copy: ', err);
-            }
-        }
-    </script>
+    <link media="all" rel="stylesheet" type="text/css" href="/static/page_reply.css">
 </head>
 
 <body>
     <header class="titlebar-container">
     <div class="titlebar-item titlebar-item-left">
         <a class="seconday-button" href="{{ task_href }}">Task</a>
+        <a class="seconday-button" href="{{ prompt_href }}">Prompt</a>
     </div>
     
-    <div class="titlebar-item titlebar-item-center">Task {{task_id}} &gt; Prompt</div>
+    <div class="titlebar-item titlebar-item-center">Task {{task_id}} &gt; Reply</div>
     
     <div class="titlebar-item titlebar-item-right">
-        <button class="seconday-button" onclick="copyPromptToClipboard()">Copy prompt</button>
-        <a class="seconday-button" href="{{ reply_href }}">Submit reply</a>
+        <button class="seconday-button">Submit reply</button>
     </div>
     </header>
     
     <main id="main-outer">
     <div id="main-inner">
-        <pre id="prompt-text">{{prompt_text}}</pre>
+        <textarea id="prompt-reply-textarea" autofocus placeholder="Paste answer here, and submit"></textarea>
     </div>
     </main>
     
