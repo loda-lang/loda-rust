@@ -11,6 +11,11 @@ lazy_static! {
     static ref EXTRACT_ID: Regex = Regex::new(
         "id([A-Za-z0-9]{1,10})"
     ).unwrap();
+
+    /// Extract the `shape` prefixed data from strings like: `ignore_shapeRectangle_ignore`
+    static ref EXTRACT_SHAPE: Regex = Regex::new(
+        "shape([A-Za-z0-9]{1,30})"
+    ).unwrap();
 }
 
 /// XY coordinates for Top-Left corner and Bottom-Right corner. Aka. `TLBR`.
@@ -83,6 +88,32 @@ impl TryFrom<&str> for FieldId {
     }
 }
 
+/// The `FieldShape` holds the shape type.
+#[derive(Clone, Debug)]
+struct FieldShape {
+    shape_name: String,
+}
+
+impl TryFrom<&str> for FieldShape {
+    type Error = anyhow::Error;
+
+    /// Extract the `shape` prefixed data from strings like: `ignore_shapeRectangle_ignore`
+    fn try_from(singleline_text: &str) -> Result<Self, Self::Error> {
+        let re = &EXTRACT_SHAPE;
+        let captures = match re.captures(&singleline_text) {
+            Some(value) => value,
+            None => {
+                anyhow::bail!("Unable to extract SHAPE from string");
+            }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let instance = Self {
+            shape_name: capture1.to_string(),
+        };
+        Ok(instance)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct ParseNaturalLanguage {
     lines: Vec<String>,
@@ -96,6 +127,9 @@ impl ParseNaturalLanguage {
         }
         if let Ok(tlbr) = TLBR::try_from(line) {
             println!("tlbr: {:?}", tlbr);
+        }
+        if let Ok(shape) = FieldShape::try_from(line) {
+            println!("shape: {:?}", shape);
         }
     }
 
@@ -232,7 +266,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_20000_id_value() {
+    fn test_20000_field_id() {
         // Act
         let actual: FieldId = FieldId::try_from("junk_idP33ffe7_junk").expect("ok");
 
@@ -241,7 +275,25 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_30000_parse_ok() {
+    fn test_30000_field_shape() {
+        // Act
+        let actual: FieldShape = FieldShape::try_from("junk_shapeUnclassified_junk").expect("ok");
+
+        // Assert
+        assert_eq!(actual.shape_name, "Unclassified");
+    }
+
+    #[test]
+    fn test_30001_field_shape() {
+        // Act
+        let actual: FieldShape = FieldShape::try_from("junk_shapeRectangle_junk").expect("ok");
+
+        // Assert
+        assert_eq!(actual.shape_name, "Rectangle");
+    }
+
+    #[test]
+    fn test_40000_parse_ok() {
         // Act
         let actual: ParseNaturalLanguage = ParseNaturalLanguage::try_from(RESPONSE1).expect("ok");
         // actual.interpret();
@@ -251,7 +303,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_30100_parse_error() {
+    fn test_40100_parse_error() {
         // Arrange
         let s = "Text without code block\n\njunk\nignore";
 
@@ -264,7 +316,7 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
     }
 
     #[test]
-    fn test_30101_parse_unrecognized_stuff_inside_code_block() {
+    fn test_40101_parse_unrecognized_stuff_inside_code_block() {
         // Arrange
         let s = r#"
 ```prolog
