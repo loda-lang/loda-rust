@@ -707,9 +707,15 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
-    async fn post_reply(req: Request<State>) -> tide::Result {
-        let tera: &Tera = &req.state().tera;
+    async fn post_reply(mut req: Request<State>) -> tide::Result {
+        let body: Vec<u8> = req.body_bytes().await?;
+        // println!("body: {:?}", body);
+        let mut reply_data = PostReplyData::default();
+        reply_data.replyText = String::from_utf8(body).unwrap_or_default();
+
         let task_id: &str = req.param("task_id").unwrap_or("world");
+        
+        let tera: &Tera = &req.state().tera;
 
         let _task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
             Ok(value) => value,
@@ -727,8 +733,8 @@ impl SubcommandARCWeb {
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
         context2.insert("prompt_href", &format!("/task/{}/prompt", task_id));
-        context2.insert("reply_text", "im the post reply page");
-        context2.insert("post_reply_result", "yay");
+        context2.insert("reply_text", &reply_data.replyText);
+        context2.insert("post_reply_result", &format!("len: {}", reply_data.replyText.len()));
         let body: String = tera.render("page_reply.html", &context2).unwrap();
         
         let response = Response::builder(200)
@@ -737,6 +743,20 @@ impl SubcommandARCWeb {
             .build();
     
         Ok(response)
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(default)]
+struct PostReplyData {
+    replyText: String,
+}
+
+impl Default for PostReplyData {
+    fn default() -> Self {
+        Self {
+            replyText: String::new(),
+        }
     }
 }
 
