@@ -1432,7 +1432,7 @@ impl TaskGraph {
         rows.push("```".to_string());
         // rows.push("\n\nWhat example has the biggest number of columns?".to_string());
         // rows.push("\n\nWhat are the transformations across all the examples, that goes from the input to the output?".to_string());
-        rows.push("\n\nThink step by step, what are the transformations across all the examples, that goes from the input to the output.".to_string());
+        rows.push("\n\nThink step by step, what are the transformations across all the examples, that goes from the input to the output. Explain your reasoning for inserting new objects.".to_string());
 
         rows.push("With the following example, I want you to predict what the output should be\n\n".to_string());
         rows.push("```prolog".to_string());
