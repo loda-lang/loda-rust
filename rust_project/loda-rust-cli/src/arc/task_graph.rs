@@ -1384,12 +1384,17 @@ impl TaskGraph {
         // rows.push("The coordinates are provided as tlX_Y_brX_Y where tl is topleft and br is bottomright.\n\n".to_string());
         // rows.push("The coordinates are TLBR formatted, tY_lX_bY_rX where t=top l=left b=bottom r=right.\n\n".to_string());
         rows.push("Top-Left Bottom-Right (TLBR) is used for object bounding boxes, like tY_lX_bY_rX where t=top l=left b=bottom r=right.\n\n".to_string());
+        // rows.push("Top-Left Bottom-Right (TLBR) is used for object rectangles, like tY_lX_bY_rX where t=top l=left b=bottom r=right.\n\n".to_string());
 
         rows.push("The width of the object bounding box has a 'w' prefix, like 'w5' is width=5.".to_string());
-        rows.push("The height of the object bounding box has a 'h' prefix, like 'h3' is height=3.\n\n".to_string());
+        rows.push("The height of the object bounding box has a 'h' prefix, like 'h3' is height=3.\n".to_string());
+        // rows.push("The x coordinates has this relationship: left + width - 1 = right.".to_string());
+        // rows.push("The y coordinates has this relationship: top + height - 1 = bottom.\n\n".to_string());
 
         rows.push("The `id` prefixed text has no integer value and should not be considered.".to_string());
         rows.push("Consider both euclidian distance and manhatten distance between objects, since it may impact the `id` assigned to the object.\n\n".to_string());
+
+        // rows.push("No rectangle overlap with other rectangles.\n\n".to_string());
 
         // rows.push("There number of output objects may be different than the input objects.".to_string());
         // rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
@@ -1440,9 +1445,12 @@ impl TaskGraph {
         rows.push("```".to_string());
         // rows.push("\n\nWhat example has the biggest number of columns?".to_string());
         // rows.push("\n\nWhat are the transformations across all the examples, that goes from the input to the output?".to_string());
+        // rows.push("The shapeRectangle is solid and cannot overlap with other objects. Create more shapeRectangle objects in order to ensure no overlap.".to_string());
         rows.push("There number of output objects may be different than the input objects.".to_string());
-        rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
+        // rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
+        rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
         rows.push("\n\nThink step by step, what are the transformations across all the examples, that goes from the input to the output. Explain your reasoning for inserting new objects.".to_string());
+        // rows.push("or the predicted output the object ordering dictates the drawing order, the first output objects gets drawn first.".to_string());
 
         rows.push("With the following example, I want you to predict what the output should be\n\n".to_string());
         rows.push("```prolog".to_string());
