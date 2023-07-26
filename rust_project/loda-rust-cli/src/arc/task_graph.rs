@@ -1393,8 +1393,7 @@ impl TaskGraph {
 
         rows.push("The number of solid pixels in the object has a 'm' prefix, like 'm12' is mass=12.\n".to_string());
 
-        rows.push("The `id` prefixed text has no integer value and should not be considered.".to_string());
-        rows.push("Consider both euclidian distance and manhatten distance between objects, since it may impact the `id` assigned to the object.\n\n".to_string());
+        rows.push("The `id` prefixed text has no integer value and should not be considered. The number of unique IDs may be relevant. The mass of each ID is sometimes preserved in the output.".to_string());
 
         // rows.push("No rectangle overlap with other rectangles.\n\n".to_string());
 
@@ -1451,6 +1450,7 @@ impl TaskGraph {
         // rows.push("There number of output objects may be different than the input objects.".to_string());
         rows.push("There number of output objects can be different than the input objects. Also consider the rules with clockwise rotation.".to_string());
         rows.push("A shape can occlude another shape, so shapeL may appear as shapeRectangle. Sometimes it's the occluded object that gets transformed.".to_string());
+        rows.push("Consider both euclidian distance and manhatten distance between objects, since it may impact the `id` assigned to the object.\n\n".to_string());
         // rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, and so on.".to_string());
