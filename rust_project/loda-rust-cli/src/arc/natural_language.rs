@@ -282,15 +282,18 @@ impl NaturalLanguage {
         let tlbr = TLBR::try_from(line)?;
         println!("tlbr: {:?}", tlbr);
 
+        // TODO: extract color
+
         let object_x: i32 = tlbr.left as i32 - 1;
         let object_y: i32 = tlbr.top as i32 - 1;
         let object_width: i32 = tlbr.right as i32 - tlbr.left as i32 + 1;
-        let object_height: i32 = tlbr.top as i32 - tlbr.bottom as i32 + 1;
+        let object_height: i32 = tlbr.bottom as i32 - tlbr.top as i32 + 1;
 
         if object_width < 0 || object_height < 0 {
             anyhow::bail!("Invalid width or height");
         }
 
+        let mut count_draw: usize = 0;
         for y in 0..image.height() {
             for x in 0..image.width() {
                 let xx: i32 = x as i32;
@@ -298,9 +301,11 @@ impl NaturalLanguage {
 
                 if xx >= object_x && xx < object_x + object_width && yy >= object_y && yy < object_y + object_height {
                     image.set(xx, yy, 1);
+                    count_draw += 1;
                 }
             }
         }
+        println!("count_draw: {}", count_draw);
         
         Ok(())
     }
