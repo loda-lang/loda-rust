@@ -1,4 +1,4 @@
-use super::ShapeTransformation;
+use super::{ShapeTransformation, Image, ImageToHTML};
 use std::collections::HashSet;
 use regex::Regex;
 use lazy_static::lazy_static;
@@ -29,6 +29,38 @@ lazy_static! {
         "transform[(]([a-z0-9_]{1,100})[)]"
     ).unwrap();
 }
+
+const MOCK_REPLY1: &str = r#"
+From the examples given, it appears the transformation from input to output operates as follows:
+
+1. Each object in the input, regardless of its original shape, mass, and transformation properties, is reduced to a 1x1 rectangle in the output.
+
+2. The mass of each object in the output is always 1, irrespective of the mass of the input object.
+
+3. The transformation applied to the output objects is always "all".
+
+4. The bounding coordinates of the output objects are restructured such that the top, left, bottom, and right parameters describe a 1x1 rectangle. 
+
+5. The ordering of the objects in the output seems to be determined by the top coordinate (t), from the lowest to the highest.
+
+Given these rules, the predicted output for Example 4 should be as follows:
+
+```prolog
+% Example 4 input grid_width12_height12
+object(input4_idP48kmo7_t11_l6_b11_r6_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
+object(input4_idP48kmo7_t9_l7_b12_r9_w3_h4_mass6_shapeUnclassified_scalex1_scaley1, transform(rot90_rot270)).
+object(input4_idP33ffe7_t2_l2_b3_r3_w2_h2_mass3_shapeL_scalex1_scaley1, transform(rot90_flip)).
+object(input4_idP3d53ef_t6_l4_b7_r6_w3_h2_mass5_shapeL_scaleUnknown, transform(rot90_flip)).
+
+% Example 4 output grid_width1_height3
+object(output4_idP33ffe7_t1_l1_b1_r1_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
+object(output4_idP3d53ef_t2_l1_b2_r1_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
+object(output4_idP48kmo7_t3_l1_b3_r1_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
+```
+
+Note: Even though there are two objects with the id "idP48kmo7" in the input, only one of them is represented in the output. The one with the lower 't' value is represented following the sorting rule.
+"#;
+
 
 /// XY coordinates for Top-Left corner and Bottom-Right corner. Aka. `TLBR`.
 #[derive(Clone, Debug)]
@@ -217,6 +249,10 @@ pub struct NaturalLanguage {
 }
 
 impl NaturalLanguage {
+    pub fn reply_example1() -> String {
+        MOCK_REPLY1.to_string()
+    }
+
     fn interpret_line(line_index: usize, line: &str) {
         println!("line: {}", line_index);
         if let Ok(id) = FieldId::try_from(line) {
@@ -243,8 +279,11 @@ impl NaturalLanguage {
     }
 
     pub fn to_html(&self) -> String {
+        let mut canvas = Image::zero(30, 30);
+
         let mut s = String::new();
         s += "Interpret the natural language here";
+        s += &canvas.to_html();
         s
     }
 }
@@ -318,37 +357,6 @@ impl TryFrom<&str> for NaturalLanguage {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const RESPONSE1: &str = r#"
-From the examples given, it appears the transformation from input to output operates as follows:
-
-1. Each object in the input, regardless of its original shape, mass, and transformation properties, is reduced to a 1x1 rectangle in the output.
-
-2. The mass of each object in the output is always 1, irrespective of the mass of the input object.
-
-3. The transformation applied to the output objects is always "all".
-
-4. The bounding coordinates of the output objects are restructured such that the top, left, bottom, and right parameters describe a 1x1 rectangle. 
-
-5. The ordering of the objects in the output seems to be determined by the top coordinate (t), from the lowest to the highest.
-
-Given these rules, the predicted output for Example 4 should be as follows:
-
-```prolog
-% Example 4 input grid_width12_height12
-object(input4_idP48kmo7_t11_l6_b11_r6_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
-object(input4_idP48kmo7_t9_l7_b12_r9_w3_h4_mass6_shapeUnclassified_scalex1_scaley1, transform(rot90_rot270)).
-object(input4_idP33ffe7_t2_l2_b3_r3_w2_h2_mass3_shapeL_scalex1_scaley1, transform(rot90_flip)).
-object(input4_idP3d53ef_t6_l4_b7_r6_w3_h2_mass5_shapeL_scaleUnknown, transform(rot90_flip)).
-
-% Example 4 output grid_width1_height3
-object(output4_idP33ffe7_t1_l1_b1_r1_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
-object(output4_idP3d53ef_t2_l1_b2_r1_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
-object(output4_idP48kmo7_t3_l1_b3_r1_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
-```
-
-Note: Even though there are two objects with the id "idP48kmo7" in the input, only one of them is represented in the output. The one with the lower 't' value is represented following the sorting rule.
-"#;
 
     #[test]
     fn test_10000_tlbr_positive_values() {
@@ -454,8 +462,12 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
 
     #[test]
     fn test_60000_parse_ok() {
+        // Arrange
+        let s: String = NaturalLanguage::reply_example1();
+        let s1: &str = &s;
+
         // Act
-        let actual: NaturalLanguage = NaturalLanguage::try_from(RESPONSE1).expect("ok");
+        let actual: NaturalLanguage = NaturalLanguage::try_from(s1).expect("ok");
         // actual.interpret();
 
         // Assert
