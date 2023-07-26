@@ -25,6 +25,7 @@
 //!
 use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle, ShapeTransformation};
 use super::arc_work_model::{Task, Pair, PairType};
+use super::natural_language::FieldId;
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
 
@@ -1583,21 +1584,8 @@ impl TaskGraph {
         }
         let mut items = Vec::<String>::new();
         if let Some(color) = found_color {
-            let color_name: &str = match color {
-                0 => "P2a5e30",
-                1 => "P3d53ef",
-                2 => "Pfe7a8k",
-                3 => "P33ffe7",
-                4 => "P989a7f",
-                5 => "Pj8kdf4",
-                6 => "P48kmo7",
-                7 => "P847fa3",
-                8 => "Pz7ea0g",
-                9 => "P03hft3",
-                _ => "Unknown"
-            };
-            // items.push(format!("color{}", color));
-            items.push(format!("id{}", color_name));
+            let obfuscated_color: String = FieldId::id_from_value(color);
+            items.push(obfuscated_color);
         }
         if let Some(position_x) = found_position_x {
             // items.push(format!("x{}", position_x));

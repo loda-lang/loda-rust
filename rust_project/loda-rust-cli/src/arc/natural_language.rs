@@ -109,7 +109,51 @@ impl TryFrom<&str> for TLBR {
 /// that uniquely identifies each color.
 #[derive(Clone, Debug)]
 pub struct FieldId {
-    pub id: String,
+    pub name: String,
+    pub value: u8,
+}
+
+impl FieldId {
+    pub fn id_from_value(value: u8) -> String {
+        let name: String = Self::name_from_value(value);
+        format!("id{}", name)
+    }
+
+    pub fn name_from_value(value: u8) -> String {
+        let name: &str = match value {
+            0 => "P2a5e30",
+            1 => "P3d53ef",
+            2 => "Pfe7a8k",
+            3 => "P33ffe7",
+            4 => "P989a7f",
+            5 => "Pj8kdf4",
+            6 => "P48kmo7",
+            7 => "P847fa3",
+            8 => "Pz7ea0g",
+            9 => "P03hft3",
+            _ => "Unknown"
+        };
+        name.to_string()
+    }
+
+    pub fn value_from_name(name: &str) -> Option<u8> {
+        let value: u8 = match name {
+            "P2a5e30" => 0,
+            "P3d53ef" => 1,
+            "Pfe7a8k" => 2,
+            "P33ffe7" => 3,
+            "P989a7f" => 4,
+            "Pj8kdf4" => 5,
+            "P48kmo7" => 6,
+            "P847fa3" => 7,
+            "Pz7ea0g" => 8,
+            "P03hft3" => 9,
+            _ => {
+                return None;
+            }
+        };
+        Some(value)
+    }
 }
 
 impl TryFrom<&str> for FieldId {
@@ -125,8 +169,15 @@ impl TryFrom<&str> for FieldId {
             }
         };
         let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let value: u8 = match Self::value_from_name(capture1) {
+            Some(value) => value,
+            None => {
+                anyhow::bail!("Unable to extract ID from string. Unrecognized value: '{}'", capture1);
+            }
+        };
         let instance = Self {
-            id: capture1.to_string(),
+            name: capture1.to_string(),
+            value,
         };
         Ok(instance)
     }
@@ -279,10 +330,13 @@ impl NaturalLanguage {
     }
 
     fn interpret_line_and_draw(line_index: usize, line: &str, image: &mut Image) -> anyhow::Result<()> {
-        let tlbr = TLBR::try_from(line)?;
-        println!("tlbr: {:?}", tlbr);
+        // Color from obfuscated color name
+        let id = FieldId::try_from(line)?;
+        let color: u8 = id.value;
 
-        // TODO: extract color
+        // Coordinates for bounding box
+        let tlbr = TLBR::try_from(line)?;
+        // println!("tlbr: {:?}", tlbr);
 
         let object_x: i32 = tlbr.left as i32 - 1;
         let object_y: i32 = tlbr.top as i32 - 1;
@@ -300,7 +354,7 @@ impl NaturalLanguage {
                 let yy: i32 = y as i32;
 
                 if xx >= object_x && xx < object_x + object_width && yy >= object_y && yy < object_y + object_height {
-                    image.set(xx, yy, 1);
+                    image.set(xx, yy, color);
                     count_draw += 1;
                 }
             }
@@ -433,7 +487,18 @@ mod tests {
         let actual: FieldId = FieldId::try_from("junk_idP33ffe7_junk").expect("ok");
 
         // Assert
-        assert_eq!(actual.id, "P33ffe7");
+        assert_eq!(actual.name, "P33ffe7");
+        assert_eq!(actual.value, 3);
+    }
+
+    #[test]
+    fn test_20001_field_id() {
+        // Act
+        let actual: FieldId = FieldId::try_from("junk_idP03hft3_junk").expect("ok");
+
+        // Assert
+        assert_eq!(actual.name, "P03hft3");
+        assert_eq!(actual.value, 9);
     }
 
     #[test]
