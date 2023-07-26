@@ -241,6 +241,12 @@ impl NaturalLanguage {
             Self::interpret_line(line_index, line);
         }
     }
+
+    pub fn to_html(&self) -> String {
+        let mut s = String::new();
+        s += "Interpret the natural language here";
+        s
+    }
 }
 
 impl TryFrom<&str> for NaturalLanguage {

@@ -711,6 +711,7 @@ impl SubcommandARCWeb {
         context2.insert("prompt_href", &format!("/task/{}/prompt", task_id));
         context2.insert("reply_text", "");
         context2.insert("expected_image_html", &expected_image_html);
+        context2.insert("predicted_image_html", "Nothing submitted yet");
         let body: String = tera.render("page_reply.html", &context2).unwrap();
         
         let response = Response::builder(200)
@@ -751,15 +752,18 @@ impl SubcommandARCWeb {
             break;
         }
         let expected_image_html: String = expected_image.to_html();
-
+        
         let multiline_text: &str = &reply_data.replyText;
         let status_text: String;
+        let predicted_image_html: String;
         match NaturalLanguage::try_from(multiline_text) {
             Ok(natural_language) => {
                 status_text = format!("parsed the reply text. natural_language: {:?}", natural_language);
+                predicted_image_html = natural_language.to_html();
             },
             Err(error) => {
                 status_text = format!("cannot parse the reply text. error: {:?}", error);
+                predicted_image_html = "Problem in reply text. No image generated.".to_string();
             }
         }
 
@@ -770,6 +774,7 @@ impl SubcommandARCWeb {
         context2.insert("reply_text", &reply_data.replyText);
         context2.insert("post_reply_result", &status_text);
         context2.insert("expected_image_html", &expected_image_html);
+        context2.insert("predicted_image_html", &predicted_image_html);
         let body: String = tera.render("page_reply.html", &context2).unwrap();
         
         let response = Response::builder(200)
