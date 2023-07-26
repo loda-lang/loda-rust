@@ -1391,6 +1391,8 @@ impl TaskGraph {
         // rows.push("The x coordinates has this relationship: left + width - 1 = right.".to_string());
         // rows.push("The y coordinates has this relationship: top + height - 1 = bottom.\n\n".to_string());
 
+        rows.push("The number of solid pixels in the object has a 'm' prefix, like 'm12' is mass=12.\n".to_string());
+
         rows.push("The `id` prefixed text has no integer value and should not be considered.".to_string());
         rows.push("Consider both euclidian distance and manhatten distance between objects, since it may impact the `id` assigned to the object.\n\n".to_string());
 
@@ -1447,7 +1449,8 @@ impl TaskGraph {
         // rows.push("\n\nWhat are the transformations across all the examples, that goes from the input to the output?".to_string());
         // rows.push("The shapeRectangle is solid and cannot overlap with other objects. Create more shapeRectangle objects in order to ensure no overlap.".to_string());
         // rows.push("There number of output objects may be different than the input objects.".to_string());
-        rows.push("There number of output objects may be different than the input objects. Also consider the rules with clockwise rotation.".to_string());
+        rows.push("There number of output objects can be different than the input objects. Also consider the rules with clockwise rotation.".to_string());
+        rows.push("A shape can occlude another shape, so shapeL may appear as shapeRectangle. Sometimes it's the occluded object that gets transformed.".to_string());
         // rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, and so on.".to_string());
@@ -1520,8 +1523,11 @@ impl TaskGraph {
     }
 
     fn get_object_nodeindex_vec(&self, pair_index: u8, image_type: ImageType) -> anyhow::Result<Vec<NodeIndex>> {
+        // Future experiment
+        // Do prompting for connectivity4 and connectivity8, so there are 2 different prompts.
+
         // Find the ObjectsInsideImage { connectivity: Connectivity8 } for the current pair's input image.
-        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, PixelConnectivity::Connectivity8)?;
+        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, PixelConnectivity::Connectivity4)?;
         let mut object_nodeindex_vec = Vec::<NodeIndex>::new();
         for edge in self.graph.edges(objectsinsideimage_nodeindex) {
             let node_index: NodeIndex = edge.target();
