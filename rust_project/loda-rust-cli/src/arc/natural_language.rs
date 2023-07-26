@@ -70,6 +70,10 @@ Note: Even though there are two objects with the id "idP48kmo7" in the input, on
 /// XY coordinates for Top-Left corner and Bottom-Right corner. Aka. `TLBR`.
 #[derive(Clone, Debug)]
 pub struct TLBR {
+    pub raw_top: i8,
+    pub raw_left: i8,
+    pub raw_bottom: i8,
+    pub raw_right: i8,
     pub top: i8,
     pub left: i8,
     pub bottom: i8,
@@ -92,15 +96,19 @@ impl TryFrom<&str> for TLBR {
         let capture2: &str = captures.get(2).map_or("", |m| m.as_str());
         let capture3: &str = captures.get(3).map_or("", |m| m.as_str());
         let capture4: &str = captures.get(4).map_or("", |m| m.as_str());
-        let top = capture1.parse::<i8>()?;
-        let left = capture2.parse::<i8>()?;
-        let bottom = capture3.parse::<i8>()?;
-        let right = capture4.parse::<i8>()?;
+        let raw_top = capture1.parse::<i8>()?;
+        let raw_left = capture2.parse::<i8>()?;
+        let raw_bottom = capture3.parse::<i8>()?;
+        let raw_right = capture4.parse::<i8>()?;
         let instance = Self {
-            top,
-            left,
-            bottom,
-            right,
+            raw_top,
+            raw_left,
+            raw_bottom,
+            raw_right,
+            top: raw_top.min(raw_bottom),
+            left: raw_left.min(raw_right),
+            bottom: raw_top.max(raw_bottom),
+            right: raw_left.max(raw_right),
         };
         Ok(instance)
     }
@@ -514,10 +522,10 @@ mod tests {
         let actual: TLBR = TLBR::try_from("junk_t1_l2_b3_r4_junk").expect("ok");
 
         // Assert
-        assert_eq!(actual.top, 1);
-        assert_eq!(actual.left, 2);
-        assert_eq!(actual.bottom, 3);
-        assert_eq!(actual.right, 4);
+        assert_eq!(actual.raw_top, 1);
+        assert_eq!(actual.raw_left, 2);
+        assert_eq!(actual.raw_bottom, 3);
+        assert_eq!(actual.raw_right, 4);
     }
 
     #[test]
@@ -526,10 +534,22 @@ mod tests {
         let actual: TLBR = TLBR::try_from("junk_t-1_l-2_b-3_r-4_junk").expect("ok");
 
         // Assert
-        assert_eq!(actual.top, -1);
-        assert_eq!(actual.left, -2);
-        assert_eq!(actual.bottom, -3);
-        assert_eq!(actual.right, -4);
+        assert_eq!(actual.raw_top, -1);
+        assert_eq!(actual.raw_left, -2);
+        assert_eq!(actual.raw_bottom, -3);
+        assert_eq!(actual.raw_right, -4);
+    }
+
+    #[test]
+    fn test_10002_tlbr_swap_minmax() {
+        // Act
+        let actual: TLBR = TLBR::try_from("junk_t15_l20_b5_r10_junk").expect("ok");
+
+        // Assert
+        assert_eq!(actual.top, 5);
+        assert_eq!(actual.left, 10);
+        assert_eq!(actual.bottom, 15);
+        assert_eq!(actual.right, 20);
     }
 
     #[test]
