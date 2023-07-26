@@ -1373,9 +1373,13 @@ impl TaskGraph {
         let mut rows = Vec::<String>::new();
 
         rows.push("I'm doing Prolog experiments.\n\n".to_string());
-        // rows.push("The x and y coordinates represent a 0-indexed grid.\n\n".to_string());
-        // rows.push("The coordinates represent a 1-indexed grid.\n\n".to_string());
-        rows.push("The grid is 1-indexed and does allow negative indices.\n\n".to_string());
+        // rows.push("I'm doing Prolog experiments with grids.\n\n".to_string());
+        // rows.push("I'm doing Prolog experiments and you are going to emit a prolog program with the predicted output objects.\n\n".to_string());
+        // rows.push("You are a Prolog expert developer.\n\n".to_string());
+        
+        rows.push("The grid is 1-indexed.\n\n".to_string());
+        // rows.push("The grid is 1-indexed and does allow negative indices and coordinates outside the grid size. The top left corner has coordinate x=1, y=1.\n\n".to_string());
+
         // rows.push("The coordinates are topleftx_toplefty_bottomrightx_bottomrighty.\n\n".to_string());
         // rows.push("The coordinates are provided as tlX_Y_brX_Y where tl is topleft and br is bottomright.\n\n".to_string());
         // rows.push("The coordinates are TLBR formatted, tY_lX_bY_rX where t=top l=left b=bottom r=right.\n\n".to_string());
@@ -1384,8 +1388,12 @@ impl TaskGraph {
         rows.push("The width of the object bounding box has a 'w' prefix, like 'w5' is width=5.".to_string());
         rows.push("The height of the object bounding box has a 'h' prefix, like 'h3' is height=3.\n\n".to_string());
 
-        // rows.push("The color symbols have no integer value nor RGB value.\n\n".to_string());
-        rows.push("The `id` prefixed text has no integer value and should not be considered.\n\n".to_string());
+        rows.push("The `id` prefixed text has no integer value and should not be considered.".to_string());
+        rows.push("Consider both euclidian distance and manhatten distance between objects, since it may impact the `id` assigned to the object.\n\n".to_string());
+
+        // rows.push("There number of output objects may be different than the input objects.".to_string());
+        // rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
+        // rows.push("The output objects have experience gravity towards other objects. An object with a specific `id` may attract other objects.".to_string());
 
         rows.push("```prolog".to_string());
         for (pair_index, pair) in task.pairs.iter().enumerate() {
@@ -1432,6 +1440,8 @@ impl TaskGraph {
         rows.push("```".to_string());
         // rows.push("\n\nWhat example has the biggest number of columns?".to_string());
         // rows.push("\n\nWhat are the transformations across all the examples, that goes from the input to the output?".to_string());
+        rows.push("There number of output objects may be different than the input objects.".to_string());
+        rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
         rows.push("\n\nThink step by step, what are the transformations across all the examples, that goes from the input to the output. Explain your reasoning for inserting new objects.".to_string());
 
         rows.push("With the following example, I want you to predict what the output should be\n\n".to_string());
@@ -1453,10 +1463,6 @@ impl TaskGraph {
             //     continue;
             // }
             
-            if pair_index > 0 {
-                rows.push("".to_string());
-            }
-
             {
                 let size: ImageSize = pair.input.image.size();
                 let s = format!("% Example {} input grid_width{}_height{}", natural_language_pair_index, size.width, size.height);
@@ -1496,8 +1502,8 @@ impl TaskGraph {
         }
         rows.push("```".to_string());
         rows.push("Repeat the previous example prolog code, with PREDICT replaced with your predictions.".to_string());
-        rows.push("There number of output objects may be different than the input objects.".to_string());
-        rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
+        // rows.push("Repeat the previous example prolog code, with PREDICT replaced with your predictions. Leave out the input from the prolog code.".to_string());
+        // rows.push("The task for you: Repeat the previous example prolog code, with PREDICT replaced with your predictions. Leave out the input from the prolog code.".to_string());
 
         Ok(rows.join("\n"))
     }
