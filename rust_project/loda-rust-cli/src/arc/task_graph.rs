@@ -1446,9 +1446,12 @@ impl TaskGraph {
         // rows.push("\n\nWhat example has the biggest number of columns?".to_string());
         // rows.push("\n\nWhat are the transformations across all the examples, that goes from the input to the output?".to_string());
         // rows.push("The shapeRectangle is solid and cannot overlap with other objects. Create more shapeRectangle objects in order to ensure no overlap.".to_string());
-        rows.push("There number of output objects may be different than the input objects.".to_string());
+        // rows.push("There number of output objects may be different than the input objects.".to_string());
+        rows.push("There number of output objects may be different than the input objects. Also consider the rules with clockwise rotation.".to_string());
         // rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
-        rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
+        // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
+        // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, and so on.".to_string());
+        rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, layout 2..5 objects in a direction while keeping the objects aligned and evenly spaced (remember to update tlbr coordinates). The transformation can be anything, it just have to be simple.".to_string());
         rows.push("\n\nThink step by step, what are the transformations across all the examples, that goes from the input to the output. Explain your reasoning for inserting new objects.".to_string());
         // rows.push("or the predicted output the object ordering dictates the drawing order, the first output objects gets drawn first.".to_string());
 
@@ -1518,7 +1521,7 @@ impl TaskGraph {
 
     fn get_object_nodeindex_vec(&self, pair_index: u8, image_type: ImageType) -> anyhow::Result<Vec<NodeIndex>> {
         // Find the ObjectsInsideImage { connectivity: Connectivity8 } for the current pair's input image.
-        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, PixelConnectivity::Connectivity4)?;
+        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, PixelConnectivity::Connectivity8)?;
         let mut object_nodeindex_vec = Vec::<NodeIndex>::new();
         for edge in self.graph.edges(objectsinsideimage_nodeindex) {
             let node_index: NodeIndex = edge.target();
