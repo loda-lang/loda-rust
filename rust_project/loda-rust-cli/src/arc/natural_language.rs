@@ -278,12 +278,52 @@ impl NaturalLanguage {
         }
     }
 
+    fn interpret_line_and_draw(line_index: usize, line: &str, image: &mut Image) -> anyhow::Result<()> {
+        let tlbr = TLBR::try_from(line)?;
+        println!("tlbr: {:?}", tlbr);
+
+        let object_x: i32 = tlbr.left as i32 - 1;
+        let object_y: i32 = tlbr.top as i32 - 1;
+        let object_width: i32 = tlbr.right as i32 - tlbr.left as i32 + 1;
+        let object_height: i32 = tlbr.top as i32 - tlbr.bottom as i32 + 1;
+
+        if object_width < 0 || object_height < 0 {
+            anyhow::bail!("Invalid width or height");
+        }
+
+        for y in 0..image.height() {
+            for x in 0..image.width() {
+                let xx: i32 = x as i32;
+                let yy: i32 = y as i32;
+
+                if xx >= object_x && xx < object_x + object_width && yy >= object_y && yy < object_y + object_height {
+                    image.set(xx, yy, 1);
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn interpret_and_draw(&self, image: &mut Image) {
+        for (line_index, line) in self.lines.iter().enumerate() {
+            match Self::interpret_line_and_draw(line_index, line, image) {
+                Ok(_) => {},
+                Err(error) => {
+                    println!("Error: {}", error);
+                }
+            }
+        }
+    }
+
     pub fn to_html(&self) -> String {
-        let mut canvas = Image::zero(30, 30);
+        let mut image = Image::zero(30, 30);
+
+        self.interpret_and_draw(&mut image);
 
         let mut s = String::new();
         s += "Interpret the natural language here";
-        s += &canvas.to_html();
+        s += &image.to_html();
         s
     }
 }
