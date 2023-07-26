@@ -28,6 +28,10 @@
     <main id="main-outer">
     <div id="main-inner">
         <textarea form="replyForm" id="prompt-reply-textarea" name="replyText" autofocus placeholder="Paste answer here, and submit">{{reply_text}}</textarea>
+        <div>
+            <h1>Expected</h1>
+            {{ expected_image_html|safe }}
+        </div>
         {% if post_reply_result %}
         <div>
             <h1>Result</h1>

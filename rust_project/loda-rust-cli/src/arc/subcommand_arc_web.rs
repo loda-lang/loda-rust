@@ -1,6 +1,7 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
-use super::arc_work_model::Task;
+use super::{Image, ImageToHTML};
+use super::arc_work_model::{Task, PairType};
 use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType, natural_language::NaturalLanguage};
 use http_types::Url;
 use serde::{Deserialize, Serialize};
@@ -692,11 +693,24 @@ impl SubcommandARCWeb {
             }
         };
 
+        let task: Task = Self::load_task(&req, task_id).await?;
+        let mut expected_image = Image::empty();
+        for pair in &task.pairs {
+            if pair.pair_type != PairType::Test {
+                continue;
+            }
+            // Extract the first test image.
+            expected_image = pair.output.test_image.clone();
+            break;
+        }
+        let expected_image_html: String = expected_image.to_html();
+
         let mut context2 = tera::Context::new();
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
         context2.insert("prompt_href", &format!("/task/{}/prompt", task_id));
         context2.insert("reply_text", "");
+        context2.insert("expected_image_html", &expected_image_html);
         let body: String = tera.render("page_reply.html", &context2).unwrap();
         
         let response = Response::builder(200)
@@ -726,6 +740,18 @@ impl SubcommandARCWeb {
             }
         };
 
+        let task: Task = Self::load_task(&req, task_id).await?;
+        let mut expected_image = Image::empty();
+        for pair in &task.pairs {
+            if pair.pair_type != PairType::Test {
+                continue;
+            }
+            // Extract the first test image.
+            expected_image = pair.output.test_image.clone();
+            break;
+        }
+        let expected_image_html: String = expected_image.to_html();
+
         let multiline_text: &str = &reply_data.replyText;
         let status_text: String;
         match NaturalLanguage::try_from(multiline_text) {
@@ -743,6 +769,7 @@ impl SubcommandARCWeb {
         context2.insert("prompt_href", &format!("/task/{}/prompt", task_id));
         context2.insert("reply_text", &reply_data.replyText);
         context2.insert("post_reply_result", &status_text);
+        context2.insert("expected_image_html", &expected_image_html);
         let body: String = tera.render("page_reply.html", &context2).unwrap();
         
         let response = Response::builder(200)
