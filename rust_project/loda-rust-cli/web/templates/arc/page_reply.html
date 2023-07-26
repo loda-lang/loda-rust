@@ -7,9 +7,29 @@
     <link media="all" rel="stylesheet" type="text/css" href="/static/page_shared.css">
     <link media="all" rel="stylesheet" type="text/css" href="/static/page_inspect_task.css">
     <link media="all" rel="stylesheet" type="text/css" href="/static/page_reply.css">
+    <script>
+    function setupKeyboardShortcuts() {
+        let keydownHandler = function(event) {
+            if(event.defaultPrevented) {
+                return; // Should do nothing if the default action has been cancelled
+            }
+            const isMetaKey = event.metaKey || event.ctrlKey;
+            const isEnterKeyCode = (event.keyCode == 10) || (event.keyCode == 13);
+            const isEscapeKeyCode = (event.keyCode == 27);
+            // intercept CTRL+ENTER, and submit the form.
+            if(isEnterKeyCode && isMetaKey) {
+                console.log("ctrl+enter: submit form");
+                event.preventDefault(); // Suppress "double action"
+                document.getElementById("replyForm").submit(); 
+                return;
+            }
+        };
+        window.addEventListener('keydown', keydownHandler, true);
+    }
+    </script>
 </head>
 
-<body>
+<body onload="setupKeyboardShortcuts()">
     <header class="titlebar-container">
     <div class="titlebar-item titlebar-item-left">
         <a class="seconday-button" href="{{ task_href }}">Task</a>
@@ -20,7 +40,7 @@
     
     <div class="titlebar-item titlebar-item-right">
         <form id="replyForm" name="replyForm" method="post" enctype="application/x-www-form-urlencoded">
-            <input class="seconday-button" type="submit" value="Submit reply">
+            <input class="primary-button" type="submit" value="Submit reply (Ctrl+Enter)">
         </form>
     </div>
     </header>
