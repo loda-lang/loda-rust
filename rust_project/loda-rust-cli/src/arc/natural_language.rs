@@ -28,6 +28,11 @@ lazy_static! {
     static ref EXTRACT_TRANSFORM: Regex = Regex::new(
         "transform[(]([a-z0-9_]{1,100})[)]"
     ).unwrap();
+
+    /// Extract width=4 and height=3 from strings like: `ignore_width42_height3_ignore`
+    static ref EXTRACT_WIDTH_HEIGHT: Regex = Regex::new(
+        "width(\\d+)_height(\\d+)"
+    ).unwrap();
 }
 
 const MOCK_REPLY1: &str = r#"
@@ -294,9 +299,47 @@ impl TryFrom<&str> for FieldTransform {
     }
 }
 
+/// Extract width and height parameters.
+#[derive(Clone, Debug)]
+pub struct FieldWidthHeight {
+    pub width: u8,
+    pub height: u8,
+}
+
+impl TryFrom<&str> for FieldWidthHeight {
+    type Error = anyhow::Error;
+
+    /// Extract width=4 and height=3 from a string like: `ignore_width4_height3_ignore`
+    fn try_from(singleline_text: &str) -> Result<Self, Self::Error> {
+        let re = &EXTRACT_WIDTH_HEIGHT;
+        let captures = match re.captures(&singleline_text) {
+            Some(value) => value,
+            None => {
+                anyhow::bail!("Unable to extract TLBR from string");
+            }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let capture2: &str = captures.get(2).map_or("", |m| m.as_str());
+        let width = capture1.parse::<u8>()?;
+        let height = capture2.parse::<u8>()?;
+        if width == 0 || height == 0 {
+            anyhow::bail!("Invalid width or height. Must be greater than zero");
+        }
+        if width > 30 || height > 30 {
+            anyhow::bail!("Invalid width or height. Must be less than or equal to 30");
+        }
+        let instance = Self {
+            width,
+            height,
+        };
+        Ok(instance)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct NaturalLanguage {
     pub lines: Vec<String>,
+    pub width_height: Option<FieldWidthHeight>,
 }
 
 impl NaturalLanguage {
@@ -377,11 +420,13 @@ impl NaturalLanguage {
 
     pub fn to_html(&self) -> String {
         let mut image = Image::zero(30, 30);
+        if let Some(width_height) = &self.width_height {
+            image = Image::zero(width_height.width, width_height.height);
+        }
 
         self.interpret_and_draw(&mut image);
 
         let mut s = String::new();
-        s += "Interpret the natural language here";
         s += &image.to_html();
         s
     }
@@ -406,6 +451,7 @@ impl TryFrom<&str> for NaturalLanguage {
         let mut inside_code_block = false;
         let mut count_unrecognized_inside_code_block: usize = 0;
         let mut count_code_block: usize = 0;
+        let mut found_width_height: Option<FieldWidthHeight> = None;
         for line in multiline_text.split("\n") {
             let trimmed_line: &str = line.trim();
             if trimmed_line.contains("```prolog") {
@@ -426,6 +472,10 @@ impl TryFrom<&str> for NaturalLanguage {
                 continue;
             }
             if trimmed_line.starts_with("%") {
+                if trimmed_line.contains("output grid") {
+                    let width_height: FieldWidthHeight = FieldWidthHeight::try_from(trimmed_line)?;
+                    found_width_height = Some(width_height);
+                }
                 continue;
             }
             if trimmed_line.starts_with("object(input") {
@@ -448,6 +498,7 @@ impl TryFrom<&str> for NaturalLanguage {
         }
         let instance = Self {
             lines: lines_with_prefix,
+            width_height: found_width_height,
         };
         Ok(instance)
     }
@@ -571,7 +622,17 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_parse_ok() {
+    fn test_60000_field_width_height() {
+        // Act
+        let actual: FieldWidthHeight = FieldWidthHeight::try_from("junk_width11_height22_junk").expect("ok");
+
+        // Assert
+        assert_eq!(actual.width, 11);
+        assert_eq!(actual.height, 22);
+    }
+
+    #[test]
+    fn test_70000_parse_ok() {
         // Arrange
         let s: String = NaturalLanguage::reply_example1();
         let s1: &str = &s;
@@ -585,7 +646,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60100_parse_error() {
+    fn test_70100_parse_error() {
         // Arrange
         let s = "Text without code block\n\njunk\nignore";
 
@@ -598,7 +659,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60101_parse_unrecognized_stuff_inside_code_block() {
+    fn test_70101_parse_unrecognized_stuff_inside_code_block() {
         // Arrange
         let s = r#"
 ```prolog
