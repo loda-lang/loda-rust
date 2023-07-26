@@ -19,9 +19,9 @@ lazy_static! {
         "shape([A-Za-z0-9]{1,30})"
     ).unwrap();
 
-    /// Extract the `mass` prefixed data from strings like: `ignore_mass42_ignore`
+    /// Extract the `m` prefixed data from strings like: `ignore_m42_ignore`
     static ref EXTRACT_MASS: Regex = Regex::new(
-        "mass(\\d+)"
+        "m(\\d+)"
     ).unwrap();
 
     /// Extract the `transform(...)` values from strings like: `transform(rot90_rot270_flip90_flip270)`
@@ -52,15 +52,15 @@ Given these rules, the predicted output for Example 4 should be as follows:
 
 ```prolog
 % Example 4 input grid_width12_height12
-object(input4_idP48kmo7_t11_l6_b11_r6_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
-object(input4_idP48kmo7_t9_l7_b12_r9_w3_h4_mass6_shapeUnclassified_scalex1_scaley1, transform(rot90_rot270)).
-object(input4_idP33ffe7_t2_l2_b3_r3_w2_h2_mass3_shapeL_scalex1_scaley1, transform(rot90_flip)).
-object(input4_idP3d53ef_t6_l4_b7_r6_w3_h2_mass5_shapeL_scaleUnknown, transform(rot90_flip)).
+object(input4_idP48kmo7_t11_l6_b11_r6_w1_h1_m1_shapeRectangle_scalex1_scaley1, transform(all)).
+object(input4_idP48kmo7_t9_l7_b12_r9_w3_h4_m6_shapeUnclassified_scalex1_scaley1, transform(rot90_rot270)).
+object(input4_idP33ffe7_t2_l2_b3_r3_w2_h2_m3_shapeL_scalex1_scaley1, transform(rot90_flip)).
+object(input4_idP3d53ef_t6_l4_b7_r6_w3_h2_m5_shapeL_scaleUnknown, transform(rot90_flip)).
 
 % Example 4 output grid_width1_height3
-object(output4_idP33ffe7_t1_l1_b1_r1_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
-object(output4_idP3d53ef_t2_l1_b2_r1_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
-object(output4_idP48kmo7_t3_l1_b3_r1_w1_h1_mass1_shapeRectangle_scalex1_scaley1, transform(all)).
+object(output4_idP33ffe7_t1_l1_b1_r1_w1_h1_m1_shapeRectangle_scalex1_scaley1, transform(all)).
+object(output4_idP3d53ef_t2_l1_b2_r1_w1_h1_m1_shapeRectangle_scalex1_scaley1, transform(all)).
+object(output4_idP48kmo7_t3_l1_b3_r1_w1_h1_m1_shapeRectangle_scalex1_scaley1, transform(all)).
 ```
 
 Note: Even though there are two objects with the id "idP48kmo7" in the input, only one of them is represented in the output. The one with the lower 't' value is represented following the sorting rule.
@@ -206,7 +206,7 @@ pub struct FieldMass {
 impl TryFrom<&str> for FieldMass {
     type Error = anyhow::Error;
 
-    /// Extract the `mass` prefixed data from strings like: `ignore_mass42_ignore`
+    /// Extract the `m` prefixed data from strings like: `ignore_m42_ignore`
     fn try_from(singleline_text: &str) -> Result<Self, Self::Error> {
         let re = &EXTRACT_MASS;
         let captures = match re.captures(&singleline_text) {
@@ -575,7 +575,7 @@ mod tests {
     #[test]
     fn test_30000_field_mass() {
         // Act
-        let actual: FieldMass = FieldMass::try_from("junk_mass42_junk").expect("ok");
+        let actual: FieldMass = FieldMass::try_from("junk_m42_junk").expect("ok");
 
         // Assert
         assert_eq!(actual.mass, 42);
@@ -602,7 +602,7 @@ mod tests {
     #[test]
     fn test_50000_field_transform() {
         // Act
-        let actual: FieldTransform = FieldTransform::try_from("mass16_shapeBoxWithTwoHoles_scaleUnknown, transform(rot90_rot270_flip90_flip270)).").expect("ok");
+        let actual: FieldTransform = FieldTransform::try_from("m16_shapeBoxWithTwoHoles_scaleUnknown, transform(rot90_rot270_flip90_flip270)).").expect("ok");
 
         // Assert
         assert_eq!(actual.raw, "rot90_rot270_flip90_flip270");

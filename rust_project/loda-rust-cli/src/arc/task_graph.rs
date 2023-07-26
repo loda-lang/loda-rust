@@ -1626,7 +1626,7 @@ impl TaskGraph {
             _ => {}
         }
         if let Some(mass) = found_mass {
-            items.push(format!("mass{}", mass));
+            items.push(format!("m{}", mass));
         }
         if let Some(shapetype) = found_shapetype {
             items.push(format!("shape{:?}", shapetype));
