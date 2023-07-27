@@ -1457,9 +1457,11 @@ impl TaskGraph {
         // rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
         rows.push("Objects that stay stationary may be a useful landmark. A landmark may be a starting point for inserting a new object next to. Check that the examples have landmarks.\n\n".to_string());
         rows.push("Check if objects are aligned to a certain edge. Check if the mass is preserved. Count the number of object groups.".to_string());
+        rows.push("Check if all the output objects agree on the same shape.".to_string());
+        rows.push("For the objects that make it to the output, check if their shape is preserved.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, and so on.".to_string());
-        rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, layout 2..5 objects in a direction while keeping the objects aligned and evenly spaced (remember to update tlbr coordinates). The transformation can be anything, it just have to be simple.\n\n".to_string());
+        rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, layout 2..5 objects in a direction while keeping the objects aligned and evenly spaced (remember to update tlbr coordinates). The transformation can be anything, it just have to be simple.".to_string());
         // rows.push("Check for splitview, sometimes the examples have a line spanning from edge to edge, dividing the grid into two halfs. Compare properties between the halfs and determine what properties are relevant.\n\n".to_string());
         // rows.push("\n\nThink step by step, what are the transformations across all the examples, that goes from the input to the output. Explain your reasoning for inserting new objects.".to_string());
 
@@ -1469,6 +1471,9 @@ impl TaskGraph {
         // rows.push("or the predicted output the object ordering dictates the drawing order, the first output objects gets drawn first.".to_string());
         
         rows.push("\n\n# Task B".to_string());
+        rows.push("Think step by step about the orientation of the output objects. Does it make sense to layout the objects in another direction. Update the object coordinates accordingly.".to_string());
+
+        rows.push("\n\n# Task C".to_string());
         rows.push("With the following example, I want you to predict what the output should be\n\n".to_string());
         rows.push("```prolog".to_string());
         for (pair_index, pair) in task.pairs.iter().enumerate() {
@@ -1538,7 +1543,7 @@ impl TaskGraph {
         // Do prompting for connectivity4 and connectivity8, so there are 2 different prompts.
 
         // Find the ObjectsInsideImage { connectivity: Connectivity8 } for the current pair's input image.
-        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, PixelConnectivity::Connectivity8)?;
+        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, PixelConnectivity::Connectivity4)?;
         let mut object_nodeindex_vec = Vec::<NodeIndex>::new();
         for edge in self.graph.edges(objectsinsideimage_nodeindex) {
             let node_index: NodeIndex = edge.target();
