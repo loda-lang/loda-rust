@@ -705,13 +705,14 @@ impl SubcommandARCWeb {
         }
         let expected_image_html: String = expected_image.to_html();
 
-        let example_reply_text: String = NaturalLanguage::reply_example1();
+        // let initial_reply_text: String = NaturalLanguage::reply_example1();
+        let initial_reply_text = String::new();
 
         let mut context2 = tera::Context::new();
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
         context2.insert("prompt_href", &format!("/task/{}/prompt", task_id));
-        context2.insert("reply_text", &example_reply_text);
+        context2.insert("reply_text", &initial_reply_text);
         context2.insert("expected_image_html", &expected_image_html);
         context2.insert("predicted_image_html", "Nothing submitted yet");
         let body: String = tera.render("page_reply.html", &context2).unwrap();
