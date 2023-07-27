@@ -1471,6 +1471,7 @@ impl TaskGraph {
         rows.push("Check if all the output objects agree on the same shape.".to_string());
         rows.push("Check if the shape may be a shortest path drawn between two landmarks and navigates around obstacle objects.".to_string());
         rows.push("For the objects that make it to the output, check if their shape is preserved.".to_string());
+        rows.push("A line that goes from edge to edge, some condition may be satisfied above the line, but not below it.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, and so on.".to_string());
         rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, layout 2..5 objects in a direction while keeping the objects aligned and evenly spaced (remember to update tlbr coordinates). The transformation can be anything, it just have to be simple.".to_string());
@@ -1483,13 +1484,14 @@ impl TaskGraph {
         rows.push("\n\n# Task B".to_string());
         rows.push("Think step by step, what are the transformations across all the examples, that goes from the input to the output. Write down your observations.".to_string());
         rows.push("Explain your reasoning for inserting new objects.".to_string());
+        rows.push("Explain your reasoning for deleting existing objects.".to_string());
         // rows.push("or the predicted output the object ordering dictates the drawing order, the first output objects gets drawn first.".to_string());
         
         rows.push("\n\n# Task C".to_string());
         rows.push("Think step by step about the orientation of the output objects. Does it make sense to layout the objects in another direction. Update the object coordinates accordingly.".to_string());
 
         rows.push("\n\n# Task D".to_string());
-        rows.push("With the following example, I want you to predict what the output should be.\n\n".to_string());
+        rows.push("With the following example, I want you to predict what the output should be. Print your reasoning before the prolog code.\n\n".to_string());
         rows.push("```prolog".to_string());
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             let pair_index_u8: u8 = pair_index.min(255) as u8;
@@ -1546,9 +1548,10 @@ impl TaskGraph {
             break;
         }
         rows.push("```".to_string());
-        rows.push("Repeat the previous example prolog code, with PREDICT replaced with your predictions. Print reasoning first followed by the prolog code block".to_string());
+        // rows.push("Repeat the previous example prolog code, with PREDICT replaced with your predictions. Print reasoning first followed by the prolog code block".to_string());
         // rows.push("Repeat the previous example prolog code, with PREDICT replaced with your predictions. Leave out the input from the prolog code.".to_string());
         // rows.push("The task for you: Repeat the previous example prolog code, with PREDICT replaced with your predictions. Leave out the input from the prolog code.".to_string());
+        rows.push("Repeat the previous example prolog code, with PREDICT replaced with your predictions.".to_string());
 
         Ok(rows.join("\n"))
     }
