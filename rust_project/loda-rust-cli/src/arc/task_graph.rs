@@ -1445,11 +1445,22 @@ impl TaskGraph {
             }
         }
         rows.push("```".to_string());
+        rows.push("".to_string());
+        rows.push("".to_string());
         // rows.push("\n\nWhat example has the biggest number of columns?".to_string());
         // rows.push("\n\nWhat are the transformations across all the examples, that goes from the input to the output?".to_string());
         // rows.push("The shapeRectangle is solid and cannot overlap with other objects. Create more shapeRectangle objects in order to ensure no overlap.".to_string());
         // rows.push("There number of output objects may be different than the input objects.".to_string());
+
+        // rows.push("Assumptions:".to_string());
+        // rows.push("- Assume that shapeRectangle is solid and have no holes.".to_string());
+        // rows.push("- Assume that shapeBox has 1 rectangular hole.".to_string());
+        // rows.push("- Assume that shapeBoxWithTwoHoles has a middle separator and 2 rectangular holes.".to_string());
+        // rows.push("".to_string());
+
         rows.push("There number of output objects can be different than the input objects. Also consider the rules with clockwise rotation.".to_string());
+        rows.push("Check if a condition is satisfied only for objects with a certain shape.".to_string());
+
         rows.push("A shape can occlude another shape, so shapeL may appear as shapeRectangle. Sometimes it's the occluded object that gets transformed.".to_string());
         rows.push("Consider both euclidian distance and manhatten distance between objects.".to_string());
         rows.push("Check how much an object moves relative x, y.".to_string());
