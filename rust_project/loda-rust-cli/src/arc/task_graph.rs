@@ -1475,6 +1475,7 @@ impl TaskGraph {
         // rows.push("Consider what side an object is touching another object, maybe in the output the touch points are different.".to_string());
         rows.push("Consider where two objects are touching, maybe the touch points are different in the output, such as moving from left side to the opposite side.".to_string());
         rows.push("Consider the touch point may be at the center of another object, so objects can be moved to the center point.".to_string());
+        rows.push("Check how many times an object is duplicated, does it correspond to the mass of another object or some other property.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, and so on.".to_string());
         rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, copy, merge objects, split objects, extract object, fit object inside another object, layout 2..5 objects in a direction while keeping the objects aligned and evenly spaced (remember to update tlbr coordinates). The transformation can be anything, it just have to be simple.".to_string());
