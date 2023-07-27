@@ -1454,6 +1454,7 @@ impl TaskGraph {
         rows.push("Consider both euclidian distance and manhatten distance between objects.".to_string());
         rows.push("Don't invent new IDs. Check how much an object moves relative x, y.\n\n".to_string());
         // rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
+        rows.push("Objects that stay stationary may be a useful landmark. A landmark may be a starting point for inserting a new object next to. Check that the examples have landmarks.\n\n".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, and so on.".to_string());
         rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, layout 2..5 objects in a direction while keeping the objects aligned and evenly spaced (remember to update tlbr coordinates). The transformation can be anything, it just have to be simple.\n\n".to_string());
