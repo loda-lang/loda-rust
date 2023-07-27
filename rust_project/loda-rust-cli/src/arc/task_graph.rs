@@ -1472,6 +1472,8 @@ impl TaskGraph {
         rows.push("Check if the shape may be a shortest path drawn between two landmarks and navigates around obstacle objects.".to_string());
         rows.push("For the objects that make it to the output, check if their shape is preserved.".to_string());
         rows.push("A line that goes from edge to edge, some condition may be satisfied above the line, but not below it.".to_string());
+        // rows.push("Consider what side an object is touching another object, maybe in the output the touch points are different.".to_string());
+        rows.push("Consider where two objects are touching, maybe the touch points are different in the output, such as moving from left side to the opposite side.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, and so on.".to_string());
         rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, layout 2..5 objects in a direction while keeping the objects aligned and evenly spaced (remember to update tlbr coordinates). The transformation can be anything, it just have to be simple.".to_string());
