@@ -1457,6 +1457,7 @@ impl TaskGraph {
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
         // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, and so on.".to_string());
         rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, layout 2..5 objects in a direction while keeping the objects aligned and evenly spaced (remember to update tlbr coordinates). The transformation can be anything, it just have to be simple.\n\n".to_string());
+        // rows.push("Check for splitview, sometimes the examples have a line spanning from edge to edge, dividing the grid into two halfs. Compare properties between the halfs and determine what properties are relevant.\n\n".to_string());
         // rows.push("\n\nThink step by step, what are the transformations across all the examples, that goes from the input to the output. Explain your reasoning for inserting new objects.".to_string());
         rows.push("Think step by step, what are the transformations across all the examples, that goes from the input to the output.".to_string());
         rows.push("Check if objects are aligned to a certain edge. Check if the mass is preserved. Count the number of object groups.".to_string());
