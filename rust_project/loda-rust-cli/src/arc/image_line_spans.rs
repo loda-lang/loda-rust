@@ -341,13 +341,13 @@ impl PromptRLESerializer {
         
         rows.push("# Task A".to_string());
         rows.push("Think step by step.".to_string());
-        rows.push("- Decode the RLE images to your internal visualization.".to_string());
+        rows.push("- Decode the RLE images to your internal visualization. Take care that the number of Bs and number of Ws sums to the width parameter.".to_string());
         rows.push("- Write notes about what shapes and patterns you observe.".to_string());
         rows.push("\n\n# Task B".to_string());
         rows.push("Think step by step.".to_string());
         rows.push("- Count the mass of each layer.".to_string());
         rows.push("- Is mass related to the sorting of layers.".to_string());
-        rows.push("- Are there shapes such as boxes, L-shape, H-shapes, E-shapes, Tetris shapes.".to_string());
+        rows.push("- Are there shapes such as boxes, L-shape, H-shape, E-shape, Plus-shape, Tetris shapes.".to_string());
         rows.push("- Does shape move between layer IDs.".to_string());
         rows.push("\n\n# Task C".to_string());
         rows.push("With the following example input, I want you to predict what the output should be.".to_string());
