@@ -31,7 +31,7 @@ lazy_static! {
         "transform[(]([a-z0-9_]{1,100})[)]"
     ).unwrap();
 
-    /// Extract width=4 and height=3 from strings like: `ignore_width42_height3_ignore`
+    /// Extract width=4 and height=3 from strings like: `ignore_width4_height3_ignore`
     static ref EXTRACT_WIDTH_HEIGHT: Regex = Regex::new(
         "width(\\d+)_height(\\d+)"
     ).unwrap();
@@ -417,7 +417,7 @@ impl NaturalLanguage {
             anyhow::bail!("Invalid width or height");
         }
 
-        let mut count_draw: usize = 0;
+        let mut _count_draw: usize = 0;
         for y in 0..image.height() {
             for x in 0..image.width() {
                 let xx: i32 = x as i32;
@@ -425,11 +425,11 @@ impl NaturalLanguage {
 
                 if xx >= object_x && xx < object_x + object_width && yy >= object_y && yy < object_y + object_height {
                     image.set(xx, yy, color);
-                    count_draw += 1;
+                    _count_draw += 1;
                 }
             }
         }
-        println!("count_draw: {}", count_draw);
+        // println!("count_draw: {}", count_draw);
         
         Ok(())
     }
