@@ -259,6 +259,21 @@ pub struct FieldTransform {
     pub transformations: HashSet<ShapeTransformation>,
 }
 
+impl FieldTransform {
+    fn natural_language_name(transformation: &ShapeTransformation) -> &'static str {
+        match transformation {
+            ShapeTransformation::Normal => "rot0",
+            ShapeTransformation::RotateCw90 => "rot90",
+            ShapeTransformation::RotateCw180 => "rot180",
+            ShapeTransformation::RotateCw270 => "rot270",
+            ShapeTransformation::FlipX => "flip",
+            ShapeTransformation::FlipXRotateCw90 => "flip90",
+            ShapeTransformation::FlipXRotateCw180 => "flip180",
+            ShapeTransformation::FlipXRotateCw270 => "flip270",
+        }
+    }
+}
+
 impl TryFrom<&str> for FieldTransform {
     type Error = anyhow::Error;
 
@@ -764,7 +779,7 @@ impl NaturalLanguageSerializer {
                         found_shapetransformations = Some("all".to_string());
                         continue;
                     }
-                    let items: Vec<String> = transformations.iter().map(|t| t.natural_language_name().to_string()).collect::<Vec<String>>();
+                    let items: Vec<String> = transformations.iter().map(|t| FieldTransform::natural_language_name(t).to_string()).collect::<Vec<String>>();
                     let s = format!("{}", items.join("_"));
                     found_shapetransformations = Some(s);
                 },
