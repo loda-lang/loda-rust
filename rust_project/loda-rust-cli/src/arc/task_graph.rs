@@ -25,7 +25,7 @@
 //!
 use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle, ShapeTransformation};
 use super::arc_work_model::{Task, Pair, PairType};
-use super::natural_language::{FieldId, NaturalLanguageSerializer};
+use super::natural_language::NaturalLanguageSerializer;
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
 
@@ -1373,12 +1373,12 @@ impl TaskGraph {
         NaturalLanguageSerializer::to_prompt(&self)
     }
 
-    pub fn get_object_nodeindex_vec(&self, pair_index: u8, image_type: ImageType) -> anyhow::Result<Vec<NodeIndex>> {
-        // Future experiment
-        // Do prompting for connectivity4 and connectivity8, so there are 2 different prompts.
-
-        // Find the ObjectsInsideImage { connectivity: Connectivity8 } for the current pair's input image.
-        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, PixelConnectivity::Connectivity4)?;
+    /// When `Connectivity4` is specified, then it's only shapes that are connected via the 4 pixels above, below, left and right.
+    /// 
+    /// When `Connectivity8` is specified, then it's shapes that are connected via all the surrounding 8 pixels.
+    pub fn get_object_nodeindex_vec(&self, pair_index: u8, image_type: ImageType, connectivity: PixelConnectivity) -> anyhow::Result<Vec<NodeIndex>> {
+        // Find the ObjectsInsideImage for the current pair's input image.
+        let objectsinsideimage_nodeindex: NodeIndex = self.get_objectsinsideimage_for_pair(pair_index, image_type, connectivity)?;
         let mut object_nodeindex_vec = Vec::<NodeIndex>::new();
         for edge in self.graph.edges(objectsinsideimage_nodeindex) {
             let node_index: NodeIndex = edge.target();

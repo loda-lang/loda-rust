@@ -1,9 +1,9 @@
-use super::{ShapeTransformation, Image, ImageToHTML, ImageSize, ShapeType, NodeData, EdgeData, GraphNodeDataEdgeData, TaskGraph, ImageType};
-use super::arc_work_model::{Task, Pair, PairType};
+use super::{ShapeTransformation, Image, ImageToHTML, ImageSize, ShapeType, NodeData, GraphNodeDataEdgeData, TaskGraph, ImageType, PixelConnectivity};
+use super::arc_work_model::{Task, PairType};
 use std::collections::HashSet;
 use regex::Regex;
 use lazy_static::lazy_static;
-use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
+use petgraph::{stable_graph::NodeIndex, visit::EdgeRef};
 
 lazy_static! {
     /// Extract the bounding box from strings like: `ignore_t3_l7_b7_r11_ignore`
@@ -353,6 +353,7 @@ pub struct NaturalLanguage {
 }
 
 impl NaturalLanguage {
+    #[allow(dead_code)]
     pub fn reply_example1() -> String {
         MOCK_REPLY1.to_string()
     }
@@ -376,13 +377,14 @@ impl NaturalLanguage {
         }
     }
 
+    #[allow(dead_code)]
     fn interpret(&self) {
         for (line_index, line) in self.lines.iter().enumerate() {
             Self::interpret_line(line_index, line);
         }
     }
 
-    fn interpret_line_and_draw(line_index: usize, line: &str, image: &mut Image) -> anyhow::Result<()> {
+    fn interpret_line_and_draw(_line_index: usize, line: &str, image: &mut Image) -> anyhow::Result<()> {
         // Color from obfuscated color name
         let id = FieldId::try_from(line)?;
         let color: u8 = id.value;
@@ -515,11 +517,20 @@ impl TryFrom<&str> for NaturalLanguage {
 }
 
 #[derive(Clone, Debug)]
-pub struct NaturalLanguageSerializer {
-}
+pub struct NaturalLanguageSerializer;
 
 impl NaturalLanguageSerializer {
+    /// Convert the `TaskGraph` into a prompt for a language model to solve.
+    /// 
+    /// Known problem: It can only ask prompt about the first `test` pair.
+    /// The tasks that have more than one `test` pair, will not create prompts for the remaining `test` pairs.
     pub fn to_prompt(task_graph: &TaskGraph) -> anyhow::Result<String> {
+        // Future experiment
+        // Create multiple prompts, one for each connectivity.
+        // Do prompting for connectivity4 and connectivity8, so there are 2 different prompts.
+
+        let connectivity = PixelConnectivity::Connectivity4;
+        
         let task: &Task = match &task_graph.task() {
             Some(value) => value,
             None => {
@@ -578,7 +589,7 @@ impl NaturalLanguageSerializer {
             }
 
             {
-                let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Input)?;
+                let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Input, connectivity)?;
                 for object_nodeindex in &object_nodeindex_vec {
                     let s0: String = NaturalLanguageSerializer::natural_language_of_object(graph, *object_nodeindex)?;
                     let s1: String = format!("object(input{}_{}).", natural_language_pair_index, s0);
@@ -594,7 +605,7 @@ impl NaturalLanguageSerializer {
             }
 
             {
-                let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Output)?;
+                let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Output, connectivity)?;
                 for object_nodeindex in &object_nodeindex_vec {
                     let s0: String = NaturalLanguageSerializer::natural_language_of_object(graph, *object_nodeindex)?;
                     let s1: String = format!("object(output{}_{}).", natural_language_pair_index, s0);
@@ -679,7 +690,7 @@ impl NaturalLanguageSerializer {
             }
 
             {
-                let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Input)?;
+                let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Input, connectivity)?;
                 for object_nodeindex in &object_nodeindex_vec {
                     let s0: String = NaturalLanguageSerializer::natural_language_of_object(graph, *object_nodeindex)?;
                     let s1: String = format!("object(input{}_{}).", natural_language_pair_index, s0);
@@ -769,21 +780,21 @@ impl NaturalLanguageSerializer {
             let obfuscated_color: String = FieldId::id_from_value(color);
             items.push(obfuscated_color);
         }
-        if let Some(position_x) = found_position_x {
+        // if let Some(position_x) = found_position_x {
             // items.push(format!("x{}", position_x));
             // items.push(format!("{}", position_x + 1));
-        }
-        if let Some(position_y) = found_position_y {
+        // }
+        // if let Some(position_y) = found_position_y {
             // items.push(format!("y{}", position_y));
             // items.push(format!("{}", position_y + 1));
-        }
-        if let Some(size) = found_shapesize {
+        // }
+        // if let Some(size) = found_shapesize {
             // items.push(format!("width{}_height{}", size.width, size.height));
             // let x: i32 = size.width as i32 - 1;
             // let y: i32 = size.height as i32 - 1;
             // items.push(format!("{}_{}", x, y));
             // items.push(format!("{}_{}", size.width, size.height));
-        }
+        // }
         match (found_position_x, found_position_y, found_shapesize) {
             (Some(x), Some(y), Some(size)) => {
                 // items.push(format!("coord{}_{}_{}_{}", x + 1, y + 1, x + size.width, y + size.height));
