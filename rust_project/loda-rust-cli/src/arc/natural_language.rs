@@ -1,4 +1,5 @@
-use super::{ShapeTransformation, Image, ImageToHTML, ImageSize, ShapeType, NodeData, EdgeData, GraphNodeDataEdgeData};
+use super::{ShapeTransformation, Image, ImageToHTML, ImageSize, ShapeType, NodeData, EdgeData, GraphNodeDataEdgeData, TaskGraph, ImageType};
+use super::arc_work_model::{Task, Pair, PairType};
 use std::collections::HashSet;
 use regex::Regex;
 use lazy_static::lazy_static;
@@ -518,7 +519,206 @@ pub struct NaturalLanguageSerializer {
 }
 
 impl NaturalLanguageSerializer {
-    pub fn natural_language_of_object(graph: &GraphNodeDataEdgeData, object_nodeindex: NodeIndex) -> anyhow::Result<String> {
+    pub fn to_prompt(task_graph: &TaskGraph) -> anyhow::Result<String> {
+        let task: &Task = match &task_graph.task() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("graph is not initialized with a task"));
+            }
+        };
+        let graph: &GraphNodeDataEdgeData = task_graph.graph();
+
+        let mut rows = Vec::<String>::new();
+
+        rows.push("I'm doing Prolog experiments.\n\n".to_string());
+        // rows.push("I'm doing Prolog experiments with grids.\n\n".to_string());
+        // rows.push("I'm doing Prolog experiments and you are going to emit a prolog program with the predicted output objects.\n\n".to_string());
+        // rows.push("You are a Prolog expert developer.\n\n".to_string());
+        
+        rows.push("The grid is 1-indexed.\n\n".to_string());
+        // rows.push("The grid is 1-indexed and does allow negative indices and coordinates outside the grid size. The top left corner has coordinate x=1, y=1.\n\n".to_string());
+
+        // rows.push("The coordinates are topleftx_toplefty_bottomrightx_bottomrighty.\n\n".to_string());
+        // rows.push("The coordinates are provided as tlX_Y_brX_Y where tl is topleft and br is bottomright.\n\n".to_string());
+        // rows.push("The coordinates are TLBR formatted, tY_lX_bY_rX where t=top l=left b=bottom r=right.\n\n".to_string());
+        rows.push("Top-Left Bottom-Right (TLBR) is used for object bounding boxes, like tY_lX_bY_rX where t=top l=left b=bottom r=right.\n\n".to_string());
+        // rows.push("Top-Left Bottom-Right (TLBR) is used for object rectangles, like tY_lX_bY_rX where t=top l=left b=bottom r=right.\n\n".to_string());
+
+        rows.push("The width of the object bounding box has a 'w' prefix, like 'w5' is width=5.".to_string());
+        rows.push("The height of the object bounding box has a 'h' prefix, like 'h3' is height=3.\n".to_string());
+        // rows.push("The x coordinates has this relationship: left + width - 1 = right.".to_string());
+        // rows.push("The y coordinates has this relationship: top + height - 1 = bottom.\n\n".to_string());
+
+        rows.push("The number of solid pixels in the object has a 'm' prefix, like 'm12' is mass=12.\n".to_string());
+
+        // rows.push("The `id` prefixed text has no integer value and should not be considered. The number of unique IDs may be relevant. The mass of each ID is sometimes preserved in the output.".to_string());
+        rows.push("The `id` prefixed text has no integer value and should not be considered for sorting. The number of unique IDs may be relevant. The total mass of certain IDs is sometimes preserved in the output.".to_string());
+
+        // rows.push("No rectangle overlap with other rectangles.\n\n".to_string());
+
+        // rows.push("There number of output objects may be different than the input objects.".to_string());
+        // rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
+        // rows.push("The output objects have experience gravity towards other objects. An object with a specific `id` may attract other objects.".to_string());
+
+        rows.push("```prolog".to_string());
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            let pair_index_u8: u8 = pair_index.min(255) as u8;
+            let natural_language_pair_index: String = format!("{}", pair_index + 1);
+            if pair.pair_type == PairType::Test {
+                continue;
+            }
+            if pair_index > 0 {
+                rows.push("".to_string());
+            }
+
+            {
+                let size: ImageSize = pair.input.image.size();
+                let s = format!("% Example {} input grid_width{}_height{}", natural_language_pair_index, size.width, size.height);
+                rows.push(s);
+            }
+
+            {
+                let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Input)?;
+                for object_nodeindex in &object_nodeindex_vec {
+                    let s0: String = NaturalLanguageSerializer::natural_language_of_object(graph, *object_nodeindex)?;
+                    let s1: String = format!("object(input{}_{}).", natural_language_pair_index, s0);
+                    rows.push(s1);
+                }        
+            }
+
+            rows.push("".to_string());
+            {
+                let size: ImageSize = pair.output.image.size();
+                let s = format!("% Example {} output grid_width{}_height{}", natural_language_pair_index, size.width, size.height);
+                rows.push(s);
+            }
+
+            {
+                let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Output)?;
+                for object_nodeindex in &object_nodeindex_vec {
+                    let s0: String = NaturalLanguageSerializer::natural_language_of_object(graph, *object_nodeindex)?;
+                    let s1: String = format!("object(output{}_{}).", natural_language_pair_index, s0);
+                    rows.push(s1);
+                }        
+            }
+        }
+        rows.push("```".to_string());
+        rows.push("".to_string());
+        rows.push("".to_string());
+        // rows.push("\n\nWhat example has the biggest number of columns?".to_string());
+        // rows.push("\n\nWhat are the transformations across all the examples, that goes from the input to the output?".to_string());
+        // rows.push("The shapeRectangle is solid and cannot overlap with other objects. Create more shapeRectangle objects in order to ensure no overlap.".to_string());
+        // rows.push("There number of output objects may be different than the input objects.".to_string());
+
+        // rows.push("Assumptions:".to_string());
+        // rows.push("- Assume that shapeRectangle is solid and have no holes.".to_string());
+        // rows.push("- Assume that shapeBox has 1 rectangular hole.".to_string());
+        // rows.push("- Assume that shapeBoxWithTwoHoles has a middle separator and 2 rectangular holes.".to_string());
+        // rows.push("".to_string());
+
+        rows.push("There number of output objects can be different than the input objects. Also consider the rules with clockwise rotation.".to_string());
+        rows.push("Check if a condition is satisfied only for objects with a certain shape.".to_string());
+
+        rows.push("A shape can occlude another shape, so shapeL may appear as shapeRectangle. Sometimes it's the occluded object that gets transformed.".to_string());
+        rows.push("Consider both euclidian distance and manhatten distance between objects.".to_string());
+        rows.push("Check how much an object moves relative x, y.".to_string());
+        rows.push("Check how IDs gets swapped. Don't invent new IDs.".to_string());
+        // rows.push("The output objects may have to be sorted by coordinates or mass or some other property.".to_string());
+        rows.push("Objects that stay stationary may be a useful landmark. A landmark may be a starting point for inserting a new object next to. Check that the examples have landmarks.\n\n".to_string());
+        rows.push("Check if objects are aligned to a certain edge. Check if the mass is preserved. Count the number of object groups.".to_string());
+        rows.push("Check if all the output objects agree on the same shape.".to_string());
+        rows.push("Check if the shape may be a shortest path drawn between two landmarks and navigates around obstacle objects.".to_string());
+        rows.push("For the objects that make it to the output, check if their shape is preserved.".to_string());
+        rows.push("A line that goes from edge to edge, some condition may be satisfied above the line, but not below it.".to_string());
+        // rows.push("Consider what side an object is touching another object, maybe in the output the touch points are different.".to_string());
+        rows.push("Consider where two objects are touching, maybe the touch points are different in the output, such as moving from left side to the opposite side.".to_string());
+        rows.push("Consider the touch point may be at the center of another object, so objects can be moved to the center point.".to_string());
+        rows.push("Check how many times an object is duplicated, does it correspond to the mass of another object or some other property.".to_string());
+        // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects and so on.".to_string());
+        // rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, merge objects, split objects, extract object, fit object inside another object, and so on.".to_string());
+        rows.push("Transformations: sort, gravity towards, rotate, flipx, flipy, move, copy, merge objects, split objects, extract object, fit object inside another object, layout 2..5 objects in a direction while keeping the objects aligned and evenly spaced (remember to update tlbr coordinates). The transformation can be anything, it just have to be simple.".to_string());
+        // rows.push("Check for splitview, sometimes the examples have a line spanning from edge to edge, dividing the grid into two halfs. Compare properties between the halfs and determine what properties are relevant.\n\n".to_string());
+        // rows.push("\n\nThink step by step, what are the transformations across all the examples, that goes from the input to the output. Explain your reasoning for inserting new objects.".to_string());
+
+        rows.push("\n\n# Task A".to_string());
+        rows.push("Think step by step, what does the examples output objects have in common. Check if they are all horizontal lines. Are they sorted in a particular way.".to_string());
+
+        rows.push("\n\n# Task B".to_string());
+        rows.push("Think step by step, what are the transformations across all the examples, that goes from the input to the output. Write down your observations.".to_string());
+        rows.push("Explain your reasoning for inserting new objects.".to_string());
+        rows.push("Explain your reasoning for deleting existing objects.".to_string());
+        // rows.push("or the predicted output the object ordering dictates the drawing order, the first output objects gets drawn first.".to_string());
+        
+        rows.push("\n\n# Task C".to_string());
+        rows.push("Think step by step about the orientation of the output objects. Does it make sense to layout the objects in another direction. Update the object coordinates accordingly.".to_string());
+
+        rows.push("\n\n# Task D".to_string());
+        rows.push("With the following example, I want you to predict what the output should be. Print your reasoning before the prolog code.\n\n".to_string());
+        rows.push("```prolog".to_string());
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            let pair_index_u8: u8 = pair_index.min(255) as u8;
+            let natural_language_pair_index: String = format!("{}", pair_index + 1);
+            if pair.pair_type == PairType::Train {
+                continue;
+            }
+
+            // Future experiment:
+            // How do I loop over all the pairs. Can I do it with a single prompt, that contains all the pairs?
+            // Or do I have to do prompting for each pair individually?
+            // if pair_index == 4 {
+            //     continue;
+            // }
+            // if pair_index == 5 {
+            //     continue;
+            // }
+            
+            {
+                let size: ImageSize = pair.input.image.size();
+                let s = format!("% Example {} input grid_width{}_height{}", natural_language_pair_index, size.width, size.height);
+                rows.push(s);
+            }
+
+            {
+                let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Input)?;
+                for object_nodeindex in &object_nodeindex_vec {
+                    let s0: String = NaturalLanguageSerializer::natural_language_of_object(graph, *object_nodeindex)?;
+                    let s1: String = format!("object(input{}_{}).", natural_language_pair_index, s0);
+                    rows.push(s1);
+                }        
+            }
+
+            rows.push("".to_string());
+            {
+                let grid_size: String = match task.predict_output_size_for_pair(pair) {
+                    Ok(size) => {
+                        format!("width{}_height{}", size.width, size.height)
+                    },
+                    Err(_) => {
+                        format!("widthPREDICT_heightPREDICT")
+                    }
+                };
+                let s = format!("% Example {} output grid_{}", natural_language_pair_index, grid_size);
+                rows.push(s);
+            }
+
+            {
+                rows.push(format!("PREDICT the text that starts with object(output{}_", natural_language_pair_index));
+            }
+
+            // Future experiment:
+            // process all the test pairs. Currently it's only 1 test pair.
+            break;
+        }
+        rows.push("```".to_string());
+        // rows.push("Repeat the previous example prolog code, with PREDICT replaced with your predictions. Print reasoning first followed by the prolog code block".to_string());
+        // rows.push("Repeat the previous example prolog code, with PREDICT replaced with your predictions. Leave out the input from the prolog code.".to_string());
+        // rows.push("The task for you: Repeat the previous example prolog code, with PREDICT replaced with your predictions. Leave out the input from the prolog code.".to_string());
+        rows.push("Repeat the previous example prolog code, with PREDICT replaced with your predictions.".to_string());
+
+        Ok(rows.join("\n"))
+    }
+
+    fn natural_language_of_object(graph: &GraphNodeDataEdgeData, object_nodeindex: NodeIndex) -> anyhow::Result<String> {
         let mut found_position_x: Option<u8> = None;
         let mut found_position_y: Option<u8> = None;
         let mut found_shapesize: Option<ImageSize> = None;
