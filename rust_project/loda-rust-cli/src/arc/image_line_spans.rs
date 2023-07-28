@@ -2,6 +2,16 @@ use super::{Histogram, Image, ImageHistogram, ImageMask};
 use super::{ImageToHTML, ImageSize, TaskGraph};
 use super::arc_work_model::{Task, PairType};
 use std::collections::HashSet;
+use lazy_static::lazy_static;
+use regex::Regex;
+use anyhow::{Result, Context};
+
+lazy_static! {
+    /// Extract one SpanItem from a run length encoded string like: `5B1W8B1W5B`
+    static ref EXTRACT_SPANITEM: Regex = Regex::new(
+        r"(\d+)([BW])"
+    ).unwrap();
+}
 
 const MOCK_REPLY1: &str = r#"
 The transformation appears to occur as follows:
@@ -111,6 +121,84 @@ impl PromptRLEDeserializer {
     #[allow(dead_code)]
     pub fn reply_example1() -> String {
         MOCK_REPLY1.to_string()
+    }
+
+    fn decode_rle_string(s: &str) -> anyhow::Result<Vec<u8>> {
+        let mut values = Vec::<u8>::new();
+        for captures in EXTRACT_SPANITEM.captures_iter(s) {
+            let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+            let capture2: &str = captures.get(2).map_or("", |m| m.as_str());
+            let count: usize = capture1.parse()?;
+            let color_name: char = capture2.chars().next().context("no color name")?;
+            let value: u8 = match color_name {
+                'B' => 0,
+                'W' => 1,
+                _ => anyhow::bail!("invalid color"),
+            };
+            for _ in 0..count {
+                values.push(value);
+            }
+        }
+        Ok(values)
+    }
+
+    fn interpret_line_and_draw(_line_index: usize, line: &str, image: &mut Image) -> anyhow::Result<()> {
+        // Color from obfuscated color name
+        // let id = FieldId::try_from(line)?;
+        // let color: u8 = id.value;
+
+        // // Coordinates for bounding box
+        // let tlbr = TLBR::try_from(line)?;
+        // // println!("tlbr: {:?}", tlbr);
+
+        // let object_x: i32 = tlbr.left as i32 - 1;
+        // let object_y: i32 = tlbr.top as i32 - 1;
+        // let object_width: i32 = tlbr.right as i32 - tlbr.left as i32 + 1;
+        // let object_height: i32 = tlbr.bottom as i32 - tlbr.top as i32 + 1;
+
+        // if object_width < 0 || object_height < 0 {
+        //     anyhow::bail!("Invalid width or height");
+        // }
+
+        // let mut _count_draw: usize = 0;
+        // for y in 0..image.height() {
+        //     for x in 0..image.width() {
+        //         let xx: i32 = x as i32;
+        //         let yy: i32 = y as i32;
+
+        //         if xx >= object_x && xx < object_x + object_width && yy >= object_y && yy < object_y + object_height {
+        //             image.set(xx, yy, color);
+        //             _count_draw += 1;
+        //         }
+        //     }
+        // }
+        // println!("count_draw: {}", count_draw);
+        
+        Ok(())
+    }
+
+    fn interpret_and_draw(&self, image: &mut Image) {
+        for (line_index, line) in self.lines.iter().enumerate() {
+            match Self::interpret_line_and_draw(line_index, line, image) {
+                Ok(_) => {},
+                Err(error) => {
+                    println!("Error: {}", error);
+                }
+            }
+        }
+    }
+
+    pub fn to_html(&self) -> String {
+        let mut image = Image::zero(30, 30);
+        // if let Some(width_height) = &self.width_height {
+        //     image = Image::zero(width_height.width, width_height.height);
+        // }
+
+        self.interpret_and_draw(&mut image);
+
+        let mut s = String::new();
+        s += &image.to_html();
+        s
     }
 }
 
@@ -317,6 +405,37 @@ mod tests {
         // Assert
         let expected = "ID0:1W1B3W 1B1W1B2W 2B1W2B 3B1W1B,ID1:2W3B 3W2B 5W 5W,ID7:1B4W 1W1B3W 2W1B2W 3W1B1W";
         assert_eq!(actual, expected);
+    }
+
+    fn xdecode_run_length(s: &str) -> anyhow::Result<Vec<u8>> {
+        let mut values = Vec::<u8>::new();
+    
+        for captures in EXTRACT_SPANITEM.captures_iter(s) {
+            let count: usize = captures[1].parse().unwrap();
+            let color_name: char = captures[2].chars().next().unwrap();
+            let value: u8 = match color_name {
+                'B' => 0,
+                'W' => 1,
+                _ => anyhow::bail!("invalid color"),
+            };
+            for _ in 0..count {
+                values.push(value);
+            }
+        }
+    
+        Ok(values)
+    }
+
+    #[test]
+    fn test_60000_decode_rle_string() {
+        // Arrange
+        let input: &str = "1B10W1B2W";
+
+        // Act
+        let actual = PromptRLEDeserializer::decode_rle_string(input).expect("ok");
+
+        // Assert
+        assert_eq!(actual, Vec::<u8>::from([0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1]));
     }
 
     #[test]
