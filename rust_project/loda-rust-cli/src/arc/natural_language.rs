@@ -539,6 +539,12 @@ impl NaturalLanguageSerializer {
     /// 
     /// Known problem: It can only ask prompt about the first `test` pair.
     /// The tasks that have more than one `test` pair, will not create prompts for the remaining `test` pairs.
+    /// 
+    /// Known problem: Assumes that the background color is 0, and treat it as transparent.
+    /// Tasks where the background color is not 0, will have to be handled in a different way.
+    /// 
+    /// Known problem: Generates lots of text. For tasks that have many objects, 
+    /// the prompt may be too long for the language model to process.
     pub fn to_prompt(task_graph: &TaskGraph) -> anyhow::Result<String> {
         // Future experiment
         // Create multiple prompts, one for each connectivity.
