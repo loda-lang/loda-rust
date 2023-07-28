@@ -308,7 +308,7 @@ impl PromptRLESerializer {
 
         rows.push("These are run-length encoded images.".to_string());
         
-        rows.push("The RLE used here only uses black and white. There are no other colors than black or white. Example `B3W7B2` becomes `3 black, 7 white, 2 black`.".to_string());
+        rows.push("The RLE used here only uses black and white. There are no other colors than black or white. Example `3B7W2B` becomes `3 black, 7 white, 2 black`.".to_string());
         rows.push("".to_string());
 
         rows.push("The ID indicates the layer number. Multiple images can be stacked and black can be considered transparent.".to_string());
