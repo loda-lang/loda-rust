@@ -25,7 +25,7 @@
 //!
 use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle, ShapeTransformation};
 use super::arc_work_model::{Task, Pair, PairType};
-use super::natural_language::FieldId;
+use super::natural_language::{FieldId, NaturalLanguageSerializer};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
 
@@ -145,10 +145,12 @@ pub enum EdgeData {
     // InsideBoundingBoxOfAnotherObject,
 }
 
+pub type GraphNodeDataEdgeData = petgraph::Graph<NodeData, EdgeData>;
+
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct TaskGraph {
-    graph: petgraph::Graph<NodeData, EdgeData>,
+    graph: GraphNodeDataEdgeData,
     task: Option<Task>,
 }
 
@@ -1422,7 +1424,7 @@ impl TaskGraph {
             {
                 let object_nodeindex_vec: Vec::<NodeIndex> = self.get_object_nodeindex_vec(pair_index_u8, ImageType::Input)?;
                 for object_nodeindex in &object_nodeindex_vec {
-                    let s0: String = self.natural_language_of_object(*object_nodeindex)?;
+                    let s0: String = NaturalLanguageSerializer::natural_language_of_object(&self.graph, *object_nodeindex)?;
                     let s1: String = format!("object(input{}_{}).", natural_language_pair_index, s0);
                     rows.push(s1);
                 }        
@@ -1438,7 +1440,7 @@ impl TaskGraph {
             {
                 let object_nodeindex_vec: Vec::<NodeIndex> = self.get_object_nodeindex_vec(pair_index_u8, ImageType::Output)?;
                 for object_nodeindex in &object_nodeindex_vec {
-                    let s0: String = self.natural_language_of_object(*object_nodeindex)?;
+                    let s0: String = NaturalLanguageSerializer::natural_language_of_object(&self.graph, *object_nodeindex)?;
                     let s1: String = format!("object(output{}_{}).", natural_language_pair_index, s0);
                     rows.push(s1);
                 }        
@@ -1523,7 +1525,7 @@ impl TaskGraph {
             {
                 let object_nodeindex_vec: Vec::<NodeIndex> = self.get_object_nodeindex_vec(pair_index_u8, ImageType::Input)?;
                 for object_nodeindex in &object_nodeindex_vec {
-                    let s0: String = self.natural_language_of_object(*object_nodeindex)?;
+                    let s0: String = NaturalLanguageSerializer::natural_language_of_object(&self.graph, *object_nodeindex)?;
                     let s1: String = format!("object(input{}_{}).", natural_language_pair_index, s0);
                     rows.push(s1);
                 }        
@@ -1595,100 +1597,6 @@ impl TaskGraph {
         }
 
         Ok(object_nodeindex_vec2)
-    }
-
-    fn natural_language_of_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<String> {
-        let mut found_position_x: Option<u8> = None;
-        let mut found_position_y: Option<u8> = None;
-        let mut found_shapesize: Option<ImageSize> = None;
-        let mut found_mass: Option<u16> = None;
-        let mut found_color: Option<u8> = None;
-        let mut found_shapetype: Option<ShapeType> = None;
-        let mut found_shapetransformations: Option<String> = None;
-        let mut found_shapescale: Option<String> = None;
-        for edge in self.graph.edges(object_nodeindex) {
-            let node_index: NodeIndex = edge.target();
-            match &self.graph[node_index] {
-                NodeData::PositionX { x } => {
-                    found_position_x = Some(*x);
-                },
-                NodeData::PositionY { y } => {
-                    found_position_y = Some(*y);
-                },
-                NodeData::ShapeSize { width, height } => {
-                    found_shapesize = Some(ImageSize::new(*width, *height));
-                },
-                NodeData::Mass { mass } => {
-                    found_mass = Some(*mass);
-                },
-                NodeData::Color { color } => {
-                    found_color = Some(*color);
-                },
-                NodeData::ShapeType { shape_type } => {
-                    found_shapetype = Some(*shape_type);
-                },
-                NodeData::ShapeTransformations { transformations } => {
-                    if transformations.len() == 8 {
-                        found_shapetransformations = Some("all".to_string());
-                        continue;
-                    }
-                    let items: Vec<String> = transformations.iter().map(|t| t.natural_language_name().to_string()).collect::<Vec<String>>();
-                    let s = format!("{}", items.join("_"));
-                    found_shapetransformations = Some(s);
-                },
-                NodeData::ShapeScale { x, y } => {
-                    let s = format!("scalex{}_scaley{}", x, y);
-                    found_shapescale = Some(s);
-            },
-                _ => {}
-            }
-        }
-        let mut items = Vec::<String>::new();
-        if let Some(color) = found_color {
-            let obfuscated_color: String = FieldId::id_from_value(color);
-            items.push(obfuscated_color);
-        }
-        if let Some(position_x) = found_position_x {
-            // items.push(format!("x{}", position_x));
-            // items.push(format!("{}", position_x + 1));
-        }
-        if let Some(position_y) = found_position_y {
-            // items.push(format!("y{}", position_y));
-            // items.push(format!("{}", position_y + 1));
-        }
-        if let Some(size) = found_shapesize {
-            // items.push(format!("width{}_height{}", size.width, size.height));
-            // let x: i32 = size.width as i32 - 1;
-            // let y: i32 = size.height as i32 - 1;
-            // items.push(format!("{}_{}", x, y));
-            // items.push(format!("{}_{}", size.width, size.height));
-        }
-        match (found_position_x, found_position_y, found_shapesize) {
-            (Some(x), Some(y), Some(size)) => {
-                // items.push(format!("coord{}_{}_{}_{}", x + 1, y + 1, x + size.width, y + size.height));
-                // items.push(format!("tl{}_{}_br{}_{}", x + 1, y + 1, x + size.width, y + size.height));
-                items.push(format!("t{}_l{}_b{}_r{}", y + 1, x + 1, y + size.height, x + size.width));
-                items.push(format!("w{}_h{}", size.width, size.height));
-            },
-            _ => {}
-        }
-        if let Some(mass) = found_mass {
-            items.push(format!("m{}", mass));
-        }
-        if let Some(shapetype) = found_shapetype {
-            items.push(format!("shape{:?}", shapetype));
-        }
-        if let Some(shapescale) = found_shapescale {
-            items.push(shapescale);
-        } else {
-            items.push(format!("scaleUnknown"));
-        }
-        let mut s = String::new();
-        s += &items.join("_");
-        if let Some(shapetransformations) = found_shapetransformations {
-            s += &format!(", transform({})", shapetransformations);
-        }
-        Ok(s)
     }
 }
 
