@@ -1,7 +1,22 @@
 use super::{Histogram, Image, ImageHistogram, ImageMask};
-use super::{ShapeTransformation, ImageToHTML, ImageSize, ShapeType, NodeData, GraphNodeDataEdgeData, TaskGraph, ImageType, PixelConnectivity};
+use super::{ImageToHTML, ImageSize, TaskGraph};
 use super::arc_work_model::{Task, PairType};
 use std::collections::HashSet;
+
+const MOCK_REPLY1: &str = r#"
+The transformation appears to occur as follows:
+
+- For sections that are filled entirely with black or white, the first 4 and last 4 cells in the rows 1 to 4 and 12 to 15 switch to the opposite color (B -> W or W -> B). In case the width is greater than 8, an extra cell in the middle also changes color.
+- The rest of the rows (5 to 11) are left untouched except if a pattern of a different color in the middle exists. In that case, this pattern is split into two with a cell of the initial color in between.
+- If there's a pattern of the form 1X10Y1Z in the middle, it is transformed to 1X5Y1Z1Y5Z.
+
+So, for the given input[3], the transformation would be as follows:
+
+```cpp
+output[3] = "width18:height19:ID0:5B1W8B1W5B 5B1W8B1W5B 5B1W8B1W5B 1B14W3B 1B14W3B 1B14W3B 1B14W3B 1B14W3B 1B14W3B 1B14W3B 1B14W3B 1B14W3B 1B14W3B 1B14W3B 1B14W3B 5B1W8B1W5B 5B1W8B1W5B 5B1W8B1W5B,ID1:5W1B8W1W5W 5W1B8W1W5W 5W1B8W1W5W 1W14B3W 1W5B1W3B1W4B3W 1W2B5W1B2B3W 1W2B5W1B2B3W 1W2B5W1B2B3W 1W2B5W1B2B3W 1W14B3W 1W2B5W1B2B3W 1W2B5W1B2B3W 1W2B5W1B2B3W 1W2B5W1B2B3W 1W14B3W 1W14B3W 5W1B8W1W5W 5W1B8W1W5W 5W1B8W1W5W,ID8:5W1B8W1W5W 5W1B8W1W5W 5W1B8W1W5W 18W 6W1B3W1B7W 3W5B1W5B5W 3W5B1W5B5W 3W5B1W5B5W 3W5B1W5B5W 2W11B5W 3W5B1W5B5W 3W5B1W5B5W 3W5B1W5B5W 3W5B1W5B5W 18W 18W 5W1B8W1W5W 5W1B8W1W5W 5W1B8W1W5W";
+```
+Note: The actual transformation rule may be different, this is just a prediction based on the provided examples. The number '1' in the patterns is assumed to stay as '1'. If this is part of a larger system, other rules might apply.
+"#;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct SpanItem {
@@ -84,6 +99,67 @@ impl LineSpan {
             }
         }
         Ok(s)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PromptRLEDeserializer {
+    pub lines: Vec<String>,
+}
+
+impl PromptRLEDeserializer {
+    #[allow(dead_code)]
+    pub fn reply_example1() -> String {
+        MOCK_REPLY1.to_string()
+    }
+}
+
+impl TryFrom<&str> for PromptRLEDeserializer {
+    type Error = anyhow::Error;
+
+    fn try_from(multiline_text: &str) -> Result<Self, Self::Error> {
+        let mut lines_with_prefix = Vec::<String>::new();
+        let mut inside_code_block = false;
+        let mut count_unrecognized_inside_code_block: usize = 0;
+        let mut count_code_block: usize = 0;
+        for line in multiline_text.split("\n") {
+            let trimmed_line: &str = line.trim();
+            if trimmed_line.contains("```cpp") {
+                if count_code_block == 0 {
+                    inside_code_block = true;
+                }
+                count_code_block += 1;
+                continue;
+            }
+            if !inside_code_block {
+                continue;
+            }
+            if trimmed_line == "```" {
+                inside_code_block = false;
+                continue;
+            }
+            if trimmed_line.is_empty() {
+                continue;
+            }
+            if trimmed_line.starts_with("output[") {
+                lines_with_prefix.push(line.to_string());
+                continue;
+            }
+            count_unrecognized_inside_code_block += 1;
+        }
+        if count_code_block == 0 {
+            anyhow::bail!("No code block found. Expected a code block starting with 3 backticks and cpp.");
+        }
+        if count_code_block >= 2 {
+            anyhow::bail!("Multiple code blocks found. Expected just one code block starting with 3 backticks and cpp.");
+        }
+        if count_unrecognized_inside_code_block > 0 {
+            anyhow::bail!("{} unrecognized lines inside the code block", count_unrecognized_inside_code_block);
+        }
+        let instance = Self {
+            lines: lines_with_prefix,
+        };
+        Ok(instance)
     }
 }
 
@@ -241,5 +317,18 @@ mod tests {
         // Assert
         let expected = "ID0:1W1B3W 1B1W1B2W 2B1W2B 3B1W1B,ID1:2W3B 3W2B 5W 5W,ID7:1B4W 1W1B3W 2W1B2W 3W1B1W";
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70000_deserialize_ok() {
+        // Arrange
+        let s: String = PromptRLEDeserializer::reply_example1();
+        let s1: &str = &s;
+
+        // Act
+        let actual: PromptRLEDeserializer = PromptRLEDeserializer::try_from(s1).expect("ok");
+
+        // Assert
+        assert_eq!(actual.lines.len(), 1);
     }
 }
