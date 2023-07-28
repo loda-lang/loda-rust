@@ -84,14 +84,9 @@ impl LineSpan {
     /// I had to use B (Black) and W (White), so it's the same as on wikipedia.
     fn serialize_rle(image: &Image) -> anyhow::Result<String> {
         let histogram: Histogram = image.histogram_all();
-        let mut s = String::new();
-        let mut is_first = true;
+        let mut s = format!("width{}:height{}", image.width(), image.height());
         for (_count, color) in histogram.pairs_ordered_by_color() {
-            if is_first {
-                is_first = false;
-            } else {
-                s += ":";
-            }
+            s += ":";
             s += &format!("ID{}:", color);
             s += &Self::serialize_rle_color(image, color)?;
         }
@@ -342,16 +337,14 @@ impl PromptRLESerializer {
             }
 
             {
-                let size: ImageSize = pair.input.image.size();
                 let s0: String = LineSpan::serialize_rle(&pair.input.image)?;
-                let s1: String = format!("input[{}] = \"width{}:height{}:{}\";", pair_index, size.width, size.height, s0);
+                let s1: String = format!("input[{}] = \"{}\";", pair_index, s0);
                 rows.push(s1);
             }
 
             {
-                let size: ImageSize = pair.output.image.size();
                 let s0: String = LineSpan::serialize_rle(&pair.output.image)?;
-                let s1: String = format!("output[{}] = \"width{}:height{}:{}\";", pair_index, size.width, size.height, s0);
+                let s1: String = format!("output[{}] = \"{}\";", pair_index, s0);
                 rows.push(s1);
             }
         }
@@ -369,9 +362,8 @@ impl PromptRLESerializer {
             }
 
             {
-                let size: ImageSize = pair.input.image.size();
                 let s0: String = LineSpan::serialize_rle(&pair.input.image)?;
-                let s1: String = format!("input[{}] = \"width{}:height{}:{}\";", pair_index, size.width, size.height, s0);
+                let s1: String = format!("input[{}] = \"{}\";", pair_index, s0);
                 rows.push(s1);
             }
 
@@ -455,7 +447,7 @@ mod tests {
         let actual: String = LineSpan::serialize_rle(&input).expect("ok");
 
         // Assert
-        let expected = "ID0:1B1W3B 1W1B1W2B 2W1B2W 3W1B1W:ID1:2B3W 3B2W 5B 5B:ID7:1W4B 1B1W3B 2B1W2B 3B1W1B";
+        let expected = "width5:height4:ID0:1B1W3B 1W1B1W2B 2W1B2W 3W1B1W:ID1:2B3W 3B2W 5B 5B:ID7:1W4B 1B1W3B 2B1W2B 3B1W1B";
         assert_eq!(actual, expected);
     }
 
