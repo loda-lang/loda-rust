@@ -407,25 +407,6 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    fn xdecode_run_length(s: &str) -> anyhow::Result<Vec<u8>> {
-        let mut values = Vec::<u8>::new();
-    
-        for captures in EXTRACT_SPANITEM.captures_iter(s) {
-            let count: usize = captures[1].parse().unwrap();
-            let color_name: char = captures[2].chars().next().unwrap();
-            let value: u8 = match color_name {
-                'B' => 0,
-                'W' => 1,
-                _ => anyhow::bail!("invalid color"),
-            };
-            for _ in 0..count {
-                values.push(value);
-            }
-        }
-    
-        Ok(values)
-    }
-
     #[test]
     fn test_60000_decode_rle_string() {
         // Arrange
