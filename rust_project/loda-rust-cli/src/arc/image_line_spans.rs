@@ -16,6 +16,11 @@ lazy_static! {
     static ref EXTRACT_KEY_VALUE: Regex = Regex::new(
         r"(width|height|ID)(\d+)"
     ).unwrap();
+
+    /// Extract text between double quotes from string like: `output[3] = "width18:height19:ID0:5B1W8B1W5B 5B1W8B1W5B";`
+    static ref EXTRACT_OUTPUT_INDEX_AND_DOUBLE_QUOTED: Regex = Regex::new(
+        "output\\[(\\d+)\\] = \"([^\"]*)\";"
+    ).unwrap();
 }
 
 const MOCK_REPLY1: &str = r#"
@@ -189,37 +194,23 @@ impl PromptRLEDeserializer {
         Ok(result_image)
     }
 
+    fn output_index_and_doublequoted_data(input: &str) -> anyhow::Result<(u8, String)> {
+        let captures = match EXTRACT_OUTPUT_INDEX_AND_DOUBLE_QUOTED.captures(input) {
+            Some(value) => value,
+            None => {
+                anyhow::bail!("Unable to extract output[INDEX] = doublequoted data from string");
+            }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let capture2: &str = captures.get(2).map_or("", |m| m.as_str());
+        let integer_value: u8 = capture1.parse()?;
+        Ok((integer_value, capture2.to_string()))
+    }
+
     fn interpret_line_and_draw(_line_index: usize, line: &str, image: &mut Image) -> anyhow::Result<()> {
-        // Color from obfuscated color name
-        // let id = FieldId::try_from(line)?;
-        // let color: u8 = id.value;
-
-        // // Coordinates for bounding box
-        // let tlbr = TLBR::try_from(line)?;
-        // // println!("tlbr: {:?}", tlbr);
-
-        // let object_x: i32 = tlbr.left as i32 - 1;
-        // let object_y: i32 = tlbr.top as i32 - 1;
-        // let object_width: i32 = tlbr.right as i32 - tlbr.left as i32 + 1;
-        // let object_height: i32 = tlbr.bottom as i32 - tlbr.top as i32 + 1;
-
-        // if object_width < 0 || object_height < 0 {
-        //     anyhow::bail!("Invalid width or height");
-        // }
-
-        // let mut _count_draw: usize = 0;
-        // for y in 0..image.height() {
-        //     for x in 0..image.width() {
-        //         let xx: i32 = x as i32;
-        //         let yy: i32 = y as i32;
-
-        //         if xx >= object_x && xx < object_x + object_width && yy >= object_y && yy < object_y + object_height {
-        //             image.set(xx, yy, color);
-        //             _count_draw += 1;
-        //         }
-        //     }
-        // }
-        // println!("count_draw: {}", count_draw);
+        let (_output_index, doublequoted_data) = Self::output_index_and_doublequoted_data(line)?;
+        let output_image: Image = Self::decode_image(&doublequoted_data)?;
+        image.set_image(output_image);
         
         Ok(())
     }
@@ -237,9 +228,6 @@ impl PromptRLEDeserializer {
 
     pub fn to_html(&self) -> String {
         let mut image = Image::zero(30, 30);
-        // if let Some(width_height) = &self.width_height {
-        //     image = Image::zero(width_height.width, width_height.height);
-        // }
 
         self.interpret_and_draw(&mut image);
 
@@ -351,8 +339,13 @@ impl PromptRLESerializer {
         rows.push("```".to_string());
         rows.push("".to_string());
 
-        rows.push("\n\n# Task".to_string());
-        rows.push("With the following example, I want you to predict what the output should be. Print your reasoning before printing the code.\n\n".to_string());
+        rows.push("# Task A".to_string());
+        rows.push("Think step by step.".to_string());
+        rows.push("- Count the mass of each layer.".to_string());
+        rows.push("- Is mass related to the sorting of layers.".to_string());
+
+        rows.push("\n\n# Task B".to_string());
+        rows.push("With the following example input, I want you to predict what the output should be.".to_string());
         rows.push("".to_string());
         rows.push("".to_string());
         rows.push("```cpp".to_string());
@@ -366,7 +359,12 @@ impl PromptRLESerializer {
                 let s1: String = format!("input[{}] = \"{}\";", pair_index, s0);
                 rows.push(s1);
             }
+            rows.push("```".to_string());
 
+            rows.push("Print your reasoning before printing the code.".to_string());    
+            rows.push("Don't print other markdown code blocks than the code block containing your predictions.".to_string());
+            rows.push("\n\nFill your predictions into the following template and replace PREDICT with your predictions.".to_string());
+            rows.push("```cpp".to_string());
             {
                 let grid_size: String = match task.predict_output_size_for_pair(pair) {
                     Ok(size) => {
@@ -385,7 +383,6 @@ impl PromptRLESerializer {
             break;
         }
         rows.push("```".to_string());
-        rows.push("Repeat the previous CPP code, with PREDICT replaced with your predictions.".to_string());
 
         Ok(rows.join("\n"))
     }
@@ -480,6 +477,19 @@ mod tests {
         ];
         let expected: Image = Image::try_create(5, 4, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_60002_output_index_and_doublequoted_data() {
+        // Arrange
+        let s: &str = " output[42] = \"hello world\"; ";
+
+        // Act
+        let (index, data) = PromptRLEDeserializer::output_index_and_doublequoted_data(s).expect("ok");
+
+        // Assert
+        assert_eq!(index, 42);
+        assert_eq!(data, "hello world");
     }
 
     #[test]
