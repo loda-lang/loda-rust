@@ -1,5 +1,6 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
+use super::image_line_spans::PromptRLEDeserializer;
 use super::{Image, ImageToHTML};
 use super::arc_work_model::{Task, PairType};
 use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType, natural_language::NaturalLanguage};
@@ -759,7 +760,17 @@ impl SubcommandARCWeb {
         let multiline_text: &str = &reply_data.replyText;
         let status_text: String;
         let predicted_image_html: String;
-        match NaturalLanguage::try_from(multiline_text) {
+        // match NaturalLanguage::try_from(multiline_text) {
+        //     Ok(natural_language) => {
+        //         status_text = format!("parsed the reply text. natural_language: {:?}", natural_language);
+        //         predicted_image_html = natural_language.to_html();
+        //     },
+        //     Err(error) => {
+        //         status_text = format!("cannot parse the reply text. error: {:?}", error);
+        //         predicted_image_html = "Problem in reply text. No image generated.".to_string();
+        //     }
+        // }
+        match PromptRLEDeserializer::try_from(multiline_text) {
             Ok(natural_language) => {
                 status_text = format!("parsed the reply text. natural_language: {:?}", natural_language);
                 predicted_image_html = natural_language.to_html();
