@@ -11,6 +11,11 @@ lazy_static! {
     static ref EXTRACT_SPANITEM: Regex = Regex::new(
         r"(\d+)([BW])"
     ).unwrap();
+
+    /// Extract one key=value from strings like: `width18` or `height16` or `ID0`
+    static ref EXTRACT_KEY_VALUE: Regex = Regex::new(
+        r"(width|height|ID)(\d+)"
+    ).unwrap();
 }
 
 const MOCK_REPLY1: &str = r#"
@@ -140,6 +145,53 @@ impl PromptRLEDeserializer {
             }
         }
         Ok(values)
+    }
+
+    fn decode_key_value(input: &str, expected_key: &str) -> anyhow::Result<u8> {
+        let captures = match EXTRACT_KEY_VALUE.captures(input) {
+            Some(value) => value,
+            None => {
+                anyhow::bail!("Unable to extract key value from string");
+            }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let capture2: &str = captures.get(2).map_or("", |m| m.as_str());
+        let integer_value: u8 = capture2.parse()?;
+        if capture1 != expected_key {
+            anyhow::bail!("Unknown key. Expected {}, but got {}", expected_key, capture1);
+        }
+        Ok(integer_value)
+    }
+
+    fn decode_image(input: &str) -> anyhow::Result<Image> {
+        let parts: Vec<&str> = input.split(":").collect();
+        if parts.len() < 3 {
+            anyhow::bail!("Too few parts in the image format");
+        }
+        let width: u8 = Self::decode_key_value(parts[0], "width")?;
+        let height: u8 = Self::decode_key_value(parts[1], "height")?;
+
+        let mut result_image = Image::zero(width, height);
+
+        let mut current_color: u8 = 0;
+        for (index, part) in parts.iter().enumerate() {
+            if index == 0 || index == 1 {
+                continue;
+            }
+            if part.starts_with("ID") {
+                current_color = Self::decode_key_value(part, "ID")?;
+                continue;
+            }
+            for (y, rle_string) in part.split(" ").enumerate() {
+                let values: Vec<u8> = Self::decode_rle_string(rle_string)?;
+                for (x, value) in values.iter().enumerate() {
+                    if *value == 0 {
+                        result_image.set(x as i32, y as i32, current_color);
+                    }
+                }
+            }
+        }
+        Ok(result_image)
     }
 
     fn interpret_line_and_draw(_line_index: usize, line: &str, image: &mut Image) -> anyhow::Result<()> {
@@ -417,6 +469,25 @@ mod tests {
 
         // Assert
         assert_eq!(actual, Vec::<u8>::from([0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1]));
+    }
+
+    #[test]
+    fn test_60001_decode_image() {
+        // Arrange
+        let input: &str = "width5:height4:ID0:1W1B3W 1B1W1B2W 2B1W2B 3B1W1B:ID1:2W3B 3W2B 5W 5W:ID7:1B4W 1W1B3W 2W1B2W 3W1B1W";
+
+        // Act
+        let actual = PromptRLEDeserializer::decode_image(input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            7, 0, 1, 1, 1,
+            0, 7, 0, 1, 1,
+            0, 0, 7, 0, 0,
+            0, 0, 0, 7, 0,
+        ];
+        let expected: Image = Image::try_create(5, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
     }
 
     #[test]
