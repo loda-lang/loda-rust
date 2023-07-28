@@ -1,4 +1,7 @@
 use super::{Histogram, Image, ImageHistogram, ImageMask};
+use super::{ShapeTransformation, ImageToHTML, ImageSize, ShapeType, NodeData, GraphNodeDataEdgeData, TaskGraph, ImageType, PixelConnectivity};
+use super::arc_work_model::{Task, PairType};
+use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct SpanItem {
@@ -52,12 +55,17 @@ impl LineSpan {
     fn serialize_rle(image: &Image) -> anyhow::Result<String> {
         let histogram: Histogram = image.histogram_all();
         let mut s = String::new();
+        let mut is_first = true;
         for (_count, color) in histogram.pairs_ordered_by_color() {
-            s += &format!("{};", color);
+            if is_first {
+                is_first = false;
+            } else {
+                s += ",";
+            }
+            s += &format!("ID{}:", color);
             s += &Self::serialize_rle_color(image, color)?;
-            s += "\n";
         }
-        Ok(s.trim().to_string())
+        Ok(s)
     }
 
     fn serialize_rle_color(image: &Image, color: u8) -> anyhow::Result<String> {
@@ -76,6 +84,102 @@ impl LineSpan {
             }
         }
         Ok(s)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PromptRLESerializer;
+
+impl PromptRLESerializer {
+    /// Convert the `TaskGraph` into a prompt for a language model to solve.
+    /// 
+    /// Known problem: It can only ask prompt about the first `test` pair.
+    /// The tasks that have more than one `test` pair, will not create prompts for the remaining `test` pairs.
+    pub fn to_prompt(task_graph: &TaskGraph) -> anyhow::Result<String> {
+        let task: &Task = match &task_graph.task() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("graph is not initialized with a task"));
+            }
+        };
+
+        let mut rows = Vec::<String>::new();
+
+        rows.push("I'm doing CPP experiments.\n\n".to_string());
+
+        rows.push("These are run-length encoded images.".to_string());
+        
+        rows.push("The RLE used here only uses black and white. There are no other colors than black or white. Example `B3W7B2` becomes `3 black, 7 white, 2 black`.".to_string());
+        rows.push("".to_string());
+
+        rows.push("The ID indicates the layer number. Multiple images can be stacked and black can be considered transparent.".to_string());
+
+        rows.push("".to_string());
+        rows.push("".to_string());
+        rows.push("```cpp".to_string());
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            if pair.pair_type == PairType::Test {
+                continue;
+            }
+            if pair_index > 0 {
+                rows.push("".to_string());
+            }
+
+            {
+                let size: ImageSize = pair.input.image.size();
+                let s0: String = LineSpan::serialize_rle(&pair.input.image)?;
+                let s1: String = format!("input[{}] = \"width{}:height{}:{}\";", pair_index, size.width, size.height, s0);
+                rows.push(s1);
+            }
+
+            {
+                let size: ImageSize = pair.output.image.size();
+                let s0: String = LineSpan::serialize_rle(&pair.output.image)?;
+                let s1: String = format!("output[{}] = \"width{}:height{}:{}\";", pair_index, size.width, size.height, s0);
+                rows.push(s1);
+            }
+        }
+        rows.push("```".to_string());
+        rows.push("".to_string());
+
+        rows.push("\n\n# Task".to_string());
+        rows.push("With the following example, I want you to predict what the output should be. Print your reasoning before printing the code.\n\n".to_string());
+        rows.push("".to_string());
+        rows.push("".to_string());
+        rows.push("```cpp".to_string());
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            if pair.pair_type == PairType::Train {
+                continue;
+            }
+
+            {
+                let size: ImageSize = pair.input.image.size();
+                let s0: String = LineSpan::serialize_rle(&pair.input.image)?;
+                let s1: String = format!("input[{}] = \"width{}:height{}:{}\";", pair_index, size.width, size.height, s0);
+                rows.push(s1);
+            }
+
+            {
+                let grid_size: String = match task.predict_output_size_for_pair(pair) {
+                    Ok(size) => {
+                        format!("width{}:height{}", size.width, size.height)
+                    },
+                    Err(_) => {
+                        format!("widthPREDICT:heightPREDICT")
+                    }
+                };
+                let s1: String = format!("output[{}] = \"{}:PREDICT\";", pair_index, grid_size);
+                rows.push(s1);
+            }
+
+            // Future experiment:
+            // process all the test pairs. Currently it's only 1 test pair.
+            break;
+        }
+        rows.push("```".to_string());
+        rows.push("Repeat the previous CPP code, with PREDICT replaced with your predictions.".to_string());
+
+        Ok(rows.join("\n"))
     }
 }
 
@@ -135,7 +239,7 @@ mod tests {
         let actual: String = LineSpan::serialize_rle(&input).expect("ok");
 
         // Assert
-        let expected = "0;1W1B3W 1B1W1B2W 2B1W2B 3B1W1B\n1;2W3B 3W2B 5W 5W\n7;1B4W 1W1B3W 2W1B2W 3W1B1W";
+        let expected = "ID0:1W1B3W 1B1W1B2W 2B1W2B 3B1W1B,ID1:2W3B 3W2B 5W 5W,ID7:1B4W 1W1B3W 2W1B2W 3W1B1W";
         assert_eq!(actual, expected);
     }
 }
