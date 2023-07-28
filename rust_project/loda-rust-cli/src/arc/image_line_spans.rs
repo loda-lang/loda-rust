@@ -90,7 +90,7 @@ impl LineSpan {
             if is_first {
                 is_first = false;
             } else {
-                s += ",";
+                s += ":";
             }
             s += &format!("ID{}:", color);
             s += &Self::serialize_rle_color(image, color)?;
@@ -107,7 +107,7 @@ impl LineSpan {
                 s += " ";
             }
             s += &format!("{}", item.length);
-            if item.color == 0 {
+            if item.color == 1 {
                 s += "W";
             } else {
                 s += "B";
@@ -185,7 +185,7 @@ impl PromptRLEDeserializer {
             for (y, rle_string) in part.split(" ").enumerate() {
                 let values: Vec<u8> = Self::decode_rle_string(rle_string)?;
                 for (x, value) in values.iter().enumerate() {
-                    if *value == 0 {
+                    if *value > 0 {
                         result_image.set(x as i32, y as i32, current_color);
                     }
                 }
@@ -455,7 +455,7 @@ mod tests {
         let actual: String = LineSpan::serialize_rle(&input).expect("ok");
 
         // Assert
-        let expected = "ID0:1W1B3W 1B1W1B2W 2B1W2B 3B1W1B,ID1:2W3B 3W2B 5W 5W,ID7:1B4W 1W1B3W 2W1B2W 3W1B1W";
+        let expected = "ID0:1B1W3B 1W1B1W2B 2W1B2W 3W1B1W:ID1:2B3W 3B2W 5B 5B:ID7:1W4B 1B1W3B 2B1W2B 3B1W1B";
         assert_eq!(actual, expected);
     }
 
@@ -474,7 +474,7 @@ mod tests {
     #[test]
     fn test_60001_decode_image() {
         // Arrange
-        let input: &str = "width5:height4:ID0:1W1B3W 1B1W1B2W 2B1W2B 3B1W1B:ID1:2W3B 3W2B 5W 5W:ID7:1B4W 1W1B3W 2W1B2W 3W1B1W";
+        let input: &str = "width5:height4:ID0:1B1W3B 1W1B1W2B 2W1B2W 3W1B1W:ID1:2B3W 3B2W 5B 5B:ID7:1W4B 1B1W3B 2B1W2B 3B1W1B";
 
         // Act
         let actual = PromptRLEDeserializer::decode_image(input).expect("ok");
