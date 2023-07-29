@@ -1,9 +1,10 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
 use super::image_line_spans::PromptRLEDeserializer;
+use super::natural_language::NaturalLanguage;
 use super::{Image, ImageToHTML};
 use super::arc_work_model::{Task, PairType};
-use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType, natural_language::NaturalLanguage};
+use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType};
 use super::prompt::PromptType;
 use http_types::Url;
 use serde::{Deserialize, Serialize};
@@ -646,6 +647,22 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
+    fn prompt_id_for_prompttype(prompt_type: &PromptType) -> &'static str {
+        match prompt_type {
+            PromptType::ShapeAndTransformConnectivity4 => "prompt-shape-and-transform-connectivity4",
+            PromptType::ShapeAndTransformConnectivity8 => "prompt-shape-and-transform-connectivity8",
+            PromptType::RunLengthEncoding => "prompt-run-length-encoding",
+        }
+    }
+
+    fn option_value_for_prompttype(prompt_type: &PromptType) -> &'static str {
+        match prompt_type {
+            PromptType::ShapeAndTransformConnectivity4 => "option-shape-and-transform-connectivity4",
+            PromptType::ShapeAndTransformConnectivity8 => "option-shape-and-transform-connectivity8",
+            PromptType::RunLengthEncoding => "option-run-length-encoding",
+        }
+    }
+
     async fn get_prompt(req: Request<State>) -> tide::Result {
         let tera: &Tera = &req.state().tera;
         let task_id: &str = req.param("task_id").unwrap_or("world");
@@ -662,13 +679,25 @@ impl SubcommandARCWeb {
             }
         };
 
-        let prompt_type: PromptType = PromptType::RunLengthEncoding;
-        // let prompt_type: PromptType = PromptType::ShapeAndTransformConnectivity4;
-        // let prompt_type: PromptType = PromptType::ShapeAndTransformConnectivity8;
-        let prompt: String = task_graph.to_prompt(&prompt_type)?;
+        let prompt_types = [
+            PromptType::ShapeAndTransformConnectivity4,
+            PromptType::ShapeAndTransformConnectivity8,
+            PromptType::RunLengthEncoding,
+        ];
+        let prompt_records: Vec<PromptRecord> = prompt_types.iter().map(|prompt_type| {
+            let prompt_id: String = Self::prompt_id_for_prompttype(prompt_type).into();
+            let option_value: String = Self::option_value_for_prompttype(prompt_type).into();
+            let prompt: String = task_graph.to_prompt(prompt_type).unwrap_or("ERROR serializing prompt".into());
+            PromptRecord {
+                prompt_id,
+                option_value,
+                name: format!("{:?}", prompt_type),
+                prompt,
+            }
+        }).collect();
 
         let mut context2 = tera::Context::new();
-        context2.insert("prompt_text", &prompt);
+        context2.insert("prompt_records", &prompt_records);
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
         context2.insert("reply_href", &format!("/task/{}/reply", task_id));
@@ -1005,4 +1034,12 @@ struct FindNodePixel {
     x: u8,
     y: u8,
     id: String,
+}
+
+#[derive(Debug, Serialize)]
+struct PromptRecord {
+    prompt_id: String,
+    option_value: String,
+    name: String,
+    prompt: String,
 }
