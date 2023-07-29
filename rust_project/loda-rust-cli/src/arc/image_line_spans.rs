@@ -340,10 +340,13 @@ impl PromptRLESerializer {
         rows.push("".to_string());
         
         rows.push("# Task A".to_string());
+        rows.push("Use at most 50 words.".to_string());
         rows.push("Think step by step.".to_string());
         rows.push("- Decode the RLE images to your internal visualization. Take care that the number of Bs and number of Ws sums to the width parameter.".to_string());
         rows.push("- Write notes about what shapes and patterns you observe.".to_string());
+        rows.push("- The output is never the same as the input.".to_string());
         rows.push("\n\n# Task B".to_string());
+        rows.push("Use at most 100 words.".to_string());
         rows.push("Think step by step.".to_string());
         rows.push("- Count the mass of each layer.".to_string());
         rows.push("- Is mass related to the sorting of layers.".to_string());
