@@ -349,6 +349,8 @@ impl PromptRLESerializer {
         rows.push("- Is mass related to the sorting of layers.".to_string());
         rows.push("- Are there shapes such as boxes, L-shape, H-shape, E-shape, Plus-shape, Tetris shapes.".to_string());
         rows.push("- Does shape move between layer IDs.".to_string());
+        rows.push("- Does shape move relative x,y.".to_string());
+        rows.push("- Boolean operations may happen: xor, and, or.".to_string());
         rows.push("\n\n# Task C".to_string());
         rows.push("With the following example input, I want you to predict what the output should be.".to_string());
         rows.push("".to_string());
