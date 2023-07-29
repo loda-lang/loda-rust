@@ -26,7 +26,7 @@
 use super::prompt_run_length_encoding::PromptRLESerializer;
 use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle, ShapeTransformation};
 use super::arc_work_model::{Task, Pair, PairType};
-use super::natural_language::NaturalLanguageSerializer;
+use super::prompt_shape_transform::NaturalLanguageSerializer;
 use super::prompt::{PromptSerialize, PromptType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
