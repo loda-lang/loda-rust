@@ -790,7 +790,7 @@ impl SubcommandARCWeb {
         }
         let expected_image_html: String = expected_image.to_html();
         
-        let multiline_text: &str = &reply_data.replyText;
+        let multiline_text: &str = &reply_data.reply_text;
 
         let mut problems = Vec::<String>::new();
         let mut prompt_deserialize_vec = Vec::<Box<dyn PromptDeserialize>>::new();
@@ -848,7 +848,7 @@ impl SubcommandARCWeb {
         context2.insert("task_id", &task_id);
         context2.insert("task_href", &format!("/task/{}", task_id));
         context2.insert("prompt_href", &format!("/task/{}/prompt", task_id));
-        context2.insert("reply_text", &reply_data.replyText);
+        context2.insert("reply_text", &reply_data.reply_text);
         context2.insert("post_reply_result", &status_text);
         context2.insert("expected_image_html", &expected_image_html);
         context2.insert("predicted_image_html", &predicted_image_html);
@@ -866,13 +866,13 @@ impl SubcommandARCWeb {
 #[derive(Deserialize)]
 #[serde(default)]
 struct PostReplyData {
-    replyText: String,
+    reply_text: String,
 }
 
 impl Default for PostReplyData {
     fn default() -> Self {
         Self {
-            replyText: String::new(),
+            reply_text: String::new(),
         }
     }
 }
