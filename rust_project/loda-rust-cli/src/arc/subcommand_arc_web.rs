@@ -4,6 +4,7 @@ use super::image_line_spans::PromptRLEDeserializer;
 use super::{Image, ImageToHTML};
 use super::arc_work_model::{Task, PairType};
 use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType, natural_language::NaturalLanguage};
+use super::prompt::PromptType;
 use http_types::Url;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
@@ -661,7 +662,9 @@ impl SubcommandARCWeb {
             }
         };
 
-        let prompt: String = task_graph.to_prompt()?;
+        let prompt_type: PromptType = PromptType::RunLengthEncoding;
+        // let prompt_type: PromptType = PromptType::ShapeAndTransform;
+        let prompt: String = task_graph.to_prompt(prompt_type)?;
 
         let mut context2 = tera::Context::new();
         context2.insert("prompt_text", &prompt);

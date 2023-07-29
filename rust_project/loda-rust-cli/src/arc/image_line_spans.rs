@@ -1,7 +1,7 @@
 use super::{Histogram, Image, ImageHistogram, ImageMask};
-use super::{ImageToHTML, ImageSize, TaskGraph};
+use super::{ImageToHTML, TaskGraph};
+use super::prompt::PromptSerialize;
 use super::arc_work_model::{Task, PairType};
-use std::collections::HashSet;
 use lazy_static::lazy_static;
 use regex::Regex;
 use anyhow::{Result, Context};
@@ -289,12 +289,12 @@ impl TryFrom<&str> for PromptRLEDeserializer {
 #[derive(Clone, Debug)]
 pub struct PromptRLESerializer;
 
-impl PromptRLESerializer {
+impl PromptSerialize for PromptRLESerializer {
     /// Convert the `TaskGraph` into a prompt for a language model to solve.
     /// 
     /// Known problem: It can only ask prompt about the first `test` pair.
     /// The tasks that have more than one `test` pair, will not create prompts for the remaining `test` pairs.
-    pub fn to_prompt(task_graph: &TaskGraph) -> anyhow::Result<String> {
+    fn to_prompt(&self, task_graph: &TaskGraph) -> anyhow::Result<String> {
         let task: &Task = match &task_graph.task() {
             Some(value) => value,
             None => {

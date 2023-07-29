@@ -109,6 +109,7 @@ mod objects_sort_by_property;
 mod objects_to_grid;
 mod objects_unique_color_count;
 mod output_specification;
+mod prompt;
 mod pixel_connectivity;
 mod popular_objects;
 mod read_testdata;

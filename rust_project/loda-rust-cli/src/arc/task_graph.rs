@@ -27,6 +27,7 @@ use super::image_line_spans::PromptRLESerializer;
 use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle, ShapeTransformation};
 use super::arc_work_model::{Task, Pair, PairType};
 use super::natural_language::NaturalLanguageSerializer;
+use super::prompt::{PromptSerialize, PromptType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
 
@@ -1370,9 +1371,16 @@ impl TaskGraph {
         Ok(())
     }
 
-    pub fn to_prompt(&self) -> anyhow::Result<String> {
-        // NaturalLanguageSerializer::to_prompt(&self)
-        PromptRLESerializer::to_prompt(&self)
+    fn prompt_serializer(prompt_type: PromptType) -> Box<dyn PromptSerialize> {
+        match prompt_type {
+            PromptType::RunLengthEncoding => Box::new(PromptRLESerializer),
+            PromptType::ShapeAndTransform => Box::new(NaturalLanguageSerializer)
+        }
+    }
+
+    pub fn to_prompt(&self, prompt_type: PromptType) -> anyhow::Result<String> {
+        let t: Box<dyn PromptSerialize> = Self::prompt_serializer(prompt_type);
+        t.to_prompt(&self)
     }
 
     /// When `Connectivity4` is specified, then it's only shapes that are connected via the 4 pixels above, below, left and right.
