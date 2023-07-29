@@ -1,6 +1,6 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
-use super::image_line_spans::PromptRLEDeserializer;
+use super::prompt_run_length_encoding::PromptRLEDeserializer;
 use super::natural_language::NaturalLanguage;
 use super::{Image, ImageToHTML};
 use super::arc_work_model::{Task, PairType};

@@ -48,7 +48,7 @@ mod image_gravity;
 mod image_grid;
 mod image_histogram;
 mod image_layout;
-mod image_line_spans;
+mod prompt_run_length_encoding;
 mod image_mask;
 mod image_mask_boolean;
 mod image_mask_count;
