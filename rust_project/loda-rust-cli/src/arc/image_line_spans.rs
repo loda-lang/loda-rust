@@ -348,9 +348,11 @@ impl PromptRLESerializer {
         rows.push("\n\n# Task B".to_string());
         rows.push("Use at most 300 words.".to_string());
         rows.push("Include a markdown formatted table with the most important observations about input and output images.".to_string());
-        rows.push("The table has three columns: observation name, integer values, comments about the observation.".to_string());
+        rows.push("The table has three columns: observation name, observation values, comments about the observation.".to_string());
+        rows.push("The `observation values` column can contain integers, IDs, yes/no, shape names, absent, decreasing order, and so on.".to_string());
         rows.push("Think step by step.".to_string());
         rows.push("- Count the mass of each layer.".to_string());
+        rows.push("- Count how many strongly connected clusters there are inside each layer.".to_string());
         rows.push("- Is mass related to the sorting of layers.".to_string());
         rows.push("- Are there horizontal lines, do they extend edge to edge.".to_string());
         rows.push("- Are there vertical lines, do they extend edge to edge.".to_string());
