@@ -26,7 +26,7 @@
 use super::prompt_run_length_encoding::PromptRLESerializer;
 use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle, ShapeTransformation};
 use super::arc_work_model::{Task, Pair, PairType};
-use super::prompt_shape_transform::NaturalLanguageSerializer;
+use super::prompt_shape_transform::PromptShapeTransformSerializer;
 use super::prompt::{PromptSerialize, PromptType};
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
@@ -1374,8 +1374,8 @@ impl TaskGraph {
     fn prompt_serializer(prompt_type: &PromptType) -> Box<dyn PromptSerialize> {
         match prompt_type {
             PromptType::RunLengthEncoding => Box::new(PromptRLESerializer),
-            PromptType::ShapeAndTransformConnectivity4 => Box::new(NaturalLanguageSerializer::new_connectivity4()),
-            PromptType::ShapeAndTransformConnectivity8 => Box::new(NaturalLanguageSerializer::new_connectivity8()),
+            PromptType::ShapeAndTransformConnectivity4 => Box::new(PromptShapeTransformSerializer::new_connectivity4()),
+            PromptType::ShapeAndTransformConnectivity8 => Box::new(PromptShapeTransformSerializer::new_connectivity8()),
         }
     }
 

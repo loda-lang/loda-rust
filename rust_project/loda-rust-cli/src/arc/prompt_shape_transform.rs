@@ -363,12 +363,12 @@ impl TryFrom<&str> for FieldWidthHeight {
 }
 
 #[derive(Clone, Debug)]
-pub struct NaturalLanguage {
+pub struct PromptShapeTransformDeserializer {
     pub lines: Vec<String>,
     pub width_height: Option<FieldWidthHeight>,
 }
 
-impl NaturalLanguage {
+impl PromptShapeTransformDeserializer {
     #[allow(dead_code)]
     pub fn reply_example1() -> String {
         MOCK_REPLY1.to_string()
@@ -447,7 +447,7 @@ impl NaturalLanguage {
     }
 }
 
-impl PromptDeserialize for NaturalLanguage {
+impl PromptDeserialize for PromptShapeTransformDeserializer {
     fn image(&self) -> anyhow::Result<Image> {
         let mut image = Image::zero(30, 30);
         if let Some(width_height) = &self.width_height {
@@ -462,7 +462,7 @@ impl PromptDeserialize for NaturalLanguage {
     }
 }
 
-impl TryFrom<&str> for NaturalLanguage {
+impl TryFrom<&str> for PromptShapeTransformDeserializer {
     type Error = anyhow::Error;
 
     /// Extract the interesting parts from the prompt response.
@@ -535,11 +535,11 @@ impl TryFrom<&str> for NaturalLanguage {
 }
 
 #[derive(Clone, Debug)]
-pub struct NaturalLanguageSerializer {
+pub struct PromptShapeTransformSerializer {
     connectivity: PixelConnectivity
 }
 
-impl NaturalLanguageSerializer {
+impl PromptShapeTransformSerializer {
     pub fn new_connectivity4() -> Self {
         Self {
             connectivity: PixelConnectivity::Connectivity4,
@@ -647,7 +647,7 @@ impl NaturalLanguageSerializer {
     }
 }
 
-impl PromptSerialize for NaturalLanguageSerializer {
+impl PromptSerialize for PromptShapeTransformSerializer {
     /// Convert the `TaskGraph` into a prompt for a language model to solve.
     /// 
     /// Known problem: It can only ask prompt about the first `test` pair.
@@ -721,7 +721,7 @@ impl PromptSerialize for NaturalLanguageSerializer {
             {
                 let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Input, connectivity)?;
                 for object_nodeindex in &object_nodeindex_vec {
-                    let s0: String = NaturalLanguageSerializer::natural_language_of_object(graph, *object_nodeindex)?;
+                    let s0: String = PromptShapeTransformSerializer::natural_language_of_object(graph, *object_nodeindex)?;
                     let s1: String = format!("object(input{}_{}).", natural_language_pair_index, s0);
                     rows.push(s1);
                 }        
@@ -737,7 +737,7 @@ impl PromptSerialize for NaturalLanguageSerializer {
             {
                 let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Output, connectivity)?;
                 for object_nodeindex in &object_nodeindex_vec {
-                    let s0: String = NaturalLanguageSerializer::natural_language_of_object(graph, *object_nodeindex)?;
+                    let s0: String = PromptShapeTransformSerializer::natural_language_of_object(graph, *object_nodeindex)?;
                     let s1: String = format!("object(output{}_{}).", natural_language_pair_index, s0);
                     rows.push(s1);
                 }        
@@ -822,7 +822,7 @@ impl PromptSerialize for NaturalLanguageSerializer {
             {
                 let object_nodeindex_vec: Vec::<NodeIndex> = task_graph.get_object_nodeindex_vec(pair_index_u8, ImageType::Input, connectivity)?;
                 for object_nodeindex in &object_nodeindex_vec {
-                    let s0: String = NaturalLanguageSerializer::natural_language_of_object(graph, *object_nodeindex)?;
+                    let s0: String = PromptShapeTransformSerializer::natural_language_of_object(graph, *object_nodeindex)?;
                     let s1: String = format!("object(input{}_{}).", natural_language_pair_index, s0);
                     rows.push(s1);
                 }        
@@ -1002,11 +1002,11 @@ mod tests {
     #[test]
     fn test_70000_parse_ok() {
         // Arrange
-        let s: String = NaturalLanguage::reply_example1();
+        let s: String = PromptShapeTransformDeserializer::reply_example1();
         let s1: &str = &s;
 
         // Act
-        let actual: NaturalLanguage = NaturalLanguage::try_from(s1).expect("ok");
+        let actual: PromptShapeTransformDeserializer = PromptShapeTransformDeserializer::try_from(s1).expect("ok");
         // actual.interpret();
 
         // Assert
@@ -1019,7 +1019,7 @@ mod tests {
         let s = "Text without code block\n\njunk\nignore";
 
         // Act
-        let error = NaturalLanguage::try_from(s).expect_err("is supposed to fail");
+        let error = PromptShapeTransformDeserializer::try_from(s).expect_err("is supposed to fail");
 
         // Assert
         let message = error.to_string();
@@ -1037,7 +1037,7 @@ junk2.
 "#;
 
         // Act
-        let error = NaturalLanguage::try_from(s).expect_err("is supposed to fail");
+        let error = PromptShapeTransformDeserializer::try_from(s).expect_err("is supposed to fail");
 
         // Assert
         let message = error.to_string();

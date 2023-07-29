@@ -1,7 +1,7 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
 use super::prompt_run_length_encoding::PromptRLEDeserializer;
-use super::prompt_shape_transform::NaturalLanguage;
+use super::prompt_shape_transform::PromptShapeTransformDeserializer;
 use super::{Image, ImageToHTML};
 use super::arc_work_model::{Task, PairType};
 use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType};
@@ -802,7 +802,7 @@ impl SubcommandARCWeb {
                 problems.push(format!("cannot parse the reply text. error: {:?}", error));
             }
         }
-        match NaturalLanguage::try_from(multiline_text) {
+        match PromptShapeTransformDeserializer::try_from(multiline_text) {
             Ok(prompt_deserialize) => {
                 prompt_deserialize_vec.push(Box::new(prompt_deserialize));
             },
