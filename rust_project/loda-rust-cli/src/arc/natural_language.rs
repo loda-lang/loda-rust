@@ -1,5 +1,5 @@
-use super::prompt::PromptSerialize;
-use super::{ShapeTransformation, Image, ImageToHTML, ImageSize, ShapeType, NodeData, GraphNodeDataEdgeData, TaskGraph, ImageType, PixelConnectivity};
+use super::prompt::{PromptSerialize, PromptDeserialize};
+use super::{ShapeTransformation, Image, ImageSize, ShapeType, NodeData, GraphNodeDataEdgeData, TaskGraph, ImageType, PixelConnectivity};
 use super::arc_work_model::{Task, PairType};
 use std::collections::HashSet;
 use regex::Regex;
@@ -445,18 +445,20 @@ impl NaturalLanguage {
             }
         }
     }
+}
 
-    pub fn to_html(&self) -> String {
+impl PromptDeserialize for NaturalLanguage {
+    fn image(&self) -> anyhow::Result<Image> {
         let mut image = Image::zero(30, 30);
         if let Some(width_height) = &self.width_height {
             image = Image::zero(width_height.width, width_height.height);
         }
-
         self.interpret_and_draw(&mut image);
+        Ok(image)
+    }
 
-        let mut s = String::new();
-        s += &image.to_html();
-        s
+    fn status(&self) -> Option<String> {
+        None
     }
 }
 

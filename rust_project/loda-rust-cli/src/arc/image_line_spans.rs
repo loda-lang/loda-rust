@@ -1,6 +1,5 @@
-use super::{Histogram, Image, ImageHistogram, ImageMask};
-use super::{ImageToHTML, TaskGraph};
-use super::prompt::PromptSerialize;
+use super::{Histogram, Image, ImageHistogram, ImageMask, TaskGraph};
+use super::prompt::{PromptSerialize, PromptDeserialize};
 use super::arc_work_model::{Task, PairType};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -225,15 +224,17 @@ impl PromptRLEDeserializer {
             }
         }
     }
+}
 
-    pub fn to_html(&self) -> String {
+impl PromptDeserialize for PromptRLEDeserializer {
+    fn image(&self) -> anyhow::Result<Image> {
         let mut image = Image::zero(30, 30);
-
         self.interpret_and_draw(&mut image);
+        Ok(image)
+    }
 
-        let mut s = String::new();
-        s += &image.to_html();
-        s
+    fn status(&self) -> Option<String> {
+        None
     }
 }
 

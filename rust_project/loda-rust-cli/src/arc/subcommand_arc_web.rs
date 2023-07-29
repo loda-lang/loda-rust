@@ -5,7 +5,7 @@ use super::natural_language::NaturalLanguage;
 use super::{Image, ImageToHTML};
 use super::arc_work_model::{Task, PairType};
 use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType};
-use super::prompt::PromptType;
+use super::prompt::{PromptType, PromptDeserialize};
 use http_types::Url;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
@@ -791,27 +791,57 @@ impl SubcommandARCWeb {
         let expected_image_html: String = expected_image.to_html();
         
         let multiline_text: &str = &reply_data.replyText;
-        let status_text: String;
-        let predicted_image_html: String;
-        // match NaturalLanguage::try_from(multiline_text) {
-        //     Ok(natural_language) => {
-        //         status_text = format!("parsed the reply text. natural_language: {:?}", natural_language);
-        //         predicted_image_html = natural_language.to_html();
-        //     },
-        //     Err(error) => {
-        //         status_text = format!("cannot parse the reply text. error: {:?}", error);
-        //         predicted_image_html = "Problem in reply text. No image generated.".to_string();
-        //     }
-        // }
+
+        let mut problems = Vec::<String>::new();
+        let mut prompt_deserialize_vec = Vec::<Box<dyn PromptDeserialize>>::new();
         match PromptRLEDeserializer::try_from(multiline_text) {
-            Ok(natural_language) => {
-                status_text = format!("parsed the reply text. natural_language: {:?}", natural_language);
-                predicted_image_html = natural_language.to_html();
+            Ok(prompt_deserialize) => {
+                prompt_deserialize_vec.push(Box::new(prompt_deserialize));
             },
             Err(error) => {
-                status_text = format!("cannot parse the reply text. error: {:?}", error);
-                predicted_image_html = "Problem in reply text. No image generated.".to_string();
+                problems.push(format!("cannot parse the reply text. error: {:?}", error));
             }
+        }
+        match NaturalLanguage::try_from(multiline_text) {
+            Ok(prompt_deserialize) => {
+                prompt_deserialize_vec.push(Box::new(prompt_deserialize));
+            },
+            Err(error) => {
+                problems.push(format!("cannot parse the reply text. error: {:?}", error));
+            }
+        }
+        if !prompt_deserialize_vec.is_empty() {
+            // One or more deserializers succeeded, no need to keep the deserializer problems.
+            problems.truncate(0);
+        }
+
+        let mut predicted_image: Option<Image> = None;
+        for prompt_deserialize in &prompt_deserialize_vec {
+            match prompt_deserialize.image() {
+                Ok(image) => {
+                    predicted_image = Some(image);
+                },
+                Err(error) => {
+                    problems.push(format!("cannot create image. error: {:?}", error));
+                }
+            }
+            if let Some(status) = prompt_deserialize.status() {
+                problems.push(status);
+            }
+        }
+
+        let status_text: String;
+        if problems.is_empty() {
+            status_text = "OK".to_string();
+        } else {
+            status_text = problems.join("\n").into();
+        }
+
+        let predicted_image_html: String;
+        if let Some(image) = predicted_image {
+            predicted_image_html = image.to_html();
+        } else {
+            predicted_image_html = "No predicted image".into();
         }
 
         let mut context2 = tera::Context::new();
