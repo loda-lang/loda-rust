@@ -533,9 +533,23 @@ impl TryFrom<&str> for NaturalLanguage {
 }
 
 #[derive(Clone, Debug)]
-pub struct NaturalLanguageSerializer;
+pub struct NaturalLanguageSerializer {
+    connectivity: PixelConnectivity
+}
 
 impl NaturalLanguageSerializer {
+    pub fn new_connectivity4() -> Self {
+        Self {
+            connectivity: PixelConnectivity::Connectivity4,
+        }
+    }
+
+    pub fn new_connectivity8() -> Self {
+        Self {
+            connectivity: PixelConnectivity::Connectivity8,
+        }
+    }
+
     fn natural_language_of_object(graph: &GraphNodeDataEdgeData, object_nodeindex: NodeIndex) -> anyhow::Result<String> {
         let mut found_position_x: Option<u8> = None;
         let mut found_position_y: Option<u8> = None;
@@ -643,11 +657,7 @@ impl PromptSerialize for NaturalLanguageSerializer {
     /// Known problem: Generates lots of text. For tasks that have many objects, 
     /// the prompt may be too long for the language model to process.
     fn to_prompt(&self, task_graph: &TaskGraph) -> anyhow::Result<String> {
-        // Future experiment
-        // Create multiple prompts, one for each connectivity.
-        // Do prompting for connectivity4 and connectivity8, so there are 2 different prompts.
-
-        let connectivity = PixelConnectivity::Connectivity4;
+        let connectivity: PixelConnectivity = self.connectivity;
         
         let task: &Task = match &task_graph.task() {
             Some(value) => value,

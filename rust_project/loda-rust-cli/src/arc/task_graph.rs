@@ -1371,14 +1371,15 @@ impl TaskGraph {
         Ok(())
     }
 
-    fn prompt_serializer(prompt_type: PromptType) -> Box<dyn PromptSerialize> {
+    fn prompt_serializer(prompt_type: &PromptType) -> Box<dyn PromptSerialize> {
         match prompt_type {
             PromptType::RunLengthEncoding => Box::new(PromptRLESerializer),
-            PromptType::ShapeAndTransform => Box::new(NaturalLanguageSerializer)
+            PromptType::ShapeAndTransformConnectivity4 => Box::new(NaturalLanguageSerializer::new_connectivity4()),
+            PromptType::ShapeAndTransformConnectivity8 => Box::new(NaturalLanguageSerializer::new_connectivity8()),
         }
     }
 
-    pub fn to_prompt(&self, prompt_type: PromptType) -> anyhow::Result<String> {
+    pub fn to_prompt(&self, prompt_type: &PromptType) -> anyhow::Result<String> {
         let t: Box<dyn PromptSerialize> = Self::prompt_serializer(prompt_type);
         t.to_prompt(&self)
     }

@@ -663,8 +663,9 @@ impl SubcommandARCWeb {
         };
 
         let prompt_type: PromptType = PromptType::RunLengthEncoding;
-        // let prompt_type: PromptType = PromptType::ShapeAndTransform;
-        let prompt: String = task_graph.to_prompt(prompt_type)?;
+        // let prompt_type: PromptType = PromptType::ShapeAndTransformConnectivity4;
+        // let prompt_type: PromptType = PromptType::ShapeAndTransformConnectivity8;
+        let prompt: String = task_graph.to_prompt(&prompt_type)?;
 
         let mut context2 = tera::Context::new();
         context2.insert("prompt_text", &prompt);
