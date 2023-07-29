@@ -16,10 +16,28 @@
                 console.error('Failed to copy: ', err);
             }
         }
+
+        function onloadHandler() {
+            var select = document.getElementById('myDropdown');
+
+            // Retrieve the selected option from localStorage
+            var selectedOption = localStorage.getItem('selectedOption');
+
+            // Set the selected option in the dropdown
+            if(selectedOption) {
+                select.value = selectedOption;
+            }
+
+            // Listen for changes to the selected option
+            select.addEventListener('change', function() {
+                // Store the selected value in localStorage
+                localStorage.setItem('selectedOption', this.value);
+            });
+        }
     </script>
 </head>
 
-<body>
+<body onload="onloadHandler()">
     <header class="titlebar-container">
     <div class="titlebar-item titlebar-item-left">
         <a class="seconday-button" href="{{ task_href }}">Task</a>
@@ -41,6 +59,13 @@
     
     <footer id="page-footer">
     <div id="page-footer-item0" class="page-footer-item">
+        <span>Prompt type: </span>
+        <select id="myDropdown">
+            <option value="Option1">Option 1</option>
+            <option value="Option2">Option 2</option>
+            <option value="Option3">Option 3</option>
+        </select>
+        
         <!-- footer -->
     </div>
     <div id="page-footer-item1" class="page-footer-item">
