@@ -56,26 +56,31 @@ struct ImageToDictionary;
 impl ImageToDictionary {
     /// Creates a python dictionary with x, y coordinates as keys and colors as values.
     /// 
+    /// The `background_color` parameter is optional.
+    /// This is for omitting the most popular color, which is typically the background color.
+    /// But only do so if all the training pairs agree on the same color.
+    /// This can reduce the amount of text outputted.
+    /// 
     /// If `include_size` is false, then there is no width and height info in the dictionary.
     /// Returns a string like `{(0,0):7,(1,0):7,(2,0):9,(0,1):8,(1,1):7,(2,1):9}`
     /// 
     /// If `include_size` is true, then it will include the width and height of the image, like this
     /// `{'width':3,'height':2,(0,0):0,(1,0):1,(2,0):2,(0,1):0,(1,1):1,(2,1):2}`
-    fn convert(image: &Image, include_size: bool) -> anyhow::Result<String> {
+    fn convert(image: &Image, include_size: bool, background_color: Option<u8>) -> anyhow::Result<String> {
         let mut items = Vec::<String>::new();
         if include_size {
             items.push(format!("'width':{}", image.width()));
             items.push(format!("'height':{}", image.height()));
         }
+        if let Some(color) = background_color {
+            items.push(format!("'background':{}", color));
+        }
         for y in 0..image.height() {
             for x in 0..image.width() {
                 let pixel = image.get(x as i32, y as i32).unwrap_or(255);
-                // Future experiment:
-                // Omit the most popular color, which is typically the background color.
-                // But only do so if all the training pairs agree on the same color.
-                // if pixel == 0 {
-                //     continue;
-                // }
+                if Some(pixel) == background_color {
+                    continue;
+                }
                 items.push(format!("({},{}):{}", x, y, pixel));
             }
         }
@@ -286,6 +291,7 @@ impl PromptSerialize for PromptPositionSerializer {
         };
 
         let include_size: bool = true;
+        let background_color: Option<u8> = task.input_output_most_popular_color_unambiguous();
 
         let mut rows = Vec::<String>::new();
 
@@ -307,13 +313,13 @@ impl PromptSerialize for PromptPositionSerializer {
             }
 
             {
-                let s0: String = ImageToDictionary::convert(&pair.input.image, include_size)?;
+                let s0: String = ImageToDictionary::convert(&pair.input.image, include_size, background_color)?;
                 let s1: String = format!("input[{}] = {}", pair_index, s0);
                 rows.push(s1);
             }
 
             {
-                let s0: String = ImageToDictionary::convert(&pair.output.image, include_size)?;
+                let s0: String = ImageToDictionary::convert(&pair.output.image, include_size, background_color)?;
                 let s1: String = format!("output[{}] = {}", pair_index, s0);
                 rows.push(s1);
             }
@@ -366,7 +372,7 @@ impl PromptSerialize for PromptPositionSerializer {
             }
 
             {
-                let s0: String = ImageToDictionary::convert(&pair.input.image, include_size)?;
+                let s0: String = ImageToDictionary::convert(&pair.input.image, include_size, background_color)?;
                 let s1: String = format!("input[{}] = {}", pair_index, s0);
                 rows.push(s1);
             }
@@ -406,7 +412,7 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: String = ImageToDictionary::convert(&input, false).expect("ok");
+        let actual: String = ImageToDictionary::convert(&input, false, None).expect("ok");
 
         // Assert
         let expected = "{(0,0):7,(1,0):7,(2,0):9,(0,1):8,(1,1):7,(2,1):9}";
@@ -423,10 +429,27 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: String = ImageToDictionary::convert(&input, true).expect("ok");
+        let actual: String = ImageToDictionary::convert(&input, true, None).expect("ok");
 
         // Assert
         let expected = "{'width':3,'height':2,(0,0):0,(1,0):1,(2,0):2,(0,1):0,(1,1):1,(2,1):2}";
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10002_image_to_dictionary_with_background_color() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 9,
+            8, 7, 9,
+        ];
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
+
+        // Act
+        let actual: String = ImageToDictionary::convert(&input, false, Some(7)).expect("ok");
+
+        // Assert
+        let expected = "{'background':7,(2,0):9,(0,1):8,(2,1):9}";
         assert_eq!(actual, expected);
     }
 
