@@ -10,8 +10,46 @@ lazy_static! {
     static ref EXTRACT_STRING_VALUE: Regex = Regex::new(r"'(\w+)':(\d+)").unwrap();
 
     /// Extract x, y, color from strings like: `(3,4):5`
-    static ref EXTRACT_X_Y_VALUE: Regex = Regex::new(r"[(](\d+),(\d+)[)]:(\d+)").unwrap();
+    static ref EXTRACT_X_Y_COLOR: Regex = Regex::new(r"[(](\d+),(\d+)[)]:(\d+)").unwrap();
 }
+
+const MOCK_REPLY1: &str = r#"
+# Task A
+Each input seems to represent a 2D grid, with values at each coordinate. The transformation from input to output appears to involve shifting values in certain regions or blocks, and adding additional values in the region around non-zero elements. Non-zero values are typically clustered, indicating some form of a shape or pattern. 
+
+# Task B
+| Observation Name | Observation Values | Comments |
+|------------------|--------------------|----------|
+| Layer Mass       | Variable           | The mass of a layer, measured by summing the values, varies across inputs. |
+| Connected Clusters| Variable          | Each layer appears to have one or more clusters of non-zero values. |
+| Mass and Sorting | No Clear Relation  | It's not obvious if mass relates to the sorting of layers. |
+| Horizontal Lines | Yes                | Some clusters form horizontal lines, but they don't typically extend edge to edge. |
+| Vertical Lines   | Yes                | Some clusters form vertical lines, but they don't typically extend edge to edge. |
+| Recognizable Shapes | No              | The clusters don't appear to resemble known shapes like L, H, E, etc. |
+| Color Change     | Yes                | Non-zero values can change, possibly based on their position or nearby values. |
+| Relative Movement | Yes               | Non-zero values appear to move vertically or horizontally. |
+| Boolean Operations | No Clear Evidence | It's unclear if any boolean operations are involved in the transformation. |
+
+# Task C
+The operation seems to involve shifting non-zero values to the nearest top or left zero values. Additional non-zero values are added around existing ones, and the new values seem to be a copy of the values from the block that got shifted.
+
+# Task D
+Given the observed rules, we can anticipate the output. The non-zero values will shift towards top or left and new values will appear around existing ones.
+
+```python
+output[4] = {'width':9,'height':9',
+(0,0):0,(1,0):0,(2,0):0,(3,0):0,(4,0):0,(5,0):0,(6,0):0,(7,0):0,(8,0):0,
+(0,1):0,(1,1):0,(2,1):0,(3,1):0,(4,1):0,(5,1):0,(6,1):0,(7,1):0,(8,1):0,
+(0,2):0,(1,2):0,(2,2):0,(3,2):0,(4,2):0,(5,2):0,(6,2):0,(7,2):0,(8,2):0,
+(0,3):0,(1,3):0,(2,3):0,(3,3):0,(4,3):0,(5,3):0,(6,3):0,(7,3):0,(8,3):0,
+(0,4):0,(1,4):0,(2,4):0,(3,4):0,(4,4):0,(5,4):0,(6,4):0,(7,4):0,(8,4):0,
+(0,5):0,(1,5):0,(2,5):2,(3,5):2,(4,5):2,(5,5):0,(6,5):0,(7,5):0,(8,5):0,
+(0,6):2,(1,6):2,(2,6):8,(3,6):8,(4,6):8,(5,6):2,(6,6):2,(7,6):0,(8,6):0,
+(0,7):2,(1,7):2,(2,7):8,(3,7):2,(4,7):2,(5,7):2,(6,7):2,(7,7):2,(8,7):2,
+(0,8):8,(1,8):8,(2,8):8,(3,8):2,(4,8):2,(5,8):2,(6,8):8,(7,8):8,(8,8):8}
+```
+This output is based on the pattern of shifting and expanding the clusters of non-zero values observed in previous input-output pairs.
+"#;
 
 struct ImageToDictionary;
 
@@ -70,7 +108,7 @@ impl DictionaryToImage {
         let mut image: Image = Image::color(width, height, 255);
 
         // Assign pixel values
-        for capture in EXTRACT_X_Y_VALUE.captures_iter(input) {
+        for capture in EXTRACT_X_Y_COLOR.captures_iter(input) {
             let capture1: &str = capture.get(1).map_or("", |m| m.as_str());
             let capture2: &str = capture.get(2).map_or("", |m| m.as_str());
             let capture3: &str = capture.get(3).map_or("", |m| m.as_str());
@@ -81,6 +119,121 @@ impl DictionaryToImage {
         }
 
         Ok(image)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PromptPositionDeserializer {
+    pub lines: Vec<String>,
+}
+
+impl PromptPositionDeserializer {
+    #[allow(dead_code)]
+    pub fn reply_example1() -> String {
+        MOCK_REPLY1.to_string()
+    }
+
+    fn interpret_line_and_draw(_line_index: usize, line: &str, image: &mut Image) -> anyhow::Result<()> {
+        let output_image: Image = DictionaryToImage::convert(line)?;
+        image.set_image(output_image);        
+        Ok(())
+    }
+
+    fn interpret_and_draw(&self, image: &mut Image) {
+        for (line_index, line) in self.lines.iter().enumerate() {
+            match Self::interpret_line_and_draw(line_index, line, image) {
+                Ok(_) => {},
+                Err(error) => {
+                    println!("Error: {}", error);
+                }
+            }
+        }
+    }
+}
+
+impl PromptDeserialize for PromptPositionDeserializer {
+    fn image(&self) -> anyhow::Result<Image> {
+        let mut image = Image::zero(30, 30);
+        self.interpret_and_draw(&mut image);
+        Ok(image)
+    }
+
+    fn status(&self) -> Option<String> {
+        None
+    }
+}
+
+impl TryFrom<&str> for PromptPositionDeserializer {
+    type Error = anyhow::Error;
+
+    fn try_from(multiline_text: &str) -> Result<Self, Self::Error> {
+        let mut lines_with_prefix = Vec::<String>::new();
+        let mut inside_code_block = false;
+        let mut count_unrecognized_inside_code_block: usize = 0;
+        let mut count_code_block: usize = 0;
+        let mut current_line = String::new();
+        for line in multiline_text.split("\n") {
+            let trimmed_line: &str = line.trim();
+            if trimmed_line.contains("```python") {
+                if count_code_block == 0 {
+                    inside_code_block = true;
+                }
+                count_code_block += 1;
+                continue;
+            }
+            if !inside_code_block {
+                continue;
+            }
+            if trimmed_line == "```" {
+                inside_code_block = false;
+                continue;
+            }
+            if trimmed_line.is_empty() {
+                continue;
+            }
+            if trimmed_line.contains("#") {
+                continue;
+            }
+            if trimmed_line.starts_with("output[") {
+                if !current_line.is_empty() {
+                    lines_with_prefix.push(current_line.to_string());
+                    current_line.truncate(0);
+                }
+                current_line = trimmed_line.to_string();
+                // lines_with_prefix.push(line.to_string());
+                continue;
+            }
+            let has_position_symbols: bool = trimmed_line.contains("(") && trimmed_line.contains(")") && trimmed_line.contains(":");
+            let has_end_of_dictionary: bool = trimmed_line.contains("}");
+            if has_position_symbols || has_end_of_dictionary {
+                if !current_line.is_empty() {
+                    current_line += trimmed_line;
+                    if has_end_of_dictionary {
+                        lines_with_prefix.push(current_line.to_string());
+                        current_line.truncate(0);
+                    }
+                }
+                continue;
+            }
+            count_unrecognized_inside_code_block += 1;
+        }
+        if !current_line.is_empty() {
+            lines_with_prefix.push(current_line.to_string());
+            current_line.truncate(0);
+        }
+        if count_code_block == 0 {
+            anyhow::bail!("No code block found. Expected a code block starting with 3 backticks and python.");
+        }
+        if count_code_block >= 2 {
+            anyhow::bail!("Multiple code blocks found. Expected just one code block starting with 3 backticks and python.");
+        }
+        if count_unrecognized_inside_code_block > 0 {
+            anyhow::bail!("{} unrecognized lines inside the code block", count_unrecognized_inside_code_block);
+        }
+        let instance = Self {
+            lines: lines_with_prefix,
+        };
+        Ok(instance)
     }
 }
 
@@ -196,7 +349,7 @@ impl PromptSerialize for PromptPositionSerializer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::ImageTryCreate;
+    use crate::arc::{ImageTryCreate, ImageSize};
 
     #[test]
     fn test_10000_image_to_dictionary_without_size() {
@@ -264,5 +417,37 @@ mod tests {
         ];
         let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20002_decode_image_with_newlines() {
+        // Arrange
+        let input: &str = "{'width':3,'height':2,\n(0,0):7,(1,0):7,(2,0):9,(0,1):8,(1,1):7,\n(2,1):9}";
+
+        // Act
+        let actual = DictionaryToImage::convert(input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            7, 7, 9,
+            8, 7, 9,
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_deserialize_ok() {
+        // Arrange
+        let s: String = PromptPositionDeserializer::reply_example1();
+        let s1: &str = &s;
+
+        // Act
+        let actual: PromptPositionDeserializer = PromptPositionDeserializer::try_from(s1).expect("ok");
+
+        // Assert
+        assert_eq!(actual.lines.len(), 1);
+        let image: Image = actual.image().expect("ok");
+        assert_eq!(image.size(), ImageSize::new(9, 9));
     }
 }
