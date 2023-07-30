@@ -7,10 +7,10 @@ use anyhow::{Result, Context};
 
 lazy_static! {
     /// Extract string, value from a string like: `'width':3`
-    static ref EXTRACT_STRING_VALUE: Regex = Regex::new(r"'(\w+)':(\d+)").unwrap();
+    static ref EXTRACT_STRING_VALUE: Regex = Regex::new(r"'(\w+)'\s*:\s*(\d+)").unwrap();
 
     /// Extract x, y, color from strings like: `(3,4):5`
-    static ref EXTRACT_X_Y_COLOR: Regex = Regex::new(r"[(](\d+),(\d+)[)]:(\d+)").unwrap();
+    static ref EXTRACT_X_Y_COLOR: Regex = Regex::new(r"[(]\s*(\d+)\s*,\s*(\d+)\s*[)]\s*:\s*(\d+)").unwrap();
 }
 
 const MOCK_REPLY1: &str = r#"
@@ -513,6 +513,24 @@ mod tests {
     }
 
     #[test]
+    fn test_20003_decode_image_with_spaces() {
+        // Arrange
+        let input: &str = "{'width':3,'height': 2,\n(0, 0): 7, (1 ,0):7,(2,0):9,(0,1):8,(1,1):7,\n(2,1):9}";
+
+        // Act
+        let actual = DictionaryToImage::convert(input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            7, 7, 9,
+            8, 7, 9,
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(actual.0, expected);
+        assert_eq!(actual.1, None);
+    }
+
+    #[test]
     fn test_30000_deserialize_ok() {
         // Arrange
         let s: String = PromptPositionDeserializer::reply_example1();
@@ -525,5 +543,26 @@ mod tests {
         assert_eq!(actual.lines.len(), 1);
         let image: Image = actual.image().expect("ok");
         assert_eq!(image.size(), ImageSize::new(9, 9));
+    }
+
+    #[test]
+    fn test_30001_deserialize_ok() {
+        // Arrange
+        let s = r#"
+```python
+output[4] = {'width': 6, 'height': 5, 'background': 0, (0, 0): 4, (5, 0): 4, 
+             (0, 1): 2, (5, 1): 8, (0, 2): 2, (5, 2): 8, (0, 3): 2, (5, 3): 8, 
+             (0, 4): 4, (5, 4): 4, (1, 3): 8, (2, 3): 8, (3, 3): 2,
+             (1, 4): 8, (2, 4): 8, (3, 4): 2, (4, 4): 2}
+```
+        "#;
+
+        // Act
+        let actual: PromptPositionDeserializer = PromptPositionDeserializer::try_from(s).expect("ok");
+
+        // Assert
+        assert_eq!(actual.lines.len(), 1);
+        let image: Image = actual.image().expect("ok");
+        assert_eq!(image.size(), ImageSize::new(6, 5));
     }
 }
