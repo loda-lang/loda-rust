@@ -2,6 +2,9 @@ use super::{TaskGraph, Image};
 
 pub trait PromptSerialize {
     /// Convert the `TaskGraph` to a string that can be used as a prompt for a language model.
+    /// 
+    /// Known problem: It can only prompts about the first `test` pair.
+    /// The tasks that have more than one `test` pair, will not create prompts for the remaining `test` pairs.
     fn to_prompt(&self, task_graph: &TaskGraph) -> anyhow::Result<String>;
 }
 
@@ -21,4 +24,5 @@ pub enum PromptType {
     ShapeAndTransformConnectivity4,
     ShapeAndTransformConnectivity8,
     RunLengthEncoding,
+    Position,
 }

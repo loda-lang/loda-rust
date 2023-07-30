@@ -291,10 +291,6 @@ impl TryFrom<&str> for PromptRLEDeserializer {
 pub struct PromptRLESerializer;
 
 impl PromptSerialize for PromptRLESerializer {
-    /// Convert the `TaskGraph` into a prompt for a language model to solve.
-    /// 
-    /// Known problem: It can only ask prompt about the first `test` pair.
-    /// The tasks that have more than one `test` pair, will not create prompts for the remaining `test` pairs.
     fn to_prompt(&self, task_graph: &TaskGraph) -> anyhow::Result<String> {
         let task: &Task = match &task_graph.task() {
             Some(value) => value,

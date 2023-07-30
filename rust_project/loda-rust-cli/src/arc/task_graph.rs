@@ -23,6 +23,7 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
+use super::prompt_position::PromptPositionSerializer;
 use super::prompt_run_length_encoding::PromptRLESerializer;
 use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle, ShapeTransformation};
 use super::arc_work_model::{Task, Pair, PairType};
@@ -1373,6 +1374,7 @@ impl TaskGraph {
 
     fn prompt_serializer(prompt_type: &PromptType) -> Box<dyn PromptSerialize> {
         match prompt_type {
+            PromptType::Position => Box::new(PromptPositionSerializer),
             PromptType::RunLengthEncoding => Box::new(PromptRLESerializer),
             PromptType::ShapeAndTransformConnectivity4 => Box::new(PromptShapeTransformSerializer::new_connectivity4()),
             PromptType::ShapeAndTransformConnectivity8 => Box::new(PromptShapeTransformSerializer::new_connectivity8()),
