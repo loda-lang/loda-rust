@@ -10,9 +10,17 @@ struct ImageToDictionary;
 impl ImageToDictionary {
     /// Creates a python dictionary with x, y coordinates as keys and colors as values.
     /// 
+    /// If `include_size` is false, then there is no width and height info in the dictionary.
     /// Returns a string like `{(0,0):7,(1,0):7,(2,0):9,(0,1):8,(1,1):7,(2,1):9}`
-    fn convert(image: &Image) -> anyhow::Result<String> {
+    /// 
+    /// If `include_size` is true, then it will include the width and height of the image, like this
+    /// `{'width':3,'height':2,(0,0):0,(1,0):1,(2,0):2,(0,1):0,(1,1):1,(2,1):2}`
+    fn convert(image: &Image, include_size: bool) -> anyhow::Result<String> {
         let mut items = Vec::<String>::new();
+        if include_size {
+            items.push(format!("'width':{}", image.width()));
+            items.push(format!("'height':{}", image.height()));
+        }
         for y in 0..image.height() {
             for x in 0..image.width() {
                 let pixel = image.get(x as i32, y as i32).unwrap_or(255);
@@ -38,6 +46,8 @@ impl PromptSerialize for PromptPositionSerializer {
             }
         };
 
+        let include_size: bool = true;
+
         let mut rows = Vec::<String>::new();
 
         rows.push("I'm doing Python experiments.\n\n".to_string());
@@ -58,13 +68,13 @@ impl PromptSerialize for PromptPositionSerializer {
             }
 
             {
-                let s0: String = ImageToDictionary::convert(&pair.input.image)?;
+                let s0: String = ImageToDictionary::convert(&pair.input.image, include_size)?;
                 let s1: String = format!("input[{}] = {}", pair_index, s0);
                 rows.push(s1);
             }
 
             {
-                let s0: String = ImageToDictionary::convert(&pair.output.image)?;
+                let s0: String = ImageToDictionary::convert(&pair.output.image, include_size)?;
                 let s1: String = format!("output[{}] = {}", pair_index, s0);
                 rows.push(s1);
             }
@@ -108,7 +118,7 @@ impl PromptSerialize for PromptPositionSerializer {
             }
 
             {
-                let s0: String = ImageToDictionary::convert(&pair.input.image)?;
+                let s0: String = ImageToDictionary::convert(&pair.input.image, include_size)?;
                 let s1: String = format!("input[{}] = {}", pair_index, s0);
                 rows.push(s1);
             }
@@ -139,7 +149,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
     
     #[test]
-    fn test_10000_image_to_dictionary() {
+    fn test_10000_image_to_dictionary_without_size() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 9,
@@ -148,10 +158,27 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: String = ImageToDictionary::convert(&input).expect("ok");
+        let actual: String = ImageToDictionary::convert(&input, false).expect("ok");
 
         // Assert
         let expected = "{(0,0):7,(1,0):7,(2,0):9,(0,1):8,(1,1):7,(2,1):9}";
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10001_image_to_dictionary_with_size() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 2,
+            0, 1, 2,
+        ];
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
+
+        // Act
+        let actual: String = ImageToDictionary::convert(&input, true).expect("ok");
+
+        // Assert
+        let expected = "{'width':3,'height':2,(0,0):0,(1,0):1,(2,0):2,(0,1):0,(1,1):1,(2,1):2}";
         assert_eq!(actual, expected);
     }
 }
