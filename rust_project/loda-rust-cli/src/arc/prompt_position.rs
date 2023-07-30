@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageHistogram, ImageMask, TaskGraph};
+use super::{Image, TaskGraph};
 use super::prompt::{PromptSerialize, PromptDeserialize};
 use super::arc_work_model::{Task, PairType};
 use lazy_static::lazy_static;
@@ -83,7 +83,7 @@ impl ImageToDictionary {
 struct DictionaryToImage;
 
 impl DictionaryToImage {
-    fn convert(input: &str) -> anyhow::Result<Image> {
+    fn convert(input: &str) -> anyhow::Result<(Image, Option<String>)> {
         // Extract width and height
         let mut found_width: Option<u8> = None;
         let mut found_height: Option<u8> = None;
@@ -108,6 +108,7 @@ impl DictionaryToImage {
         let mut image: Image = Image::color(width, height, 255);
 
         // Assign pixel values
+        let mut count_outside: usize = 0;
         for capture in EXTRACT_X_Y_COLOR.captures_iter(input) {
             let capture1: &str = capture.get(1).map_or("", |m| m.as_str());
             let capture2: &str = capture.get(2).map_or("", |m| m.as_str());
@@ -115,10 +116,36 @@ impl DictionaryToImage {
             let x: u8 = capture1.parse::<u8>().context("x")?;
             let y: u8 = capture2.parse::<u8>().context("y")?;
             let color: u8 = capture3.parse::<u8>().context("color")?;
-            image.set(x as i32, y as i32, color).context("set")?;
+            if image.set(x as i32, y as i32, color).is_none() {
+                count_outside += 1;
+            }
+        }
+        let mut count_unassigned: usize = 0;
+        for y in 0..image.height() {
+            for x in 0..image.width() {
+                let pixel: u8 = image.get(x as i32, y as i32).unwrap_or(255);
+                if pixel == 255 {
+                    count_unassigned += 1;
+                }
+            }
         }
 
-        Ok(image)
+        let mut problems = Vec::<String>::new();
+        if count_outside > 0 {
+            let s: String = format!("{} pixels outside", count_outside);
+            problems.push(s);
+        }
+        if count_unassigned > 0 {
+            let s: String = format!("{} unassigned pixels", count_unassigned);
+            problems.push(s);
+        }
+        let status: Option<String> = if problems.is_empty() {
+            None
+        } else {
+            Some(problems.join(", "))
+        };
+
+        Ok((image, status))
     }
 }
 
@@ -134,7 +161,10 @@ impl PromptPositionDeserializer {
     }
 
     fn interpret_line_and_draw(_line_index: usize, line: &str, image: &mut Image) -> anyhow::Result<()> {
-        let output_image: Image = DictionaryToImage::convert(line)?;
+        let (output_image, status) = DictionaryToImage::convert(line)?;
+        if let Some(status) = status {
+            println!("PromptPositionDeserializer. Problems: {}", status);
+        }
         image.set_image(output_image);        
         Ok(())
     }
@@ -301,7 +331,7 @@ impl PromptSerialize for PromptPositionSerializer {
         rows.push("- Is mass related to the sorting of layers.".to_string());
         rows.push("- Are there horizontal lines, do they extend edge to edge.".to_string());
         rows.push("- Are there vertical lines, do they extend edge to edge.".to_string());
-        rows.push("- Are there shapes such as boxes, L-shape, H-shape, E-shape, Plus-shape, Tetris shapes.".to_string());
+        rows.push("- Are there shapes such as boxes, L-shape, T-shape, H-shape, E-shape, Plus-shape, Tetris shapes.".to_string());
         rows.push("- Are there a line connecting two landmarks.".to_string());
         rows.push("- Does shape change color, but preserves their shape, and what may be triggering it.".to_string());
         rows.push("- Does shape move relative x,y.".to_string());
@@ -399,7 +429,8 @@ mod tests {
             8, 7, 9,
         ];
         let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
-        assert_eq!(actual, expected);
+        assert_eq!(actual.0, expected);
+        assert_eq!(actual.1, None);
     }
 
     #[test]
@@ -416,7 +447,8 @@ mod tests {
             8, 7, 9,
         ];
         let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
-        assert_eq!(actual, expected);
+        assert_eq!(actual.0, expected);
+        assert_eq!(actual.1, None);
     }
 
     #[test]
@@ -433,7 +465,8 @@ mod tests {
             8, 7, 9,
         ];
         let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
-        assert_eq!(actual, expected);
+        assert_eq!(actual.0, expected);
+        assert_eq!(actual.1, None);
     }
 
     #[test]
