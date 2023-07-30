@@ -333,10 +333,14 @@ impl PromptSerialize for PromptPositionSerializer {
         rows.push("".to_string());
         
         rows.push("# Task A".to_string());
-        rows.push("Use at most 50 words.".to_string());
+        rows.push("Use at most 100 words.".to_string());
         rows.push("Think step by step.".to_string());
         rows.push("- Write notes about what shapes and patterns you observe.".to_string());
         rows.push("- The output is never the same as the input.".to_string());
+        rows.push("- Is the output a cropped out area from the input.".to_string());
+        rows.push("- Is the output similar to the input rotated.".to_string());
+        rows.push("- Is the output similar to the input flipped.".to_string());
+        rows.push("- Is the output similar to the input diagonally flipped.".to_string());
         rows.push("\n\n# Task B".to_string());
         rows.push("Use at most 300 words.".to_string());
         rows.push("Include a markdown formatted table with the most important observations about input and output images.".to_string());
