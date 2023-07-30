@@ -349,6 +349,7 @@ impl PromptSerialize for PromptPositionSerializer {
         rows.push("- Isolated pixels without an adjacent pixel of same layer, sometimes they change layer.".to_string());
         rows.push("- Are there horizontal lines, do they extend edge to edge.".to_string());
         rows.push("- Are there vertical lines, do they extend edge to edge.".to_string());
+        rows.push("- Are there stripes with evenly spaced lines.".to_string());
         rows.push("- Are there filled rectangles.".to_string());
         rows.push("- Are there hollow boxes.".to_string());
         rows.push("- Are there L-shapes.".to_string());
@@ -358,10 +359,13 @@ impl PromptSerialize for PromptPositionSerializer {
         rows.push("- Are there Plus-shapes.".to_string());
         rows.push("- Are there Tetris-shapes.".to_string());
         rows.push("- Are there other shapes.".to_string());
+        rows.push("- What shapes are there with holes, such as boxes, where the hole is separated from the outside.".to_string());
+        rows.push("- What shapes are there where the border has small holes, such as a box with 1 pixel missing in the border, so it's no longer a hole.".to_string());
         rows.push("- Are there a line connecting two landmarks.".to_string());
         rows.push("- Does shape change layer, but preserves their shape, and what may be triggering it.".to_string());
         rows.push("- Does shape move relative x,y.".to_string());
         rows.push("- Boolean operations may happen: xor, and, or.".to_string());
+        rows.push("- Does a tiny object change layer, because it's nearest to a bigger object in that layer.".to_string());
         rows.push("\n\n# Task C".to_string());
         rows.push("Use at most 100 words.".to_string());
         rows.push("Think step by step.".to_string());
