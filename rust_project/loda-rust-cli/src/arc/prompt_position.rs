@@ -70,6 +70,12 @@ impl ImageToDictionary {
         for y in 0..image.height() {
             for x in 0..image.width() {
                 let pixel = image.get(x as i32, y as i32).unwrap_or(255);
+                // Future experiment:
+                // Omit the most popular color, which is typically the background color.
+                // But only do so if all the training pairs agree on the same color.
+                // if pixel == 0 {
+                //     continue;
+                // }
                 items.push(format!("({},{}):{}", x, y, pixel));
             }
         }
