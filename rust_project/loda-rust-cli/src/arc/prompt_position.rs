@@ -5,6 +5,14 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use anyhow::{Result, Context};
 
+lazy_static! {
+    /// Extract string, value from a string like: `'width':3`
+    static ref EXTRACT_STRING_VALUE: Regex = Regex::new(r"'(\w+)':(\d+)").unwrap();
+
+    /// Extract x, y, color from strings like: `(3,4):5`
+    static ref EXTRACT_X_Y_VALUE: Regex = Regex::new(r"[(](\d+),(\d+)[)]:(\d+)").unwrap();
+}
+
 struct ImageToDictionary;
 
 impl ImageToDictionary {
@@ -31,6 +39,48 @@ impl ImageToDictionary {
         s += &items.join(",");
         s += "}";
         Ok(s)
+    }
+}
+
+struct DictionaryToImage;
+
+impl DictionaryToImage {
+    fn convert(input: &str) -> anyhow::Result<Image> {
+        // Extract width and height
+        let mut found_width: Option<u8> = None;
+        let mut found_height: Option<u8> = None;
+        for capture in EXTRACT_STRING_VALUE.captures_iter(input) {
+            let capture1: &str = capture.get(1).map_or("", |m| m.as_str());
+            let capture2: &str = capture.get(2).map_or("", |m| m.as_str());
+            let value: u8 = capture2.parse::<u8>().context("value")?;
+            match capture1 {
+                "width" => {
+                    found_width = Some(value);
+                },
+                "height" => {
+                    found_height = Some(value);
+                },
+                _ => {}
+            }
+        }
+
+        // Create empty image with 255 color to indicate that it has not been assigned a color yet.
+        let width: u8 = found_width.context("width")?;
+        let height: u8 = found_height.context("height")?;
+        let mut image: Image = Image::color(width, height, 255);
+
+        // Assign pixel values
+        for capture in EXTRACT_X_Y_VALUE.captures_iter(input) {
+            let capture1: &str = capture.get(1).map_or("", |m| m.as_str());
+            let capture2: &str = capture.get(2).map_or("", |m| m.as_str());
+            let capture3: &str = capture.get(3).map_or("", |m| m.as_str());
+            let x: u8 = capture1.parse::<u8>().context("x")?;
+            let y: u8 = capture2.parse::<u8>().context("y")?;
+            let color: u8 = capture3.parse::<u8>().context("color")?;
+            image.set(x as i32, y as i32, color).context("set")?;
+        }
+
+        Ok(image)
     }
 }
 
@@ -147,7 +197,7 @@ impl PromptSerialize for PromptPositionSerializer {
 mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
-    
+
     #[test]
     fn test_10000_image_to_dictionary_without_size() {
         // Arrange
@@ -179,6 +229,40 @@ mod tests {
 
         // Assert
         let expected = "{'width':3,'height':2,(0,0):0,(1,0):1,(2,0):2,(0,1):0,(1,1):1,(2,1):2}";
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20000_decode_image_in_order() {
+        // Arrange
+        let input: &str = "{'width':3,'height':2,(0,0):7,(1,0):7,(2,0):9,(0,1):8,(1,1):7,(2,1):9}";
+
+        // Act
+        let actual = DictionaryToImage::convert(input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            7, 7, 9,
+            8, 7, 9,
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20001_decode_image_out_of_order() {
+        // Arrange
+        let input: &str = "{(0,1):8,(1,1):7,(2,1):9,(0,0):7,(1,0):7,(2,0):9,'height':2,'width':3}";
+
+        // Act
+        let actual = DictionaryToImage::convert(input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            7, 7, 9,
+            8, 7, 9,
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
