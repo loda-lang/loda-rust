@@ -95,9 +95,10 @@ struct DictionaryToImage;
 
 impl DictionaryToImage {
     fn convert(input: &str) -> anyhow::Result<(Image, Option<String>)> {
-        // Extract width and height
+        // Extract parameters for: `width`, `height`, `background`.
         let mut found_width: Option<u8> = None;
         let mut found_height: Option<u8> = None;
+        let mut found_background: Option<u8> = None;
         for capture in EXTRACT_STRING_VALUE.captures_iter(input) {
             let capture1: &str = capture.get(1).map_or("", |m| m.as_str());
             let capture2: &str = capture.get(2).map_or("", |m| m.as_str());
@@ -109,6 +110,9 @@ impl DictionaryToImage {
                 "height" => {
                     found_height = Some(value);
                 },
+                "background" => {
+                    found_background = Some(value);
+                },
                 _ => {}
             }
         }
@@ -116,7 +120,8 @@ impl DictionaryToImage {
         // Create empty image with 255 color to indicate that it has not been assigned a color yet.
         let width: u8 = found_width.context("width")?;
         let height: u8 = found_height.context("height")?;
-        let mut image: Image = Image::color(width, height, 255);
+        let fill_color: u8 = found_background.unwrap_or(255);
+        let mut image: Image = Image::color(width, height, fill_color);
 
         // Assign pixel values
         let mut count_outside: usize = 0;
