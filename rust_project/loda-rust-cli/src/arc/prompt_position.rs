@@ -250,8 +250,9 @@ impl TryFrom<&str> for PromptPositionDeserializer {
                 continue;
             }
             let has_position_symbols: bool = trimmed_line.contains("(") && trimmed_line.contains(")") && trimmed_line.contains(":");
+            let has_keyword: bool = trimmed_line.contains("'width'") || trimmed_line.contains("'height'") || trimmed_line.contains("'background'");
             let has_end_of_dictionary: bool = trimmed_line.contains("}");
-            if has_position_symbols || has_end_of_dictionary {
+            if has_position_symbols || has_keyword || has_end_of_dictionary {
                 if !current_line.is_empty() {
                     current_line += trimmed_line;
                     if has_end_of_dictionary {
@@ -581,5 +582,31 @@ output[4] = {'width': 6, 'height': 5, 'background': 0, (0, 0): 4, (5, 0): 4,
         assert_eq!(actual.lines.len(), 1);
         let image: Image = actual.image().expect("ok");
         assert_eq!(image.size(), ImageSize::new(6, 5));
+    }
+
+    #[test]
+    fn test_30002_deserialize_ok() {
+        // Arrange
+        let s = r#"
+```python
+output[4] = {
+    'width': 11,
+    'height': 22,
+    'background': 0,
+    (1, 1): 5,
+    (5, 1): 5,
+    (7, 9): 5,
+    (9, 9): 5,
+}
+```
+"#;
+
+        // Act
+        let actual: PromptPositionDeserializer = PromptPositionDeserializer::try_from(s).expect("ok");
+
+        // Assert
+        assert_eq!(actual.lines.len(), 1);
+        let image: Image = actual.image().expect("ok");
+        assert_eq!(image.size(), ImageSize::new(11, 22));
     }
 }
