@@ -343,6 +343,7 @@ impl PromptSerialize for PromptPositionSerializer {
         rows.push("- Is the output similar to the input flipped.".to_string());
         rows.push("- Is the output similar to the input diagonally flipped.".to_string());
         rows.push("- Are the output images symmetric around the x-axis, y-axis or both.".to_string());
+        rows.push("- Are pixels gravitating towards one of the edges: top, bottom, left, right.".to_string());
         rows.push("\n\n# Task B".to_string());
         rows.push("Use at most 300 words.".to_string());
         rows.push("Include a markdown formatted table with the most important observations about input and output images.".to_string());
