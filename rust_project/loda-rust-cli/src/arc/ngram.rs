@@ -33,9 +33,15 @@ pub trait ImageNgram {
     fn trigram_y(&self) -> anyhow::Result<Vec<RecordTrigram>>;
 
     /// Diagonal trigrams from top-left to bottom-right
+    /// 
+    /// Known problem: This does not consider the corner pixels where there are not enough pixels to form a trigram.
+    /// That is the bottom-left corner and the top-right corner.
     fn trigram_diagonal_a(&self) -> anyhow::Result<Vec<RecordTrigram>>;
 
     /// Diagonal trigrams from top-right to bottom-left
+    /// 
+    /// Known problem: This does not consider the corner pixels where there are not enough pixels to form a trigram.
+    /// That is the top-left corner and the bottom-right corner.
     fn trigram_diagonal_b(&self) -> anyhow::Result<Vec<RecordTrigram>>;
 }
 

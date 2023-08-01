@@ -98,6 +98,12 @@ impl InspectTask {
         if let Some(stats) = image_stats.get(&ImageStatsMode::TrigramVertical) {
             items.push(format!("Vertical: mean: {:.2} sigma: {:.2}", stats.mean, stats.sigma));
         }
+        if let Some(stats) = image_stats.get(&ImageStatsMode::TrigramDiagonalA) {
+            items.push(format!("DiagonalA: mean: {:.2} sigma: {:.2}", stats.mean, stats.sigma));
+        }
+        if let Some(stats) = image_stats.get(&ImageStatsMode::TrigramDiagonalB) {
+            items.push(format!("DiagonalB: mean: {:.2} sigma: {:.2}", stats.mean, stats.sigma));
+        }
         if items.is_empty() {
             return "empty".to_string();
         }

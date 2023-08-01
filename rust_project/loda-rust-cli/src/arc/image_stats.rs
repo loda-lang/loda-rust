@@ -4,6 +4,8 @@
 //! * no particular direction
 //! * horizontal
 //! * vertical
+//! * diagonal a
+//! * diagonal b
 //! 
 //! There may be one direction with a low sigma, and another direction with a high sigma.
 //! It may indicate that the image has a a particular orientation.
@@ -49,10 +51,10 @@ pub enum ImageStatsMode {
     TrigramAll,
     TrigramHorizontal,
     TrigramVertical,
+    TrigramDiagonalA,
+    TrigramDiagonalB,
 
     // Future experiments
-    // TrigramDiagonalA,
-    // TrigramDiagonalB,
     // TrigramColor { color: u8 }, a particular color may be more noisy than other colors
     // Convolution2x2,
     // Convolution3x3,
@@ -73,19 +75,31 @@ impl ImageStats {
             Ok(value) => value,
             Err(_) => vec!()
         };
+        let trigram_diagonal_a: Vec<RecordTrigram> = match image.trigram_diagonal_a() {
+            Ok(value) => value,
+            Err(_) => vec!()
+        };
+        let trigram_diagonal_b: Vec<RecordTrigram> = match image.trigram_diagonal_b() {
+            Ok(value) => value,
+            Err(_) => vec!()
+        };
         let trigram_x_concat_y: Vec<RecordTrigram> = trigram_x.iter().chain(trigram_y.iter()).cloned().collect();
 
         let mut mode_to_stats = HashMap::<ImageStatsMode, Stats>::new();
         let modes = [
             ImageStatsMode::TrigramAll, 
             ImageStatsMode::TrigramHorizontal, 
-            ImageStatsMode::TrigramVertical
+            ImageStatsMode::TrigramVertical,
+            ImageStatsMode::TrigramDiagonalA,
+            ImageStatsMode::TrigramDiagonalB,
         ];
         for mode in &modes {
             let trigram_vec: &Vec<RecordTrigram> = match mode {
                 ImageStatsMode::TrigramAll => &trigram_x_concat_y,
                 ImageStatsMode::TrigramHorizontal => &trigram_x,
                 ImageStatsMode::TrigramVertical => &trigram_y,
+                ImageStatsMode::TrigramDiagonalA => &trigram_diagonal_a,
+                ImageStatsMode::TrigramDiagonalB => &trigram_diagonal_b,
             };
             if let Ok(stats) = Self::stats_from_trigrams(&trigram_vec) {
                 mode_to_stats.insert(mode.clone(), stats);
@@ -196,5 +210,7 @@ mod tests {
         assert_eq!(actual.get(&ImageStatsMode::TrigramAll).is_some(), true);
         assert_eq!(actual.get(&ImageStatsMode::TrigramHorizontal).is_some(), true);
         assert_eq!(actual.get(&ImageStatsMode::TrigramVertical).is_some(), true);
+        assert_eq!(actual.get(&ImageStatsMode::TrigramDiagonalA).is_some(), true);
+        assert_eq!(actual.get(&ImageStatsMode::TrigramDiagonalB).is_some(), true);
     }
 }
