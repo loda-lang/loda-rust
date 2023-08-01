@@ -1,4 +1,4 @@
-use super::{Image, ImageRotate};
+use super::{Image, ImageRotate, ImageSymmetry};
 use std::collections::HashMap;
 
 type HistogramBigramKey = (u8,u8);
@@ -20,10 +20,23 @@ pub struct RecordTrigram {
 }
 
 pub trait ImageNgram {
+    /// Horizontal bigrams from left to right
     fn bigram_x(&self) -> anyhow::Result<Vec<RecordBigram>>;
+
+    /// Vertical bigrams from top to bottom
     fn bigram_y(&self) -> anyhow::Result<Vec<RecordBigram>>;
+
+    /// Horizontal trigrams from left to right
     fn trigram_x(&self) -> anyhow::Result<Vec<RecordTrigram>>;
+
+    /// Vertical trigrams from top to bottom
     fn trigram_y(&self) -> anyhow::Result<Vec<RecordTrigram>>;
+
+    /// Diagonal trigrams from top-left to bottom-right
+    fn trigram_diagonal_a(&self) -> anyhow::Result<Vec<RecordTrigram>>;
+
+    /// Diagonal trigrams from top-right to bottom-left
+    fn trigram_diagonal_b(&self) -> anyhow::Result<Vec<RecordTrigram>>;
 }
 
 impl ImageNgram for Image {
@@ -72,7 +85,7 @@ impl ImageNgram for Image {
             records.push(record);
         }
 
-        // Move the most frequently occuring items to the top
+        // Move the most frequently occurring items to the top
         // Move the lesser used items to the bottom
         records.sort_unstable_by_key(|item| (item.count, item.word0.clone(), item.word1.clone()));
         records.reverse();
@@ -81,8 +94,8 @@ impl ImageNgram for Image {
     }
 
     fn bigram_y(&self) -> anyhow::Result<Vec<RecordBigram>> {
-        let bitmap: Image = self.rotate_cw()?;
-        bitmap.bigram_x()
+        let image: Image = self.rotate_cw()?;
+        image.bigram_x()
     }
 
     fn trigram_x(&self) -> anyhow::Result<Vec<RecordTrigram>> {
@@ -108,13 +121,60 @@ impl ImageNgram for Image {
                 if x < 2 {
                     continue;
                 }
-                // Construct trigram with tree side-by-side pixels
+                // Construct trigram with three side-by-side pixels
                 let key: HistogramTrigramKey = (word0, word1, word2);
                 keys.push(key);
             }
         }
+        
+        let records: Vec<RecordTrigram> = RecordTrigram::count_and_sort(keys);
+        Ok(records)
+    }
 
-        // Count the most frequent bigrams
+    fn trigram_y(&self) -> anyhow::Result<Vec<RecordTrigram>> {
+        let image: Image = self.rotate_cw()?;
+        image.trigram_x()
+    }
+
+    fn trigram_diagonal_a(&self) -> anyhow::Result<Vec<RecordTrigram>> {
+        let width: u8 = self.width();
+        let height: u8 = self.height();
+        if width < 3 || height < 3 {
+            return Err(anyhow::anyhow!("too small bitmap, must be 3x3 or bigger"));
+        }
+        let width: i32 = self.width() as i32;
+        let height: i32 = self.height() as i32;
+
+        // Loop over the pixels
+        let mut keys = Vec::<HistogramTrigramKey>::new();
+        for y in 0..height {
+            for x in 0..width {
+                if x < 2 || y < 2 {
+                    continue;
+                }
+                let word0: u8 = self.get(x - 2, y - 2).unwrap_or(255);
+                let word1: u8 = self.get(x - 1, y - 1).unwrap_or(255);
+                let word2: u8 = self.get(x, y).unwrap_or(255);
+                // Construct trigram with three diagonal pixels
+                let key: HistogramTrigramKey = (word0, word1, word2);
+                keys.push(key);
+            }
+        }
+        
+        let records: Vec<RecordTrigram> = RecordTrigram::count_and_sort(keys);
+        Ok(records)
+    }
+
+    fn trigram_diagonal_b(&self) -> anyhow::Result<Vec<RecordTrigram>> {
+        let image: Image = self.flip_x()?;
+        image.trigram_diagonal_a()
+    }
+}
+
+impl RecordTrigram {
+    /// Count the frequency of each trigram, and sort by popularity.
+    fn count_and_sort(keys: Vec<HistogramTrigramKey>) -> Vec<RecordTrigram> {
+        // Count the most frequent trigrams
         let mut histogram_trigram: HashMap<HistogramTrigramKey,u32> = HashMap::new();
         for key in keys {
             let counter = histogram_trigram.entry(key).or_insert(0);
@@ -133,19 +193,13 @@ impl ImageNgram for Image {
             records.push(record);
         }
 
-        // Move the most frequently occuring items to the top
+        // Move the most frequently occurring items to the top
         // Move the lesser used items to the bottom
         records.sort_unstable_by_key(|item| (item.count, item.word0.clone(), item.word1.clone(), item.word2.clone()));
         records.reverse();
         
-        Ok(records)
+        records
     }
-
-    fn trigram_y(&self) -> anyhow::Result<Vec<RecordTrigram>> {
-        let bitmap: Image = self.rotate_cw()?;
-        bitmap.trigram_x()
-    }
-
 }
 
 #[cfg(test)]
@@ -240,6 +294,77 @@ mod tests {
             RecordTrigram { count: 4, word0: 1, word1: 2, word2: 1 },
             RecordTrigram { count: 3, word0: 2, word1: 1, word2: 2 },
             RecordTrigram { count: 1, word0: 9, word1: 1, word2: 2 },
+        ];
+        assert_eq!(trigrams, expected);
+    }
+
+    #[test]
+    fn test_30000_trigram_diagonal_a() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            4, 5, 6, 7,
+            3, 4, 5, 6,
+            2, 3, 4, 5,
+            1, 2, 3, 4,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let trigrams: Vec<RecordTrigram> = input.trigram_diagonal_a().expect("trigrams");
+
+        // Assert
+        let expected: Vec<RecordTrigram> = vec![
+            RecordTrigram { count: 2, word0: 4, word1: 4, word2: 4 },
+            RecordTrigram { count: 1, word0: 5, word1: 5, word2: 5 },
+            RecordTrigram { count: 1, word0: 3, word1: 3, word2: 3 },
+        ];
+        assert_eq!(trigrams, expected);
+    }
+
+    #[test]
+    fn test_30001_trigram_diagonal_a() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            4, 5, 6, 7, 8,
+            3, 4, 5, 6, 7,
+            2, 3, 4, 5, 6,
+            1, 2, 3, 4, 5,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let trigrams: Vec<RecordTrigram> = input.trigram_diagonal_a().expect("trigrams");
+
+        // Assert
+        let expected: Vec<RecordTrigram> = vec![
+            RecordTrigram { count: 2, word0: 5, word1: 5, word2: 5 },
+            RecordTrigram { count: 2, word0: 4, word1: 4, word2: 4 },
+            RecordTrigram { count: 1, word0: 6, word1: 6, word2: 6 },
+            RecordTrigram { count: 1, word0: 3, word1: 3, word2: 3 },
+        ];
+        assert_eq!(trigrams, expected);
+    }
+
+    #[test]
+    fn test_30002_trigram_diagonal_b() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3, 4, 5,
+            2, 3, 4, 5, 6,
+            3, 4, 5, 6, 7,
+            4, 5, 6, 7, 8,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let trigrams: Vec<RecordTrigram> = input.trigram_diagonal_b().expect("trigrams");
+
+        // Assert
+        let expected: Vec<RecordTrigram> = vec![
+            RecordTrigram { count: 2, word0: 5, word1: 5, word2: 5 },
+            RecordTrigram { count: 2, word0: 4, word1: 4, word2: 4 },
+            RecordTrigram { count: 1, word0: 6, word1: 6, word2: 6 },
+            RecordTrigram { count: 1, word0: 3, word1: 3, word2: 3 },
         ];
         assert_eq!(trigrams, expected);
     }
