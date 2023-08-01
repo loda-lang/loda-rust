@@ -338,6 +338,10 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // InputStatsIsOutputStats { mode: ImageStatsMode },
+    // InputStatsHasHigherMeanAndLowerSigmaThanOutputStats { mode: ImageStatsMode },
+    // InputStatsHasLowerMeanAndHigherSigmaThanOutputStats { mode: ImageStatsMode },
+    // InputStatsHasNonZeroSigmaAndOutputStatsHasSigmaZero { mode: ImageStatsMode },
     // OutputSizeIsTheSameAsObjectAtPosition { position: Top/Bottom/Left/Right },
     // NoMovementInDirectionX,
     // NoMovementInDirectionY,
