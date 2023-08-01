@@ -83,6 +83,7 @@ mod image_size;
 mod image_sort;
 mod image_split;
 mod image_stack;
+mod image_stats;
 mod image_symmetry;
 mod image_tile;
 mod image_to_html;
