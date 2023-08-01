@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, ImageProperty, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, ImageProperty, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification, ImageStats};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -54,6 +54,8 @@ pub struct ImageMeta {
     pub grid: Option<Grid>,
 
     pub symmetry: Option<Symmetry>,
+
+    pub image_stats: Option<ImageStats>,
     
     pub single_color_object: Option<SingleColorObject>,
 

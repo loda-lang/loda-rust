@@ -208,6 +208,7 @@ pub use image_size::ImageSize;
 pub use image_sort::{ImageSort, ImageSortMode};
 pub use image_split::{ImageSplit, ImageSplitDirection};
 pub use image_stack::ImageStack;
+pub use image_stats::{ImageStats, ImageStatsMode, Stats};
 pub use image_symmetry::ImageSymmetry;
 pub use image_tile::ImageTile;
 pub use image_to_html::ImageToHTML;

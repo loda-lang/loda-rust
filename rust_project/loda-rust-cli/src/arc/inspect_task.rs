@@ -1,4 +1,4 @@
-use super::arc_work_model;
+use super::{arc_work_model, ImageStatsMode, ImageStats};
 use super::{ImageLabelSet, ActionLabelSet, ImageProperty};
 use super::{HtmlLog, ImageToHTML};
 use std::collections::HashMap;
@@ -87,6 +87,23 @@ impl InspectTask {
         format!("<ul class='without_bullets'>{}</ul>", list_vec.join(""))
     }
 
+    fn image_stats_to_html(image_stats: &ImageStats) -> String {
+        let mut items = Vec::<String>::new();
+        if let Some(stats) = image_stats.get(&ImageStatsMode::TrigramAll) {
+            items.push(format!("All: mean: {:.2} sigma: {:.2}", stats.mean, stats.sigma));
+        }
+        if let Some(stats) = image_stats.get(&ImageStatsMode::TrigramHorizontal) {
+            items.push(format!("Horizontal: mean: {:.2} sigma: {:.2}", stats.mean, stats.sigma));
+        }
+        if let Some(stats) = image_stats.get(&ImageStatsMode::TrigramVertical) {
+            items.push(format!("Vertical: mean: {:.2} sigma: {:.2}", stats.mean, stats.sigma));
+        }
+        if items.is_empty() {
+            return "empty".to_string();
+        }
+        items.join("<br>")
+    }
+
     fn push_pair(&mut self, pair: &arc_work_model::Pair) -> anyhow::Result<()> {
         {
             match pair.pair_type {
@@ -111,6 +128,10 @@ impl InspectTask {
             self.row_input_image += "<td>";
             let image_id: String = pair.id_input_image();
             self.row_input_image += &pair.input.image.to_interactive_html("", Some(image_id));
+            if let Some(image_stats) = &pair.input.image_meta.image_stats {
+                self.row_input_image += "<br>";
+                self.row_input_image += &Self::image_stats_to_html(image_stats);
+            }
             // if let Some(pattern) = &pair.input.grid_pattern {
             //     self.row_input_image += "<br>";
             //     self.row_input_image += &pattern.line_mask.to_html();
@@ -145,6 +166,10 @@ impl InspectTask {
             match pair.pair_type {
                 arc_work_model::PairType::Train => {
                     self.row_output_image += &pair.output.image.to_interactive_html("", Some(image_id));
+                    if let Some(image_stats) = &pair.output.image_meta.image_stats {
+                        self.row_output_image += "<br>";
+                        self.row_output_image += &Self::image_stats_to_html(image_stats);
+                    }
                 },
                 arc_work_model::PairType::Test => {
                     self.row_output_image += &pair.output.test_image.to_interactive_html("Expected ", Some(image_id));

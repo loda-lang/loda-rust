@@ -1,4 +1,4 @@
-use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask, ImageProperty, ImageExtractRowColumn};
+use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask, ImageProperty, ImageExtractRowColumn, ImageStats};
 use super::{SingleColorObject, SingleColorObjectToLabel};
 use super::{Grid, GridToLabel};
 use super::{Symmetry, SymmetryToLabel};
@@ -13,6 +13,7 @@ impl arc_work_model::ImageMeta {
             image_label_set: HashSet::new(),
             grid: None,
             symmetry: None,
+            image_stats: None,
             single_color_object: None,
         }
     }
@@ -23,6 +24,7 @@ impl arc_work_model::ImageMeta {
         self.update_image_properties(image);
         self.assign_grid(image)?;
         self.assign_symmetry(image)?;
+        self.assign_image_stats(image)?;
         self.assign_single_color_object(image)?;
         self.assign_single_border_color()?;
         self.assign_border_flood_fill(image)?;
@@ -234,6 +236,21 @@ impl arc_work_model::ImageMeta {
             self.image_label_set.insert(label);
         }
         self.symmetry = Some(symmetry);
+        Ok(())
+    }
+
+    fn assign_image_stats(&mut self, image: &Image) -> anyhow::Result<()> {
+        if self.image_stats.is_some() {
+            return Ok(());
+        }
+        let image_stats: ImageStats = match ImageStats::new(image) {
+            Ok(value) => value,
+            Err(_error) => {
+                // println!("Unable to compute image_stats. error: {:?}", error);
+                return Ok(());
+            }
+        };
+        self.image_stats = Some(image_stats);
         Ok(())
     }
 
