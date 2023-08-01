@@ -312,6 +312,18 @@ pub enum ActionLabel {
     OutputImageUniqueColorCount { count: u8 },
     OutputImageColorsComesFromInputImage,
 
+    /// What input colors explains the output colors. The most popular stays the most popular.
+    InputMostPopularColorIsOutputMostPopularColor,
+
+    /// What input colors explains the output colors. The least popular stays the least popular.
+    InputLeastPopularColorIsOutputLeastPopularColor,
+
+    /// What input colors explains the output colors. The most popular becomes the least popular.
+    InputMostPopularColorIsOutputLeastPopularColor,
+
+    /// What input colors explains the output colors. The least popular becomes the most popular.
+    InputLeastPopularColorIsOutputMostPopularColor,
+
     /// The output size is the same as the input size.
     /// Each pixel have the same number of identical pixels as in the input.
     /// Clusters of pixels are changing color between input and output.
