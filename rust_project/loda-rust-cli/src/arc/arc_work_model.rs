@@ -55,6 +55,10 @@ pub struct ImageMeta {
 
     pub symmetry: Option<Symmetry>,
 
+    /// Measure `directionality` of the image.
+    /// Mean and standard deviation of the number of identical pixels in trigrams.
+    /// A mean close to 1 and there is a lot of noise.
+    /// A mean close to 3 and there are large clusters with the same color.
     pub image_stats: Option<ImageStats>,
     
     pub single_color_object: Option<SingleColorObject>,
