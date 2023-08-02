@@ -1,4 +1,4 @@
-use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask, ImageProperty, ImageExtractRowColumn, ImageStats};
+use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask, ImageProperty, ImageExtractRowColumn, ImageStats, ImagePeriodicity};
 use super::{SingleColorObject, SingleColorObjectToLabel};
 use super::{Grid, GridToLabel};
 use super::{Symmetry, SymmetryToLabel};
@@ -22,6 +22,7 @@ impl arc_work_model::ImageMeta {
         self.histogram_all = image.histogram_all();
         self.histogram_border = image.histogram_border();
         self.update_image_properties(image);
+        self.assign_periodicity(image)?;
         self.assign_grid(image)?;
         self.assign_symmetry(image)?;
         self.assign_image_stats(image)?;
@@ -189,6 +190,31 @@ impl arc_work_model::ImageMeta {
             dict.insert(ImageProperty::NumberOfPixelsWith2ndMostPopularColor, value);
         }
         dict
+    }
+
+    fn assign_periodicity(&mut self, image: &Image) -> anyhow::Result<()> {
+        let periodicity_x: Option<u8>;
+        let periodicity_y: Option<u8>;
+        {
+            let ignore_mask: Image = Image::zero(image.width(), image.height());
+            periodicity_x = match image.horizontal_periodicity(&ignore_mask) {
+                Ok(value) => value,
+                Err(_) => None,
+            };
+            periodicity_y = match image.vertical_periodicity(&ignore_mask) {
+                Ok(value) => value,
+                Err(_) => None,
+            };
+        }
+        if let Some(value) = periodicity_x {
+            let label = ImageLabel::PeriodicityX { period: value };
+            self.image_label_set.insert(label);
+        }
+        if let Some(value) = periodicity_y {
+            let label = ImageLabel::PeriodicityY { period: value };
+            self.image_label_set.insert(label);
+        }
+        Ok(())
     }
 
     fn assign_grid(&mut self, image: &Image) -> anyhow::Result<()> {

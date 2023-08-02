@@ -191,6 +191,12 @@ pub enum ImageLabel {
     /// If the input image only use 1 color for all pixels, then that object is touching all the edges.
     MostPopularBorderColorIsPresentOnAllEdges,
 
+    /// If there is a pattern. This is the `horizontal length` of the pattern before it repeats.
+    PeriodicityX { period: u8 },
+
+    /// If there is a pattern. This is the `vertical length` of the pattern before it repeats.
+    PeriodicityY { period: u8 },
+
     // Ideas for more
     // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsAreMovedByTheSameOffsetWrapAround { offset_x: i32, offset_y: i32, background_color: u8 },
