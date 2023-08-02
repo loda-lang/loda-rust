@@ -197,11 +197,11 @@ impl arc_work_model::ImageMeta {
         let periodicity_y: Option<u8>;
         {
             let ignore_mask: Image = Image::zero(image.width(), image.height());
-            periodicity_x = match image.horizontal_periodicity(&ignore_mask) {
+            periodicity_x = match image.periodicity_x(&ignore_mask) {
                 Ok(value) => value,
                 Err(_) => None,
             };
-            periodicity_y = match image.vertical_periodicity(&ignore_mask) {
+            periodicity_y = match image.periodicity_y(&ignore_mask) {
                 Ok(value) => value,
                 Err(_) => None,
             };

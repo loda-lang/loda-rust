@@ -3321,7 +3321,7 @@ mod tests {
         let solution: SolutionSimple = |data| {
             let input: Image = data.image;
             let ignore_mask = Image::zero(input.width(), input.height());
-            let periodicity_optional: Option<u8> = input.vertical_periodicity(&ignore_mask)?;
+            let periodicity_optional: Option<u8> = input.periodicity_y(&ignore_mask)?;
             let periodicity: u8 = periodicity_optional.expect("u8");
             if periodicity < 1 {
                 return Err(anyhow::anyhow!("expected periodicity to be 1 or more"));

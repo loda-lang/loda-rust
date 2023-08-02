@@ -31,7 +31,7 @@ impl ImageRepairPattern for Image {
         let mut repair_mask: Image = repair_mask.clone();
 
         // Horizontal repair
-        let tile_width: Option<u8> = result_image.horizontal_periodicity(&repair_mask)?;
+        let tile_width: Option<u8> = result_image.periodicity_x(&repair_mask)?;
         if let Some(offset) = tile_width {
             if offset < result_image.width() {
                 result_image.repair_offset_x(&mut repair_mask, offset)?;
@@ -42,7 +42,7 @@ impl ImageRepairPattern for Image {
         repair_mask = repair_mask.rotate_cw()?;
 
         // Vertical repair
-        let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask)?;
+        let tile_height: Option<u8> = result_image.periodicity_x(&repair_mask)?;
         if let Some(offset) = tile_height {
             if offset < result_image.width() {
                 result_image.repair_offset_x(&mut repair_mask, offset)?;

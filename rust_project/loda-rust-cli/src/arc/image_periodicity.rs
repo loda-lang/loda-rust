@@ -1,3 +1,16 @@
+//! Detect `periodicity` in an image.
+//! 
+//! If there is a pattern that repeats itself, then this function will detect it.
+//! The pattern have to be identical and use the same colors.
+//! 
+//! Known problem: Sensitive to color changes.
+//! If there is a shape that repeats, where the color changes, then this function cannot not detect it.
+//! 
+//! Known problem: Sensitive to noise.
+//! If there is just 1 pixel that is not part of the pattern, then this function cannot not detect it.
+//! 
+//! Future experiments:
+//! * Fuzzy detection of periodicity, that allows for color changes and noise.
 use super::{Image, ImageRotate};
 use num_bigint::BigUint;
 use num_traits::{One, ToPrimitive};
@@ -5,10 +18,12 @@ use num_integer::Integer;
 
 const FIND_PERIODICITY_VERBOSE: bool = false;
 
-#[allow(dead_code)]
 pub trait ImagePeriodicity {
-    fn horizontal_periodicity(&self, ignore_mask: &Image) -> anyhow::Result<Option<u8>>;
-    fn vertical_periodicity(&self, ignore_mask: &Image) -> anyhow::Result<Option<u8>>;
+    /// Detect horizontal periodicity
+    fn periodicity_x(&self, ignore_mask: &Image) -> anyhow::Result<Option<u8>>;
+
+    /// Detect vertical periodicity
+    fn periodicity_y(&self, ignore_mask: &Image) -> anyhow::Result<Option<u8>>;
 
     // Idea for future
     // periodicity_diagonal_a()
@@ -16,12 +31,12 @@ pub trait ImagePeriodicity {
 }
 
 impl ImagePeriodicity for Image {
-    fn horizontal_periodicity(&self, ignore_mask: &Image) -> anyhow::Result<Option<u8>> {
+    fn periodicity_x(&self, ignore_mask: &Image) -> anyhow::Result<Option<u8>> {
         let instance = FindPeriodicity::measure_with_ignore_mask(&self, ignore_mask)?;
         Ok(instance.period)
     }
 
-    fn vertical_periodicity(&self, ignore_mask: &Image) -> anyhow::Result<Option<u8>> {
+    fn periodicity_y(&self, ignore_mask: &Image) -> anyhow::Result<Option<u8>> {
         let image: Image = self.rotate_cw()?;
         let ignore_mask: Image = ignore_mask.rotate_cw()?;
         let instance = FindPeriodicity::measure_with_ignore_mask(&image, &ignore_mask)?;
@@ -600,7 +615,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_find_horizontal_periodicity() {
+    fn test_50000_periodicity_x() {
         let pixels = vec![
             1, 5, 1, 2, 1, 5, 1, // period 4
             3, 2, 1, 3, 2, 1, 3, // period 3
@@ -611,12 +626,12 @@ mod tests {
             1, 0, 0, 0, 0, 0, 1,
         ];
         let ignore_mask: Image = Image::try_create(7, 2, ignore_pixels).expect("ok");
-        let period: Option<u8> = image.horizontal_periodicity(&ignore_mask).expect("ok");
+        let period: Option<u8> = image.periodicity_x(&ignore_mask).expect("ok");
         assert_eq!(period, Some(12));
     }
 
     #[test]
-    fn test_60000_find_vertical_periodicity() {
+    fn test_60000_periodicity_y() {
         let pixels = vec![
             // column0 has a period of 4
             // column1 has a period of 3
@@ -639,7 +654,7 @@ mod tests {
             1, 0,
         ];
         let ignore_mask: Image = Image::try_create(2, 7, ignore_pixels).expect("ok");
-        let period: Option<u8> = image.vertical_periodicity(&ignore_mask).expect("ok");
+        let period: Option<u8> = image.periodicity_y(&ignore_mask).expect("ok");
         assert_eq!(period, Some(12));
     }
 }
