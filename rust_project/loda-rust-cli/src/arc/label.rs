@@ -198,6 +198,10 @@ pub enum ImageLabel {
     PeriodicityY { period: u8 },
 
     // Ideas for more
+    // How many times are the pixels stretched out horizontally. Dividing by this scale does not cause dataloss.
+    // ScaleX { scale: u8 },
+    // How many times are the pixels stretched out vertically. Dividing by this scale does not cause dataloss.
+    // ScaleY { scale: u8 },
     // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsAreMovedByTheSameOffsetWrapAround { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsFromTheInputImagePresentExactlyOnceInTheOutputImageButWithDifferentOffsets,
