@@ -2603,4 +2603,22 @@ impl arc_work_model::Task {
         }
         true
     }
+
+    /// The most popular color across all the inputs and all the outputs.
+    /// A candidate for the background color.
+    #[allow(dead_code)]
+    pub fn input_output_most_popular_color_unambiguous(&self) -> Option<u8> {
+        let input_color: Option<u8> = self.input_histogram_intersection.most_popular_color_disallow_ambiguous();
+        let output_color: Option<u8> = self.output_histogram_intersection.most_popular_color_disallow_ambiguous();
+        match (input_color, output_color) {
+            (Some(a), Some(b)) => {
+                if a == b {
+                    Some(a)
+                } else {
+                    None
+                }
+            },
+            _ => None
+        }   
+    }
 }

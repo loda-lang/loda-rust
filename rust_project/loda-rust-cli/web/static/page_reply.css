@@ -1,0 +1,13 @@
+#prompt-reply-textarea {
+    width: 100%;
+    height: 50%;
+    font-size: large;
+}
+
+.split-screen {
+    display: flex;
+}
+
+.split-screen-half {
+    flex: 1;
+}

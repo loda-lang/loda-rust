@@ -191,7 +191,18 @@ pub enum ImageLabel {
     /// If the input image only use 1 color for all pixels, then that object is touching all the edges.
     MostPopularBorderColorIsPresentOnAllEdges,
 
+    /// If there is a pattern. This is the `horizontal length` of the pattern before it repeats.
+    PeriodicityX { period: u8 },
+
+    /// If there is a pattern. This is the `vertical length` of the pattern before it repeats.
+    PeriodicityY { period: u8 },
+
     // Ideas for more
+    // How many times are the pixels stretched out horizontally. Dividing by this scale does not cause dataloss.
+    // ScaleX { scale: u8 },
+    // How many times are the pixels stretched out vertically. Dividing by this scale does not cause dataloss.
+    // ScaleY { scale: u8 },
+    // TwoPixelsPositionedOnTheSameLine { direction: horz, vert, diagA, diagB }
     // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsAreMovedByTheSameOffsetWrapAround { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsFromTheInputImagePresentExactlyOnceInTheOutputImageButWithDifferentOffsets,
@@ -312,6 +323,18 @@ pub enum ActionLabel {
     OutputImageUniqueColorCount { count: u8 },
     OutputImageColorsComesFromInputImage,
 
+    /// What input colors explains the output colors. The most popular stays the most popular.
+    InputMostPopularColorIsOutputMostPopularColor,
+
+    /// What input colors explains the output colors. The least popular stays the least popular.
+    InputLeastPopularColorIsOutputLeastPopularColor,
+
+    /// What input colors explains the output colors. The most popular becomes the least popular.
+    InputMostPopularColorIsOutputLeastPopularColor,
+
+    /// What input colors explains the output colors. The least popular becomes the most popular.
+    InputLeastPopularColorIsOutputMostPopularColor,
+
     /// The output size is the same as the input size.
     /// Each pixel have the same number of identical pixels as in the input.
     /// Clusters of pixels are changing color between input and output.
@@ -326,6 +349,10 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // InputStatsIsOutputStats { mode: ImageStatsMode },
+    // InputStatsHasHigherMeanAndLowerSigmaThanOutputStats { mode: ImageStatsMode },
+    // InputStatsHasLowerMeanAndHigherSigmaThanOutputStats { mode: ImageStatsMode },
+    // InputStatsHasNonZeroSigmaAndOutputStatsHasSigmaZero { mode: ImageStatsMode },
     // OutputSizeIsTheSameAsObjectAtPosition { position: Top/Bottom/Left/Right },
     // NoMovementInDirectionX,
     // NoMovementInDirectionY,

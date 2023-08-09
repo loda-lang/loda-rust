@@ -5,6 +5,9 @@ extern crate log;
 
 extern crate env_logger;
 
+#[macro_use]
+extern crate assert_float_eq;
+
 use std::{str::FromStr, path::PathBuf};
 use regex::Regex;
 use loda_rust_core::control::*;

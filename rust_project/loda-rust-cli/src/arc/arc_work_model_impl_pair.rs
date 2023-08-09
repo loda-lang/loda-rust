@@ -299,6 +299,7 @@ impl arc_work_model::Pair {
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
         _ = self.analyze_output_colors();
+        _ = self.analyze_input_output_color_relationship();
     }
 
     fn analyze_preservation_of_corners(&mut self) -> anyhow::Result<()> {
@@ -565,6 +566,32 @@ impl arc_work_model::Pair {
             self.action_label_set.insert(label);
         }
 
+        Ok(())
+    }
+    
+    fn analyze_input_output_color_relationship(&mut self) -> anyhow::Result<()> {
+        let input_most_popular_color: Option<u8> = self.input.image_meta.histogram_all.most_popular_color_disallow_ambiguous();
+        let input_least_popular_color: Option<u8> = self.input.image_meta.histogram_all.least_popular_color_disallow_ambiguous();
+        let output_most_popular_color: Option<u8> = self.output.image_meta.histogram_all.most_popular_color_disallow_ambiguous();
+        let output_least_popular_color: Option<u8> = self.output.image_meta.histogram_all.least_popular_color_disallow_ambiguous();
+
+        if input_most_popular_color.is_some() && input_most_popular_color == output_most_popular_color {
+            let label = ActionLabel::InputMostPopularColorIsOutputMostPopularColor;
+            self.action_label_set.insert(label);
+        }
+        if input_most_popular_color.is_some() && input_most_popular_color == output_least_popular_color {
+            let label = ActionLabel::InputMostPopularColorIsOutputLeastPopularColor;
+            self.action_label_set.insert(label);
+        }
+        if input_least_popular_color.is_some() && input_least_popular_color == output_most_popular_color {
+            let label = ActionLabel::InputLeastPopularColorIsOutputMostPopularColor;
+            self.action_label_set.insert(label);
+        }
+        if input_least_popular_color.is_some() && input_least_popular_color == output_least_popular_color {
+            let label = ActionLabel::InputLeastPopularColorIsOutputLeastPopularColor;
+            self.action_label_set.insert(label);
+        }
+        
         Ok(())
     }
 

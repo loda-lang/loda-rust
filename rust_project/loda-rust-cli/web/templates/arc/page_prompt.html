@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+    <meta name="robots" content="noindex">
+    <title>Task {{task_id}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="format-detection" content="telephone=no">
+    <link media="all" rel="stylesheet" type="text/css" href="/static/page_shared.css">
+    <link media="all" rel="stylesheet" type="text/css" href="/static/page_inspect_task.css">
+    <script>
+        async function copyPromptToClipboard() {
+            // Find the first visible <pre> element
+            let elements = document.getElementsByTagName("pre");
+            var text = "ERROR";
+            for (var i = 0; i < elements.length; i++) {
+                if (elements[i].style.display == "none") {
+                    continue;
+                }
+                console.log("found visible <pre> element with id: " + elements[i].id);
+                text = elements[i].innerText;
+                break;
+            }
+            if (text == "ERROR") {
+                console.log("ERROR: Could not find visible <pre> element");
+                return;
+            }
+
+            // Copy the content of the <pre> element to clipboard
+            try {
+                await navigator.clipboard.writeText(text);
+                console.log('Content copied to clipboard');
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+            }
+        }
+
+        function showPrompt(prompt_id) {
+            // Hide all pre elements
+            let elements = document.getElementsByTagName("pre");
+            for (var i = 0; i < elements.length; i++) { 
+                elements[i].style.display = "none";
+            }
+
+            // Show the selected pre element
+            let element = document.getElementById(prompt_id);
+            element.style.display = "block";
+        }
+
+        function showPromptBasedOnDropdown() {
+            var select = document.getElementById('myDropdown');
+            let prompt_id = select.options[select.selectedIndex].dataset.promptid;
+            console.log("selected option: " + select.value + ", prompt id: " + prompt_id);
+            showPrompt(prompt_id);
+        }
+
+        function onloadHandler() {
+            var select = document.getElementById('myDropdown');
+
+            // Retrieve the selected option from localStorage
+            var selectedOption = localStorage.getItem('selectedOption');
+
+            // If no option was previously selected, select the first one
+            if(!selectedOption) {
+                selectedOption = select.options[0].value;
+                // console.log("no option was previously selected, select the first one: " + selectedOption);
+            }
+
+            // Set the selected option in the dropdown
+            select.value = selectedOption;
+            showPromptBasedOnDropdown();
+
+            // Listen for changes to the selected option
+            select.addEventListener('change', function() {
+                showPromptBasedOnDropdown();
+
+                // Store the selected value in localStorage
+                localStorage.setItem('selectedOption', this.value);
+            });
+        }
+    </script>
+</head>
+
+<body onload="onloadHandler()">
+    <header class="titlebar-container">
+    <div class="titlebar-item titlebar-item-left">
+        <a class="seconday-button" href="{{ task_href }}">Task</a>
+    </div>
+    
+    <div class="titlebar-item titlebar-item-center">Task {{task_id}} &gt; Prompt</div>
+    
+    <div class="titlebar-item titlebar-item-right">
+        <button class="seconday-button" onclick="copyPromptToClipboard()">Copy prompt</button>
+        <a class="seconday-button" href="{{ reply_href }}">Submit reply</a>
+    </div>
+    </header>
+    
+    <main id="main-outer">
+    <div id="main-inner">
+        {% for record in prompt_records %}
+            <pre id="{{ record.prompt_id | safe }}" class="one-visible-others-are-hidden">{{ record.prompt }}</pre>
+        {% endfor %}
+    </div>
+    </main>
+    
+    <footer id="page-footer">
+    <div id="page-footer-item0" class="page-footer-item">
+        <!-- footer left side -->
+        <span>Prompt type: </span>
+        <select id="myDropdown">
+            {% for record in prompt_records %}
+            <option value="{{ record.option_value | safe }}" data-promptid="{{ record.prompt_id | safe }}">{{ record.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div id="page-footer-item1" class="page-footer-item">
+        <!-- footer right side -->
+    </div>
+    </footer>
+</body>
+</html>

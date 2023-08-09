@@ -1,7 +1,12 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
-use super::arc_work_model::Task;
+use super::prompt_position::PromptPositionDeserializer;
+use super::prompt_run_length_encoding::PromptRLEDeserializer;
+use super::prompt_shape_transform::PromptShapeTransformDeserializer;
+use super::{Image, ImageToHTML};
+use super::arc_work_model::{Task, PairType};
 use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType};
+use super::prompt::{PromptType, PromptDeserialize};
 use http_types::Url;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
@@ -101,11 +106,10 @@ impl SubcommandARCWeb {
         });
         app.at("/task").get(Self::get_task_list);
         app.at("/task/:task_id").get(Self::get_task_with_id);
-
+        app.at("/task/:task_id/prompt").get(Self::get_prompt);
+        app.at("/task/:task_id/reply").get(Self::get_reply).post(Self::post_reply);
         app.at("/task/:task_id/find-node-pixel").get(Self::find_node_pixel);
-
         app.at("/task/:task_id/node/:node_id").get(Self::get_node);
-
         app.at("/static").serve_dir(&dir_static)?;
         app.listen("127.0.0.1:8090").await?;
 
@@ -238,7 +242,8 @@ impl SubcommandARCWeb {
         context.insert("inspect_html", &inspect_html);
         context.insert("task_id", task_id);
         context.insert("tasklist_href", "/task");
-        context.insert("node_href", &format!("/task/{}/node/1", task_id));
+        context.insert("node_href", &format!("/task/{}/node/0", task_id));
+        context.insert("prompt_href", &format!("/task/{}/prompt", task_id));
         let html: String = tera.render("page_inspect_task.html", &context).unwrap();
     
         let response = Response::builder(200)
@@ -643,6 +648,245 @@ impl SubcommandARCWeb {
         Ok(response)
     }
 
+    fn prompt_id_for_prompttype(prompt_type: &PromptType) -> &'static str {
+        match prompt_type {
+            PromptType::Position => "prompt-position",
+            PromptType::RunLengthEncoding => "prompt-run-length-encoding",
+            PromptType::ShapeAndTransformConnectivity4 => "prompt-shape-and-transform-connectivity4",
+            PromptType::ShapeAndTransformConnectivity8 => "prompt-shape-and-transform-connectivity8",
+        }
+    }
+
+    fn option_value_for_prompttype(prompt_type: &PromptType) -> &'static str {
+        match prompt_type {
+            PromptType::Position => "option-position",
+            PromptType::RunLengthEncoding => "option-run-length-encoding",
+            PromptType::ShapeAndTransformConnectivity4 => "option-shape-and-transform-connectivity4",
+            PromptType::ShapeAndTransformConnectivity8 => "option-shape-and-transform-connectivity8",
+        }
+    }
+
+    async fn get_prompt(req: Request<State>) -> tide::Result {
+        let tera: &Tera = &req.state().tera;
+        let task_id: &str = req.param("task_id").unwrap_or("world");
+
+        let task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
+            Ok(value) => value,
+            Err(error) => {
+                error!("cannot load the task_graph. error: {:?}", error);
+                let response = tide::Response::builder(404)
+                    .body("cannot load the task_graph.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+
+        let prompt_types = [
+            PromptType::ShapeAndTransformConnectivity4,
+            PromptType::ShapeAndTransformConnectivity8,
+            PromptType::RunLengthEncoding,
+            PromptType::Position,
+        ];
+        let prompt_records: Vec<PromptRecord> = prompt_types.iter().map(|prompt_type| {
+            let prompt_id: String = Self::prompt_id_for_prompttype(prompt_type).into();
+            let option_value: String = Self::option_value_for_prompttype(prompt_type).into();
+            let prompt: String = task_graph.to_prompt(prompt_type).unwrap_or("ERROR serializing prompt".into());
+            PromptRecord {
+                prompt_id,
+                option_value,
+                name: format!("{:?}", prompt_type),
+                prompt,
+            }
+        }).collect();
+
+        let mut context2 = tera::Context::new();
+        context2.insert("prompt_records", &prompt_records);
+        context2.insert("task_id", &task_id);
+        context2.insert("task_href", &format!("/task/{}", task_id));
+        context2.insert("reply_href", &format!("/task/{}/reply", task_id));
+        let body: String = tera.render("page_prompt.html", &context2).unwrap();
+        
+        let response = Response::builder(200)
+            .body(body)
+            .content_type(mime::HTML)
+            .build();
+    
+        Ok(response)
+    }
+
+    async fn get_reply(req: Request<State>) -> tide::Result {
+        let tera: &Tera = &req.state().tera;
+        let task_id: &str = req.param("task_id").unwrap_or("world");
+
+        let _task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
+            Ok(value) => value,
+            Err(error) => {
+                error!("cannot load the task_graph. error: {:?}", error);
+                let response = tide::Response::builder(404)
+                    .body("cannot load the task_graph.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+
+        let task: Task = Self::load_task(&req, task_id).await?;
+        let mut expected_image = Image::empty();
+        for pair in &task.pairs {
+            if pair.pair_type != PairType::Test {
+                continue;
+            }
+            // Extract the first test image.
+            expected_image = pair.output.test_image.clone();
+            break;
+        }
+        let expected_image_html: String = expected_image.to_html();
+
+        // let initial_reply_text: String = NaturalLanguage::reply_example1();
+        let initial_reply_text = String::new();
+
+        let mut context2 = tera::Context::new();
+        context2.insert("task_id", &task_id);
+        context2.insert("task_href", &format!("/task/{}", task_id));
+        context2.insert("prompt_href", &format!("/task/{}/prompt", task_id));
+        context2.insert("reply_text", &initial_reply_text);
+        context2.insert("expected_image_html", &expected_image_html);
+        context2.insert("predicted_image_html", "Nothing submitted yet");
+        let body: String = tera.render("page_reply.html", &context2).unwrap();
+        
+        let response = Response::builder(200)
+            .body(body)
+            .content_type(mime::HTML)
+            .build();
+    
+        Ok(response)
+    }
+
+    async fn post_reply(mut req: Request<State>) -> tide::Result {
+        let reply_data: PostReplyData = req.body_form().await?;
+
+        let task_id: &str = req.param("task_id").unwrap_or("world");
+        
+        let tera: &Tera = &req.state().tera;
+
+        let _task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
+            Ok(value) => value,
+            Err(error) => {
+                error!("cannot load the task_graph. error: {:?}", error);
+                let response = tide::Response::builder(404)
+                    .body("cannot load the task_graph.")
+                    .content_type("text/plain; charset=utf-8")
+                    .build();
+                return Ok(response);
+            }
+        };
+
+        let task: Task = Self::load_task(&req, task_id).await?;
+        let mut expected_image = Image::empty();
+        for pair in &task.pairs {
+            if pair.pair_type != PairType::Test {
+                continue;
+            }
+            // Extract the first test image.
+            expected_image = pair.output.test_image.clone();
+            break;
+        }
+        let expected_image_html: String = expected_image.to_html();
+        
+        let multiline_text: &str = &reply_data.reply_text;
+
+        let mut problems = Vec::<String>::new();
+        let mut prompt_deserialize_vec = Vec::<Box<dyn PromptDeserialize>>::new();
+        match PromptRLEDeserializer::try_from(multiline_text) {
+            Ok(prompt_deserialize) => {
+                prompt_deserialize_vec.push(Box::new(prompt_deserialize));
+            },
+            Err(error) => {
+                problems.push(format!("cannot parse the reply text. error: {:?}", error));
+            }
+        }
+        match PromptShapeTransformDeserializer::try_from(multiline_text) {
+            Ok(prompt_deserialize) => {
+                prompt_deserialize_vec.push(Box::new(prompt_deserialize));
+            },
+            Err(error) => {
+                problems.push(format!("cannot parse the reply text. error: {:?}", error));
+            }
+        }
+        match PromptPositionDeserializer::try_from(multiline_text) {
+            Ok(prompt_deserialize) => {
+                prompt_deserialize_vec.push(Box::new(prompt_deserialize));
+            },
+            Err(error) => {
+                problems.push(format!("cannot parse the reply text. error: {:?}", error));
+            }
+        }
+        if !prompt_deserialize_vec.is_empty() {
+            // One or more deserializers succeeded, no need to keep the deserializer problems.
+            problems.truncate(0);
+        }
+
+        let mut predicted_image: Option<Image> = None;
+        for prompt_deserialize in &prompt_deserialize_vec {
+            match prompt_deserialize.image() {
+                Ok(image) => {
+                    predicted_image = Some(image);
+                },
+                Err(error) => {
+                    problems.push(format!("cannot create image. error: {:?}", error));
+                }
+            }
+            if let Some(status) = prompt_deserialize.status() {
+                problems.push(status);
+            }
+        }
+
+        let status_text: String;
+        if problems.is_empty() {
+            status_text = "OK".to_string();
+        } else {
+            status_text = problems.join("\n").into();
+        }
+
+        let predicted_image_html: String;
+        if let Some(image) = predicted_image {
+            predicted_image_html = image.to_html();
+        } else {
+            predicted_image_html = "No predicted image".into();
+        }
+
+        let mut context2 = tera::Context::new();
+        context2.insert("task_id", &task_id);
+        context2.insert("task_href", &format!("/task/{}", task_id));
+        context2.insert("prompt_href", &format!("/task/{}/prompt", task_id));
+        context2.insert("reply_text", &reply_data.reply_text);
+        context2.insert("post_reply_result", &status_text);
+        context2.insert("expected_image_html", &expected_image_html);
+        context2.insert("predicted_image_html", &predicted_image_html);
+        let body: String = tera.render("page_reply.html", &context2).unwrap();
+        
+        let response = Response::builder(200)
+            .body(body)
+            .content_type(mime::HTML)
+            .build();
+    
+        Ok(response)
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(default)]
+struct PostReplyData {
+    reply_text: String,
+}
+
+impl Default for PostReplyData {
+    fn default() -> Self {
+        Self {
+            reply_text: String::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -832,4 +1076,12 @@ struct FindNodePixel {
     x: u8,
     y: u8,
     id: String,
+}
+
+#[derive(Debug, Serialize)]
+struct PromptRecord {
+    prompt_id: String,
+    option_value: String,
+    name: String,
+    prompt: String,
 }
