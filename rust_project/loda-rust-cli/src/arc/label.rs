@@ -202,6 +202,7 @@ pub enum ImageLabel {
     // ScaleX { scale: u8 },
     // How many times are the pixels stretched out vertically. Dividing by this scale does not cause dataloss.
     // ScaleY { scale: u8 },
+    // TwoPixelsPositionedOnTheSameLine { direction: horz, vert, diagA, diagB }
     // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsAreMovedByTheSameOffsetWrapAround { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsFromTheInputImagePresentExactlyOnceInTheOutputImageButWithDifferentOffsets,
