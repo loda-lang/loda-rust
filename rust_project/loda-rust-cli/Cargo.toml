@@ -1,6 +1,6 @@
 [package]
 name = "loda-rust-cli"
-version = "2023.7.19"
+version = "2023.8.9"
 authors = ["Simon Strandgaard <neoneye@gmail.com>"]
 description = "Command line interface for LODA Rust"
 repository = "https://github.com/loda-lang/loda-rust"
@@ -12,7 +12,7 @@ name = "loda-rust"
 path = "src/main.rs"
 
 [features]
-default = ["loda-rust-arc"]
+#default = ["loda-rust-arc"]
 linfa = ["dep:linfa", "dep:linfa-logistic", "dep:linfa-preprocessing", "dep:ndarray"]
 loda-rust-arc = ["dep:petgraph"]
 
