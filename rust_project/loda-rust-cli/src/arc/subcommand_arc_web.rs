@@ -69,7 +69,9 @@ impl SubcommandARCWeb {
     }
 
     async fn run_web_server_inner(&self) -> anyhow::Result<()> {
-        println!("Starting the web server...");
+        let webserver_address = "127.0.0.1:8090";
+        println!("Open this manually in a browser: {}/task", webserver_address);
+        println!("Press CTRL-C to stop the web server");
         let e = env!("CARGO_MANIFEST_DIR");
         let dir_static: String = format!("{}/web/static/", e);
 
@@ -111,7 +113,7 @@ impl SubcommandARCWeb {
         app.at("/task/:task_id/find-node-pixel").get(Self::find_node_pixel);
         app.at("/task/:task_id/node/:node_id").get(Self::get_node);
         app.at("/static").serve_dir(&dir_static)?;
-        app.listen("127.0.0.1:8090").await?;
+        app.listen(webserver_address).await?;
 
         Ok(())
     }
