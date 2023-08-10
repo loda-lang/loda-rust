@@ -2,17 +2,17 @@
 use super::{Histogram, Image, ImageHistogram, ImageRotate};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
-struct SplitCandidate {
-    size_diff: u8,
-    size0: u8,
-    separator_size: u8,
-    separator_color: u8,
-    size1: u8,
+pub struct SplitCandidate {
+    pub size_diff: u8,
+    pub size0: u8,
+    pub separator_size: u8,
+    pub separator_color: u8,
+    pub size1: u8,
 }
 
 impl SplitCandidate {
     fn find_candidates(input: &Image) -> anyhow::Result<Vec<SplitCandidate>> {
-
+        // Loop over all the columns and check if a column uses a single color.
         let mut candidates = Vec::<SplitCandidate>::new();
         let histogram_vec: Vec<Histogram> = input.histogram_columns();
         let mut last_separator_color: Option<u8> = None;
@@ -78,7 +78,7 @@ impl SplitCandidate {
     }
 }
 
-struct Split {
+pub struct Split {
     x_candidate_vec: Vec<SplitCandidate>,
     y_candidate_vec: Vec<SplitCandidate>,
 }
@@ -93,6 +93,38 @@ impl Split {
             y_candidate_vec,
         };
         Ok(instance)
+    }
+
+    /// If there an even split with the same size on both sides, return it.
+    /// 
+    /// If there is a split but the separator isn't the same size on both sides, return `None`.
+    /// 
+    /// If there are no splits, return `None`.
+    pub fn even_splitx(&self) -> Option<&SplitCandidate> {
+        let candidate: &SplitCandidate = match self.x_candidate_vec.first() {
+            Some(value) => value,
+            None => return None,
+        };
+        if candidate.size_diff > 0 {
+            return None;
+        }
+        Some(candidate)
+    }
+
+    /// If there an even split with the same size on both sides, return it.
+    /// 
+    /// If there is a split but the separator isn't the same size on both sides, return `None`.
+    /// 
+    /// If there are no splits, return `None`.
+    pub fn even_splity(&self) -> Option<&SplitCandidate> {
+        let candidate: &SplitCandidate = match self.y_candidate_vec.first() {
+            Some(value) => value,
+            None => return None,
+        };
+        if candidate.size_diff > 0 {
+            return None;
+        }
+        Some(candidate)
     }
 }
 
@@ -199,6 +231,48 @@ mod tests {
         assert_eq!(candidate_vec.len(), 4);
         let candidate: &SplitCandidate = candidate_vec.first().expect("SplitCandidate");
         assert_eq!(candidate.sizes_string(), "2 3 1");
+        assert_eq!(candidate.separator_color, 6);
+    }
+
+    #[test]
+    fn test_20000_splitx() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 6, 6, 0, 1,
+            0, 1, 6, 6, 1, 0,
+        ];
+        let input: Image = Image::try_create(6, 2, pixels).expect("image");
+
+        // Act
+        let instance = Split::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.even_splity(), None);
+        let candidate: &SplitCandidate = instance.even_splitx().expect("SplitCandidate");
+        assert_eq!(candidate.sizes_string(), "2 2 2");
+        assert_eq!(candidate.separator_color, 6);
+    }
+
+    #[test]
+    fn test_20001_splity() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 
+            0, 1, 
+            6, 6, 
+            6, 6, 
+            0, 1,
+            1, 0,
+        ];
+        let input: Image = Image::try_create(2, 6, pixels).expect("image");
+
+        // Act
+        let instance = Split::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.even_splitx(), None);
+        let candidate: &SplitCandidate = instance.even_splity().expect("SplitCandidate");
+        assert_eq!(candidate.sizes_string(), "2 2 2");
         assert_eq!(candidate.separator_color, 6);
     }
 }
