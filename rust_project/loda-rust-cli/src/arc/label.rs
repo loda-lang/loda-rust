@@ -362,6 +362,8 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // OutputSizeIsTheSameAsSplitViewCell,    
+    // Preserve image above the split view, and change the image below the separator
     // InputStatsIsOutputStats { mode: ImageStatsMode },
     // InputStatsHasHigherMeanAndLowerSigmaThanOutputStats { mode: ImageStatsMode },
     // InputStatsHasLowerMeanAndHigherSigmaThanOutputStats { mode: ImageStatsMode },
