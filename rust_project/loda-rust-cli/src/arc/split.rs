@@ -1,5 +1,5 @@
 //! Detect split views where a separator extends from edge to edge near the middle.
-use super::{Histogram, Image, ImageHistogram};
+use super::{Histogram, Image, ImageHistogram, ImageRotate};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
 struct SplitCandidate {
@@ -11,26 +11,7 @@ struct SplitCandidate {
 }
 
 impl SplitCandidate {
-    #[cfg(test)]
-    fn sizes_string(&self) -> String {
-        format!("{} {} {}", self.size0, self.separator_size, self.size1)
-    }
-}
-
-struct Split {
-    x_candidate_vec: Vec<SplitCandidate>,
-}
-
-impl Split {
-    pub fn analyze(input: &Image) -> anyhow::Result<Self> {
-        let x_candidate_vec: Vec<SplitCandidate> = Self::obtain_candidate_vec(input)?;
-        let instance = Split {
-            x_candidate_vec,
-        };
-        Ok(instance)
-    }
-
-    fn obtain_candidate_vec(input: &Image) -> anyhow::Result<Vec<SplitCandidate>> {
+    fn find_candidates(input: &Image) -> anyhow::Result<Vec<SplitCandidate>> {
 
         let mut candidates = Vec::<SplitCandidate>::new();
         let histogram_vec: Vec<Histogram> = input.histogram_columns();
@@ -90,6 +71,29 @@ impl Split {
 
         Ok(candidates2)
     }
+
+    #[cfg(test)]
+    fn sizes_string(&self) -> String {
+        format!("{} {} {}", self.size0, self.separator_size, self.size1)
+    }
+}
+
+struct Split {
+    x_candidate_vec: Vec<SplitCandidate>,
+    y_candidate_vec: Vec<SplitCandidate>,
+}
+
+impl Split {
+    pub fn analyze(input: &Image) -> anyhow::Result<Self> {
+        let x_candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(input)?;
+        let input_rotated: Image = input.rotate_cw()?;
+        let y_candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(&input_rotated)?;
+        let instance = Split {
+            x_candidate_vec,
+            y_candidate_vec,
+        };
+        Ok(instance)
+    }
 }
 
 
@@ -99,7 +103,34 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_split_separator_size1() {
+    fn test_10000_split_empty() {
+        // Arrange
+        let input: Image = Image::empty();
+
+        // Act
+        let candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(&input).expect("ok");
+
+        // Assert
+        assert_eq!(candidate_vec.len(), 0);
+    }
+
+    #[test]
+    fn test_10001_split_separator_size1_tiny_image() {
+        // Arrange
+        let input: Image = Image::color(1, 1, 9);
+
+        // Act
+        let candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(&input).expect("ok");
+
+        // Assert
+        assert_eq!(candidate_vec.len(), 1);
+        let candidate: &SplitCandidate = candidate_vec.first().expect("SplitCandidate");
+        assert_eq!(candidate.sizes_string(), "0 1 0");
+        assert_eq!(candidate.separator_color, 9);
+    }
+
+    #[test]
+    fn test_10002_split_separator_size1_singleline() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 2, 3, 3,
@@ -107,17 +138,36 @@ mod tests {
         let input: Image = Image::try_create(5, 1, pixels).expect("image");
 
         // Act
-        let instance = Split::analyze(&input).expect("ok");
+        let candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.x_candidate_vec.len(), 3);
-        let candidate: &SplitCandidate = instance.x_candidate_vec.first().expect("SplitCandidate");
+        assert_eq!(candidate_vec.len(), 3);
+        let candidate: &SplitCandidate = candidate_vec.first().expect("SplitCandidate");
         assert_eq!(candidate.sizes_string(), "2 1 2");
         assert_eq!(candidate.separator_color, 2);
     }
 
     #[test]
-    fn test_10001_split_separator_size2() {
+    fn test_10002_split_separator_size1_multiline() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 2, 1, 0,
+            0, 1, 2, 0, 1,
+        ];
+        let input: Image = Image::try_create(5, 2, pixels).expect("image");
+
+        // Act
+        let candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(&input).expect("ok");
+
+        // Assert
+        assert_eq!(candidate_vec.len(), 1);
+        let candidate: &SplitCandidate = candidate_vec.first().expect("SplitCandidate");
+        assert_eq!(candidate.sizes_string(), "2 1 2");
+        assert_eq!(candidate.separator_color, 2);
+    }
+
+    #[test]
+    fn test_10003_split_separator_size2() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 5, 5, 2,
@@ -125,17 +175,17 @@ mod tests {
         let input: Image = Image::try_create(4, 1, pixels).expect("image");
 
         // Act
-        let instance = Split::analyze(&input).expect("ok");
+        let candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.x_candidate_vec.len(), 3);
-        let candidate: &SplitCandidate = instance.x_candidate_vec.first().expect("SplitCandidate");
+        assert_eq!(candidate_vec.len(), 3);
+        let candidate: &SplitCandidate = candidate_vec.first().expect("SplitCandidate");
         assert_eq!(candidate.sizes_string(), "1 2 1");
         assert_eq!(candidate.separator_color, 5);
     }
 
     #[test]
-    fn test_10002_split_separator_size3() {
+    fn test_10004_split_separator_size3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 5, 6, 6, 6, 1,
@@ -143,11 +193,11 @@ mod tests {
         let input: Image = Image::try_create(6, 1, pixels).expect("image");
 
         // Act
-        let instance = Split::analyze(&input).expect("ok");
+        let candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.x_candidate_vec.len(), 4);
-        let candidate: &SplitCandidate = instance.x_candidate_vec.first().expect("SplitCandidate");
+        assert_eq!(candidate_vec.len(), 4);
+        let candidate: &SplitCandidate = candidate_vec.first().expect("SplitCandidate");
         assert_eq!(candidate.sizes_string(), "2 3 1");
         assert_eq!(candidate.separator_color, 6);
     }
