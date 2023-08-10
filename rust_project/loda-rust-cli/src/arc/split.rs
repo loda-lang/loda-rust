@@ -78,6 +78,7 @@ impl SplitCandidate {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Split {
     x_candidate_vec: Vec<SplitCandidate>,
     y_candidate_vec: Vec<SplitCandidate>,

@@ -91,6 +91,18 @@ pub enum SymmetryLabel {
     // Number of palindromic columns { count: u8 },
 }
 
+/// Does the image contain horizontal lines or vertical lines that are splitting the image into multiple parts
+/// 
+/// Properties about an input image or an output image.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum SplitLabel {
+    SplitColor { color: u8 },
+    SplitWithSomeColor,
+    SplitDirectionX,
+    SplitDirectionY,
+    SplitDirectionSome,
+}
+
 /// Does the image contain grid patterns
 /// 
 /// Properties about an input image or an output image.
@@ -135,6 +147,7 @@ pub enum SingleColorObjectSparseLabel {
 /// Properties used for both the input image and the output image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ImageLabel {
+    Split { label: SplitLabel },
     Symmetry { label: SymmetryLabel },
     Grid { label: GridLabel },
     SingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },

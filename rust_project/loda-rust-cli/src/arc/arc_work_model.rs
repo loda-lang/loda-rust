@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, ImageProperty, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification, ImageStats};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, ImageProperty, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification, ImageStats, Split};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -51,8 +51,13 @@ pub struct ImageMeta {
     /// Computed values such as: is symmetric x, is symmetric y.
     pub image_label_set: ImageLabelSet,
 
+    /// Detect splitviews where a separator extends from edge to edge near the middle.
+    pub split: Option<Split>,
+
+    /// Detect grid patterns that have MxN cells.
     pub grid: Option<Grid>,
 
+    /// Determine if there is symmetry in the image.
     pub symmetry: Option<Symmetry>,
 
     /// Measure `directionality` of the image.
