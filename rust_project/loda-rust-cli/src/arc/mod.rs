@@ -124,6 +124,7 @@ mod shape_identification_from_single_color_object;
 mod single_color_object;
 mod single_color_object_satisfies_label;
 mod single_color_object_to_label;
+mod split;
 mod stack_strings;
 mod subcommand_arc_size;
 mod subcommand_arc_web;
