@@ -9,13 +9,13 @@ impl SplitToLabel for Split {
     fn to_split_labels(&self) -> HashSet<SplitLabel> {
         let mut result = HashSet::<SplitLabel>::new();
 
-        if let Some(candidate) = self.even_splitx() {
+        if let Some(split) = self.x_container.maximize_even_splits() {
             {
                 let label = SplitLabel::SplitWithSomeColor;
                 result.insert(label);
             }
             {
-                let label = SplitLabel::SplitColor { color: candidate.separator_color };
+                let label = SplitLabel::SplitColor { color: split.separator_color };
                 result.insert(label);
             }
             {
@@ -28,13 +28,13 @@ impl SplitToLabel for Split {
             }
         }
 
-        if let Some(candidate) = self.even_splity() {
+        if let Some(split) = self.y_container.maximize_even_splits() {
             {
                 let label = SplitLabel::SplitWithSomeColor;
                 result.insert(label);
             }
             {
-                let label = SplitLabel::SplitColor { color: candidate.separator_color };
+                let label = SplitLabel::SplitColor { color: split.separator_color };
                 result.insert(label);
             }
             {

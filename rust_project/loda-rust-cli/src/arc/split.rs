@@ -102,7 +102,7 @@ impl fmt::Display for EvenSplit {
 }
 
 #[derive(Clone, Debug)]
-struct SplitCandidateContainer {
+pub struct SplitCandidateContainer {
     candidate_vec: Vec<SplitCandidate>,
     position_to_candidate: HashMap<u8, SplitCandidate>,
     total_size: u8,
@@ -197,7 +197,7 @@ impl SplitCandidateContainer {
     }
 
     /// Split the image into as many parts as possible.
-    fn maximize_even_splits(&self) -> Option<EvenSplit> {
+    pub fn maximize_even_splits(&self) -> Option<EvenSplit> {
         let size: u8 = self.total_size;
         for n in (2..size).rev() {
             let split: EvenSplit = match self.even_split(n) {
@@ -226,8 +226,8 @@ impl SplitCandidateContainer {
 
 #[derive(Clone, Debug)]
 pub struct Split {
-    x_container: SplitCandidateContainer,
-    y_container: SplitCandidateContainer,
+    pub x_container: SplitCandidateContainer,
+    pub y_container: SplitCandidateContainer,
 }
 
 impl Split {
