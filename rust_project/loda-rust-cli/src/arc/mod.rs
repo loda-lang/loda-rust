@@ -124,6 +124,7 @@ mod shape_identification_from_single_color_object;
 mod single_color_object;
 mod single_color_object_satisfies_label;
 mod single_color_object_to_label;
+mod solve_split;
 mod split;
 mod split_to_label;
 mod stack_strings;
@@ -245,6 +246,7 @@ pub use shape_identification_from_single_color_object::{ShapeIdentificationFromS
 pub use single_color_object::{SingleColorObject, SingleColorObjectRectangle, SingleColorObjectSparse, SingleColorObjectCluster, SingleColorObjectClusterContainer};
 pub use single_color_object_satisfies_label::SingleColorObjectSatisfiesLabel;
 pub use single_color_object_to_label::SingleColorObjectToLabel;
+pub use solve_split::Operation;
 pub use split::{EvenSplit, Split, SplitCandidate, SplitCandidateContainer};
 pub use split_to_label::SplitToLabel;
 pub use stack_strings::StackStrings;
