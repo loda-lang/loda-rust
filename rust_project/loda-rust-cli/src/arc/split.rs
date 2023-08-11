@@ -125,11 +125,17 @@ impl SplitCandidateContainer {
     }
 
     /// Split the image into `n` parts.
+    /// 
+    /// Determines if the image has `separator lines` spaced evenly across the image.
     fn even_split(&self, n: u8) -> anyhow::Result<EvenSplit> {
-        let mut found_candidate_vec = Vec::<&SplitCandidate>::new();
+        if n < 2 {
+            return Err(anyhow::anyhow!("Expected 2 or more. Cannot split into {} parts", n));
+        }
         let mut separator_color: u8 = 255;
         let mut separator_size: u8 = 255;
         let mut part_size: u8 = 255;
+        let mut used_size: u16 = 0;
+        let mut separator_count: u8 = 0;
         for i in 1..n {
             let position: u8 = (self.total_size * i) / n;
             let candidate: &SplitCandidate = match self.position_to_candidate.get(&position) {
@@ -138,11 +144,12 @@ impl SplitCandidateContainer {
                     return Err(anyhow::anyhow!("No candidate found for position {}", position));
                 }
             };
-            found_candidate_vec.push(candidate);
+            separator_count += 1;
             if i == 1 {
                 separator_color = candidate.separator_color;
                 separator_size = candidate.separator_size;
                 part_size = candidate.size0;
+                used_size += part_size as u16 + separator_size as u16;
                 continue;
             }
             if candidate.separator_color != separator_color {
@@ -151,14 +158,20 @@ impl SplitCandidateContainer {
             if candidate.separator_size != separator_size {
                 return Err(anyhow::anyhow!("Separator size mismatch for position {}", position));
             }
+            let expected_size0: u16 = used_size + part_size as u16;
+
+            // Same gap size between the between all the separators
+            if candidate.size0 as u16 != expected_size0 {
+                return Err(anyhow::anyhow!("Separator is not evenly positioned. position {}", position));
+            }
+            used_size += part_size as u16 + separator_size as u16;
         }
 
-        // check that spacing is even between separators
-        // for candidate in &found_candidate_vec {
-        // }
-
-        let separator_count: u8 = ((n as usize) - 1).max(0).min(255) as u8;
-        if found_candidate_vec.len() != (separator_count as usize) {
+        // The last part must have the same size as all the other parts
+        if (self.total_size as u16) != (used_size + part_size as u16) {
+            return Err(anyhow::anyhow!("Total size mismatch"));
+        }
+        if n as u16 != (separator_count as u16) + 1 {
             return Err(anyhow::anyhow!("Incorrect number of separators found"));
         }
 
@@ -222,13 +235,6 @@ impl Split {
         }
         Some(candidate)
     }
-
-    pub fn split3(&self) -> anyhow::Result<EvenSplit> {
-        let container: &SplitCandidateContainer = &self.x_container;
-        let even_split: EvenSplit = container.even_split(3)?;
-        Ok(even_split)
-    }
-
 }
 
 
@@ -338,7 +344,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_3parts() {
+    fn test_20000_even_split_3parts() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 6, 1, 0, 6, 1, 0,
@@ -353,12 +359,12 @@ mod tests {
         assert_eq!(instance.even_splitx(), None);
         assert_eq!(instance.even_splity(), None);
 
-        let actual: EvenSplit = instance.split3().expect("ok");
+        let actual: EvenSplit = instance.x_container.even_split(3).expect("ok");
         assert_eq!(actual.to_string(), "2x3.join(1, color:6)");
     }
 
     #[test]
-    fn test_20001_3parts() {
+    fn test_20001_even_split_3parts() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 7, 7, 0, 7, 7, 1,
@@ -373,8 +379,28 @@ mod tests {
         assert_eq!(instance.even_splitx(), None);
         assert_eq!(instance.even_splity(), None);
 
-        let actual: EvenSplit = instance.split3().expect("ok");
+        let actual: EvenSplit = instance.x_container.even_split(3).expect("ok");
         assert_eq!(actual.to_string(), "1x3.join(2, color:7)");
+    }
+
+    #[test]
+    fn test_20002_even_split_5parts() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 7, 7, 0, 7, 7, 1, 7, 7, 0, 7, 7, 1,
+            0, 7, 7, 1, 7, 7, 0, 7, 7, 1, 7, 7, 0,
+        ];
+        let input: Image = Image::try_create(13, 2, pixels).expect("image");
+
+        // Act
+        let instance = Split::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.even_splitx(), None);
+        assert_eq!(instance.even_splity(), None);
+
+        let actual: EvenSplit = instance.x_container.even_split(5).expect("ok");
+        assert_eq!(actual.to_string(), "1x5.join(2, color:7)");
     }
 
     #[test]
