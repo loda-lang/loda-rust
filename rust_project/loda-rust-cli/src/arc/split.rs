@@ -80,12 +80,19 @@ impl SplitCandidate {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EvenSplit {
     pub part_size: u8,
     pub part_count: u8,
     pub separator_size: u8,
     pub separator_color: u8,
     pub separator_count: u8,
+}
+
+impl EvenSplit {
+    fn sum(&self) -> u32 {
+        self.part_size as u32 * self.part_count as u32 + self.separator_size as u32 * self.separator_count as u32
+    }
 }
 
 impl fmt::Display for EvenSplit {
@@ -183,6 +190,33 @@ impl SplitCandidateContainer {
             separator_count,
         };
         Ok(instance)
+    }
+
+    /// Split the image into as many parts as possible.
+    fn maximize_even_splits(&self) -> Option<EvenSplit> {
+        let size: u8 = self.total_size;
+        for n in (2..size).rev() {
+            let split: EvenSplit = match self.even_split(n) {
+                Ok(value) => value,
+                Err(_) => continue,
+            };
+            if split.separator_size < 1 || split.part_size < 1 {
+                // Non-sense scenario - A separator line must be at least be 1px wide
+                // Non-sense scenario - A part must be at least be 1px wide
+                continue;
+            }
+            if split.part_count < 2 || split.separator_count < 1 {
+                // Non-sense scenario - An image without any splits
+                continue;
+            }
+            if split.sum() != size as u32 {
+                // Non-sense scenario - The sum of the parts and separators is not the same as the image size
+                continue;
+            }
+            return Some(split);
+        }
+        // No split found
+        None
     }
 }
 
@@ -404,26 +438,45 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_splitx() {
+    fn test_30000_maximize_even_splits() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 7, 0, 7, 1, 7, 0, 7, 1, 7, 0,
+            0, 7, 1, 7, 0, 7, 1, 7, 0, 7, 1,
+        ];
+        let input: Image = Image::try_create(11, 2, pixels).expect("image");
+        let split: Split = Split::analyze(&input).expect("ok");
+
+        // Act
+        let actualx: EvenSplit = split.x_container.maximize_even_splits().expect("some");
+        let actualy: Option<EvenSplit> = split.y_container.maximize_even_splits();
+
+        // Assert
+        assert_eq!(actualx.to_string(), "1x6.join(1, color:7)");
+        assert_eq!(actualy, None);
+    }
+
+    #[test]
+    fn test_30001_maximize_even_splits() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 6, 6, 0, 1,
             0, 1, 6, 6, 1, 0,
         ];
         let input: Image = Image::try_create(6, 2, pixels).expect("image");
+        let split: Split = Split::analyze(&input).expect("ok");
 
         // Act
-        let instance = Split::analyze(&input).expect("ok");
+        let actualx: EvenSplit = split.x_container.maximize_even_splits().expect("some");
+        let actualy: Option<EvenSplit> = split.y_container.maximize_even_splits();
 
         // Assert
-        assert_eq!(instance.even_splity(), None);
-        let candidate: &SplitCandidate = instance.even_splitx().expect("SplitCandidate");
-        assert_eq!(candidate.sizes_string(), "2 2 2");
-        assert_eq!(candidate.separator_color, 6);
+        assert_eq!(actualx.to_string(), "2x2.join(2, color:6)");
+        assert_eq!(actualy, None);
     }
 
     #[test]
-    fn test_30001_splity() {
+    fn test_30002_maximize_even_splits() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 
@@ -434,14 +487,33 @@ mod tests {
             1, 0,
         ];
         let input: Image = Image::try_create(2, 6, pixels).expect("image");
+        let split: Split = Split::analyze(&input).expect("ok");
 
         // Act
-        let instance = Split::analyze(&input).expect("ok");
+        let actualx: Option<EvenSplit> = split.x_container.maximize_even_splits();
+        let actualy: EvenSplit = split.y_container.maximize_even_splits().expect("some");
 
         // Assert
-        assert_eq!(instance.even_splitx(), None);
-        let candidate: &SplitCandidate = instance.even_splity().expect("SplitCandidate");
-        assert_eq!(candidate.sizes_string(), "2 2 2");
-        assert_eq!(candidate.separator_color, 6);
+        assert_eq!(actualx, None);
+        assert_eq!(actualy.to_string(), "2x2.join(2, color:6)");
+    }
+
+    #[test]
+    fn test_30003_maximize_even_splits_ignore_ambiguous() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 1, 2,
+            1, 2, 1, 2,
+        ];
+        let input: Image = Image::try_create(4, 2, pixels).expect("image");
+        let split: Split = Split::analyze(&input).expect("ok");
+
+        // Act
+        let actualx: Option<EvenSplit> = split.x_container.maximize_even_splits();
+        let actualy: Option<EvenSplit> = split.y_container.maximize_even_splits();
+
+        // Assert
+        assert_eq!(actualx, None);
+        assert_eq!(actualy, None);
     }
 }
