@@ -48,9 +48,18 @@ impl ActionLabelUtil {
         if Self::is_output_size_same_as_input_splitview_y(action_label_set) {
             return true;
         }
+
+        // Future experiments:
+        // Detect if the output size is the same as the input's splitview part size, but rotated.
+        // Detect if there is both splits in both directions x and y.
+
+        // if Self::experimental_is_output_size_same_as_input_splitview_rotated(action_label_set) {
+        //     return true;
+        // }
         false
     }
 
+    /// The input is multiple images layouted horizontally, and the output width equals `split part size x`.
     fn is_output_size_same_as_input_splitview_x(action_label_set: &ActionLabelSet) -> bool {
         let mut same_width = false;
         let mut same_height = false;
@@ -70,6 +79,7 @@ impl ActionLabelUtil {
         same_width && same_height
     }
 
+    /// The input is multiple images layouted vertically, and the output height equals `split part size y`.
     fn is_output_size_same_as_input_splitview_y(action_label_set: &ActionLabelSet) -> bool {
         let mut same_width = false;
         let mut same_height = false;
@@ -87,6 +97,26 @@ impl ActionLabelUtil {
             }
         }
         same_width && same_height
+    }
+
+    #[allow(dead_code)]
+    fn experimental_is_output_size_same_as_input_splitview_rotated(action_label_set: &ActionLabelSet) -> bool {
+        let mut width_is_rotated = false;
+        let mut height_is_rotated = false;
+        for label in action_label_set {
+            match label {
+                ActionLabel::OutputPropertyIsEqualToInputProperty { output, input } => {
+                    if *output == PropertyOutput::OutputWidth && *input == ImageProperty::SplitPartSizeY {
+                        width_is_rotated = true;
+                    }
+                    if *output == PropertyOutput::OutputHeight && *input == ImageProperty::SplitPartSizeX {
+                        height_is_rotated = true;
+                    }
+                },
+                _ => {}
+            }
+        }
+        width_is_rotated || height_is_rotated
     }
 
 }
