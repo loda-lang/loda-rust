@@ -144,7 +144,11 @@ impl SplitCandidateContainer {
         let mut used_size: u16 = 0;
         let mut separator_count: u8 = 0;
         for i in 1..n {
-            let position: u8 = (self.total_size * i) / n;
+            let position_u32: u32 = ((self.total_size as u32) * (i as u32)) / (n as u32);
+            if position_u32 >= 255 {
+                return Err(anyhow::anyhow!("Position {} is out of bounds", position_u32));
+            }
+            let position: u8 = position_u32 as u8;
             let candidate: &SplitCandidate = match self.position_to_candidate.get(&position) {
                 Some(value) => value,
                 None => {
