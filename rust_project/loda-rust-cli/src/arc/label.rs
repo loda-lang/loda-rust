@@ -49,6 +49,9 @@ pub enum ImageProperty {
     NumberOfClustersWithLeastPopularIntersectionColor,
     CellCountX,
     CellCountY,
+    SplitPartSizeX,
+    SplitPartSizeY,
+    SplitPartSizeXY,
 
     // Ideas for more
     // MassOfColor0, ... MassOfColor9,

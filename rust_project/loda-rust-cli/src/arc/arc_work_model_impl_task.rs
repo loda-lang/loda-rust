@@ -1,4 +1,4 @@
-use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle, Rectangle};
+use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle, Rectangle, SplitLabel};
 use super::arc_work_model::{Input, PairType, Object, Prediction, Pair};
 use super::arc_json_model;
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
@@ -858,6 +858,63 @@ impl arc_work_model::Task {
         single_color_object_labels
     }
 
+    /// Extract `Vec<SplitLabel>` from `input_label_set_intersection`.
+    fn split_labels_from_input(&self) -> Vec<SplitLabel> {
+        let mut split_labels = Vec::<SplitLabel>::new();
+        for image_label in &self.input_image_label_set_intersection {
+            let split_label: SplitLabel = match image_label {
+                ImageLabel::Split { label } => label.clone(),
+                _ => continue
+            };
+            split_labels.push(split_label);
+        }
+        split_labels
+    }
+
+    pub fn assign_action_labels_related_to_splitview_and_output_size(&mut self) -> anyhow::Result<()> {
+        let intersection_split_labels: Vec<SplitLabel> = self.split_labels_from_input();
+        if intersection_split_labels.is_empty() {
+            return Ok(());
+        }
+
+        for pair in &mut self.pairs {
+            let mut part_size_x: Option<u8> = None;
+            let mut part_size_y: Option<u8> = None;
+            let mut part_size_xy: Option<u8> = None;
+    
+            for image_label in &pair.input.image_meta.image_label_set {
+                let split_label: SplitLabel = match image_label {
+                    ImageLabel::Split { label } => label.clone(),
+                    _ => continue
+                };    
+                match split_label {
+                    SplitLabel::SplitPartSizeX { size } => {
+                        part_size_x = Some(size);
+                    },
+                    SplitLabel::SplitPartSizeY { size } => {
+                        part_size_y = Some(size);
+                    },
+                    SplitLabel::SplitPartSizeXY { size } => {
+                        part_size_xy = Some(size);
+                    },
+                    _ => continue
+                }
+            }
+
+            if let Some(value) = part_size_x {
+                pair.input.image_meta.image_properties.insert(ImageProperty::SplitPartSizeX, value);
+            }
+            if let Some(value) = part_size_y {
+                pair.input.image_meta.image_properties.insert(ImageProperty::SplitPartSizeY, value);
+            }
+            if let Some(value) = part_size_xy {
+                pair.input.image_meta.image_properties.insert(ImageProperty::SplitPartSizeXY, value);
+            }
+        }
+
+        return Ok(());
+    }
+
     pub fn assign_action_labels_related_to_single_color_objects_and_output_size(&mut self) -> anyhow::Result<()> {
         let single_color_object_labels: Vec<SingleColorObjectRectangleLabel> = self.single_color_object_labels_from_input();
         if single_color_object_labels.is_empty() {
@@ -1068,9 +1125,10 @@ impl arc_work_model::Task {
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
         _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
+        _ = self.assign_action_labels_related_to_splitview_and_output_size();
         _ = self.determine_if_objects_have_moved();
 
-        let input_properties: [ImageProperty; 37] = [
+        let input_properties: [ImageProperty; 40] = [
             ImageProperty::Width, 
             ImageProperty::WidthPlus1, 
             ImageProperty::WidthPlus2, 
@@ -1108,6 +1166,9 @@ impl arc_work_model::Task {
             ImageProperty::NumberOfClustersWithLeastPopularIntersectionColor,
             ImageProperty::CellCountX,
             ImageProperty::CellCountY,
+            ImageProperty::SplitPartSizeX,
+            ImageProperty::SplitPartSizeY,
+            ImageProperty::SplitPartSizeXY,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
