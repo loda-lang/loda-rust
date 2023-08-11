@@ -40,6 +40,55 @@ impl ActionLabelUtil {
         }
         same_width && same_height
     }
+
+    pub fn is_output_size_same_as_input_splitview(action_label_set: &ActionLabelSet) -> bool {
+        if Self::is_output_size_same_as_input_splitview_x(action_label_set) {
+            return true;
+        }
+        if Self::is_output_size_same_as_input_splitview_y(action_label_set) {
+            return true;
+        }
+        false
+    }
+
+    fn is_output_size_same_as_input_splitview_x(action_label_set: &ActionLabelSet) -> bool {
+        let mut same_width = false;
+        let mut same_height = false;
+        for label in action_label_set {
+            match label {
+                ActionLabel::OutputPropertyIsEqualToInputProperty { output, input } => {
+                    if *output == PropertyOutput::OutputWidth && *input == ImageProperty::SplitPartSizeX {
+                        same_width = true;
+                    }
+                    if *output == PropertyOutput::OutputHeight && *input == ImageProperty::Height {
+                        same_height = true;
+                    }
+                },
+                _ => {}
+            }
+        }
+        same_width && same_height
+    }
+
+    fn is_output_size_same_as_input_splitview_y(action_label_set: &ActionLabelSet) -> bool {
+        let mut same_width = false;
+        let mut same_height = false;
+        for label in action_label_set {
+            match label {
+                ActionLabel::OutputPropertyIsEqualToInputProperty { output, input } => {
+                    if *output == PropertyOutput::OutputWidth && *input == ImageProperty::Width {
+                        same_width = true;
+                    }
+                    if *output == PropertyOutput::OutputHeight && *input == ImageProperty::SplitPartSizeY {
+                        same_height = true;
+                    }
+                },
+                _ => {}
+            }
+        }
+        same_width && same_height
+    }
+
 }
 
 #[cfg(test)]

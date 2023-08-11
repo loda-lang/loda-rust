@@ -2622,6 +2622,11 @@ impl arc_work_model::Task {
         ActionLabelUtil::is_output_size_same_as_removed_rectangle_after_single_color_removal(&self.action_label_set_intersection)
     }
 
+    #[allow(dead_code)]
+    pub fn is_output_size_same_as_input_splitview(&self) -> bool {
+        ActionLabelUtil::is_output_size_same_as_input_splitview(&self.action_label_set_intersection)
+    }
+
     /// Detect if the predicted size was incorrect.
     /// 
     /// This uses the expected output of the `test` pair. So don't use this for making predictions.
