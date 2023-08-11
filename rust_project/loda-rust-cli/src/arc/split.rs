@@ -203,6 +203,12 @@ impl SplitCandidateContainer {
     /// If the splitting lines are inconsistently positioned, return `None`.
     /// 
     /// If there are no splits, return `None`.
+    /// 
+    /// Known problem: The `separator lines` must be 1 pixel or greater, otherwise the lines cannot be detected.
+    /// In images that are stacked without a separator line, then the image cannot be split.
+    /// 
+    /// Known problem: The first element must be a `part` and the last element must be a `part`.
+    /// It cannot detect splits where the first element is a `separator` and the last element is a `separator`.
     pub fn maximize_even_splits(&self) -> Option<EvenSplit> {
         let size: u8 = self.total_size;
         for n in (2..size).rev() {
