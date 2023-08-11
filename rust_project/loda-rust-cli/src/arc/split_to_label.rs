@@ -11,9 +11,12 @@ impl SplitToLabel for Split {
 
         let mut separator_size_x: Option<u8> = None;
         let mut separator_size_y: Option<u8> = None;
+        let mut part_size_x: Option<u8> = None;
+        let mut part_size_y: Option<u8> = None;
 
         if let Some(split) = self.x_container.maximize_even_splits() {
             separator_size_x = Some(split.separator_size);
+            part_size_x = Some(split.part_size);
             {
                 let label = SplitLabel::SplitWithSomeColor;
                 result.insert(label);
@@ -50,6 +53,7 @@ impl SplitToLabel for Split {
 
         if let Some(split) = self.y_container.maximize_even_splits() {
             separator_size_y = Some(split.separator_size);
+            part_size_y = Some(split.part_size);
             {
                 let label = SplitLabel::SplitWithSomeColor;
                 result.insert(label);
@@ -91,6 +95,13 @@ impl SplitToLabel for Split {
             }
         }
 
+        if let Some(size_x) = part_size_x {
+            if part_size_x == part_size_y {
+                let label = SplitLabel::SplitPartSizeXY { size: size_x };
+                result.insert(label);
+            }
+        }
+
         result
     }
 }
@@ -122,6 +133,7 @@ mod tests {
         assert_eq!(actual.contains(&SplitLabel::SplitDirectionSome), true);
         assert_eq!(actual.contains(&SplitLabel::SplitSeparatorCountX { count: 1 }), true);
         assert_eq!(actual.contains(&SplitLabel::SplitSeparatorSizeXY { size: 1 }), true);
+        assert_eq!(actual.contains(&SplitLabel::SplitPartSizeXY { size: 1 }), true);
     }
 
     #[test]
