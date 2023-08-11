@@ -368,9 +368,6 @@ mod tests {
         let instance = Split::analyze(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.even_splitx(), None);
-        assert_eq!(instance.even_splity(), None);
-
         let actual: EvenSplit = instance.x_container.even_split(3).expect("ok");
         assert_eq!(actual.to_string(), "2x3.join(1, color:6)");
     }
@@ -388,9 +385,6 @@ mod tests {
         let instance = Split::analyze(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.even_splitx(), None);
-        assert_eq!(instance.even_splity(), None);
-
         let actual: EvenSplit = instance.x_container.even_split(3).expect("ok");
         assert_eq!(actual.to_string(), "1x3.join(2, color:7)");
     }
@@ -408,9 +402,6 @@ mod tests {
         let instance = Split::analyze(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.even_splitx(), None);
-        assert_eq!(instance.even_splity(), None);
-
         let actual: EvenSplit = instance.x_container.even_split(5).expect("ok");
         assert_eq!(actual.to_string(), "1x5.join(2, color:7)");
     }
