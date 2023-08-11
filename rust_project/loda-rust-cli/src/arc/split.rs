@@ -1,5 +1,6 @@
 //! Detect split views where a separator extends from edge to edge near the middle.
 use super::{Histogram, Image, ImageHistogram, ImageRotate};
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub struct SplitCandidate {
@@ -78,20 +79,87 @@ impl SplitCandidate {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
+struct SplitCandidateContainer {
+    candidate_vec: Vec<SplitCandidate>,
+    position_to_candidate: HashMap<u8, SplitCandidate>,
+    total_size: u8,
+}
+
+impl SplitCandidateContainer {
+    fn analyze(input: &Image) -> anyhow::Result<Self> {
+        let candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(input)?;
+
+        let mut position_to_candidate = HashMap::<u8, SplitCandidate>::new();
+        for candidate in &candidate_vec {
+            for index in 0..candidate.separator_size {
+                let position: u16 = (index as u16) + (candidate.size0 as u16);
+                if position >= 255 {
+                    continue;
+                }
+                position_to_candidate.insert(position as u8, candidate.clone());
+            }
+        }
+
+        let instance = SplitCandidateContainer {
+            candidate_vec,
+            position_to_candidate,
+            total_size: input.width(),
+        };
+        Ok(instance)
+    }
+
+    /// Split the image into `n` parts.
+    fn split(&self, n: u8) -> anyhow::Result<Vec<SplitCandidate>> {
+        let mut found_candidate_vec = Vec::<&SplitCandidate>::new();
+        let mut separator_color: u8 = 255;
+        let mut separator_size: u8 = 255;
+        for i in 1..n {
+            let position: u8 = (self.total_size * i) / n;
+            let candidate: &SplitCandidate = match self.position_to_candidate.get(&position) {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("No candidate found for position {}", position));
+                }
+            };
+            found_candidate_vec.push(candidate);
+            if i == 1 {
+                separator_color = candidate.separator_color;
+                separator_size = candidate.separator_size;
+                continue;
+            }
+            if candidate.separator_color != separator_color {
+                return Err(anyhow::anyhow!("Separator color mismatch for position {}", position));
+            }
+            if candidate.separator_size != separator_size {
+                return Err(anyhow::anyhow!("Separator size mismatch for position {}", position));
+            }
+        }
+
+        // check that spacing is even between separators
+        // for candidate in &found_candidate_vec {
+        // }
+
+        let candidate_vec: Vec<SplitCandidate> = found_candidate_vec.iter().map(|candidate| (**candidate).clone()).collect();
+        // let candidate_vec: Vec<SplitCandidate> = Vec::<SplitCandidate>::from(found_candidate_vec);
+        Ok(candidate_vec)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Split {
-    x_candidate_vec: Vec<SplitCandidate>,
-    y_candidate_vec: Vec<SplitCandidate>,
+    x_container: SplitCandidateContainer,
+    y_container: SplitCandidateContainer,
 }
 
 impl Split {
     pub fn analyze(input: &Image) -> anyhow::Result<Self> {
-        let x_candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(input)?;
+        let x_container = SplitCandidateContainer::analyze(input)?;
         let input_rotated: Image = input.rotate_cw()?;
-        let y_candidate_vec: Vec<SplitCandidate> = SplitCandidate::find_candidates(&input_rotated)?;
+        let y_container = SplitCandidateContainer::analyze(&input_rotated)?;
         let instance = Split {
-            x_candidate_vec,
-            y_candidate_vec,
+            x_container,
+            y_container,
         };
         Ok(instance)
     }
@@ -102,7 +170,7 @@ impl Split {
     /// 
     /// If there are no splits, return `None`.
     pub fn even_splitx(&self) -> Option<&SplitCandidate> {
-        let candidate: &SplitCandidate = match self.x_candidate_vec.first() {
+        let candidate: &SplitCandidate = match self.x_container.candidate_vec.first() {
             Some(value) => value,
             None => return None,
         };
@@ -118,7 +186,7 @@ impl Split {
     /// 
     /// If there are no splits, return `None`.
     pub fn even_splity(&self) -> Option<&SplitCandidate> {
-        let candidate: &SplitCandidate = match self.y_candidate_vec.first() {
+        let candidate: &SplitCandidate = match self.y_container.candidate_vec.first() {
             Some(value) => value,
             None => return None,
         };
@@ -127,6 +195,13 @@ impl Split {
         }
         Some(candidate)
     }
+
+    pub fn split3(&self) -> anyhow::Result<Vec<SplitCandidate>> {
+        let container: &SplitCandidateContainer = &self.x_container;
+        let candidate_vec: Vec::<SplitCandidate> = container.split(3)?;
+        Ok(candidate_vec)
+    }
+
 }
 
 
@@ -236,7 +311,27 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_splitx() {
+    fn test_20000_3parts() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 6, 1, 0, 6, 1, 0,
+            0, 1, 6, 0, 1, 6, 0, 1,
+        ];
+        let input: Image = Image::try_create(8, 2, pixels).expect("image");
+
+        // Act
+        let instance = Split::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.even_splitx(), None);
+        assert_eq!(instance.even_splity(), None);
+
+        let candidate_vec: Vec<SplitCandidate> = instance.split3().expect("ok");
+        assert_eq!(candidate_vec.len(), 2);
+    }
+
+    #[test]
+    fn test_30000_splitx() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 6, 6, 0, 1,
@@ -255,7 +350,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_splity() {
+    fn test_30001_splity() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 
