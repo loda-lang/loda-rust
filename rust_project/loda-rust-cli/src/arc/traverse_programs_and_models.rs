@@ -1,8 +1,7 @@
-use super::ActionLabel;
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
-use super::{ImageHistogram, ImageSize, Histogram, ExportTasks};
+use super::{ActionLabel, ImageHistogram, ImageSize, Histogram, ExportTasks, SolveSplit};
 use super::human_readable_utc_timestamp;
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
@@ -416,10 +415,16 @@ impl TraverseProgramsAndModels {
     fn inspect_tasks_without_solution(task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut indexes = HashSet::<usize>::new();
         for (index, task) in task_vec.iter().enumerate() {
-            if task.occur_in_solutions_csv {
-                continue;
-            }
-            if task.is_output_size_same_as_input_size() {
+            // if task.occur_in_solutions_csv {
+            //     continue;
+            // }
+            // if task.is_output_size_same_as_input_size() {
+            //     continue;
+            // }
+            // if !task.is_output_size_same_as_input_splitview() {
+            //     continue;
+            // }
+            if !task.is_output_size_same_as_input_splitview_x() {
                 continue;
             }
             // if !task.has_predicted_output_size_and_its_incorrect() {
@@ -581,6 +586,7 @@ impl TraverseProgramsAndModels {
             }
             if count > 0 {
                 task.inspect()?;
+                SolveSplit::solve(task)?;
             }
             count += 1;
             if count > 50 {
