@@ -103,6 +103,7 @@ impl fmt::Display for EvenSplit {
 
 #[derive(Clone, Debug)]
 pub struct SplitCandidateContainer {
+    #[allow(dead_code)]
     candidate_vec: Vec<SplitCandidate>,
     position_to_candidate: HashMap<u8, SplitCandidate>,
     total_size: u8,
@@ -196,7 +197,12 @@ impl SplitCandidateContainer {
         Ok(instance)
     }
 
-    /// Split the image into as many parts as possible.
+    /// Split the image into as many parts as possible. 
+    /// Where the parts have the same size, and the separators have the same size and color.
+    /// 
+    /// If the splitting lines are inconsistently positioned, return `None`.
+    /// 
+    /// If there are no splits, return `None`.
     pub fn maximize_even_splits(&self) -> Option<EvenSplit> {
         let size: u8 = self.total_size;
         for n in (2..size).rev() {
@@ -240,38 +246,6 @@ impl Split {
             y_container,
         };
         Ok(instance)
-    }
-
-    /// If there an even split with the same size on both sides, return it.
-    /// 
-    /// If there is a split but the separator isn't the same size on both sides, return `None`.
-    /// 
-    /// If there are no splits, return `None`.
-    pub fn even_splitx(&self) -> Option<&SplitCandidate> {
-        let candidate: &SplitCandidate = match self.x_container.candidate_vec.first() {
-            Some(value) => value,
-            None => return None,
-        };
-        if candidate.size_diff > 0 {
-            return None;
-        }
-        Some(candidate)
-    }
-
-    /// If there an even split with the same size on both sides, return it.
-    /// 
-    /// If there is a split but the separator isn't the same size on both sides, return `None`.
-    /// 
-    /// If there are no splits, return `None`.
-    pub fn even_splity(&self) -> Option<&SplitCandidate> {
-        let candidate: &SplitCandidate = match self.y_container.candidate_vec.first() {
-            Some(value) => value,
-            None => return None,
-        };
-        if candidate.size_diff > 0 {
-            return None;
-        }
-        Some(candidate)
     }
 }
 
