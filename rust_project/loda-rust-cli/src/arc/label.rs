@@ -105,6 +105,7 @@ pub enum SplitLabel {
     SplitDirectionSome,
     SplitSeparatorSizeX { size: u8 },
     SplitSeparatorSizeY { size: u8 },
+    SplitSeparatorSizeXY { size: u8 },
     SplitSeparatorCountX { count: u8 },
     SplitSeparatorCountY { count: u8 },
     SplitPartSizeX { size: u8 },
