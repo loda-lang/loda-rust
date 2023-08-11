@@ -1,5 +1,5 @@
-use super::arc_work_model::{PairType, Task, Input};
-use super::{ActionLabel, ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection};
+use super::arc_work_model::{Task, Input};
+use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection};
 use super::{Image, ImageMaskBoolean};
 use super::HtmlLog;
 
@@ -42,6 +42,12 @@ impl Operation {
     }
 }
 
+#[derive(Debug, Clone)]
+struct SplitRecord {
+    part_count: u8,
+    separator_size: u8,
+}
+
 pub struct SolveSplit;
 
 impl SolveSplit {
@@ -52,8 +58,7 @@ impl SolveSplit {
             return Ok(());
         }
 
-        let mut part_count_vec = Vec::<u8>::new();
-        let mut separator_size_vec = Vec::<u8>::new();
+        let mut record_vec = Vec::<SplitRecord>::new();
         for pair in &task.pairs {
             let input: &Input = &pair.input;
             let mut found_part_count: Option<u8> = None;
@@ -87,26 +92,25 @@ impl SolveSplit {
                     return Ok(());
                 }
             };
-            part_count_vec.push(part_count);
-            separator_size_vec.push(separator_size);
-            // println!("part_count: {}, separator_size: {}", part_count, separator_size);
+            let record = SplitRecord {
+                part_count,
+                separator_size,
+            };
+            record_vec.push(record);
         }
 
-        if part_count_vec.len() != task.pairs.len() {
+        if record_vec.len() != task.pairs.len() {
             return Ok(());
         }
-        if separator_size_vec.len() != task.pairs.len() {
-            return Ok(());
-        }
-        println!("task: {} parts: {:?} separators: {:?}", task.id, part_count_vec, separator_size_vec);
 
-        let s: String = format!("task: {} number of parts: {}", task.id, part_count_vec.len());
+        let s: String = format!("task: {} parts: {:?}", task.id, record_vec);
         HtmlLog::text(s);
 
         let mut pair_splitted_images = Vec::<Vec::<Image>>::new();
         for (pair_index, pair) in task.pairs.iter().enumerate() {
-            let part_count: u8 = part_count_vec[pair_index];
-            let separator_size: u8 = separator_size_vec[pair_index];
+            let record: &SplitRecord = &record_vec[pair_index];
+            let part_count: u8 = record.part_count;
+            let separator_size: u8 = record.separator_size;
 
             let input_image: &Image = &pair.input.image;
             let images: Vec<Image> = match input_image.split(part_count, separator_size, ImageSplitDirection::IntoColumns) {
