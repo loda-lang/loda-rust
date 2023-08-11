@@ -51,6 +51,8 @@ pub enum ImageProperty {
     CellCountY,
 
     // Ideas for more
+    // MassOfColor0, ... MassOfColor9,
+    // MassOfPixelsWithSingleIntersectionRemovalColor,
     // UniqueColorCountIgnoringTheMostPopularIntersectionColor,
     // NoisePixelsCountOutsideAnyObjects,
     // MaxNumberOfClustersInSparseSingleColorObject,
