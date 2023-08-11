@@ -103,6 +103,14 @@ pub enum SplitLabel {
     SplitDirectionX,
     SplitDirectionY,
     SplitDirectionSome,
+    SplitSeparatorSizeX { size: u8 },
+    SplitSeparatorSizeY { size: u8 },
+    SplitSeparatorCountX { count: u8 },
+    SplitSeparatorCountY { count: u8 },
+    SplitPartSizeX { size: u8 },
+    SplitPartSizeY { size: u8 },
+    SplitPartCountX { count: u8 },
+    SplitPartCountY { count: u8 },
 }
 
 /// Does the image contain grid patterns

@@ -26,6 +26,22 @@ impl SplitToLabel for Split {
                 let label = SplitLabel::SplitDirectionSome;
                 result.insert(label);
             }
+            {
+                let label = SplitLabel::SplitSeparatorSizeX { size: split.separator_size };
+                result.insert(label);
+            }
+            {
+                let label = SplitLabel::SplitSeparatorCountX { count: split.separator_count };
+                result.insert(label);
+            }
+            {
+                let label = SplitLabel::SplitPartSizeX { size: split.part_size };
+                result.insert(label);
+            }
+            {
+                let label = SplitLabel::SplitPartCountX { count: split.part_count };
+                result.insert(label);
+            }
         }
 
         if let Some(split) = self.y_container.maximize_even_splits() {
@@ -43,6 +59,22 @@ impl SplitToLabel for Split {
             }
             {
                 let label = SplitLabel::SplitDirectionSome;
+                result.insert(label);
+            }
+            {
+                let label = SplitLabel::SplitSeparatorSizeY { size: split.separator_size };
+                result.insert(label);
+            }
+            {
+                let label = SplitLabel::SplitSeparatorCountY { count: split.separator_count };
+                result.insert(label);
+            }
+            {
+                let label = SplitLabel::SplitPartSizeY { size: split.part_size };
+                result.insert(label);
+            }
+            {
+                let label = SplitLabel::SplitPartCountY { count: split.part_count };
                 result.insert(label);
             }
         }
@@ -76,6 +108,7 @@ mod tests {
         assert_eq!(actual.contains(&SplitLabel::SplitDirectionX), true);
         assert_eq!(actual.contains(&SplitLabel::SplitDirectionY), true);
         assert_eq!(actual.contains(&SplitLabel::SplitDirectionSome), true);
+        assert_eq!(actual.contains(&SplitLabel::SplitSeparatorCountX { count: 1 }), true);
     }
 
     #[test]
