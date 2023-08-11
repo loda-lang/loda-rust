@@ -48,16 +48,8 @@ struct SplitRecord {
     separator_size: u8,
 }
 
-pub struct SolveSplit;
-
-impl SolveSplit {
-    // Currently it only splits horizontally.
-    // It should also split vertically.
-    pub fn solve(task: &Task) -> anyhow::Result<()> {
-        if !task.is_output_size_same_as_input_splitview_x() {
-            return Ok(());
-        }
-
+impl SplitRecord {
+    fn create_record_foreach_pair(task: &Task, is_horizontal_split: bool) -> anyhow::Result<Vec<SplitRecord>> {
         let mut record_vec = Vec::<SplitRecord>::new();
         for pair in &task.pairs {
             let input: &Input = &pair.input;
@@ -68,28 +60,38 @@ impl SolveSplit {
                     ImageLabel::Split { label } => label,
                     _ => continue
                 };
-                match split_label {
-                    SplitLabel::SplitPartCountX { count } => {
-                        found_part_count = Some(*count);
-                    },
-                    SplitLabel::SplitSeparatorSizeX { size } => {
-                        found_separator_size = Some(*size);
-                    },
-                    _ => continue
+                if is_horizontal_split {
+                    match split_label {
+                        SplitLabel::SplitPartCountX { count } => {
+                            found_part_count = Some(*count);
+                        },
+                        SplitLabel::SplitSeparatorSizeX { size } => {
+                            found_separator_size = Some(*size);
+                        },
+                        _ => continue
+                    }
+                } else {
+                    match split_label {
+                        SplitLabel::SplitPartCountY { count } => {
+                            found_part_count = Some(*count);
+                        },
+                        SplitLabel::SplitSeparatorSizeY { size } => {
+                            found_separator_size = Some(*size);
+                        },
+                        _ => continue
+                    }
                 }
             }
             let part_count: u8 = match found_part_count {
                 Some(value) => value,
                 None => {
-                    println!("Unable to determine how many parts to split into");
-                    return Ok(());
+                    return Err(anyhow::anyhow!("Unable to determine how many parts to split into"));
                 }
             };
             let separator_size: u8 = match found_separator_size {
                 Some(value) => value,
                 None => {
-                    println!("Unable to determine the separator size");
-                    return Ok(());
+                    return Err(anyhow::anyhow!("Unable to determine the separator size"));
                 }
             };
             let record = SplitRecord {
@@ -98,9 +100,39 @@ impl SolveSplit {
             };
             record_vec.push(record);
         }
+        Ok(record_vec)
+    }
+}
 
+pub struct SolveSplit;
+
+impl SolveSplit {
+    /// Can only split into columns or rows, not both.
+    pub fn solve(task: &Task) -> anyhow::Result<()> {
+        let is_split_x: bool = task.is_output_size_same_as_input_splitview_x();
+        let is_split_y: bool = task.is_output_size_same_as_input_splitview_y();
+        let is_horizontal_split: bool;
+        let split_direction: ImageSplitDirection;
+        match (is_split_x, is_split_y) {
+            (true, true) => {
+                return Err(anyhow::anyhow!("Cannot split both horizontally and vertically"));
+            },
+            (false, false) => {
+                return Err(anyhow::anyhow!("Not a split in this task"));
+            },
+            (true, false) => {
+                is_horizontal_split = true;
+                split_direction = ImageSplitDirection::IntoColumns;
+            },
+            (false, true) => {
+                is_horizontal_split = false;
+                split_direction = ImageSplitDirection::IntoRows;
+            }
+        }
+
+        let record_vec: Vec<SplitRecord> = SplitRecord::create_record_foreach_pair(task, is_horizontal_split)?;
         if record_vec.len() != task.pairs.len() {
-            return Ok(());
+            return Err(anyhow::anyhow!("task: {} mismatch in number of records and number of pairs", task.id));
         }
 
         let s: String = format!("task: {} parts: {:?}", task.id, record_vec);
@@ -113,14 +145,14 @@ impl SolveSplit {
             let separator_size: u8 = record.separator_size;
 
             let input_image: &Image = &pair.input.image;
-            let images: Vec<Image> = match input_image.split(part_count, separator_size, ImageSplitDirection::IntoColumns) {
+            let images: Vec<Image> = match input_image.split(part_count, separator_size, split_direction) {
                 Ok(value) => value,
                 Err(error) => {
                     println!("task: {} Unable to split image: {}", task.id, error);
                     return Ok(());
                 }
             };
-            println!("task: {} split into {} parts", task.id, images.len());
+            // println!("task: {} split into {} parts", task.id, images.len());
             pair_splitted_images.push(images);
         }
 
@@ -131,6 +163,7 @@ impl SolveSplit {
         ];
         for operation in &operations {
             HtmlLog::text(&format!("task: {} operation: {:?}", task.id, operation));
+            let mut image_comparison = Vec::<Image>::new();
             for (pair_index, _pair) in task.pairs.iter().enumerate() {
                 let images: &Vec<Image> = &pair_splitted_images[pair_index];
 
@@ -142,11 +175,15 @@ impl SolveSplit {
                     }
                 };
 
-                let mut image_comparison: Vec<Image> = images.clone();
                 image_comparison.push(work_image);
-                HtmlLog::compare_images(image_comparison);
             }
+            HtmlLog::compare_images(image_comparison);
         }
+
+        // Future experiments:
+        // * overlay images, by permuting the indexes of the images, if count <=5 then it's not too many permutations.
+        // * preserve color
+        // * consider background color being transparent
 
         Ok(())
     }

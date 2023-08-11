@@ -421,12 +421,12 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     continue;
             // }
-            // if !task.is_output_size_same_as_input_splitview() {
-            //     continue;
-            // }
-            if !task.is_output_size_same_as_input_splitview_x() {
+            if !task.is_output_size_same_as_input_splitview() {
                 continue;
             }
+            // if !task.is_output_size_same_as_input_splitview_x() {
+            //     continue;
+            // }
             // if !task.has_predicted_output_size_and_its_incorrect() {
             //     continue;
             // }
@@ -586,7 +586,9 @@ impl TraverseProgramsAndModels {
             }
             if count > 0 {
                 task.inspect()?;
-                SolveSplit::solve(task)?;
+                if let Err(error) = SolveSplit::solve(task) {
+                    HtmlLog::text(format!("could not solve task. error: {:?}", error));
+                }
             }
             count += 1;
             if count > 50 {

@@ -1,5 +1,6 @@
 use super::{Image, ImageCrop, Rectangle};
 
+#[derive(Debug, Clone, Copy)]
 pub enum ImageSplitDirection {
     IntoColumns,
     IntoRows,
