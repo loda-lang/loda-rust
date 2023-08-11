@@ -1,6 +1,7 @@
 //! Detect split views where a separator extends from edge to edge near the middle.
 use super::{Histogram, Image, ImageHistogram, ImageRotate};
 use std::collections::HashMap;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub struct SplitCandidate {
@@ -79,6 +80,20 @@ impl SplitCandidate {
     }
 }
 
+pub struct EvenSplit {
+    pub part_size: u8,
+    pub part_count: u8,
+    pub separator_size: u8,
+    pub separator_color: u8,
+    pub separator_count: u8,
+}
+
+impl fmt::Display for EvenSplit {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}x{}.join({}, color:{})", self.part_size, self.part_count, self.separator_size, self.separator_color)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct SplitCandidateContainer {
     candidate_vec: Vec<SplitCandidate>,
@@ -110,10 +125,11 @@ impl SplitCandidateContainer {
     }
 
     /// Split the image into `n` parts.
-    fn split(&self, n: u8) -> anyhow::Result<Vec<SplitCandidate>> {
+    fn even_split(&self, n: u8) -> anyhow::Result<EvenSplit> {
         let mut found_candidate_vec = Vec::<&SplitCandidate>::new();
         let mut separator_color: u8 = 255;
         let mut separator_size: u8 = 255;
+        let mut part_size: u8 = 255;
         for i in 1..n {
             let position: u8 = (self.total_size * i) / n;
             let candidate: &SplitCandidate = match self.position_to_candidate.get(&position) {
@@ -126,6 +142,7 @@ impl SplitCandidateContainer {
             if i == 1 {
                 separator_color = candidate.separator_color;
                 separator_size = candidate.separator_size;
+                part_size = candidate.size0;
                 continue;
             }
             if candidate.separator_color != separator_color {
@@ -140,9 +157,19 @@ impl SplitCandidateContainer {
         // for candidate in &found_candidate_vec {
         // }
 
-        let candidate_vec: Vec<SplitCandidate> = found_candidate_vec.iter().map(|candidate| (**candidate).clone()).collect();
-        // let candidate_vec: Vec<SplitCandidate> = Vec::<SplitCandidate>::from(found_candidate_vec);
-        Ok(candidate_vec)
+        let separator_count: u8 = ((n as usize) - 1).max(0).min(255) as u8;
+        if found_candidate_vec.len() != (separator_count as usize) {
+            return Err(anyhow::anyhow!("Incorrect number of separators found"));
+        }
+
+        let instance = EvenSplit {
+            part_size,
+            part_count: n,
+            separator_size,
+            separator_color,
+            separator_count,
+        };
+        Ok(instance)
     }
 }
 
@@ -196,10 +223,10 @@ impl Split {
         Some(candidate)
     }
 
-    pub fn split3(&self) -> anyhow::Result<Vec<SplitCandidate>> {
+    pub fn split3(&self) -> anyhow::Result<EvenSplit> {
         let container: &SplitCandidateContainer = &self.x_container;
-        let candidate_vec: Vec::<SplitCandidate> = container.split(3)?;
-        Ok(candidate_vec)
+        let even_split: EvenSplit = container.even_split(3)?;
+        Ok(even_split)
     }
 
 }
@@ -326,8 +353,28 @@ mod tests {
         assert_eq!(instance.even_splitx(), None);
         assert_eq!(instance.even_splity(), None);
 
-        let candidate_vec: Vec<SplitCandidate> = instance.split3().expect("ok");
-        assert_eq!(candidate_vec.len(), 2);
+        let actual: EvenSplit = instance.split3().expect("ok");
+        assert_eq!(actual.to_string(), "2x3.join(1, color:6)");
+    }
+
+    #[test]
+    fn test_20001_3parts() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 7, 7, 0, 7, 7, 1,
+            0, 7, 7, 1, 7, 7, 0,
+        ];
+        let input: Image = Image::try_create(7, 2, pixels).expect("image");
+
+        // Act
+        let instance = Split::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.even_splitx(), None);
+        assert_eq!(instance.even_splity(), None);
+
+        let actual: EvenSplit = instance.split3().expect("ok");
+        assert_eq!(actual.to_string(), "1x3.join(2, color:7)");
     }
 
     #[test]
