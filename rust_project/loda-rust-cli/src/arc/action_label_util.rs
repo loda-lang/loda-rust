@@ -60,7 +60,7 @@ impl ActionLabelUtil {
     }
 
     /// The input is multiple images layouted horizontally, and the output width equals `split part size x`.
-    fn is_output_size_same_as_input_splitview_x(action_label_set: &ActionLabelSet) -> bool {
+    pub fn is_output_size_same_as_input_splitview_x(action_label_set: &ActionLabelSet) -> bool {
         let mut same_width = false;
         let mut same_height = false;
         for label in action_label_set {
@@ -80,7 +80,7 @@ impl ActionLabelUtil {
     }
 
     /// The input is multiple images layouted vertically, and the output height equals `split part size y`.
-    fn is_output_size_same_as_input_splitview_y(action_label_set: &ActionLabelSet) -> bool {
+    pub fn is_output_size_same_as_input_splitview_y(action_label_set: &ActionLabelSet) -> bool {
         let mut same_width = false;
         let mut same_height = false;
         for label in action_label_set {
