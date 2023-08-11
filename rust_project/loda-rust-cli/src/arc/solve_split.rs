@@ -1,13 +1,15 @@
 use super::arc_work_model::{Task, Input};
-use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection};
+use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay};
 use super::{Image, ImageMaskBoolean};
 use super::HtmlLog;
+use itertools::Itertools;
 
 #[derive(Debug, Clone)]
 pub enum Operation {
     MaskAnd,
     MaskOr,
     MaskXor,
+    Overlay,
 }
 
 impl Operation {
@@ -21,6 +23,9 @@ impl Operation {
             },
             Self::MaskXor => {
                 image0.mask_xor(image1)
+            },
+            Self::Overlay => {
+                image0.overlay_with_mask_color(image1, 0)
             },
         }
     }
@@ -36,6 +41,38 @@ impl Operation {
             if image_index == 0 {
                 continue;
             }
+            work_image = self.execute(&work_image, image)?;
+        }
+        Ok(work_image)
+    }
+
+    pub fn execute_with_images_and_permutations(&self, images: &Vec<Image>, permutations: &Vec<&usize>) -> anyhow::Result<Image> {
+        if images.len() != permutations.len() {
+            return Err(anyhow::anyhow!("Length of images and permutations must be equal"));
+        }
+        let first_index: usize = match permutations.first() {
+            Some(value) => **value,
+            None => {
+                return Err(anyhow::anyhow!("permutations is empty"));
+            }
+        };
+        let mut work_image = match images.get(first_index) {
+            Some(value) => value.clone(),
+            None => {
+                return Err(anyhow::anyhow!("first_index is out of bounds"));
+            }
+        };
+        for (loop_index, permutation_index) in permutations.iter().enumerate() {
+            if loop_index == 0 {
+                continue;
+            }
+            let image: &Image = match images.get(**permutation_index) {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("permutation_index is out of bounds"));
+                }
+            };
+    
             work_image = self.execute(&work_image, image)?;
         }
         Ok(work_image)
@@ -178,6 +215,44 @@ impl SolveSplit {
                 image_comparison.push(work_image);
             }
             HtmlLog::compare_images(image_comparison);
+        }
+
+        let mut shared_part_count: u8 = 0;
+        let mut same_part_count_for_all_pairs = true;
+        for (record_index, record) in record_vec.iter().enumerate() {
+            if record_index == 0 {
+                shared_part_count = record.part_count;
+                continue;
+            }
+            if record.part_count != shared_part_count {
+                same_part_count_for_all_pairs = false;
+                break;
+            }
+        }
+
+        if same_part_count_for_all_pairs && shared_part_count > 0 && shared_part_count <= 5 {
+            for (pair_index, _pair) in task.pairs.iter().enumerate() {
+                let images: &Vec<Image> = &pair_splitted_images[pair_index];
+                if images.len() != shared_part_count as usize {
+                    return Err(anyhow::anyhow!("task: {} mismatch in number of images and number of parts", task.id));
+                }
+
+                println!("task: {} permutations: {}", task.id, shared_part_count);
+                let operation = Operation::Overlay;
+                let indices: Vec<usize> = (0..shared_part_count as usize).collect();
+                let mut count: usize = 0;
+                for perm in indices.iter().permutations(shared_part_count as usize) {
+                    println!("{:?}", perm);
+                    let image: Image = operation.execute_with_images_and_permutations(images, &perm)?;
+                    HtmlLog::image(&image);
+                    count += 1;
+                    if count > 5 {
+                        break;
+                    }
+                }
+
+                break;
+            }
         }
 
         // Future experiments:

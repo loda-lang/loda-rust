@@ -1827,6 +1827,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1880,7 +1889,7 @@ checksum = "aa15851cdc0a45152f28baa89af4c0719b9c1c69e422f71d5c37963da93c194b"
 dependencies = [
  "anyhow",
  "crossbeam-epoch",
- "itertools",
+ "itertools 0.10.5",
  "lazy_static",
  "log",
  "parking_lot 0.11.2",
@@ -2004,6 +2013,7 @@ dependencies = [
  "html-escape",
  "http-types",
  "indicatif",
+ "itertools 0.11.0",
  "lazy_static",
  "linfa",
  "linfa-logistic",
@@ -2173,7 +2183,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af5a8477ac96877b5bd1fd67e0c28736c12943aba24eda92b127e036b0c8f400"
 dependencies = [
  "indexmap",
- "itertools",
+ "itertools 0.10.5",
  "ndarray",
  "noisy_float",
  "num-integer",
