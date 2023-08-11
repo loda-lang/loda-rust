@@ -209,6 +209,12 @@ impl SplitCandidateContainer {
     /// 
     /// Known problem: The first element must be a `part` and the last element must be a `part`.
     /// It cannot detect splits where the first element is a `separator` and the last element is a `separator`.
+    /// 
+    /// Future experiments:
+    /// * Fuzzy - allow for mismatches.
+    /// * Detect splits where the first element is a `separator` and/or the last element is a `separator`.
+    /// * Detect splits where the `separator lines` are not evenly spaced.
+    /// * Detect splits where there is no separator.
     pub fn maximize_even_splits(&self) -> Option<EvenSplit> {
         let size: u8 = self.total_size;
         for n in (2..size).rev() {
@@ -369,12 +375,12 @@ mod tests {
             0, 1, 6, 0, 1, 6, 0, 1,
         ];
         let input: Image = Image::try_create(8, 2, pixels).expect("image");
+        let split: Split = Split::analyze(&input).expect("ok");
 
         // Act
-        let instance = Split::analyze(&input).expect("ok");
+        let actual: EvenSplit = split.x_container.even_split(3).expect("ok");
 
         // Assert
-        let actual: EvenSplit = instance.x_container.even_split(3).expect("ok");
         assert_eq!(actual.to_string(), "2x3.join(1, color:6)");
     }
 
@@ -386,12 +392,12 @@ mod tests {
             0, 7, 7, 1, 7, 7, 0,
         ];
         let input: Image = Image::try_create(7, 2, pixels).expect("image");
+        let split: Split = Split::analyze(&input).expect("ok");
 
         // Act
-        let instance = Split::analyze(&input).expect("ok");
+        let actual: EvenSplit = split.x_container.even_split(3).expect("ok");
 
         // Assert
-        let actual: EvenSplit = instance.x_container.even_split(3).expect("ok");
         assert_eq!(actual.to_string(), "1x3.join(2, color:7)");
     }
 
@@ -403,12 +409,12 @@ mod tests {
             0, 7, 7, 1, 7, 7, 0, 7, 7, 1, 7, 7, 0,
         ];
         let input: Image = Image::try_create(13, 2, pixels).expect("image");
+        let split: Split = Split::analyze(&input).expect("ok");
 
         // Act
-        let instance = Split::analyze(&input).expect("ok");
+        let actual: EvenSplit = split.x_container.even_split(5).expect("ok");
 
         // Assert
-        let actual: EvenSplit = instance.x_container.even_split(5).expect("ok");
         assert_eq!(actual.to_string(), "1x5.join(2, color:7)");
     }
 
