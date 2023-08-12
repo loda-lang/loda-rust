@@ -285,6 +285,9 @@ impl SolveSplit {
         // Is the input images overlayed on top of each other in a z-order.
         // Overlay images, by permuting the indexes of the images, if count <=5 then it's not too many permutations.
         if same_part_count_for_all_pairs && shared_part_count > 0 && shared_part_count <= 5 {
+            // Eliminate hard coded background color
+            let operation = Operation::Overlay { mask_color: 0 };
+
             let mut candidate_vec = Vec::<PermutationCandidate>::new();
             let mut abort_permutations = false;
             for (pair_index, pair) in task.pairs.iter().enumerate() {
@@ -297,8 +300,6 @@ impl SolveSplit {
                 }
 
                 // println!("task: {} trying permutations: {}", task.id, shared_part_count);
-                // Eliminate hard coded background color
-                let operation = Operation::Overlay { mask_color: 0 };
                 let indices: Vec<usize> = (0..shared_part_count as usize).collect();
                 let mut count: usize = 0;
                 for perm in indices.iter().permutations(shared_part_count as usize) {
@@ -339,8 +340,36 @@ impl SolveSplit {
             }
             HtmlLog::text(format!("task: {} best permutation candidates: {:?}", task.id, candidate_vec));
 
-            // determine best fit
+            // Find candidate with the highest score
             // if there is a clear winner, then use it
+            let mut highest_score: u32 = 0;
+            let mut best_candidate_index: usize = 0;
+            for (candidate_index, candidate) in candidate_vec.iter().enumerate() {
+                if candidate.score > highest_score {
+                    highest_score = candidate.score;
+                    best_candidate_index = candidate_index;
+                }
+            }
+
+            if highest_score > 0 {
+                if let Some(candidate) = candidate_vec.get(best_candidate_index) {
+                    HtmlLog::text(format!("task: {} best permutation: {:?}", task.id, candidate.permutation));
+
+                    let permutations: Vec<&usize> = candidate.permutation.iter().collect();
+
+                    let mut computed_images = Vec::<Image>::new();
+                    for (pair_index, _pair) in task.pairs.iter().enumerate() {
+                        let images: &Vec<Image> = &pair_splitted_images[pair_index];
+                        if images.len() != shared_part_count as usize {
+                            return Err(anyhow::anyhow!("task: {} mismatch in number of images and number of parts", task.id));
+                        }
+
+                        let image: Image = operation.execute_with_images_and_permutations(images, &permutations)?;
+                        computed_images.push(image);
+                    }        
+                    HtmlLog::compare_images(computed_images);
+                }
+            }
         }
 
         // Future experiments:
