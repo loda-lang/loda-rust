@@ -282,8 +282,11 @@ impl SolveSplit {
             }
         }
 
-        // Is the input images overlayed on top of each other in a z-order
+        // Is the input images overlayed on top of each other in a z-order.
+        // Overlay images, by permuting the indexes of the images, if count <=5 then it's not too many permutations.
         if same_part_count_for_all_pairs && shared_part_count > 0 && shared_part_count <= 5 {
+            let mut candidate_vec = Vec::<PermutationCandidate>::new();
+            let mut abort_permutations = false;
             for (pair_index, pair) in task.pairs.iter().enumerate() {
                 if pair.pair_type != PairType::Train {
                     continue;
@@ -293,42 +296,65 @@ impl SolveSplit {
                     return Err(anyhow::anyhow!("task: {} mismatch in number of images and number of parts", task.id));
                 }
 
-                println!("task: {} trying permutations: {}", task.id, shared_part_count);
+                // println!("task: {} trying permutations: {}", task.id, shared_part_count);
                 // Eliminate hard coded background color
                 let operation = Operation::Overlay { mask_color: 0 };
                 let indices: Vec<usize> = (0..shared_part_count as usize).collect();
                 let mut count: usize = 0;
                 for perm in indices.iter().permutations(shared_part_count as usize) {
-                    println!("{:?}", perm);
+                    // println!("{:?}", perm);
                     let mut state = OperationState::default();
                     let image: Image = operation.execute_with_images_and_permutations_and_state(images, &perm, &mut state)?;
                     // detect overlap when overlaying images
                     if state.operation_overlay_detected_overlap {
-                        HtmlLog::text(format!("task: {} permutation: {:?} detected overlap", task.id, perm));
-                        HtmlLog::image(&image);
+                        // HtmlLog::text(format!("task: {} permutation: {:?} detected overlap", task.id, perm));
+                        // HtmlLog::image(&image);
+                        // store it in the candidate
                     }
                     if image == pair.output.image {
-                        HtmlLog::text(format!("task: {} permutation: {:?} same as training output", task.id, perm));
-                        HtmlLog::image(&image);
+                        // HtmlLog::text(format!("task: {} permutation: {:?} same as training output", task.id, perm));
+                        // HtmlLog::image(&image);
+
+                        let permutation: Vec<usize> = perm.iter().map(|x| **x).collect();
+                        if let Some(candidate) = candidate_vec.iter_mut().find(|x| x.permutation == permutation) {
+                            candidate.score += 1;
+                        } else {
+                            let candidate = PermutationCandidate {
+                                permutation,
+                                score: 1,
+                            };
+                            candidate_vec.push(candidate);
+                        }
                     }
-                    // determine best fit
                     count += 1;
                     if count > 200 {
+                        abort_permutations = true;
                         break;
                     }
                 }
-
-                break;
+                if abort_permutations {
+                    println!("task: {} too many permutations. Aborting.", task.id);
+                    break;
+                }
             }
+            HtmlLog::text(format!("task: {} best permutation candidates: {:?}", task.id, candidate_vec));
+
+            // determine best fit
+            // if there is a clear winner, then use it
         }
 
         // Future experiments:
-        // * overlay images, by permuting the indexes of the images, if count <=5 then it's not too many permutations.
         // * preserve color
         // * consider background color being transparent
 
         Ok(())
     }
+}
+
+#[derive(Debug, Clone)]
+struct PermutationCandidate {
+    permutation: Vec<usize>,
+    score: u32,
 }
 
 #[cfg(test)]
