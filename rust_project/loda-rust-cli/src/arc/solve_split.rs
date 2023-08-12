@@ -410,7 +410,7 @@ pub struct SolveSplitFoundSolution {
 }
 
 impl SolveSplitFoundSolution {
-    fn perform_verify(&mut self, task: &Task) {
+    fn perform_verify(&mut self, task: &Task, verify_test_pairs: bool) {
         if self.predicted_output_images.len() != task.pairs.len() {
             self.verified_status = Some("predicted_output_images.len() != task.pairs.len()".to_string());
             return;
@@ -420,15 +420,12 @@ impl SolveSplitFoundSolution {
         let mut count_train_bad: usize = 0;
         let mut count_test_ok: usize = 0;
         let mut count_test_bad: usize = 0;
+        let mut count_test_unverified: usize = 0;
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             let predicted_output_image: &Image = &self.predicted_output_images[pair_index];
-            let expected_output_image: &Image = match pair.pair_type {
-                PairType::Train => &pair.output.image,
-                PairType::Test => &pair.output.test_image,
-            };
-            let is_correct: bool = predicted_output_image == expected_output_image;
             match pair.pair_type {
                 PairType::Train => {
+                    let is_correct: bool = predicted_output_image == &pair.output.image;
                     if is_correct {
                         count_train_ok += 1;
                     } else {
@@ -436,6 +433,11 @@ impl SolveSplitFoundSolution {
                     }
                 }
                 PairType::Test => {
+                    if !verify_test_pairs {
+                        count_test_unverified += 1;
+                        continue;
+                    }
+                    let is_correct: bool = predicted_output_image == &pair.output.test_image;
                     if is_correct {
                         count_test_ok += 1;
                     } else {
@@ -444,11 +446,36 @@ impl SolveSplitFoundSolution {
                 }
             }
         }
+
+        // Format the `train` string. 
+        // Example: `train5`, means that all 5 training pairs are correct.
+        // Example: `train3(-2)` means that 3 training pairs are correct, but 2 are wrong.
+        let status_train: String = if count_train_bad == 0 {
+            format!("train{}", count_train_ok)
+        } else {
+            format!("train{}(-{})", count_train_ok, count_train_bad)
+        };
+
+        // Format the `test` string. 
+        // Example: `test5unverified`, means that none of the 5 test pairs have been verified. This is when working on the hidden dataset, there is no access to the output.
+        // Example: `test5`, means that all 5 test pairs are correct. This is when working on the public dataset, there is access to the output.
+        // Example: `test3(-2)` means that 3 test pairs are correct, but 2 are wrong. This is when working on the public dataset, there is access to the output.
+        let status_test: String;
+        if count_test_unverified > 0 {
+            status_test = format!("test{}unverified", count_test_unverified);
+        } else {
+            if count_test_bad == 0 {
+                status_test = format!("test{}", count_test_ok);
+           } else {
+                status_test = format!("test{}(-{})", count_test_ok, count_test_bad);
+           }
+        }
+
         let status: String;
         if count_train_bad == 0 && count_test_bad == 0 {
-            status = format!("ok {} {}", count_train_ok, count_test_ok);
+            status = format!("ok {} {}", status_train, status_test);
         } else {
-            status = format!("error {}(-{}) {}(-{})", count_train_ok, count_train_bad, count_test_ok, count_test_bad);
+            status = format!("error {} {}", status_train, status_test);
         }
         self.verified_status = Some(status);
     }
@@ -599,7 +626,7 @@ mod tests {
         let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(name)?;
         let task: Task = Task::try_from(&json_task)?;
         let mut solution: SolveSplitFoundSolution = SolveSplit::solve(&task)?;
-        solution.perform_verify(&task);
+        solution.perform_verify(&task, true);
 
         if inspect {
             HtmlLog::text(format!("task: {} status: {} explanation: {}", task.id, solution.status(), solution.explanation));
@@ -613,21 +640,21 @@ mod tests {
     fn test_90000_overlay_cf98881b() {
         let actual: SolveSplitFoundSolution = solve("cf98881b", false).expect("ok");
         assert_eq!(actual.explanation, "overlay [2, 1, 0]");
-        assert_eq!(actual.status(), "ok 5 1");
+        assert_eq!(actual.status(), "ok train5 test1");
     }
 
     #[test]
     fn test_90001_overlay_281123b4() {
         let actual: SolveSplitFoundSolution = solve("281123b4", false).expect("ok");
         assert_eq!(actual.explanation, "overlay [1, 0, 3, 2]");
-        assert_eq!(actual.status(), "ok 6 1");
+        assert_eq!(actual.status(), "ok train6 test1");
     }
 
     #[test]
     fn test_90002_overlay_e98196ab() {
         let actual: SolveSplitFoundSolution = solve("e98196ab", false).expect("ok");
         assert_eq!(actual.explanation, "overlay [0, 1]");
-        assert_eq!(actual.status(), "ok 3 1");
+        assert_eq!(actual.status(), "ok train3 test1");
     }
 
 }
