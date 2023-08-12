@@ -180,6 +180,8 @@ pub struct SolveSplit;
 impl SolveSplit {
     /// Can only split into columns or rows, not both.
     pub fn solve(task: &Task) -> anyhow::Result<SolveSplitFoundSolution> {
+        let verbose = false;
+
         let is_split_x: bool = task.is_output_size_same_as_input_splitview_x();
         let is_split_y: bool = task.is_output_size_same_as_input_splitview_y();
         let is_horizontal_split: bool;
@@ -206,8 +208,10 @@ impl SolveSplit {
             return Err(anyhow::anyhow!("task: {} mismatch in number of records and number of pairs", task.id));
         }
 
-        let s: String = format!("task: {} parts: {:?}", task.id, record_vec);
-        HtmlLog::text(s);
+        if verbose {
+            let s: String = format!("task: {} parts: {:?}", task.id, record_vec);
+            HtmlLog::text(s);
+        }
 
         let mut pair_splitted_images = Vec::<Vec::<Image>>::new();
         for (pair_index, pair) in task.pairs.iter().enumerate() {
@@ -238,8 +242,10 @@ impl SolveSplit {
             for (image_index, image) in images.iter().enumerate() {
                 if *image == pair.output.image {
                     number_of_matches += 1;
-                    HtmlLog::text(format!("task: {} output is the same as image: {}", task.id, image_index));
-                    HtmlLog::image(&image);
+                    if verbose {
+                        HtmlLog::text(format!("task: {} output is the same as image: {}", task.id, image_index));
+                        HtmlLog::image(&image);
+                    }
                 }
             }
         }
@@ -250,7 +256,9 @@ impl SolveSplit {
             Operation::MaskXor,
         ];
         for operation in &operations {
-            HtmlLog::text(&format!("task: {} operation: {:?}", task.id, operation));
+            if verbose {
+                HtmlLog::text(&format!("task: {} operation: {:?}", task.id, operation));
+            }
             let mut image_comparison = Vec::<Image>::new();
             for (pair_index, _pair) in task.pairs.iter().enumerate() {
                 let images: &Vec<Image> = &pair_splitted_images[pair_index];
@@ -258,14 +266,16 @@ impl SolveSplit {
                 let work_image: Image = match operation.execute_with_images(images) {
                     Ok(value) => value,
                     Err(error) => {
-                        println!("task: {} Unable to execute operation: {}", task.id, error);
+                        debug!("task: {} Unable to execute operation: {}", task.id, error);
                         continue;
                     }
                 };
 
                 image_comparison.push(work_image);
             }
-            HtmlLog::compare_images(image_comparison);
+            if verbose {
+                HtmlLog::compare_images(image_comparison);
+            }
         }
 
         let mut shared_part_count: u8 = 0;
@@ -333,11 +343,11 @@ impl SolveSplit {
                     }
                 }
                 if abort_permutations {
-                    println!("task: {} too many permutations. Aborting.", task.id);
+                    debug!("task: {} too many permutations. Aborting.", task.id);
                     break;
                 }
             }
-            HtmlLog::text(format!("task: {} best permutation candidates: {:?}", task.id, candidate_vec));
+            // HtmlLog::text(format!("task: {} best permutation candidates: {:?}", task.id, candidate_vec));
 
             // Find candidate with the highest score
             // if there is a clear winner, then use it
@@ -352,7 +362,7 @@ impl SolveSplit {
 
             if highest_score > 0 {
                 if let Some(candidate) = candidate_vec.get(best_candidate_index) {
-                    HtmlLog::text(format!("task: {} best permutation: {:?}", task.id, candidate.permutation));
+                    // HtmlLog::text(format!("task: {} best permutation: {:?}", task.id, candidate.permutation));
 
                     let permutations: Vec<&usize> = candidate.permutation.iter().collect();
 
@@ -366,10 +376,12 @@ impl SolveSplit {
                         let image: Image = operation.execute_with_images_and_permutations(images, &permutations)?;
                         computed_images.push(image);
                     }        
-                    HtmlLog::compare_images(computed_images);
+                    // HtmlLog::compare_images(computed_images.clone());
 
                     let instance = SolveSplitFoundSolution {
                         explanation: format!("overlay {:?}", permutations),
+                        predicted_output_images: computed_images,
+                        verified_status: None,
                     };
                     return Ok(instance);
                 }
@@ -393,6 +405,19 @@ struct PermutationCandidate {
 #[derive(Debug, Clone)]
 pub struct SolveSplitFoundSolution {
     explanation: String,
+    predicted_output_images: Vec<Image>,
+    verified_status: Option<String>,
+}
+
+impl SolveSplitFoundSolution {
+    #[cfg(test)]
+    fn status(&self) -> String {
+        if let Some(status) = &self.verified_status {
+            return status.clone();
+        } else {
+            return "Unverified".to_string();
+        }
+    }
 }
 
 #[cfg(test)]
@@ -527,49 +552,77 @@ mod tests {
         assert_eq!(state.operation_overlay_detected_overlap, true);
     }
 
-    #[test]
-    fn test_90000_overlay_cf98881b() -> anyhow::Result<()> {
-        // Arrange
-        let task_name: &str = "cf98881b";
-        let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(task_name)?;
+    fn solve(name: &str, inspect: bool) -> anyhow::Result<SolveSplitFoundSolution> {
+        let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(name)?;
         let task: Task = Task::try_from(&json_task)?;
+        let mut solution: SolveSplitFoundSolution = SolveSplit::solve(&task)?;
 
-        // Act
-        let actual: SolveSplitFoundSolution = SolveSplit::solve(&task).expect("ok");
+        if solution.predicted_output_images.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("predicted_output_images.len() != task.pairs.len()"));
+        }
+        let mut count_train_ok: usize = 0;
+        let mut count_train_bad: usize = 0;
+        let mut count_test_ok: usize = 0;
+        let mut count_test_bad: usize = 0;
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            let predicted_output_image: &Image = &solution.predicted_output_images[pair_index];
+            let expected_output_image: &Image = match pair.pair_type {
+                PairType::Train => &pair.output.image,
+                PairType::Test => &pair.output.test_image,
+            };
+            let is_correct: bool = predicted_output_image == expected_output_image;
+            match pair.pair_type {
+                PairType::Train => {
+                    if is_correct {
+                        count_train_ok += 1;
+                    } else {
+                        count_train_bad += 1;
+                    }
+                }
+                PairType::Test => {
+                    if is_correct {
+                        count_test_ok += 1;
+                    } else {
+                        count_test_bad += 1;
+                    }
+                }
+            }
+        }
+        let status: String;
+        if count_train_bad == 0 && count_test_bad == 0 {
+            status = format!("ok {} {}", count_train_ok, count_test_ok);
+        } else {
+            status = format!("error {}(-{}) {}(-{})", count_train_ok, count_train_bad, count_test_ok, count_test_bad);
+        }
 
-        // Assert
+        if inspect {
+            HtmlLog::text(format!("task: {} status: {} explanation: {}", task.id, status, solution.explanation));
+            HtmlLog::compare_images(solution.predicted_output_images.clone());
+        }
+
+        solution.verified_status = Some(status);
+        Ok(solution)
+    }
+
+    #[test]
+    fn test_90000_overlay_cf98881b() {
+        let actual: SolveSplitFoundSolution = solve("cf98881b", false).expect("ok");
         assert_eq!(actual.explanation, "overlay [2, 1, 0]");
-        Ok(())
+        assert_eq!(actual.status(), "ok 5 1");
     }
 
     #[test]
-    fn test_90001_overlay_281123b4() -> anyhow::Result<()> {
-        // Arrange
-        let task_name: &str = "281123b4";
-        let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(task_name)?;
-        let task: Task = Task::try_from(&json_task)?;
-
-        // Act
-        let actual: SolveSplitFoundSolution = SolveSplit::solve(&task).expect("ok");
-
-        // Assert
+    fn test_90001_overlay_281123b4() {
+        let actual: SolveSplitFoundSolution = solve("281123b4", false).expect("ok");
         assert_eq!(actual.explanation, "overlay [1, 0, 3, 2]");
-        Ok(())
+        assert_eq!(actual.status(), "ok 6 1");
     }
 
     #[test]
-    fn test_90002_overlay_e98196ab() -> anyhow::Result<()> {
-        // Arrange
-        let task_name: &str = "e98196ab";
-        let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(task_name)?;
-        let task: Task = Task::try_from(&json_task)?;
-
-        // Act
-        let actual: SolveSplitFoundSolution = SolveSplit::solve(&task).expect("ok");
-
-        // Assert
+    fn test_90002_overlay_e98196ab() {
+        let actual: SolveSplitFoundSolution = solve("e98196ab", false).expect("ok");
         assert_eq!(actual.explanation, "overlay [0, 1]");
-        Ok(())
+        assert_eq!(actual.status(), "ok 3 1");
     }
 
 }
