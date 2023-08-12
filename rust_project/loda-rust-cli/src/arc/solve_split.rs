@@ -410,6 +410,49 @@ pub struct SolveSplitFoundSolution {
 }
 
 impl SolveSplitFoundSolution {
+    fn perform_verify(&mut self, task: &Task) {
+        if self.predicted_output_images.len() != task.pairs.len() {
+            self.verified_status = Some("predicted_output_images.len() != task.pairs.len()".to_string());
+            return;
+        }
+
+        let mut count_train_ok: usize = 0;
+        let mut count_train_bad: usize = 0;
+        let mut count_test_ok: usize = 0;
+        let mut count_test_bad: usize = 0;
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            let predicted_output_image: &Image = &self.predicted_output_images[pair_index];
+            let expected_output_image: &Image = match pair.pair_type {
+                PairType::Train => &pair.output.image,
+                PairType::Test => &pair.output.test_image,
+            };
+            let is_correct: bool = predicted_output_image == expected_output_image;
+            match pair.pair_type {
+                PairType::Train => {
+                    if is_correct {
+                        count_train_ok += 1;
+                    } else {
+                        count_train_bad += 1;
+                    }
+                }
+                PairType::Test => {
+                    if is_correct {
+                        count_test_ok += 1;
+                    } else {
+                        count_test_bad += 1;
+                    }
+                }
+            }
+        }
+        let status: String;
+        if count_train_bad == 0 && count_test_bad == 0 {
+            status = format!("ok {} {}", count_train_ok, count_test_ok);
+        } else {
+            status = format!("error {}(-{}) {}(-{})", count_train_ok, count_train_bad, count_test_ok, count_test_bad);
+        }
+        self.verified_status = Some(status);
+    }
+
     #[cfg(test)]
     fn status(&self) -> String {
         if let Some(status) = &self.verified_status {
@@ -556,51 +599,13 @@ mod tests {
         let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(name)?;
         let task: Task = Task::try_from(&json_task)?;
         let mut solution: SolveSplitFoundSolution = SolveSplit::solve(&task)?;
-
-        if solution.predicted_output_images.len() != task.pairs.len() {
-            return Err(anyhow::anyhow!("predicted_output_images.len() != task.pairs.len()"));
-        }
-        let mut count_train_ok: usize = 0;
-        let mut count_train_bad: usize = 0;
-        let mut count_test_ok: usize = 0;
-        let mut count_test_bad: usize = 0;
-        for (pair_index, pair) in task.pairs.iter().enumerate() {
-            let predicted_output_image: &Image = &solution.predicted_output_images[pair_index];
-            let expected_output_image: &Image = match pair.pair_type {
-                PairType::Train => &pair.output.image,
-                PairType::Test => &pair.output.test_image,
-            };
-            let is_correct: bool = predicted_output_image == expected_output_image;
-            match pair.pair_type {
-                PairType::Train => {
-                    if is_correct {
-                        count_train_ok += 1;
-                    } else {
-                        count_train_bad += 1;
-                    }
-                }
-                PairType::Test => {
-                    if is_correct {
-                        count_test_ok += 1;
-                    } else {
-                        count_test_bad += 1;
-                    }
-                }
-            }
-        }
-        let status: String;
-        if count_train_bad == 0 && count_test_bad == 0 {
-            status = format!("ok {} {}", count_train_ok, count_test_ok);
-        } else {
-            status = format!("error {}(-{}) {}(-{})", count_train_ok, count_train_bad, count_test_ok, count_test_bad);
-        }
+        solution.perform_verify(&task);
 
         if inspect {
-            HtmlLog::text(format!("task: {} status: {} explanation: {}", task.id, status, solution.explanation));
+            HtmlLog::text(format!("task: {} status: {} explanation: {}", task.id, solution.status(), solution.explanation));
             HtmlLog::compare_images(solution.predicted_output_images.clone());
         }
 
-        solution.verified_status = Some(status);
         Ok(solution)
     }
 
