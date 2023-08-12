@@ -1,10 +1,14 @@
-use crate::arc::arc_work_model::PairType;
-
-use super::arc_work_model::{Task, Input};
-use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay};
-use super::{Image, ImageMaskBoolean};
+use super::arc_work_model::{Task, Input, PairType};
+use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram};
+use super::{Image, ImageMaskBoolean, Histogram};
 use super::HtmlLog;
 use itertools::Itertools;
+
+#[derive(Debug, Clone, Default)]
+pub struct OperationState {
+    /// One or more `Operation::Overlay` caused an overlap.
+    pub operation_overlay_detected_overlap: bool,
+}
 
 #[derive(Debug, Clone)]
 pub enum Operation {
@@ -12,10 +16,13 @@ pub enum Operation {
     MaskOr,
     MaskXor,
     Overlay { mask_color: u8 },
+
+    // Future experiments
+    // KeepColorIfSame { background_color: u8, color_diff0: u8, color_diff1: u8 },
 }
 
 impl Operation {
-    pub fn execute(&self, image0: &Image, image1: &Image) -> anyhow::Result<Image> {
+    pub fn execute(&self, image0: &Image, image1: &Image, state: &mut OperationState) -> anyhow::Result<Image> {
         match self {
             Self::MaskAnd => {
                 image0.mask_and(image1)
@@ -27,12 +34,32 @@ impl Operation {
                 image0.mask_xor(image1)
             },
             Self::Overlay { mask_color } => {
-                image0.overlay_with_mask_color(image1, *mask_color)
+                let image_out: Image = image0.overlay_with_mask_color(image1, *mask_color)?;
+
+                // Detect overlap by comparing histograms. 
+                // The content is preserved if this histograms are the same. No overlap.
+                // Some of the content was overdrawn if the histograms are different. Overlap detected.
+                let mut histogram_input: Histogram = image0.histogram_all();
+                histogram_input.add_histogram(&image1.histogram_all());
+                histogram_input.set_counter_to_zero(*mask_color);
+
+                let mut histogram_output: Histogram = image_out.histogram_all();
+                histogram_output.set_counter_to_zero(*mask_color);
+
+                if histogram_input != histogram_output {
+                    state.operation_overlay_detected_overlap = true;
+                }
+                return Ok(image_out);
             },
         }
     }
 
     pub fn execute_with_images(&self, images: &Vec<Image>) -> anyhow::Result<Image> {
+        let mut state = OperationState::default();
+        self.execute_with_images_and_state(images, &mut state)
+    }
+
+    pub fn execute_with_images_and_state(&self, images: &Vec<Image>, state: &mut OperationState) -> anyhow::Result<Image> {
         let mut work_image = match images.first() {
             Some(value) => value.clone(),
             None => {
@@ -43,12 +70,17 @@ impl Operation {
             if image_index == 0 {
                 continue;
             }
-            work_image = self.execute(&work_image, image)?;
+            work_image = self.execute(&work_image, image, state)?;
         }
         Ok(work_image)
     }
 
     pub fn execute_with_images_and_permutations(&self, images: &Vec<Image>, permutations: &Vec<&usize>) -> anyhow::Result<Image> {
+        let mut state = OperationState::default();
+        self.execute_with_images_and_permutations_and_state(images, permutations, &mut state)
+    }
+
+    pub fn execute_with_images_and_permutations_and_state(&self, images: &Vec<Image>, permutations: &Vec<&usize>, state: &mut OperationState) -> anyhow::Result<Image> {
         if images.len() != permutations.len() {
             return Err(anyhow::anyhow!("Length of images and permutations must be equal"));
         }
@@ -75,7 +107,7 @@ impl Operation {
                 }
             };
     
-            work_image = self.execute(&work_image, image)?;
+            work_image = self.execute(&work_image, image, state)?;
         }
         Ok(work_image)
     }
@@ -268,10 +300,15 @@ impl SolveSplit {
                 let mut count: usize = 0;
                 for perm in indices.iter().permutations(shared_part_count as usize) {
                     println!("{:?}", perm);
-                    let image: Image = operation.execute_with_images_and_permutations(images, &perm)?;
+                    let mut state = OperationState::default();
+                    let image: Image = operation.execute_with_images_and_permutations_and_state(images, &perm, &mut state)?;
                     // detect overlap when overlaying images
+                    if state.operation_overlay_detected_overlap {
+                        HtmlLog::text(format!("task: {} permutation: {:?} detected overlap", task.id, perm));
+                        HtmlLog::image(&image);
+                    }
                     if image == pair.output.image {
-                        HtmlLog::text(format!("task: {} found permutation: {:?}", task.id, perm));
+                        HtmlLog::text(format!("task: {} permutation: {:?} same as training output", task.id, perm));
                         HtmlLog::image(&image);
                     }
                     // determine best fit
@@ -300,7 +337,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_or() {
+    fn test_10000_mask_or() {
         // Arrange
         let pixels0: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -336,5 +373,91 @@ mod tests {
         ];
         let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20000_overlay_without_overlap() {
+        // Arrange
+        let pixels0: Vec<u8> = vec![
+            1, 1, 1, 1,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let input0: Image = Image::try_create(4, 3, pixels0).expect("image");
+
+        let pixels1: Vec<u8> = vec![
+            0, 0, 0, 0,
+            2, 2, 2, 2,
+            0, 0, 0, 0,
+        ];
+        let input1: Image = Image::try_create(4, 3, pixels1).expect("image");
+
+        let pixels2: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            3, 3, 3, 3,
+        ];
+        let input2: Image = Image::try_create(4, 3, pixels2).expect("image");
+
+        let images = vec![input0, input1, input2];
+
+        let operation = Operation::Overlay { mask_color: 0 };
+
+        // Act
+        let mut state = OperationState::default();
+        let actual: Image = operation.execute_with_images_and_state(&images, &mut state).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 1,
+            2, 2, 2, 2,
+            3, 3, 3, 3,
+        ];
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+        assert_eq!(state.operation_overlay_detected_overlap, false);
+    }
+
+    #[test]
+    fn test_20001_overlay_with_overlap() {
+        // Arrange
+        let pixels0: Vec<u8> = vec![
+            1, 1, 1, 1,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let input0: Image = Image::try_create(4, 3, pixels0).expect("image");
+
+        let pixels1: Vec<u8> = vec![
+            0, 0, 0, 0,
+            2, 2, 2, 2,
+            0, 0, 0, 0,
+        ];
+        let input1: Image = Image::try_create(4, 3, pixels1).expect("image");
+
+        let pixels2: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 0, 9, 0,
+            3, 3, 3, 3,
+        ];
+        let input2: Image = Image::try_create(4, 3, pixels2).expect("image");
+
+        let images = vec![input0, input1, input2];
+
+        let operation = Operation::Overlay { mask_color: 0 };
+
+        // Act
+        let mut state = OperationState::default();
+        let actual: Image = operation.execute_with_images_and_state(&images, &mut state).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 1,
+            2, 2, 9, 2,
+            3, 3, 3, 3,
+        ];
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+        assert_eq!(state.operation_overlay_detected_overlap, true);
     }
 }
