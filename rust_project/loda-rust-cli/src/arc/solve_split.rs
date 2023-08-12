@@ -195,6 +195,24 @@ impl SolveSplit {
             pair_splitted_images.push(images);
         }
 
+        // Is the output always the same as one of the inputs
+        // Is the output sometimes the same as one of the inputs
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
+            let images: &Vec<Image> = &pair_splitted_images[pair_index];
+
+            let mut number_of_matches: usize = 0;
+            for (image_index, image) in images.iter().enumerate() {
+                if *image == pair.output.image {
+                    number_of_matches += 1;
+                    HtmlLog::text(format!("task: {} output is the same as image: {}", task.id, image_index));
+                    HtmlLog::image(&image);
+                }
+            }
+        }
+
         let operations = [
             Operation::MaskAnd,
             Operation::MaskOr,
@@ -232,6 +250,7 @@ impl SolveSplit {
             }
         }
 
+        // Is the input images overlayed on top of each other in a z-order
         if same_part_count_for_all_pairs && shared_part_count > 0 && shared_part_count <= 5 {
             for (pair_index, pair) in task.pairs.iter().enumerate() {
                 if pair.pair_type != PairType::Train {
@@ -242,7 +261,7 @@ impl SolveSplit {
                     return Err(anyhow::anyhow!("task: {} mismatch in number of images and number of parts", task.id));
                 }
 
-                println!("task: {} permutations: {}", task.id, shared_part_count);
+                println!("task: {} trying permutations: {}", task.id, shared_part_count);
                 // Eliminate hard coded background color
                 let operation = Operation::Overlay { mask_color: 0 };
                 let indices: Vec<usize> = (0..shared_part_count as usize).collect();
@@ -250,6 +269,7 @@ impl SolveSplit {
                 for perm in indices.iter().permutations(shared_part_count as usize) {
                     println!("{:?}", perm);
                     let image: Image = operation.execute_with_images_and_permutations(images, &perm)?;
+                    // detect overlap when overlaying images
                     if image == pair.output.image {
                         HtmlLog::text(format!("task: {} found permutation: {:?}", task.id, perm));
                         HtmlLog::image(&image);
