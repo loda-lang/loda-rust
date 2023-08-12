@@ -179,7 +179,7 @@ pub struct SolveSplit;
 
 impl SolveSplit {
     /// Can only split into columns or rows, not both.
-    pub fn solve(task: &Task) -> anyhow::Result<()> {
+    pub fn solve(task: &Task) -> anyhow::Result<SolveSplitFoundSolution> {
         let is_split_x: bool = task.is_output_size_same_as_input_splitview_x();
         let is_split_y: bool = task.is_output_size_same_as_input_splitview_y();
         let is_horizontal_split: bool;
@@ -219,8 +219,7 @@ impl SolveSplit {
             let images: Vec<Image> = match input_image.split(part_count, separator_size, split_direction) {
                 Ok(value) => value,
                 Err(error) => {
-                    println!("task: {} Unable to split image: {}", task.id, error);
-                    return Ok(());
+                    return Err(anyhow::anyhow!("task: {} Unable to split image: {}", task.id, error));
                 }
             };
             // println!("task: {} split into {} parts", task.id, images.len());
@@ -368,6 +367,11 @@ impl SolveSplit {
                         computed_images.push(image);
                     }        
                     HtmlLog::compare_images(computed_images);
+
+                    let instance = SolveSplitFoundSolution {
+                        explanation: format!("overlay {:?}", permutations),
+                    };
+                    return Ok(instance);
                 }
             }
         }
@@ -376,7 +380,7 @@ impl SolveSplit {
         // * preserve color
         // * consider background color being transparent
 
-        Ok(())
+        Err(anyhow::anyhow!("task: {} no solution found", task.id))
     }
 }
 
@@ -386,10 +390,17 @@ struct PermutationCandidate {
     score: u32,
 }
 
+#[derive(Debug, Clone)]
+pub struct SolveSplitFoundSolution {
+    explanation: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
+    use crate::arc::arc_json_model;
+    use crate::arc::arc_work_model::Task;
 
     #[test]
     fn test_10000_mask_or() {
@@ -515,4 +526,50 @@ mod tests {
         assert_eq!(actual, expected);
         assert_eq!(state.operation_overlay_detected_overlap, true);
     }
+
+    #[test]
+    fn test_90000_overlay_cf98881b() -> anyhow::Result<()> {
+        // Arrange
+        let task_name: &str = "cf98881b";
+        let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(task_name)?;
+        let task: Task = Task::try_from(&json_task)?;
+
+        // Act
+        let actual: SolveSplitFoundSolution = SolveSplit::solve(&task).expect("ok");
+
+        // Assert
+        assert_eq!(actual.explanation, "overlay [2, 1, 0]");
+        Ok(())
+    }
+
+    #[test]
+    fn test_90001_overlay_281123b4() -> anyhow::Result<()> {
+        // Arrange
+        let task_name: &str = "281123b4";
+        let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(task_name)?;
+        let task: Task = Task::try_from(&json_task)?;
+
+        // Act
+        let actual: SolveSplitFoundSolution = SolveSplit::solve(&task).expect("ok");
+
+        // Assert
+        assert_eq!(actual.explanation, "overlay [1, 0, 3, 2]");
+        Ok(())
+    }
+
+    #[test]
+    fn test_90002_overlay_e98196ab() -> anyhow::Result<()> {
+        // Arrange
+        let task_name: &str = "e98196ab";
+        let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(task_name)?;
+        let task: Task = Task::try_from(&json_task)?;
+
+        // Act
+        let actual: SolveSplitFoundSolution = SolveSplit::solve(&task).expect("ok");
+
+        // Assert
+        assert_eq!(actual.explanation, "overlay [0, 1]");
+        Ok(())
+    }
+
 }
