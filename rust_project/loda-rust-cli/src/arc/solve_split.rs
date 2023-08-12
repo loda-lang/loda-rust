@@ -1,3 +1,5 @@
+use crate::arc::arc_work_model::PairType;
+
 use super::arc_work_model::{Task, Input};
 use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay};
 use super::{Image, ImageMaskBoolean};
@@ -9,7 +11,7 @@ pub enum Operation {
     MaskAnd,
     MaskOr,
     MaskXor,
-    Overlay,
+    Overlay { mask_color: u8 },
 }
 
 impl Operation {
@@ -24,8 +26,8 @@ impl Operation {
             Self::MaskXor => {
                 image0.mask_xor(image1)
             },
-            Self::Overlay => {
-                image0.overlay_with_mask_color(image1, 0)
+            Self::Overlay { mask_color } => {
+                image0.overlay_with_mask_color(image1, *mask_color)
             },
         }
     }
@@ -231,22 +233,30 @@ impl SolveSplit {
         }
 
         if same_part_count_for_all_pairs && shared_part_count > 0 && shared_part_count <= 5 {
-            for (pair_index, _pair) in task.pairs.iter().enumerate() {
+            for (pair_index, pair) in task.pairs.iter().enumerate() {
+                if pair.pair_type != PairType::Train {
+                    continue;
+                }
                 let images: &Vec<Image> = &pair_splitted_images[pair_index];
                 if images.len() != shared_part_count as usize {
                     return Err(anyhow::anyhow!("task: {} mismatch in number of images and number of parts", task.id));
                 }
 
                 println!("task: {} permutations: {}", task.id, shared_part_count);
-                let operation = Operation::Overlay;
+                // Eliminate hard coded background color
+                let operation = Operation::Overlay { mask_color: 0 };
                 let indices: Vec<usize> = (0..shared_part_count as usize).collect();
                 let mut count: usize = 0;
                 for perm in indices.iter().permutations(shared_part_count as usize) {
                     println!("{:?}", perm);
                     let image: Image = operation.execute_with_images_and_permutations(images, &perm)?;
-                    HtmlLog::image(&image);
+                    if image == pair.output.image {
+                        HtmlLog::text(format!("task: {} found permutation: {:?}", task.id, perm));
+                        HtmlLog::image(&image);
+                    }
+                    // determine best fit
                     count += 1;
-                    if count > 5 {
+                    if count > 200 {
                         break;
                     }
                 }
