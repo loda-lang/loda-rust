@@ -1,3 +1,13 @@
+//! Solve `split-view` like tasks.
+//! 
+//! Known problem: Can only split into columns or rows, not both.
+//! 
+//! In tasks where the input images have splits, and the output images happens to have the exact same size as one of the split parts.
+//! 
+//! How does it work:
+//! * The input image is splitted into two or more parts.
+//! * Transformations is applied to the input parts, starting from simple operations, and ending with more complex operations.
+//! * This may yield a formula for output images.
 use super::arc_work_model::{Task, Input, PairType};
 use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram};
 use super::{Image, ImageMaskBoolean, Histogram};
@@ -178,8 +188,14 @@ impl SplitRecord {
 pub struct SolveSplit;
 
 impl SolveSplit {
+    pub fn solve_and_verify(task: &Task, verify_test_pairs: bool) -> anyhow::Result<SolveSplitFoundSolution> {
+        let mut solution = Self::solve(task)?;
+        solution.verify(task, verify_test_pairs);
+        Ok(solution)
+    }
+
     /// Can only split into columns or rows, not both.
-    pub fn solve(task: &Task) -> anyhow::Result<SolveSplitFoundSolution> {
+    fn solve(task: &Task) -> anyhow::Result<SolveSplitFoundSolution> {
         let verbose = false;
 
         let is_split_x: bool = task.is_output_size_same_as_input_splitview_x();
@@ -379,6 +395,7 @@ impl SolveSplit {
                     // HtmlLog::compare_images(computed_images.clone());
 
                     let instance = SolveSplitFoundSolution {
+                        task_id: task.id.clone(),
                         explanation: format!("overlay {:?}", permutations),
                         predicted_output_images: computed_images,
                         verified_status: None,
@@ -404,13 +421,14 @@ struct PermutationCandidate {
 
 #[derive(Debug, Clone)]
 pub struct SolveSplitFoundSolution {
+    task_id: String,
     explanation: String,
     predicted_output_images: Vec<Image>,
     verified_status: Option<String>,
 }
 
 impl SolveSplitFoundSolution {
-    fn perform_verify(&mut self, task: &Task, verify_test_pairs: bool) {
+    fn verify(&mut self, task: &Task, verify_test_pairs: bool) {
         if self.predicted_output_images.len() != task.pairs.len() {
             self.verified_status = Some("predicted_output_images.len() != task.pairs.len()".to_string());
             return;
@@ -480,13 +498,18 @@ impl SolveSplitFoundSolution {
         self.verified_status = Some(status);
     }
 
-    #[cfg(test)]
     fn status(&self) -> String {
         if let Some(status) = &self.verified_status {
             return status.clone();
         } else {
             return "Unverified".to_string();
         }
+    }
+
+    /// Pretty print the predicted images to the HTML console.
+    pub fn inspect(&self) {
+        HtmlLog::text(format!("task: {} status: {} explanation: {}", self.task_id, self.status(), self.explanation));
+        HtmlLog::compare_images(self.predicted_output_images.clone());
     }
 }
 
@@ -625,12 +648,12 @@ mod tests {
     fn solve(name: &str, inspect: bool) -> anyhow::Result<SolveSplitFoundSolution> {
         let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(name)?;
         let task: Task = Task::try_from(&json_task)?;
-        let mut solution: SolveSplitFoundSolution = SolveSplit::solve(&task)?;
-        solution.perform_verify(&task, true);
+
+        let verify_test_pairs = true;
+        let solution: SolveSplitFoundSolution = SolveSplit::solve_and_verify(&task, verify_test_pairs)?;
 
         if inspect {
-            HtmlLog::text(format!("task: {} status: {} explanation: {}", task.id, solution.status(), solution.explanation));
-            HtmlLog::compare_images(solution.predicted_output_images.clone());
+            solution.inspect();
         }
 
         Ok(solution)

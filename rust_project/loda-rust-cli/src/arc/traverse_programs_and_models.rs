@@ -586,8 +586,14 @@ impl TraverseProgramsAndModels {
             }
             if count > 0 {
                 task.inspect()?;
-                if let Err(error) = SolveSplit::solve(task) {
-                    HtmlLog::text(format!("could not solve task. error: {:?}", error));
+                let verify_test_pairs = true;
+                match SolveSplit::solve_and_verify(task, verify_test_pairs) {
+                    Ok(solution) => {
+                        solution.inspect();
+                    },
+                    Err(error) => {
+                        HtmlLog::text(format!("could not solve task. error: {:?}", error));
+                    }
                 }
             }
             count += 1;
