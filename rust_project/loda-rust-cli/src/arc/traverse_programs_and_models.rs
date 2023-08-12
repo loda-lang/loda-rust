@@ -587,7 +587,8 @@ impl TraverseProgramsAndModels {
             if count > 0 {
                 task.inspect()?;
                 let verify_test_pairs = true;
-                match SolveSplit::solve_and_verify(task, verify_test_pairs) {
+                let solve_split = SolveSplit::new(true);
+                match solve_split.solve_and_verify(task, verify_test_pairs) {
                     Ok(solution) => {
                         solution.inspect();
                     },

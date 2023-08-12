@@ -185,19 +185,25 @@ impl SplitRecord {
     }
 }
 
-pub struct SolveSplit;
+pub struct SolveSplit {
+    verbose: bool,
+}
 
 impl SolveSplit {
-    pub fn solve_and_verify(task: &Task, verify_test_pairs: bool) -> anyhow::Result<SolveSplitFoundSolution> {
-        let mut solution = Self::solve(task)?;
+    pub fn new(verbose: bool) -> Self {
+        Self {
+            verbose,
+        }
+    }
+
+    pub fn solve_and_verify(&self, task: &Task, verify_test_pairs: bool) -> anyhow::Result<SolveSplitFoundSolution> {
+        let mut solution = self.solve(task)?;
         solution.verify(task, verify_test_pairs);
         Ok(solution)
     }
 
     /// Can only split into columns or rows, not both.
-    fn solve(task: &Task) -> anyhow::Result<SolveSplitFoundSolution> {
-        let verbose = false;
-
+    fn solve(&self, task: &Task) -> anyhow::Result<SolveSplitFoundSolution> {
         let is_split_x: bool = task.is_output_size_same_as_input_splitview_x();
         let is_split_y: bool = task.is_output_size_same_as_input_splitview_y();
         let is_horizontal_split: bool;
@@ -224,7 +230,7 @@ impl SolveSplit {
             return Err(anyhow::anyhow!("task: {} mismatch in number of records and number of pairs", task.id));
         }
 
-        if verbose {
+        if self.verbose {
             let s: String = format!("task: {} parts: {:?}", task.id, record_vec);
             HtmlLog::text(s);
         }
@@ -258,7 +264,7 @@ impl SolveSplit {
             for (image_index, image) in images.iter().enumerate() {
                 if *image == pair.output.image {
                     number_of_matches += 1;
-                    if verbose {
+                    if self.verbose {
                         HtmlLog::text(format!("task: {} output is the same as image: {}", task.id, image_index));
                         HtmlLog::image(&image);
                     }
@@ -272,7 +278,7 @@ impl SolveSplit {
             Operation::MaskXor,
         ];
         for operation in &operations {
-            if verbose {
+            if self.verbose {
                 HtmlLog::text(&format!("task: {} operation: {:?}", task.id, operation));
             }
             let mut image_comparison = Vec::<Image>::new();
@@ -289,7 +295,7 @@ impl SolveSplit {
 
                 image_comparison.push(work_image);
             }
-            if verbose {
+            if self.verbose {
                 HtmlLog::compare_images(image_comparison);
             }
         }
@@ -650,7 +656,8 @@ mod tests {
         let task: Task = Task::try_from(&json_task)?;
 
         let verify_test_pairs = true;
-        let solution: SolveSplitFoundSolution = SolveSplit::solve_and_verify(&task, verify_test_pairs)?;
+        let solve_split = SolveSplit::new(inspect);
+        let solution: SolveSplitFoundSolution = solve_split.solve_and_verify(&task, verify_test_pairs)?;
 
         if inspect {
             solution.inspect();
