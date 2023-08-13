@@ -307,38 +307,24 @@ impl SolveSplit {
             // Compare histograms
             let mut count_train_ok: u32 = 0;
             let mut count_train_bad: u32 = 0;
-            let mut same_histogram_vec = Vec::<bool>::new();
+            let mut color_map_vec = Vec::<ColorMap>::new();
             for (pair_index, pair) in task.pairs.iter().enumerate() {
                 if pair.pair_type != PairType::Train {
-                    same_histogram_vec.push(false);
+                    color_map_vec.push(ColorMap::empty());
                     continue;
                 }
                 let predicted_output_image: &Image = &image_comparison[pair_index];
-                let predicted_histogram: Histogram = predicted_output_image.histogram_all();
 
-                let mut predicted_counters = Vec::<u32>::new();
-                for (count, _color) in predicted_histogram.pairs_ordered_by_color() {
-                    if count > 0 {
-                        predicted_counters.push(count);
-                    }
-                }
-                predicted_counters.sort();
+                let color_map: ColorMap = ColorMap::analyze(&predicted_output_image, &pair.output.image)?;
+                // println!("color_map: {:?} ambiguous: {}", color_map.to_vec(), color_map.is_ambiguous());
+                let is_ambiguous: bool = color_map.is_ambiguous();
+                color_map_vec.push(color_map);
 
-                let mut expected_counters = Vec::<u32>::new();
-                for (count, _color) in pair.output.image_meta.histogram_all.pairs_ordered_by_color() {
-                    if count > 0 {
-                        expected_counters.push(count);
-                    }
-                }
-                expected_counters.sort();
-
-                let same_histogram: bool = predicted_counters == expected_counters;
-                if same_histogram {
-                    count_train_ok += 1;
-                } else {
+                if is_ambiguous {
                     count_train_bad += 1;
+                } else {
+                    count_train_ok += 1;
                 }
-                same_histogram_vec.push(same_histogram);
             }
 
             // if self.verbose && count_train_ok > 0 {
@@ -352,7 +338,7 @@ impl SolveSplit {
                     predicted_output_images: image_comparison,
                     count_train_histogram_ok: count_train_ok,
                     count_train_histogram_bad: count_train_bad,
-                    same_histogram_vec,
+                    color_map_vec,
                 };
                 simple_candidates.push(candidate);
             }
@@ -361,8 +347,8 @@ impl SolveSplit {
         // Determine how to recolor the predicted image so it corresponds to the expected output image
         if !simple_candidates.is_empty() {
             for (candidate_index, candidate) in simple_candidates.iter().enumerate() {
-                if candidate.same_histogram_vec.len() != task.pairs.len() {
-                    return Err(anyhow::anyhow!("task: {} candidate: {} simple_candidates.len() != task.pairs.len()", task.id, candidate_index));
+                if candidate.color_map_vec.len() != task.pairs.len() {
+                    return Err(anyhow::anyhow!("task: {} candidate: {} color_map_vec.len() != task.pairs.len()", task.id, candidate_index));
                 }
                 if candidate.predicted_output_images.len() != task.pairs.len() {
                     return Err(anyhow::anyhow!("task: {} candidate: {} predicted_output_images.len() != task.pairs.len()", task.id, candidate_index));
@@ -372,8 +358,8 @@ impl SolveSplit {
                         continue;
                     }
 
-                    let same_histogram: bool = candidate.same_histogram_vec[pair_index];
-                    if !same_histogram {
+                    let color_map: &ColorMap = &candidate.color_map_vec[pair_index];
+                    if color_map.is_empty() {
                         continue;
                     }
 
@@ -383,7 +369,7 @@ impl SolveSplit {
                     // let target_histogram: &Histogram = &pair.output.image_meta.histogram_all;
 
                     // determine how to recolor
-                    let color_map: ColorMap = ColorMap::analyze(&predicted_output_image, &pair.output.image)?;
+                    // let color_map: ColorMap = ColorMap::analyze(&predicted_output_image, &pair.output.image)?;
                     println!("color_map: {:?} ambiguous: {}", color_map.to_vec(), color_map.is_ambiguous());
 
                     // candiates for color
@@ -541,7 +527,7 @@ struct SimpleOperationCandidate {
     count_train_histogram_bad: u32,
     operation: Operation,
     predicted_output_images: Vec<Image>,
-    same_histogram_vec: Vec<bool>,
+    color_map_vec: Vec<ColorMap>,
 }
 
 #[derive(Debug, Clone)]

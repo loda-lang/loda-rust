@@ -7,6 +7,12 @@ pub struct ColorMap {
 }
 
 impl ColorMap {
+    pub fn empty() -> Self {
+        Self {
+            source_target_count: HashMap::<(u8, u8), u16>::new(),
+        }
+    }
+
     pub fn analyze(source: &Image, target: &Image) -> anyhow::Result<Self> {
         if source.size() != target.size() {
             anyhow::bail!("image0.size() != image1.size()");
@@ -34,6 +40,10 @@ impl ColorMap {
             source_target_count
         };
         Ok(instance)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.source_target_count.is_empty()
     }
 
     pub fn to_vec(&self) -> Vec<(u8, u8, u16)> {
