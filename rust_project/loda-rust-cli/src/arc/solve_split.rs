@@ -298,13 +298,19 @@ impl SolveSplit {
                 image_comparison.push(work_image);
             }
 
+            if image_comparison.len() != task.pairs.len() {
+                return Err(anyhow::anyhow!("task: {} mismatch in number of images and number of pairs", task.id));
+            }
+
             // The colors of the predicted image rarely have the same colors as the output image.
             // However the histograms may have the same counters, indicating that it maybe is a match, and needs recoloring.
             // Compare histograms
             let mut count_train_ok: u32 = 0;
             let mut count_train_bad: u32 = 0;
+            let mut same_histogram_vec = Vec::<bool>::new();
             for (pair_index, pair) in task.pairs.iter().enumerate() {
                 if pair.pair_type != PairType::Train {
+                    same_histogram_vec.push(false);
                     continue;
                 }
                 let predicted_output_image: &Image = &image_comparison[pair_index];
@@ -332,6 +338,7 @@ impl SolveSplit {
                 } else {
                     count_train_bad += 1;
                 }
+                same_histogram_vec.push(same_histogram);
             }
 
             // if self.verbose && count_train_ok > 0 {
@@ -345,8 +352,48 @@ impl SolveSplit {
                     predicted_output_images: image_comparison,
                     count_train_histogram_ok: count_train_ok,
                     count_train_histogram_bad: count_train_bad,
+                    same_histogram_vec,
                 };
                 simple_candidates.push(candidate);
+            }
+        }
+
+        // Determine how to recolor the predicted image so it corresponds to the expected output image
+        if !simple_candidates.is_empty() {
+            for (candidate_index, candidate) in simple_candidates.iter().enumerate() {
+                if candidate.same_histogram_vec.len() != task.pairs.len() {
+                    return Err(anyhow::anyhow!("task: {} candidate: {} simple_candidates.len() != task.pairs.len()", task.id, candidate_index));
+                }
+                if candidate.predicted_output_images.len() != task.pairs.len() {
+                    return Err(anyhow::anyhow!("task: {} candidate: {} predicted_output_images.len() != task.pairs.len()", task.id, candidate_index));
+                }
+                for (pair_index, pair) in task.pairs.iter().enumerate() {
+                    if pair.pair_type != PairType::Train {
+                        continue;
+                    }
+
+                    let same_histogram: bool = candidate.same_histogram_vec[pair_index];
+                    if !same_histogram {
+                        continue;
+                    }
+
+                    let predicted_output_image: &Image = &candidate.predicted_output_images[pair_index];
+                    let source_histogram: Histogram = predicted_output_image.histogram_all();
+
+                    let target_histogram: &Histogram = &pair.output.image_meta.histogram_all;
+
+                    // determine how to recolor
+
+                    // candiates for color
+                    // color[N], 
+                    // most popular color of input image
+                    // least popular color of input image
+                    // most popular color of input intersection
+                    // least popular color of input intersection
+                    // most popular color of output intersection
+                    // least popular color of output intersection
+                    // insert color
+                }    
             }
         }
 
@@ -492,6 +539,7 @@ struct SimpleOperationCandidate {
     count_train_histogram_bad: u32,
     operation: Operation,
     predicted_output_images: Vec<Image>,
+    same_histogram_vec: Vec<bool>,
 }
 
 #[derive(Debug, Clone)]
