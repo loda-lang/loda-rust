@@ -272,15 +272,16 @@ impl SolveSplit {
             }
         }
 
+        // The output image have only 2 colors
         let operations = [
             Operation::MaskAnd,
             Operation::MaskOr,
             Operation::MaskXor,
         ];
         for operation in &operations {
-            if self.verbose {
-                HtmlLog::text(&format!("task: {} operation: {:?}", task.id, operation));
-            }
+            // if self.verbose {
+            //     HtmlLog::text(&format!("task: {} operation: {:?}", task.id, operation));
+            // }
             let mut image_comparison = Vec::<Image>::new();
             for (pair_index, _pair) in task.pairs.iter().enumerate() {
                 let images: &Vec<Image> = &pair_splitted_images[pair_index];
@@ -295,7 +296,42 @@ impl SolveSplit {
 
                 image_comparison.push(work_image);
             }
-            if self.verbose {
+
+            let mut count_train_ok: usize = 0;
+            let mut count_train_bad: usize = 0;
+            for (pair_index, pair) in task.pairs.iter().enumerate() {
+                if pair.pair_type != PairType::Train {
+                    continue;
+                }
+                let predicted_output_image: &Image = &image_comparison[pair_index];
+                let predicted_histogram: Histogram = predicted_output_image.histogram_all();
+
+                let mut predicted_counters = Vec::<u32>::new();
+                for (count, _color) in predicted_histogram.pairs_ordered_by_color() {
+                    if count > 0 {
+                        predicted_counters.push(count);
+                    }
+                }
+                predicted_counters.sort();
+
+                let mut expected_counters = Vec::<u32>::new();
+                for (count, _color) in pair.output.image_meta.histogram_all.pairs_ordered_by_color() {
+                    if count > 0 {
+                        expected_counters.push(count);
+                    }
+                }
+                expected_counters.sort();
+
+                let same_histogram: bool = predicted_counters == expected_counters;
+                if same_histogram {
+                    count_train_ok += 1;
+                } else {
+                    count_train_bad += 1;
+                }
+            }
+
+            if self.verbose && count_train_ok > 0 {
+                HtmlLog::text(format!("task: {} operation: {:?} train: {}-{}", task.id, operation, count_train_ok, count_train_bad));
                 HtmlLog::compare_images(image_comparison);
             }
         }
