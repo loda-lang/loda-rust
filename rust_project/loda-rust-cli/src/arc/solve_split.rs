@@ -9,7 +9,7 @@
 //! * Transformations is applied to the input parts, starting from simple operations, and ending with more complex operations.
 //! * This may yield a formula for output images.
 use super::arc_work_model::{Task, Input, PairType};
-use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram};
+use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram, ColorMap};
 use super::{Image, ImageMaskBoolean, Histogram};
 use super::HtmlLog;
 use itertools::Itertools;
@@ -378,11 +378,13 @@ impl SolveSplit {
                     }
 
                     let predicted_output_image: &Image = &candidate.predicted_output_images[pair_index];
-                    let source_histogram: Histogram = predicted_output_image.histogram_all();
+                    // let source_histogram: Histogram = predicted_output_image.histogram_all();
 
-                    let target_histogram: &Histogram = &pair.output.image_meta.histogram_all;
+                    // let target_histogram: &Histogram = &pair.output.image_meta.histogram_all;
 
                     // determine how to recolor
+                    let color_map: ColorMap = ColorMap::analyze(&predicted_output_image, &pair.output.image)?;
+                    println!("color_map: {:?} ambiguous: {}", color_map.to_vec(), color_map.is_ambiguous());
 
                     // candiates for color
                     // color[N], 

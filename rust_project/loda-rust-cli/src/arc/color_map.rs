@@ -1,6 +1,7 @@
 use super::{Image, Histogram};
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
 pub struct ColorMap {
     pub source_target_count: HashMap<(u8, u8), u16>,
 }
