@@ -441,6 +441,7 @@ impl SolveSplit {
             }
         }
 
+        let mut best_solution_so_far: Option<SolveSplitFoundSolution> = None;
         if !simple_candidates.is_empty() {
             let mut highest_score: u32 = 0;
             let mut best_candidate_index: usize = 0;
@@ -461,6 +462,20 @@ impl SolveSplit {
                     HtmlLog::compare_images(candidate.predicted_output_images_stage1.clone());
                 }
             }
+
+            if !candidate.predicted_output_images_stage2.is_empty() {
+                // pretty print recoloring
+                let instance = SolveSplitFoundSolution {
+                    task_id: task.id.clone(),
+                    explanation: format!("{:?}", candidate.operation),
+                    predicted_output_images: candidate.predicted_output_images_stage2.clone(),
+                    verified_status: None,
+                };
+                if candidate.count_train_stage2_bad == 0 {
+                    return Ok(instance);
+                }
+                best_solution_so_far = Some(instance);
+            }
         }
 
         let mut shared_part_count: u8 = 0;
@@ -479,6 +494,9 @@ impl SolveSplit {
         // Is the input images overlayed on top of each other in a z-order.
         // Overlay images, by permuting the indexes of the images, if count <=5 then it's not too many permutations.
         if same_part_count_for_all_pairs && shared_part_count > 0 && shared_part_count <= 5 {
+            // Future experiments:
+            // * preserve color
+            // * consider background color being transparent
             // Eliminate hard coded background color
             let operation = Operation::Overlay { mask_color: 0 };
 
@@ -573,10 +591,10 @@ impl SolveSplit {
                 }
             }
         }
-
-        // Future experiments:
-        // * preserve color
-        // * consider background color being transparent
+        
+        if let Some(solution) = best_solution_so_far {
+            return Ok(solution);
+        }
 
         Err(anyhow::anyhow!("task: {} no solution found", task.id))
     }
@@ -862,4 +880,24 @@ mod tests {
         assert_eq!(actual.status(), "ok train3 test1");
     }
 
+    #[test]
+    fn test_91000_xor_3428a4f5() {
+        let actual: SolveSplitFoundSolution = solve("3428a4f5", false).expect("ok");
+        assert_eq!(actual.explanation, "MaskXor");
+        assert_eq!(actual.status(), "ok train4 test2");
+    }
+
+    #[test]
+    fn test_92000_or_f2829549() {
+        let actual: SolveSplitFoundSolution = solve("f2829549", false).expect("ok");
+        assert_eq!(actual.explanation, "MaskOr");
+        assert_eq!(actual.status(), "ok train5 test1");
+    }
+
+    #[test]
+    fn test_93000_and_0520fde7() {
+        let actual: SolveSplitFoundSolution = solve("0520fde7", false).expect("ok");
+        assert_eq!(actual.explanation, "MaskAnd");
+        assert_eq!(actual.status(), "ok train3 test1");
+    }
 }
