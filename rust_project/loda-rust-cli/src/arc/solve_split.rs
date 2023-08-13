@@ -10,8 +10,9 @@
 //! * This may yield a formula for output images.
 use super::arc_work_model::{Task, Input, PairType};
 use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram, ColorMap};
-use super::{Image, ImageMaskBoolean, Histogram};
+use super::{Image, ImageMaskBoolean, Histogram, ImageReplaceColor};
 use super::HtmlLog;
+use std::collections::HashMap;
 use itertools::Itertools;
 
 #[derive(Debug, Clone, Default)]
@@ -363,14 +364,26 @@ impl SolveSplit {
                         continue;
                     }
 
-                    let predicted_output_image: &Image = &candidate.predicted_output_images[pair_index];
-                    // let source_histogram: Histogram = predicted_output_image.histogram_all();
+                    // Loop over all the color maps.
+                    // Are they the same source -> target.
+                    // If so, then we can use that color map.
+                    // If not, then it more tricky, and I have no solution for that yet.
 
-                    // let target_histogram: &Histogram = &pair.output.image_meta.histogram_all;
+                    let predicted_output_image: &Image = &candidate.predicted_output_images[pair_index];
+
+                    let mut replacements = HashMap::<u8, u8>::new();
+                    for (source_color, target_color, _count) in color_map.to_vec() {
+                        replacements.insert(source_color, target_color);
+                    }
+
+                    let recolored_image: Image = predicted_output_image.replace_colors_with_hashmap(&replacements)?;
+                    if self.verbose {
+                        HtmlLog::image(&recolored_image);
+                    }
 
                     // determine how to recolor
                     // let color_map: ColorMap = ColorMap::analyze(&predicted_output_image, &pair.output.image)?;
-                    println!("color_map: {:?} ambiguous: {}", color_map.to_vec(), color_map.is_ambiguous());
+                    // println!("color_map: {:?} ambiguous: {}", color_map.to_vec(), color_map.is_ambiguous());
 
                     // candiates for color
                     // color[N], 
