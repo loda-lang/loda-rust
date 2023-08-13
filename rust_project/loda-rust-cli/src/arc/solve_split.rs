@@ -336,10 +336,13 @@ impl SolveSplit {
             if count_train_ok > 0 {
                 let candidate = SimpleOperationCandidate {
                     operation: operation.clone(),
-                    predicted_output_images: image_comparison,
+                    predicted_output_images_stage1: image_comparison,
+                    predicted_output_images_stage2: vec!(),
                     count_train_histogram_ok: count_train_ok,
                     count_train_histogram_bad: count_train_bad,
                     color_map_vec,
+                    count_train_stage2_ok: 0,
+                    count_train_stage2_bad: 0,
                 };
                 simple_candidates.push(candidate);
             }
@@ -347,13 +350,15 @@ impl SolveSplit {
 
         // Determine how to recolor the predicted image so it corresponds to the expected output image
         if !simple_candidates.is_empty() {
-            for (candidate_index, candidate) in simple_candidates.iter().enumerate() {
+            for (candidate_index, candidate) in simple_candidates.iter_mut().enumerate() {
                 if candidate.color_map_vec.len() != task.pairs.len() {
                     return Err(anyhow::anyhow!("task: {} candidate: {} color_map_vec.len() != task.pairs.len()", task.id, candidate_index));
                 }
-                if candidate.predicted_output_images.len() != task.pairs.len() {
+                if candidate.predicted_output_images_stage1.len() != task.pairs.len() {
                     return Err(anyhow::anyhow!("task: {} candidate: {} predicted_output_images.len() != task.pairs.len()", task.id, candidate_index));
                 }
+                let mut found_replacements = HashMap::<u8, u8>::new();
+                let mut agrees_on_replacements = true;
                 for (pair_index, pair) in task.pairs.iter().enumerate() {
                     if pair.pair_type != PairType::Train {
                         continue;
@@ -365,20 +370,29 @@ impl SolveSplit {
                     }
 
                     // Loop over all the color maps.
-                    // Are they the same source -> target.
+                    // Are they the same source -> target, for all pairs.
                     // If so, then we can use that color map.
                     // If not, then it more tricky, and I have no solution for that yet.
 
-                    let predicted_output_image: &Image = &candidate.predicted_output_images[pair_index];
+                    // let predicted_output_image: &Image = &candidate.predicted_output_images_stage1[pair_index];
 
                     let mut replacements = HashMap::<u8, u8>::new();
                     for (source_color, target_color, _count) in color_map.to_vec() {
                         replacements.insert(source_color, target_color);
                     }
 
-                    let recolored_image: Image = predicted_output_image.replace_colors_with_hashmap(&replacements)?;
-                    if self.verbose {
-                        HtmlLog::image(&recolored_image);
+                    // let recolored_image: Image = predicted_output_image.replace_colors_with_hashmap(&replacements)?;
+                    // if self.verbose {
+                    //     HtmlLog::image(&recolored_image);
+                    // }
+
+                    if found_replacements.is_empty() {
+                        found_replacements = replacements;
+                    } else {
+                        if replacements != found_replacements {
+                            agrees_on_replacements = false;
+                            break;
+                        }
                     }
 
                     // determine how to recolor
@@ -394,7 +408,36 @@ impl SolveSplit {
                     // most popular color of output intersection
                     // least popular color of output intersection
                     // insert color
-                }    
+                }
+
+                if agrees_on_replacements && !found_replacements.is_empty() {
+                    let mut predicted_output_images_stage2 = Vec::<Image>::new();
+                    let mut count_train_ok: u32 = 0;
+                    let mut count_train_bad: u32 = 0;
+                    for (pair_index, pair) in task.pairs.iter().enumerate() {
+                        let predicted_output_image: &Image = &candidate.predicted_output_images_stage1[pair_index];
+                        let recolored_image: Image = predicted_output_image.replace_colors_with_hashmap(&found_replacements)?;
+
+                        // Measure number of correct images for the `train` pairs.
+                        if pair.pair_type == PairType::Train {
+                            let is_correct: bool = pair.output.image == recolored_image;
+                            if is_correct {
+                                count_train_ok += 1;
+                            } else {
+                                count_train_bad += 1;
+                            }
+                        }
+
+                        predicted_output_images_stage2.push(recolored_image);
+                    }
+                    // if self.verbose {
+                    //     HtmlLog::text(format!("task: {} operation: {:?}", task.id, candidate.operation));
+                    //     HtmlLog::compare_images(predicted_output_images_stage2.clone());
+                    // }
+                    candidate.predicted_output_images_stage2 = predicted_output_images_stage2;
+                    candidate.count_train_stage2_ok = count_train_ok;
+                    candidate.count_train_stage2_bad = count_train_bad;
+                }
             }
         }
 
@@ -410,8 +453,13 @@ impl SolveSplit {
             let candidate = &simple_candidates[best_candidate_index];
 
             if self.verbose {
-                HtmlLog::text(format!("task: {} operation: {:?} train: {}-{}", task.id, candidate.operation, candidate.count_train_histogram_ok, candidate.count_train_histogram_bad));
-                HtmlLog::compare_images(candidate.predicted_output_images.clone());
+                if !candidate.predicted_output_images_stage2.is_empty() {
+                    HtmlLog::text(format!("task: {} operation: {:?} train: {}-{}", task.id, candidate.operation, candidate.count_train_stage2_ok, candidate.count_train_stage2_bad));
+                    HtmlLog::compare_images(candidate.predicted_output_images_stage2.clone());
+                } else {
+                    HtmlLog::text(format!("task: {} operation: {:?} train: {}-{}", task.id, candidate.operation, candidate.count_train_histogram_ok, candidate.count_train_histogram_bad));
+                    HtmlLog::compare_images(candidate.predicted_output_images_stage1.clone());
+                }
             }
         }
 
@@ -539,8 +587,11 @@ struct SimpleOperationCandidate {
     count_train_histogram_ok: u32,
     count_train_histogram_bad: u32,
     operation: Operation,
-    predicted_output_images: Vec<Image>,
+    predicted_output_images_stage1: Vec<Image>,
+    predicted_output_images_stage2: Vec<Image>,
     color_map_vec: Vec<ColorMap>,
+    count_train_stage2_ok: u32,
+    count_train_stage2_bad: u32,
 }
 
 #[derive(Debug, Clone)]
