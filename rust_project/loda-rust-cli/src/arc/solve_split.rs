@@ -263,10 +263,10 @@ impl SolveSplit {
             }
             let images: &Vec<Image> = &pair_splitted_images[pair_index];
 
-            let mut number_of_matches: usize = 0;
+            // let mut number_of_matches: usize = 0;
             for (image_index, image) in images.iter().enumerate() {
                 if *image == pair.output.image {
-                    number_of_matches += 1;
+                    // number_of_matches += 1;
                     if self.verbose {
                         HtmlLog::text(format!("task: {} output is the same as image: {}", task.id, image_index));
                         HtmlLog::image(&image);
