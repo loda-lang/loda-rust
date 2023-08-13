@@ -278,6 +278,7 @@ impl SolveSplit {
             Operation::MaskOr,
             Operation::MaskXor,
         ];
+        let mut simple_candidates = Vec::<SimpleOperationCandidate>::new();
         for operation in &operations {
             // if self.verbose {
             //     HtmlLog::text(&format!("task: {} operation: {:?}", task.id, operation));
@@ -297,8 +298,11 @@ impl SolveSplit {
                 image_comparison.push(work_image);
             }
 
-            let mut count_train_ok: usize = 0;
-            let mut count_train_bad: usize = 0;
+            // The colors of the predicted image rarely have the same colors as the output image.
+            // However the histograms may have the same counters, indicating that it maybe is a match, and needs recoloring.
+            // Compare histograms
+            let mut count_train_ok: u32 = 0;
+            let mut count_train_bad: u32 = 0;
             for (pair_index, pair) in task.pairs.iter().enumerate() {
                 if pair.pair_type != PairType::Train {
                     continue;
@@ -330,9 +334,36 @@ impl SolveSplit {
                 }
             }
 
-            if self.verbose && count_train_ok > 0 {
-                HtmlLog::text(format!("task: {} operation: {:?} train: {}-{}", task.id, operation, count_train_ok, count_train_bad));
-                HtmlLog::compare_images(image_comparison);
+            // if self.verbose && count_train_ok > 0 {
+            //     HtmlLog::text(format!("task: {} operation: {:?} train: {}-{}", task.id, operation, count_train_ok, count_train_bad));
+            //     HtmlLog::compare_images(image_comparison.clone());
+            // }
+
+            if count_train_ok > 0 {
+                let candidate = SimpleOperationCandidate {
+                    operation: operation.clone(),
+                    predicted_output_images: image_comparison,
+                    count_train_histogram_ok: count_train_ok,
+                    count_train_histogram_bad: count_train_bad,
+                };
+                simple_candidates.push(candidate);
+            }
+        }
+
+        if !simple_candidates.is_empty() {
+            let mut highest_score: u32 = 0;
+            let mut best_candidate_index: usize = 0;
+            for (candidate_index, candidate) in simple_candidates.iter().enumerate() {
+                if candidate.count_train_histogram_ok > highest_score {
+                    highest_score = candidate.count_train_histogram_ok;
+                    best_candidate_index = candidate_index;
+                }
+            }
+            let candidate = &simple_candidates[best_candidate_index];
+
+            if self.verbose {
+                HtmlLog::text(format!("task: {} operation: {:?} train: {}-{}", task.id, candidate.operation, candidate.count_train_histogram_ok, candidate.count_train_histogram_bad));
+                HtmlLog::compare_images(candidate.predicted_output_images.clone());
             }
         }
 
@@ -453,6 +484,14 @@ impl SolveSplit {
 
         Err(anyhow::anyhow!("task: {} no solution found", task.id))
     }
+}
+
+#[derive(Debug, Clone)]
+struct SimpleOperationCandidate {
+    count_train_histogram_ok: u32,
+    count_train_histogram_bad: u32,
+    operation: Operation,
+    predicted_output_images: Vec<Image>,
 }
 
 #[derive(Debug, Clone)]
