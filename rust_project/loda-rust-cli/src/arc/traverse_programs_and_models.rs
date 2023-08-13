@@ -4,6 +4,7 @@ use super::{Prediction, TestItem, TaskItem, Tasks};
 use super::{ActionLabel, ImageHistogram, ImageSize, Histogram, ExportTasks, SolveSplit};
 use super::human_readable_utc_timestamp;
 use crate::analytics::{AnalyticsDirectory, Analytics};
+use crate::arc::SolveSplitFoundSolution;
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
 use crate::common::find_asm_files_recursively;
@@ -1592,21 +1593,26 @@ impl TraverseProgramsAndModels {
         // When participating in the contest, then we want first to try out the existing solutions.
         // This may be a solution to one of the hidden puzzles.
         // However it's slow, so it's disabled while developing, where we only want to explore mutations.
-        let try_existing_solutions = true;
+        let try_existing_solutions = false;
 
         // The logistic regression has not solved any of the tasks in the hidden ARC dataset.
         // so no point in having it enabled.
         let try_logistic_regression = false;
 
+        // How many ARC tasks be solved using the `splitview` solver.
+        // Of the public ARC dataset. It can solve 17 tasks.
+        let try_solve_split = true;
+
         // When processing the hidden ARC dataset, I suspect most of the solutions are found 
         // without doing any mutation of existing solutions.
-        let try_mutate_existing_solutions = true;
+        let try_mutate_existing_solutions = false;
 
         let number_of_programs_to_generate: usize = 3;
 
         println!("{} - Start of program", human_readable_utc_timestamp());
         Self::print_system_info();
 
+        println!("try_solve_split: {}", try_solve_split);
         println!("try_existing_solutions: {}", try_existing_solutions);
         println!("try_logistic_regression: {}", try_logistic_regression);
         println!("try_mutate_existing_solutions: {}", try_mutate_existing_solutions);
@@ -1734,6 +1740,63 @@ impl TraverseProgramsAndModels {
             self.transfer_discovered_programs(&mut state)?;
         }
 
+        if try_solve_split {
+            let number_of_tasks: u64 = runner.plan.scheduled_model_item_vec.len() as u64;
+            println!("{} - Run solve split with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
+            let pb = ProgressBar::new(number_of_tasks as u64);
+            let verbose_solve_split = false;
+            let verify_test_pairs = false;
+            let mut count_tasks_solved: usize = 0;
+            for model_item in &runner.plan.scheduled_model_item_vec {
+                let task: Task = model_item.borrow().task.clone();
+                
+                let solve_split = SolveSplit::new(false);
+                let solution: SolveSplitFoundSolution = match solve_split.solve_and_verify(&task, verify_test_pairs) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        if verbose_solve_split {
+                            pb.println(format!("task {} could not solve. {:?}", task.id, error));
+                        }
+                        pb.inc(1);
+                        continue;
+                    }
+                };
+
+                let testitem_vec: Vec<TestItem> = match solution.testitems_from_test_pairs(&task) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        if verbose_solve_split {
+                            pb.println(format!("task {} could not solve. {:?}", task.id, error));
+                        }
+                        pb.inc(1);
+                        continue;
+                    }
+                };
+                count_tasks_solved += 1;
+                pb.println(format!("solved task: {}", task.id));
+
+                let model_id: ModelItemId = model_item.borrow().id.clone();
+                let task_name: String = model_id.file_stem();
+                let task_item = TaskItem {
+                    task_name: task_name,
+                    test_vec: testitem_vec,
+                };
+                // Future experiment: don't add if already exists
+                state.current_tasks.push(task_item);        
+                pb.inc(1);
+            }
+            pb.finish_and_clear();
+            save_solutions_json(
+                &self.arc_config.path_solution_dir,
+                &self.arc_config.path_solution_teamid_json,
+                &state.current_tasks
+            );
+            println!("{} - Executable elapsed: {}. Solved {} tasks.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()), count_tasks_solved);
+
+            println!("Done!");
+            return Ok(());
+        }
+
         if try_logistic_regression {
             #[cfg(feature = "linfa")]
             {
@@ -1771,7 +1834,7 @@ impl TraverseProgramsAndModels {
                         task_name: task_name,
                         test_vec: vec![test_item],
                     };
-                    // TODO: don't add if already exists
+                    // Future experiment: don't add if already exists
                     state.current_tasks.push(task_item);        
                     pb.inc(1);
                 }

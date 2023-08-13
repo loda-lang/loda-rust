@@ -11,6 +11,8 @@
 use super::arc_work_model::{Task, Input, PairType};
 use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram, ColorMap};
 use super::{Image, ImageMaskBoolean, Histogram, ImageReplaceColor};
+use super::{arcathon_solution_json, arc_json_model};
+use super::arc_json_model::GridFromImage;
 use super::HtmlLog;
 use std::collections::HashMap;
 use itertools::Itertools;
@@ -703,6 +705,40 @@ impl SolveSplitFoundSolution {
         } else {
             return "Unverified".to_string();
         }
+    }
+
+    pub fn testitems_from_test_pairs(&self, task: &Task) -> anyhow::Result<Vec<arcathon_solution_json::TestItem>> {
+        if self.predicted_output_images.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("task: {} self.predicted_output_images.len() != task.pairs.len()", task.id));
+        }
+        let mut testitem_vec = Vec::<arcathon_solution_json::TestItem>::new();
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            if pair.pair_type != PairType::Test {
+                continue;
+            }
+            let predicted_output_image: &Image = &self.predicted_output_images[pair_index];
+
+            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(predicted_output_image);
+            let prediction = arcathon_solution_json::Prediction {
+                prediction_id: 0,
+                output: grid,
+            };
+
+            let mut predictions: Vec<arcathon_solution_json::Prediction> = Vec::new();
+            predictions.push(prediction);
+
+            let output_id: u8 = testitem_vec.len().min(255) as u8;
+            let testitem = arcathon_solution_json::TestItem {
+                output_id,
+                number_of_predictions: predictions.len().min(255) as u8,
+                predictions: predictions,
+            };
+            testitem_vec.push(testitem);
+        }
+        if testitem_vec.len() != task.count_test() {
+            return Err(anyhow::anyhow!("task: {} testitem_vec.len() != task.count_test()", task.id));
+        }
+        Ok(testitem_vec)
     }
 
     /// Pretty print the predicted images to the HTML console.
