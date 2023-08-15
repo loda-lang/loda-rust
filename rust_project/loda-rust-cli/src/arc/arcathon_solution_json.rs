@@ -116,6 +116,12 @@ mod tests {
         assert_eq!(tasks[1].task_name, "13713586");
         assert_eq!(tasks[0].test_vec.len(), 2);
         assert_eq!(tasks[1].test_vec.len(), 1);
+        assert_eq!(tasks[0].test_vec[0].number_of_predictions, 3);
+        assert_eq!(tasks[0].test_vec[0].predictions.len(), 3);
+        assert_eq!(tasks[0].test_vec[1].number_of_predictions, 3);
+        assert_eq!(tasks[0].test_vec[1].predictions.len(), 3);
+        assert_eq!(tasks[1].test_vec[0].number_of_predictions, 3);
+        assert_eq!(tasks[1].test_vec[0].predictions.len(), 3);
     }
 
     #[test]
@@ -127,10 +133,16 @@ mod tests {
         let tasks: Tasks = serde_json::from_str(&json).expect("tasks");
 
         // Assert
-        assert_eq!(tasks.len(), 10);
-        assert_eq!(tasks[0].task_name, "44f52bb0");
-        assert_eq!(tasks[1].task_name, "4258a5f9");
-        assert_eq!(tasks[0].test_vec.len(), 1);
+        assert_eq!(tasks.len(), 2);
+        assert_eq!(tasks[0].task_name, "3428a4f5");
+        assert_eq!(tasks[1].task_name, "f2829549");
+        assert_eq!(tasks[0].test_vec.len(), 2);
         assert_eq!(tasks[1].test_vec.len(), 1);
+        assert_eq!(tasks[0].test_vec[0].number_of_predictions, 1);
+        assert_eq!(tasks[0].test_vec[0].predictions.len(), 1);
+        assert_eq!(tasks[0].test_vec[1].number_of_predictions, 1);
+        assert_eq!(tasks[0].test_vec[1].predictions.len(), 1);
+        assert_eq!(tasks[1].test_vec[0].number_of_predictions, 1);
+        assert_eq!(tasks[1].test_vec[0].predictions.len(), 1);
     }
 }
