@@ -20,7 +20,7 @@
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise};
-use super::{ActionLabel, ImageLabel, ImageMaskDistance};
+use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
 use super::human_readable_utc_timestamp;
@@ -499,6 +499,154 @@ impl SolveLogisticRegression {
                         }
                     }
                 }
+            }
+
+            let mut color_to_linespan_images = HashMap::<u8, Vec::<Image>>::new();
+            {
+                for color in 0..=9u8 {
+
+                    let mut images = Vec::<Image>::new();
+                    {
+                        let mask: Image = input.to_mask_where_color_is(color);
+                        let draw_mass: bool = true;
+                        let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::Before, draw_mass })?;
+                        images.push(image);
+                    }
+                    {
+                        let mask: Image = input.to_mask_where_color_is(color);
+                        let draw_mass: bool = true;
+                        let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::After, draw_mass })?;
+                        images.push(image);
+                    }
+                    {
+                        let mask: Image = input.to_mask_where_color_is(color);
+                        let draw_mass: bool = true;
+                        let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::Before, draw_mass })?;
+                        images.push(image);
+                    }
+                    {
+                        let mask: Image = input.to_mask_where_color_is(color);
+                        let draw_mass: bool = true;
+                        let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::After, draw_mass })?;
+                        images.push(image);
+                    }
+                    // {
+                    //     let mask: Image = input.to_mask_where_color_is(color);
+                    //     let draw_mass: bool = false;
+                    //     let image1: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::Before, draw_mass })?;
+                    //     let image2: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::Fill, draw_mass })?;
+                    //     let image3: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::After, draw_mass })?;
+                    //     let mut image: Image = mask.clone_zero();
+                    //     image = image.overlay_with_mask_color(&image1, 1)?;
+                    //     image = image.overlay_with_mask_color(&image2, 2)?;
+                    //     image = image.overlay_with_mask_color(&image3, 3)?;
+                    //     images.push(image);
+                    // }
+                    // {
+                    //     let mask: Image = input.to_mask_where_color_is(color);
+                    //     let draw_mass: bool = false;
+                    //     let image1: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::Before, draw_mass })?;
+                    //     let image2: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::Fill, draw_mass })?;
+                    //     let image3: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::After, draw_mass })?;
+                    //     let mut image: Image = mask.clone_zero();
+                    //     image = image.overlay_with_mask_color(&image1, 1)?;
+                    //     image = image.overlay_with_mask_color(&image2, 2)?;
+                    //     image = image.overlay_with_mask_color(&image3, 3)?;
+                    //     images.push(image);
+                    // }
+                    // {
+                    //     let mask: Image = input.to_mask_where_color_is_different(color);
+                    //     let draw_mass: bool = false;
+                    //     let image1: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::Before, draw_mass })?;
+                    //     let image2: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::Fill, draw_mass })?;
+                    //     let image3: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::After, draw_mass })?;
+                    //     let mut image: Image = mask.clone_zero();
+                    //     image = image.overlay_with_mask_color(&image1, 1)?;
+                    //     image = image.overlay_with_mask_color(&image2, 2)?;
+                    //     image = image.overlay_with_mask_color(&image3, 3)?;
+                    //     images.push(image);
+                    // }
+                    // {
+                    //     let mask: Image = input.to_mask_where_color_is_different(color);
+                    //     let draw_mass: bool = false;
+                    //     let image1: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::Before, draw_mass })?;
+                    //     let image2: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::Fill, draw_mass })?;
+                    //     let image3: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::After, draw_mass })?;
+                    //     let mut image: Image = mask.clone_zero();
+                    //     image = image.overlay_with_mask_color(&image1, 1)?;
+                    //     image = image.overlay_with_mask_color(&image2, 2)?;
+                    //     image = image.overlay_with_mask_color(&image3, 3)?;
+                    //     images.push(image);
+                    // }
+                    // {
+                    //     let image: Image = LineSpan::draw(&mask, &LineSpanDirection::HorizontalFillOrVerticalFill)?;
+                    //     images.push(image);
+                    // }
+                    // {
+                    //     let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::Fill })?;
+                    //     images.push(image);
+                    // }
+                    // {
+                    //     let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::Before })?;
+                    //     images.push(image);
+                    // }
+                    // {
+                    //     let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::After })?;
+                    //     images.push(image);
+                    // }
+                    // {
+                    //     let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::Before })?;
+                    //     images.push(image);
+                    // }
+                    // {
+                    //     let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::Fill })?;
+                    //     images.push(image);
+                    // }
+                    // {
+                    //     let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::After })?;
+                    //     images.push(image);
+                    // }
+                    // let vert_image0: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::Fill })?;
+                    // let horz_image1: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::Before })?;
+                    // let horz_image2: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::After })?;
+                    // let vert_image0: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::Before })?;
+                    // let vert_image1: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::After })?;
+                    // color_to_linespan_images.insert(color, vec![horz_image, vert_image]);
+                    color_to_linespan_images.insert(color, images);
+                }
+                // for color in 0..=9u8 {
+                //     // let image: Image = input.to_mask_where_color_is(color);
+                //     let image: Image = input.to_mask_where_color_is_different(color);
+                //     // let horz_image: Image = LineSpan::draw(&image, &LineSpanDirection::HorizontalFillOrVerticalFill)?;
+                //     // linespan_images.push(horz_image);
+                //     let horz_image0: Image = LineSpan::draw(&image, &LineSpanDirection::Horizontal { mode: LineSpanMode::Before })?;
+                //     linespan_images.push(horz_image0);
+                //     let horz_image1: Image = LineSpan::draw(&image, &LineSpanDirection::Horizontal { mode: LineSpanMode::After })?;
+                //     linespan_images.push(horz_image1);
+                //     let vert_image0: Image = LineSpan::draw(&image, &LineSpanDirection::Vertical { mode: LineSpanMode::Before })?;
+                //     linespan_images.push(vert_image0);
+                //     let vert_image1: Image = LineSpan::draw(&image, &LineSpanDirection::Vertical { mode: LineSpanMode::After })?;
+                //     linespan_images.push(vert_image1);
+                // }
+                // if let Some(color) = least_po
+                // if let Some(color) = most_popular_color {
+                    // let image: Image = input.to_mask_where_color_is(color);
+                    // let image: Image = input.to_mask_where_color_is_different(color);
+                    // let horz_image: Image = LineSpan::draw(&image, &LineSpanDirection::HorizontalFillOrVerticalFill)?;
+                    // linespan_images.push(horz_image);
+                    // let horz_image: Image = LineSpan::draw(&image, &LineSpanDirection::Horizontal { mode: LineSpanMode::Fill })?;
+                    // linespan_images.push(horz_image);
+                    // let vert_image: Image = LineSpan::draw(&image, &LineSpanDirection::Vertical { mode: LineSpanMode::Fill })?;
+                    // linespan_images.push(vert_image);
+                    // let horz_image0: Image = LineSpan::draw(&image, &LineSpanDirection::Horizontal { mode: LineSpanMode::Before })?;
+                    // linespan_images.push(horz_image0);
+                    // let horz_image1: Image = LineSpan::draw(&image, &LineSpanDirection::Horizontal { mode: LineSpanMode::After })?;
+                    // linespan_images.push(horz_image1);
+                    // let vert_image0: Image = LineSpan::draw(&image, &LineSpanDirection::Vertical { mode: LineSpanMode::Before })?;
+                    // linespan_images.push(vert_image0);
+                    // let vert_image1: Image = LineSpan::draw(&image, &LineSpanDirection::Vertical { mode: LineSpanMode::After })?;
+                    // linespan_images.push(vert_image1);
+                // }
             }
 
             let mut squares = HashMap::<(u8, PixelConnectivity), Image>::new();
@@ -1843,6 +1991,21 @@ impl SolveLogisticRegression {
                         }
                         record.serialize_bool(is_inside_bounding_box);
                     }
+
+                    // for linespan_image in &linespan_images {
+                        // let pixel: u8 = linespan_image.get(xx, yy).unwrap_or(255);
+                        // let is_line: bool = pixel > 0;
+                        // record.serialize_bool(is_line);
+                    // }
+
+                    if let Some(images) = color_to_linespan_images.get(&center) {
+                        for linespan_image in images {
+                            let pixel: u8 = linespan_image.get(xx, yy).unwrap_or(255);
+                            record.serialize_u8(pixel);
+                            // record.serialize_onehot(pixel, 4);
+                        }
+                    }
+
 
                     // skewed pixel with x skewed or y skewed. Worsens the predictions.
                     // {
