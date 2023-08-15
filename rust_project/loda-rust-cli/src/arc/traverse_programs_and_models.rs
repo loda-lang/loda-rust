@@ -1599,8 +1599,7 @@ impl TraverseProgramsAndModels {
         // so no point in having it enabled.
         let try_logistic_regression = false;
 
-        // How many ARC tasks be solved using the `splitview` solver.
-        // Of the public ARC dataset. It can solve 17 tasks.
+        // Solve `splitview` like tasks.
         let try_solve_split = true;
 
         // When processing the hidden ARC dataset, I suspect most of the solutions are found 

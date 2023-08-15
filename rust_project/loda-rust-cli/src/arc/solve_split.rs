@@ -1,5 +1,8 @@
 //! Solve `split-view` like tasks.
 //! 
+//! * With the public ARC 1 dataset. It can solve 17 tasks.
+//! * With the hidden ARC 1 dataset. It can solve 0 tasks.
+//! 
 //! Known problem: Can only split into columns or rows, not both.
 //! 
 //! In tasks where the input images have splits, and the output images happens to have the exact same size as one of the split parts.
