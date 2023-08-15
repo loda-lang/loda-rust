@@ -2,12 +2,13 @@
 //! 
 //! This doesn't solve any of the tasks from the hidden dataset.
 //!
-//! This solves 41 of the 800 tasks in the public ARC dataset.
-//! 009d5c81, 00d62c1b, 0a2355a6, 2281f1f4, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 
-//! 4258a5f9, 50cb2852, 543a7ed5, 67385a82, 67a3c6ac, 69889d6e, 6c434453, 6d75e8bb, 6e82a1ae, 
-//! 6f8cd79b, 810b9b61, 84f2aca1, 903d1b4a, 95990924, a699fb00, a9f96cdd, ae58858e, aedd82e4, 
-//! b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, 
-//! d2abd087, d364b489, d406998b, e0fb7511, e8593010
+//! This solves 49 of the 800 tasks in the public ARC dataset.
+//! 009d5c81, 00d62c1b, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280, 25d8a9c8, 32597951, 
+//! 332efdb3, 3618c87e, 4258a5f9, 44d8ac46, 4612dd53, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 
+//! 6c434453, 6d75e8bb, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, 
+//! a79310a0, a8d7556c, a9f96cdd, ae58858e, aedd82e4, b1948b0a, b60334d2, b6afb2da, bb43febb, 
+//! c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, dbc1a6ce, 
+//! ded97339, e0fb7511, e7dd8335, ef135b50
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
@@ -2050,6 +2051,10 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
 
 fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
     // println!("task_id: {}", task.id);
+
+    // Future experiment:
+    // Run logistic regression on the `train` pairs. If they all have computed the correct output.
+    // Then run logistic regression on the `test` pairs.
 
     let dataset: Dataset<f64, usize, Ix1>;
     let ratio: f32;
