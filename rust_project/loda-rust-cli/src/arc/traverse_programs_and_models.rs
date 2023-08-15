@@ -1804,6 +1804,7 @@ impl TraverseProgramsAndModels {
                 let pb = ProgressBar::new(number_of_tasks as u64);
                 let verbose_logistic_regression = false;
                 let verify_test_output = false;
+                let mut count_tasks_solved: usize = 0;
                 for model_item in &runner.plan.scheduled_model_item_vec {
                     let task: Task = model_item.borrow().task.clone();
                     
@@ -1817,9 +1818,8 @@ impl TraverseProgramsAndModels {
                             continue;
                         }
                     };
-                    if verbose_logistic_regression {
-                        println!("task: {} - testitem_vec.len(): {}", task.id, testitem_vec.len());
-                    }
+                    count_tasks_solved += 1;
+                    pb.println(format!("solved task: {}", task.id));
     
                     let model_id: ModelItemId = model_item.borrow().id.clone();    
                     let task_name: String = model_id.file_stem();
@@ -1837,7 +1837,7 @@ impl TraverseProgramsAndModels {
                     &self.arc_config.path_solution_teamid_json,
                     &state.current_tasks
                 );
-                println!("{} - Executable elapsed: {}.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
+                println!("{} - Executable elapsed: {}. Solved {} tasks.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()), count_tasks_solved);
     
                 println!("Done!");
                 return Ok(());
