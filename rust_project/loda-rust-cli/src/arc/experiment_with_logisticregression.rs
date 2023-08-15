@@ -2121,6 +2121,10 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
         {
             let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&computed_image);
             let prediction = arcathon_solution_json::Prediction {
+                // I think I made a mistake setting the index too high. Explaining why this didn't solve anything on the hidden dataset.
+                // Needs to be investigated.
+                // predicted_id should not be `index`, but should instead be 0.
+                // Instead of returning a Prediction vector, then return a TestItem vector
                 prediction_id: index as u8,
                 output: grid,
             };

@@ -1,4 +1,4 @@
-use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask, ImageProperty, ImageExtractRowColumn, ImageStats, ImagePeriodicity};
+use super::{arc_work_model, Image, ImageLabelSet, ImageLabel, Histogram, ImageHistogram, ImageFill, PixelConnectivity, ImageMask, ImageProperty, ImageExtractRowColumn, ImageStats, ImagePeriodicity, Split, SplitToLabel};
 use super::{SingleColorObject, SingleColorObjectToLabel};
 use super::{Grid, GridToLabel};
 use super::{Symmetry, SymmetryToLabel};
@@ -11,6 +11,7 @@ impl arc_work_model::ImageMeta {
             histogram_border: Histogram::new(),
             image_properties: HashMap::new(),
             image_label_set: HashSet::new(),
+            split: None,
             grid: None,
             symmetry: None,
             image_stats: None,
@@ -23,6 +24,7 @@ impl arc_work_model::ImageMeta {
         self.histogram_border = image.histogram_border();
         self.update_image_properties(image);
         self.assign_periodicity(image)?;
+        self.assign_split(image)?;
         self.assign_grid(image)?;
         self.assign_symmetry(image)?;
         self.assign_image_stats(image)?;
@@ -214,6 +216,25 @@ impl arc_work_model::ImageMeta {
             let label = ImageLabel::PeriodicityY { period: value };
             self.image_label_set.insert(label);
         }
+        Ok(())
+    }
+
+    fn assign_split(&mut self, image: &Image) -> anyhow::Result<()> {
+        if self.split.is_some() {
+            return Ok(());
+        }
+        let split: Split = match Split::analyze(image) {
+            Ok(value) => value,
+            Err(error) => {
+                println!("Unable to find split. error: {:?}", error);
+                return Ok(());
+            }
+        };
+        for split_label in split.to_split_labels() {
+            let label = ImageLabel::Split { label: split_label.clone() };
+            self.image_label_set.insert(label);
+        }
+        self.split = Some(split);
         Ok(())
     }
 

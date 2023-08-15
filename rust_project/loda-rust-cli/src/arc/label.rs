@@ -49,8 +49,13 @@ pub enum ImageProperty {
     NumberOfClustersWithLeastPopularIntersectionColor,
     CellCountX,
     CellCountY,
+    SplitPartSizeX,
+    SplitPartSizeY,
+    SplitPartSizeXY,
 
     // Ideas for more
+    // MassOfColor0, ... MassOfColor9,
+    // MassOfPixelsWithSingleIntersectionRemovalColor,
     // UniqueColorCountIgnoringTheMostPopularIntersectionColor,
     // NoisePixelsCountOutsideAnyObjects,
     // MaxNumberOfClustersInSparseSingleColorObject,
@@ -89,6 +94,28 @@ pub enum SymmetryLabel {
     // RepairColor { color: u8 },
     // Number of palindromic rows { count: u8 },
     // Number of palindromic columns { count: u8 },
+}
+
+/// Does the image contain horizontal lines or vertical lines that are splitting the image into multiple parts
+/// 
+/// Properties about an input image or an output image.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum SplitLabel {
+    SplitColor { color: u8 },
+    SplitWithSomeColor,
+    SplitDirectionX,
+    SplitDirectionY,
+    SplitDirectionSome,
+    SplitSeparatorSizeX { size: u8 },
+    SplitSeparatorSizeY { size: u8 },
+    SplitSeparatorSizeXY { size: u8 },
+    SplitSeparatorCountX { count: u8 },
+    SplitSeparatorCountY { count: u8 },
+    SplitPartSizeX { size: u8 },
+    SplitPartSizeY { size: u8 },
+    SplitPartSizeXY { size: u8 },
+    SplitPartCountX { count: u8 },
+    SplitPartCountY { count: u8 },
 }
 
 /// Does the image contain grid patterns
@@ -135,6 +162,7 @@ pub enum SingleColorObjectSparseLabel {
 /// Properties used for both the input image and the output image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ImageLabel {
+    Split { label: SplitLabel },
     Symmetry { label: SymmetryLabel },
     Grid { label: GridLabel },
     SingleColorObjectRectangle { label: SingleColorObjectRectangleLabel },
@@ -349,6 +377,8 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
+    // OutputSizeIsTheSameAsSplitViewCell,    
+    // Preserve image above the split view, and change the image below the separator
     // InputStatsIsOutputStats { mode: ImageStatsMode },
     // InputStatsHasHigherMeanAndLowerSigmaThanOutputStats { mode: ImageStatsMode },
     // InputStatsHasLowerMeanAndHigherSigmaThanOutputStats { mode: ImageStatsMode },
