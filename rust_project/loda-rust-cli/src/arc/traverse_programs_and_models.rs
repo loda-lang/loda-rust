@@ -1807,7 +1807,7 @@ impl TraverseProgramsAndModels {
                 for model_item in &runner.plan.scheduled_model_item_vec {
                     let task: Task = model_item.borrow().task.clone();
                     
-                    let predictions: Vec<Prediction> = match ExperimentWithLogisticRegression::process_task(&task, verify_test_output) {
+                    let testitem_vec: Vec<TestItem> = match ExperimentWithLogisticRegression::process_task(&task, verify_test_output) {
                         Ok(value) => value,
                         Err(error) => {
                             if verbose_logistic_regression {
@@ -1818,20 +1818,14 @@ impl TraverseProgramsAndModels {
                         }
                     };
                     if verbose_logistic_regression {
-                        println!("task: {} - predictions.len(): {}", task.id, predictions.len());
+                        println!("task: {} - testitem_vec.len(): {}", task.id, testitem_vec.len());
                     }
     
-                    let model_id: ModelItemId = model_item.borrow().id.clone(); 
-    
-                    let test_item = TestItem { 
-                        output_id: 0,
-                        number_of_predictions: predictions.len() as u8,
-                        predictions: predictions,
-                    };
+                    let model_id: ModelItemId = model_item.borrow().id.clone();    
                     let task_name: String = model_id.file_stem();
                     let task_item = TaskItem {
                         task_name: task_name,
-                        test_vec: vec![test_item],
+                        test_vec: testitem_vec,
                     };
                     // Future experiment: don't add if already exists
                     state.current_tasks.push(task_item);        
