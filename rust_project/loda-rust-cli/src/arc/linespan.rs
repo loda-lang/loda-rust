@@ -16,9 +16,13 @@ use super::{Image, ImageSize, ImageRotate, ImageMaskBoolean};
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub enum LineSpanDirection {
-    Horizontal { mode: LineSpanMode },
-    Vertical { mode: LineSpanMode },
+    Horizontal { mode: LineSpanMode, draw_mass: bool },
+    Vertical { mode: LineSpanMode, draw_mass: bool },
     HorizontalFillOrVerticalFill,
+
+    // Future experiments
+    // DiagonalA,
+    // DiagonalB,
 }
 
 #[derive(Clone, Debug)]
@@ -39,30 +43,30 @@ impl LineSpan {
             return Err(anyhow::anyhow!("image must be 1x1 or bigger"));
         }
         match direction {
-            LineSpanDirection::Horizontal { mode } => {
-                Self::draw_horizontal_linespans(image, mode)
+            LineSpanDirection::Horizontal { mode, draw_mass } => {
+                Self::draw_horizontal_linespans(image, mode, *draw_mass)
             },
-            LineSpanDirection::Vertical { mode } => {
-                Self::draw_vertical_linespans(image, mode)
+            LineSpanDirection::Vertical { mode, draw_mass } => {
+                Self::draw_vertical_linespans(image, mode, *draw_mass)
             },
             LineSpanDirection::HorizontalFillOrVerticalFill => {
                 let mode = LineSpanMode::Fill;
-                let image0: Image = Self::draw_horizontal_linespans(image, &mode)?;
-                let image1: Image = Self::draw_vertical_linespans(image, &mode)?;
+                let image0: Image = Self::draw_horizontal_linespans(image, &mode, false)?;
+                let image1: Image = Self::draw_vertical_linespans(image, &mode, false)?;
                 let image2: Image = image0.mask_or(&image1)?;
                 return Ok(image2);
             }
         }
     }
 
-    fn draw_vertical_linespans(image: &Image, mode: &LineSpanMode) -> anyhow::Result<Image> {
+    fn draw_vertical_linespans(image: &Image, mode: &LineSpanMode, draw_mass: bool) -> anyhow::Result<Image> {
         let image2: Image = image.rotate_ccw()?;
-        let image3: Image = Self::draw_horizontal_linespans(&image2, mode)?;
+        let image3: Image = Self::draw_horizontal_linespans(&image2, mode, draw_mass)?;
         let image4: Image = image3.rotate_cw()?;
         Ok(image4)
     }
 
-    fn draw_horizontal_linespans(image: &Image, mode: &LineSpanMode) -> anyhow::Result<Image> {
+    fn draw_horizontal_linespans(image: &Image, mode: &LineSpanMode, draw_mass: bool) -> anyhow::Result<Image> {
         let image_size: ImageSize = image.size();
 
         let mut result_image: Image = image.clone_zero();
@@ -105,8 +109,14 @@ impl LineSpan {
             }
 
             // Draw line
+            let mass_i32: i32 = max_x - min_x + 1;
+            if mass_i32 < 0 || mass_i32 >= 255 {
+                continue;
+            }
+            let mass: u8 = mass_i32 as u8;
+            let color: u8 = if draw_mass { mass } else { 1 };
             for x in min_x..=max_x {
-                _ = result_image.set(x, y as i32, 1);
+                _ = result_image.set(x, y as i32, color);
             }
         }
 
@@ -120,7 +130,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_horizontal_fill() {
+    fn test_10000_horizontal_fill_without_mass() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 0, 1, 1,
@@ -131,7 +141,10 @@ mod tests {
         ];
         let mask: Image = Image::try_create(6, 5, pixels).expect("image");
         
-        let direction: LineSpanDirection = LineSpanDirection::Horizontal { mode: LineSpanMode::Fill };
+        let direction: LineSpanDirection = LineSpanDirection::Horizontal { 
+            mode: LineSpanMode::Fill,
+            draw_mass: false,
+        };
         
         // Act
         let actual: Image = LineSpan::draw(&mask, &direction).expect("image");
@@ -149,7 +162,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_horizontal_before() {
+    fn test_10001_horizontal_fill_with_mass() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 0, 1, 1,
@@ -160,7 +173,42 @@ mod tests {
         ];
         let mask: Image = Image::try_create(6, 5, pixels).expect("image");
         
-        let direction: LineSpanDirection = LineSpanDirection::Horizontal { mode: LineSpanMode::Before };
+        let direction: LineSpanDirection = LineSpanDirection::Horizontal { 
+            mode: LineSpanMode::Fill,
+            draw_mass: true,
+        };
+        
+        // Act
+        let actual: Image = LineSpan::draw(&mask, &direction).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            6, 6, 6, 6, 6, 6,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 2, 2, 0,
+            0, 4, 4, 4, 4, 0,
+            0, 0, 4, 4, 4, 4,
+        ];
+        let expected: Image = Image::try_create(6, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10002_horizontal_before() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 1, 1,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 1, 0,
+            0, 1, 0, 1, 1, 0,
+            0, 0, 1, 1, 0, 1,
+        ];
+        let mask: Image = Image::try_create(6, 5, pixels).expect("image");
+        
+        let direction: LineSpanDirection = LineSpanDirection::Horizontal { 
+            mode: LineSpanMode::Before,
+            draw_mass: false,
+        };
         
         // Act
         let actual: Image = LineSpan::draw(&mask, &direction).expect("image");
@@ -178,7 +226,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_horizontal_after() {
+    fn test_10003_horizontal_after() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 0, 1, 1,
@@ -189,7 +237,10 @@ mod tests {
         ];
         let mask: Image = Image::try_create(6, 5, pixels).expect("image");
         
-        let direction: LineSpanDirection = LineSpanDirection::Horizontal { mode: LineSpanMode::After };
+        let direction: LineSpanDirection = LineSpanDirection::Horizontal { 
+            mode: LineSpanMode::After,
+            draw_mass: false,
+        };
         
         // Act
         let actual: Image = LineSpan::draw(&mask, &direction).expect("image");
@@ -218,7 +269,10 @@ mod tests {
         ];
         let mask: Image = Image::try_create(6, 5, pixels).expect("image");
         
-        let direction: LineSpanDirection = LineSpanDirection::Vertical { mode: LineSpanMode::Fill };
+        let direction: LineSpanDirection = LineSpanDirection::Vertical { 
+            mode: LineSpanMode::Fill,
+            draw_mass: false,
+        };
 
         // Act
         let actual: Image = LineSpan::draw(&mask, &direction).expect("image");
@@ -247,7 +301,10 @@ mod tests {
         ];
         let mask: Image = Image::try_create(6, 5, pixels).expect("image");
         
-        let direction: LineSpanDirection = LineSpanDirection::Vertical { mode: LineSpanMode::Before };
+        let direction: LineSpanDirection = LineSpanDirection::Vertical { 
+            mode: LineSpanMode::Before,
+            draw_mass: false,
+        };
 
         // Act
         let actual: Image = LineSpan::draw(&mask, &direction).expect("image");
@@ -276,7 +333,10 @@ mod tests {
         ];
         let mask: Image = Image::try_create(6, 5, pixels).expect("image");
         
-        let direction: LineSpanDirection = LineSpanDirection::Vertical { mode: LineSpanMode::After };
+        let direction: LineSpanDirection = LineSpanDirection::Vertical { 
+            mode: LineSpanMode::After,
+            draw_mass: false,
+        };
 
         // Act
         let actual: Image = LineSpan::draw(&mask, &direction).expect("image");
