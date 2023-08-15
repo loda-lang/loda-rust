@@ -2053,7 +2053,8 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
     // println!("task_id: {}", task.id);
 
     // Future experiment:
-    // Run logistic regression on the `train` pairs. If they all have computed the correct output.
+    // Run logistic regression on the `train` pairs. By adding the `train` pairs to the `valid` pairs. 
+    // If all the `train` inputs yields the correct output.
     // Then run logistic regression on the `test` pairs.
 
     let dataset: Dataset<f64, usize, Ix1>;
@@ -2095,15 +2096,11 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
     // println!("{:?}", pred);
 
     let mut testitem_vec = Vec::<arcathon_solution_json::TestItem>::new();
-    let mut count_test: usize = 0;
     for pair in &task.pairs {
         if pair.pair_type != PairType::Test {
             continue;
         }
 
-        let index: usize = count_test;
-        count_test += 1;
-        
         let original_input: Image = pair.input.image.clone();
 
         let width: u8 = original_input.width();
