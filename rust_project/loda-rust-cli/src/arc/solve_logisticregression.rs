@@ -1906,6 +1906,9 @@ impl SolveLogisticRegression {
                     // }
 
                     // Future experiments
+                    // for each color draw horizontal lines between the left most pixel, and the right most pixel.
+                    // for each color draw vertical lines between the top most pixel, and the bottom most pixel.
+                    //
                     // shape type
                     // shape bounding box
                     //
