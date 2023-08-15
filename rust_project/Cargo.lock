@@ -1995,7 +1995,7 @@ dependencies = [
 
 [[package]]
 name = "loda-rust-cli"
-version = "2023.8.14"
+version = "2023.8.15"
 dependencies = [
  "alphanumeric-sort",
  "anyhow",
