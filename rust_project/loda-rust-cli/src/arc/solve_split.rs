@@ -147,7 +147,7 @@ impl SplitRecord {
             let mut found_separator_size: Option<u8> = None;
             for image_label in &input.image_meta.image_label_set {
                 let split_label: &SplitLabel = match image_label {
-                    ImageLabel::Split { label } => label,
+                    ImageLabel::Split { label } => &label,
                     _ => continue
                 };
                 if is_horizontal_split {
