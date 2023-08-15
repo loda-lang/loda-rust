@@ -1,7 +1,7 @@
 ####################################################################################################
 ## Builder
 ####################################################################################################
-FROM rust:1.65.0 AS builder
+FROM rust:1.71.1 AS builder
 WORKDIR /my_builddir
 COPY ./loda-rust-core loda-rust-core
 COPY ./loda-rust-cli loda-rust-cli
