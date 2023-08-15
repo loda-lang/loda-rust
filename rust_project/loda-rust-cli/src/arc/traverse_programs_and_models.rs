@@ -1819,7 +1819,9 @@ impl TraverseProgramsAndModels {
                         }
                     };
                     count_tasks_solved += 1;
-                    pb.println(format!("solved task: {}", task.id));
+                    if verbose_logistic_regression {
+                        pb.println(format!("solved task: {}", task.id));
+                    }
     
                     let model_id: ModelItemId = model_item.borrow().id.clone();    
                     let task_name: String = model_id.file_stem();

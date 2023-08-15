@@ -15,6 +15,7 @@
 //! 
 //! Future experiments:
 //! * Serialize the obfuscated color with different offsets, so the logistic regression don't get a color bias.
+//! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise};
