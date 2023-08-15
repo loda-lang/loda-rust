@@ -14,6 +14,7 @@
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 //! 
 //! Future experiments:
+//! * Do a few iterations, passing in the predicted output, and use as input for the next iteration.
 //! * Serialize the obfuscated color with different offsets, so the logistic regression don't get a color bias.
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
