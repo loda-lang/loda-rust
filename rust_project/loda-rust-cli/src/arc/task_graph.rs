@@ -824,6 +824,46 @@ impl TaskGraph {
         Ok(position_to_pixelnodeindex)
     }
 
+    /// Get the node index of the pixel at the given coordinate.
+    pub fn get_pixel_nodeindex_at_xy_coordinate(&self, image_node_index: NodeIndex, find_x: u8, find_y: u8) -> anyhow::Result<NodeIndex> {
+        let mut found_pixel_node_index: Option<NodeIndex> = None;
+        for edge_image in self.graph.edges(image_node_index) {
+            let node_index: NodeIndex = edge_image.target();
+            match &self.graph[node_index] {
+                NodeData::Pixel => {},
+                _ => continue
+            }
+            let pixel_index: NodeIndex = node_index;
+
+            let mut found_x: Option<u8> = None;
+            let mut found_y: Option<u8> = None;
+            for edge_pixel in self.graph.edges(pixel_index) {
+                let child_index: NodeIndex = edge_pixel.target();
+                let child_node: &NodeData = &self.graph[child_index];
+                match child_node {
+                    NodeData::PositionX { x } => { found_x = Some(*x); },
+                    NodeData::PositionY { y } => { found_y = Some(*y); },
+                    _ => {}
+                }
+            }
+            let (pixel_x, pixel_y) = match (found_x, found_y) {
+                (Some(x), Some(y)) => (x, y),
+                _ => continue
+            };
+            if pixel_x != find_x || pixel_y != find_y {
+                continue;
+            }
+            if found_pixel_node_index.is_some() {
+                return Err(anyhow::anyhow!("multiple candidates found. x: {} y: {}", find_x, find_y));
+            }
+            found_pixel_node_index = Some(node_index);
+        }
+        match found_pixel_node_index {
+            Some(pixel_node_index) => Ok(pixel_node_index),
+            None => Err(anyhow::anyhow!("Cannot find the pixel in the graph"))
+        }
+    }
+
     fn get_color_of_pixel(&self, pixel_nodeindex: NodeIndex) -> anyhow::Result<u8> {
         match &self.graph[pixel_nodeindex] {
             NodeData::Pixel => {},
