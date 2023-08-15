@@ -106,6 +106,7 @@ impl SubcommandARCWeb {
             all_json_paths,
             cache: cache_arc,
         });
+        app.with(tide::log::LogMiddleware::new());
         app.at("/task").get(Self::get_task_list);
         app.at("/task/:task_id").get(Self::get_task_with_id);
         app.at("/task/:task_id/prompt").get(Self::get_prompt);

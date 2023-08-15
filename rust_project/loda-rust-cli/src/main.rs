@@ -56,6 +56,7 @@ use clap::{Arg, Command};
 async fn main() -> anyhow::Result<()> {
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
+    // tide::log::with_level(tide::log::LevelFilter::Trace);
 
     let matches = Command::new("loda-rust")
         .version(env!("CARGO_PKG_VERSION"))
