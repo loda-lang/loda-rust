@@ -12,6 +12,9 @@
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
+//! 
+//! Future experiments:
+//! * Serialize the obfuscated color with different offsets, so the logistic regression don't get a color bias.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise};
@@ -1902,6 +1905,9 @@ impl SolveLogisticRegression {
                     // }
 
                     // Future experiments
+                    // shape type
+                    // shape bounding box
+                    //
                     // push all the training pairs that have been rotated by 90 degrees.
                     // push all the training pairs that have been flipped.
                     //
@@ -2053,6 +2059,9 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
     // println!("task_id: {}", task.id);
 
     // Future experiment:
+    // If there are multiple `test` pairs, then the `test` pairs should be split into multiple `valid` pairs.
+    // Currently assumes that there is only 1 `test` pair. So the `pred.get(address)` behaves the same for all the `test` pairs.
+    //
     // Run logistic regression on the `train` pairs. By adding the `train` pairs to the `valid` pairs. 
     // If all the `train` inputs yields the correct output.
     // Then run logistic regression on the `test` pairs.
