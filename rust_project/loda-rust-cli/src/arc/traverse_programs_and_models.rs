@@ -34,7 +34,7 @@ use super::ExperimentWithConvolution;
 
 #[allow(unused_imports)]
 #[cfg(feature = "linfa")]
-use super::ExperimentWithLogisticRegression;
+use super::SolveLogisticRegression;
 
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML, ImageLabel, GridLabel};
@@ -99,7 +99,7 @@ impl TraverseProgramsAndModels {
         {
             let tpam = TraverseProgramsAndModels::new()?;
             let task_vec: Vec<Task> = tpam.to_task_vec();
-            let mut instance = ExperimentWithLogisticRegression::new(task_vec);
+            let mut instance = SolveLogisticRegression::new(task_vec);
             instance.run()?;
             return Ok(());
         }
@@ -1807,7 +1807,7 @@ impl TraverseProgramsAndModels {
                 for model_item in &runner.plan.scheduled_model_item_vec {
                     let task: Task = model_item.borrow().task.clone();
                     
-                    let testitem_vec: Vec<TestItem> = match ExperimentWithLogisticRegression::process_task(&task, verify_test_output) {
+                    let testitem_vec: Vec<TestItem> = match SolveLogisticRegression::process_task(&task, verify_test_output) {
                         Ok(value) => value,
                         Err(error) => {
                             if verbose_logistic_regression {

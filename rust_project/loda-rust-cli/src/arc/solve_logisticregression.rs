@@ -177,12 +177,12 @@ impl Record {
     }
 }
 
-pub struct ExperimentWithLogisticRegression {
+pub struct SolveLogisticRegression {
     #[allow(dead_code)]
     tasks: Vec<Task>,
 }
 
-impl ExperimentWithLogisticRegression {
+impl SolveLogisticRegression {
     #[allow(dead_code)]
     pub fn new(tasks: Vec<Task>) -> Self {
         // println!("loaded {} tasks", tasks.len());
