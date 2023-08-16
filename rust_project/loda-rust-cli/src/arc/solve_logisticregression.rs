@@ -1845,7 +1845,7 @@ impl SolveLogisticRegression {
                         let value2: u8 = if input_histogram_intersection[i] { i as u8 } else { 255 };
                         record.serialize_color_complex(value2, obfuscated_color_offset);
                     }
-                    record.serialize_bool(input_has_unambiguous_connectivity);
+                    record.serialize_bool_onehot(input_has_unambiguous_connectivity);
                     record.serialize_u8(v0);
                     record.serialize_u8(v1);
                     record.serialize_u8(v2);
@@ -1869,8 +1869,8 @@ impl SolveLogisticRegression {
                             column_contains_noise_color = true;
                         }
                     }
-                    record.serialize_bool(row_contains_noise_color);
-                    record.serialize_bool(column_contains_noise_color);
+                    record.serialize_bool_onehot(row_contains_noise_color);
+                    record.serialize_bool_onehot(column_contains_noise_color);
 
 
                     // color of the neighbour in all 8 directions
@@ -2207,7 +2207,7 @@ impl SolveLogisticRegression {
                         if let Some(image) = earlier_prediction_image {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
                             record.serialize_onehot(pixel, 10);
-                            record.serialize_bool(pixel == center);
+                            record.serialize_bool_onehot(pixel == center);
                             record.serialize_color_complex(pixel, obfuscated_color_offset);
                         }
                     }
@@ -2397,7 +2397,7 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(corner_top_right);
                     // record.serialize_u8(corner_bottom_left);
                     // record.serialize_u8(corner_bottom_right);
-                    record.serialize_bool(is_grid);
+                    record.serialize_bool_onehot(is_grid);
                     record.serialize_color_complex(grid_center, obfuscated_color_offset);
                     record.serialize_color_complex(grid_color, obfuscated_color_offset);
                     // record.serialize_bool(inside_bounding_box);
