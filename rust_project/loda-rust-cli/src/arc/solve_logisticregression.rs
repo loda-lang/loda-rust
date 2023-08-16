@@ -1777,8 +1777,10 @@ impl SolveLogisticRegression {
                     record.serialize_u8(distance_right);
                     record.serialize_ternary(half_horizontal);
                     record.serialize_ternary(half_vertical);
-                    record.serialize_bool(input_is_noise_color);
-                    record.serialize_bool(input_is_most_popular_color);
+                    // record.serialize_bool(input_is_noise_color);
+                    // record.serialize_bool(input_is_most_popular_color);
+                    record.serialize_onehot_discard_overflow(if input_is_noise_color { 0 } else { 1 }, 2);
+                    record.serialize_onehot_discard_overflow(if input_is_most_popular_color { 0 } else { 1 }, 2);
                     record.serialize_onehot_discard_overflow(x_mod2, 2);
                     record.serialize_onehot_discard_overflow(y_mod2, 2);
                     record.serialize_onehot_discard_overflow(x_reverse_mod2, 2);
@@ -2322,6 +2324,7 @@ impl SolveLogisticRegression {
                     //
                     // shape type
                     // shape bounding box
+                    // shape transformations: normal, rot90, rot180, rot270, flipx, flipy.
                     //
                     // push all the training pairs that have been rotated by 90 degrees.
                     // push all the training pairs that have been flipped.
