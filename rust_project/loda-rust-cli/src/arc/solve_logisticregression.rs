@@ -19,13 +19,16 @@
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
 use super::human_readable_utc_timestamp;
 use anyhow::Context;
 use indicatif::ProgressBar;
+use rand::seq::SliceRandom;
+use rand::{SeedableRng, Rng};
+use rand::rngs::StdRng;
 use serde::Serialize;
 use std::collections::HashMap;
 use linfa::prelude::*;
@@ -226,20 +229,23 @@ impl SolveLogisticRegression {
     }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
-        let records = Self::process_task_iteration(task)?;
-
-        let computed_images: Vec<Image> = perform_logistic_regression(task, &records)?;
+        let mut computed_images = Vec::<Image>::new();
+        let number_of_iterations: usize = 1;
+        for iteration_index in 0..number_of_iterations {
+            let records = Self::process_task_iteration(task, iteration_index, computed_images)?;
+            computed_images = perform_logistic_regression(task, &records)?;
+        }
 
         let testitem_vec: Vec::<arcathon_solution_json::TestItem> = testitems_from_computed_images(
             task, 
-            &computed_images, 
+            &computed_images,
             verify_test_output,
         )?;
 
         Ok(testitem_vec)
     }
 
-    fn process_task_iteration(task: &Task) -> anyhow::Result<Vec::<Record>> {
+    fn process_task_iteration(task: &Task, process_task_iteration_index: usize, computed_images: Vec<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
 
         if !task.is_output_size_same_as_input_size() {
@@ -247,6 +253,56 @@ impl SolveLogisticRegression {
                 HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
             }
             return Err(anyhow::anyhow!("skipping task: {} because output size is not the same as input size", task.id));
+        }
+
+        let mut earlier_prediction_image_vec = Vec::<Image>::new();
+        if !computed_images.is_empty() {
+            let random_seed: u64 = process_task_iteration_index as u64;
+            let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
+
+            let strategy_vec: Vec<(u8,usize)> = match process_task_iteration_index {
+                0 => vec![(0, 10), (1, 10), (2, 80)],
+                1 => vec![(0, 10), (1, 20), (2, 70)],
+                2 => vec![(0, 10), (1, 40), (2, 50)],
+                3 => vec![(0, 10), (1, 60), (2, 30)],
+                _ => vec![(0, 10), (1, 80), (2, 10)],
+            };
+
+            for pair in &task.pairs {
+                if pair.pair_type == PairType::Train {
+                    let size: ImageSize = pair.input.image.size();
+                    let mut semi_useful_output_image = pair.output.image.clone_zero();
+                    for y in 0..size.height {
+                        for x in 0..size.width {
+                            let strategy_value: &u8 = &strategy_vec.choose_weighted(&mut rng, |item| item.1).unwrap().0;
+                            let noise_value: u8 = rng.gen_range(0..=255).max(255) as u8;
+
+                            let input_color: u8 = pair.input.image.get(x as i32, y as i32).unwrap_or(255);
+                            let output_color: u8 = pair.output.image.get(x as i32, y as i32).unwrap_or(255);
+                            let set_color: u8;
+                            match strategy_value {
+                                0 => {
+                                    set_color = input_color;
+                                },
+                                1 => {
+                                    set_color = output_color;
+                                },
+                                _ => {
+                                    set_color = noise_value;
+                                }
+                            }
+
+                            _ = semi_useful_output_image.set(x as i32, y as i32, set_color);
+                        }
+                    }
+                    earlier_prediction_image_vec.push(semi_useful_output_image);
+                    continue;
+                }
+            }
+
+            for computed_image in &computed_images {
+                earlier_prediction_image_vec.push(computed_image.clone());
+            }
         }
 
         let mut input_histogram_intersection: [bool; 10] = [false; 10];
@@ -1037,6 +1093,8 @@ impl SolveLogisticRegression {
             }
 
             let input_denoise_type1: Image = input.denoise_type1(most_popular_color.unwrap_or(255))?;
+
+            let earlier_prediction_image: Option<&Image> = earlier_prediction_image_vec.get(pair_index);
 
             for y in 0..height {
                 for x in 0..width {
@@ -2093,6 +2151,16 @@ impl SolveLogisticRegression {
                         let pixel: u8 = shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
                         // record.serialize_u8(pixel);
                         record.serialize_onehot(pixel, 50);
+                    }
+
+                    {
+
+                        if let Some(image) = earlier_prediction_image {
+                            let pixel: u8 = image.get(xx, yy).unwrap_or(0);
+                            record.serialize_onehot(pixel, 10);
+                            record.serialize_bool(pixel == center);
+                            record.serialize_color_complex(pixel);
+                        }
                     }
 
                     // {
