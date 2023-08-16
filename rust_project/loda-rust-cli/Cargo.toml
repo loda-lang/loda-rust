@@ -12,7 +12,7 @@ name = "loda-rust"
 path = "src/main.rs"
 
 [features]
-default = ["loda-rust-arc", "linfa"]
+#default = ["loda-rust-arc", "linfa"]
 linfa = ["dep:linfa", "dep:linfa-logistic", "dep:linfa-preprocessing", "dep:ndarray"]
 loda-rust-arc = ["dep:petgraph"]
 
