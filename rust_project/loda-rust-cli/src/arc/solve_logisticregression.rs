@@ -57,6 +57,11 @@ impl Record {
     }
 
     #[allow(dead_code)]
+    fn serialize_bool_onehot(&mut self, value: bool) {
+        self.serialize_onehot_discard_overflow(if value { 0 } else { 1 }, 2);
+    }
+
+    #[allow(dead_code)]
     fn serialize_ternary(&mut self, value: i8) {
         let v: f64;
         if value == 0 {
@@ -1777,10 +1782,8 @@ impl SolveLogisticRegression {
                     record.serialize_u8(distance_right);
                     record.serialize_ternary(half_horizontal);
                     record.serialize_ternary(half_vertical);
-                    // record.serialize_bool(input_is_noise_color);
-                    // record.serialize_bool(input_is_most_popular_color);
-                    record.serialize_onehot_discard_overflow(if input_is_noise_color { 0 } else { 1 }, 2);
-                    record.serialize_onehot_discard_overflow(if input_is_most_popular_color { 0 } else { 1 }, 2);
+                    record.serialize_bool_onehot(input_is_noise_color);
+                    record.serialize_bool_onehot(input_is_most_popular_color);
                     record.serialize_onehot_discard_overflow(x_mod2, 2);
                     record.serialize_onehot_discard_overflow(y_mod2, 2);
                     record.serialize_onehot_discard_overflow(x_reverse_mod2, 2);
