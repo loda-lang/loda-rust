@@ -1203,15 +1203,35 @@ impl SolveLogisticRegression {
 
                     let input_is_most_popular_color: bool = most_popular_color == Some(center);
                 
-                    let x_mod2: bool = x % 2 == 0;
-                    let y_mod2: bool = y % 2 == 0;
-                    let x_reverse_mod2: bool = x_reverse % 2 == 0;
-                    let y_reverse_mod2: bool = y_reverse % 2 == 0;
+                    let x_mod2: u8 = x % 2;
+                    let y_mod2: u8 = y % 2;
+                    let x_reverse_mod2: u8 = x_reverse % 2;
+                    let y_reverse_mod2: u8 = y_reverse % 2;
 
-                    // let x_mod3: u8 = x % 3;
-                    // let y_mod3: u8 = y % 3;
-                    // let x_reverse_mod3: u8 = x_reverse % 3;
-                    // let y_reverse_mod3: u8 = y_reverse % 3;
+                    let x_mod3: u8 = x % 3;
+                    let y_mod3: u8 = y % 3;
+                    let x_reverse_mod3: u8 = x_reverse % 3;
+                    let y_reverse_mod3: u8 = y_reverse % 3;
+
+                    let x_mod4: u8 = x % 4;
+                    let y_mod4: u8 = y % 4;
+                    let x_reverse_mod4: u8 = x_reverse % 4;
+                    let y_reverse_mod4: u8 = y_reverse % 4;
+
+                    let x_mod5: u8 = x % 5;
+                    let y_mod5: u8 = y % 5;
+                    let x_reverse_mod5: u8 = x_reverse % 5;
+                    let y_reverse_mod5: u8 = y_reverse % 5;
+
+                    let x2_mod2: u8 = (x / 2) % 2;
+                    let y2_mod2: u8 = (y / 2) % 2;
+                    let x2_reverse_mod2: u8 = (x_reverse / 2) % 2;
+                    let y2_reverse_mod2: u8 = (y_reverse / 2) % 2;
+
+                    let x4_mod2: u8 = (x / 4) % 2;
+                    let y4_mod2: u8 = (y / 4) % 2;
+                    let x4_reverse_mod2: u8 = (x_reverse / 4) % 2;
+                    let y4_reverse_mod2: u8 = (y_reverse / 4) % 2;
 
                     let mut preserve_edge: bool = false;
 
@@ -1768,10 +1788,39 @@ impl SolveLogisticRegression {
                     record.serialize_ternary(half_vertical);
                     record.serialize_bool(input_is_noise_color);
                     record.serialize_bool(input_is_most_popular_color);
-                    record.serialize_bool(x_mod2);
-                    record.serialize_bool(y_mod2);
-                    record.serialize_bool(x_reverse_mod2);
-                    record.serialize_bool(y_reverse_mod2);
+                    record.serialize_onehot_discard_overflow(x_mod2, 2);
+                    record.serialize_onehot_discard_overflow(y_mod2, 2);
+                    record.serialize_onehot_discard_overflow(x_reverse_mod2, 2);
+                    record.serialize_onehot_discard_overflow(y_reverse_mod2, 2);
+                    // record.serialize_onehot_discard_overflow(x_mod3, 3);
+                    // record.serialize_onehot_discard_overflow(y_mod3, 3);
+                    // record.serialize_onehot_discard_overflow(x_reverse_mod3, 3);
+                    // record.serialize_onehot_discard_overflow(y_reverse_mod3, 3);
+                    // record.serialize_onehot_discard_overflow(x_mod4, 4);
+                    // record.serialize_onehot_discard_overflow(y_mod4, 4);
+                    // record.serialize_onehot_discard_overflow(x_reverse_mod4, 4);
+                    // record.serialize_onehot_discard_overflow(y_reverse_mod4, 4);
+                    // record.serialize_onehot_discard_overflow(x_mod5, 5);
+                    // record.serialize_onehot_discard_overflow(y_mod5, 5);
+                    // record.serialize_onehot_discard_overflow(x_reverse_mod5, 5);
+                    // record.serialize_onehot_discard_overflow(y_reverse_mod5, 5);
+                    // record.serialize_onehot_discard_overflow(x2_mod2, 2);
+                    // record.serialize_onehot_discard_overflow(y2_mod2, 2);
+                    // record.serialize_onehot_discard_overflow(x2_reverse_mod2, 2);
+                    // record.serialize_onehot_discard_overflow(y2_reverse_mod2, 2);
+                    // record.serialize_onehot_discard_overflow(x4_mod2, 2);
+                    // record.serialize_onehot_discard_overflow(y4_mod2, 2);
+                    // record.serialize_onehot_discard_overflow(x4_reverse_mod2, 2);
+                    // record.serialize_onehot_discard_overflow(y4_reverse_mod2, 2);
+                    // record.serialize_onehot_discard_overflow((x_mod2 + y_mod2) & 1, 2);
+                    // record.serialize_onehot_discard_overflow((x_mod2 + y_reverse_mod2) & 1, 2);
+                    // record.serialize_onehot_discard_overflow((x_reverse_mod2 + y_mod2) & 1, 2);
+                    // record.serialize_onehot_discard_overflow((x_reverse_mod2 + y_reverse_mod2) & 1, 2);
+                    // record.serialize_onehot_discard_overflow((x2_mod2 + y2_mod2) & 1, 2);
+                    // record.serialize_onehot_discard_overflow((x2_mod2 + y2_reverse_mod2) & 1, 2);
+                    // record.serialize_onehot_discard_overflow((x2_reverse_mod2 + y2_mod2) & 1, 2);
+                    // record.serialize_onehot_discard_overflow((x2_reverse_mod2 + y2_reverse_mod2) & 1, 2);
+                    record.serialize_bool(preserve_edge);
                     record.serialize_bool(preserve_edge);
                     record.serialize_bool(full_row_and_column);
                     record.serialize_bool(full_row_xor_column);
