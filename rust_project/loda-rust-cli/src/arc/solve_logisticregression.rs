@@ -1822,6 +1822,8 @@ impl SolveLogisticRegression {
                     record.serialize_color_complex(the_holecount_connectivity8, obfuscated_color_offset);
                     // record.serialize_u8(the_holecount_connectivity4);
                     // record.serialize_u8(the_holecount_connectivity8);
+                    record.serialize_onehot_discard_overflow(the_holecount_connectivity4, 5);
+                    record.serialize_onehot_discard_overflow(the_holecount_connectivity8, 5);
                     record.serialize_bool(corners_center1);
                     record.serialize_bool(corners_center2);
                     record.serialize_bool(corners_center3);
