@@ -226,6 +226,20 @@ impl SolveLogisticRegression {
     }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
+        let records = Self::process_task_iteration(task)?;
+
+        let computed_images: Vec<Image> = perform_logistic_regression(task, &records)?;
+
+        let testitem_vec: Vec::<arcathon_solution_json::TestItem> = testitems_from_computed_images(
+            task, 
+            &computed_images, 
+            verify_test_output,
+        )?;
+
+        Ok(testitem_vec)
+    }
+
+    fn process_task_iteration(task: &Task) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
 
         if !task.is_output_size_same_as_input_size() {
@@ -2276,13 +2290,7 @@ impl SolveLogisticRegression {
             }
         }
 
-        let testitem_vec: Vec::<arcathon_solution_json::TestItem> = perform_logistic_regression(
-            task, 
-            &records, 
-            verify_test_output,
-        )?;
-
-        Ok(testitem_vec)
+        Ok(records)
     }
 }
 
@@ -2344,10 +2352,11 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
     Ok(instance)
 }
 
-fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
+fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Result<Vec::<Image>> {
     // println!("task_id: {}", task.id);
 
     // Future experiment:
+    // Deal with ARC tasks that have 2 or more `test` pairs.
     // If there are multiple `test` pairs, then the `test` pairs should be split into multiple `valid` pairs.
     // Currently assumes that there is only 1 `test` pair. So the `pred.get(address)` behaves the same for all the `test` pairs.
     //
@@ -2393,7 +2402,7 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
     // print out the predicted output pixel values
     // println!("{:?}", pred);
 
-    let mut testitem_vec = Vec::<arcathon_solution_json::TestItem>::new();
+    let mut computed_test_images_vec = Vec::<Image>::new();
     for pair in &task.pairs {
         if pair.pair_type != PairType::Test {
             continue;
@@ -2417,9 +2426,29 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
                 _ = computed_image.set(xx, yy, predicted_color);
             }
         }
+        computed_test_images_vec.push(computed_image);
+    }
+
+    if computed_test_images_vec.len() != task.count_test() {
+        return Err(anyhow::anyhow!("Expected same length of computed_test_images_vec and task.count_test()"));
+    }
+    Ok(computed_test_images_vec)
+}
+
+fn testitems_from_computed_images(task: &Task, computed_images: &Vec<Image>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
+    let mut testitem_vec = Vec::<arcathon_solution_json::TestItem>::new();
+    let mut test_index: usize = 0;
+    for pair in &task.pairs {
+        if pair.pair_type != PairType::Test {
+            continue;
+        }
+        let computed_image: &Image = &computed_images[test_index];
+        test_index += 1;
+
+        let original_input: Image = pair.input.image.clone();
 
         {
-            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&computed_image);
+            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(computed_image);
             let prediction = arcathon_solution_json::Prediction {
                 prediction_id: 0,
                 output: grid,
@@ -2438,13 +2467,13 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
 
         if WRITE_TO_HTMLLOG {
             let expected_output: Image = pair.output.test_image.clone();
-            if computed_image == expected_output {
+            if *computed_image == expected_output {
                 if task.occur_in_solutions_csv {
                     HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
                 } else {
                     HtmlLog::text(format!("{} - correct - no previous solution", task.id));
                 }
-                HtmlLog::image(&computed_image);
+                HtmlLog::image(computed_image);
             } else {
                 HtmlLog::text(format!("{} - incorrect", task.id));
                 let images: Vec<Image> = vec![
@@ -2458,7 +2487,7 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
 
         if verify_test_output {
             let expected_output: Image = pair.output.test_image.clone();
-            if computed_image != expected_output {
+            if *computed_image != expected_output {
                 return Err(anyhow::anyhow!("The predicted output doesn't match with the expected output"));
             }
         }
