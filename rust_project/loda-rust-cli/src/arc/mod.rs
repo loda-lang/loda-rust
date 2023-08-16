@@ -262,7 +262,7 @@ pub use time_util::*;
 pub use traverse_programs_and_models::TraverseProgramsAndModels;
 
 #[cfg(feature = "linfa")]
-mod experiment_with_logisticregression;
+mod solve_logisticregression;
 
 #[cfg(feature = "linfa")]
-pub use experiment_with_logisticregression::ExperimentWithLogisticRegression;
+pub use solve_logisticregression::SolveLogisticRegression;

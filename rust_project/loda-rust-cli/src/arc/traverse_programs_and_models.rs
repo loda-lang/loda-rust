@@ -34,7 +34,7 @@ use super::ExperimentWithConvolution;
 
 #[allow(unused_imports)]
 #[cfg(feature = "linfa")]
-use super::ExperimentWithLogisticRegression;
+use super::SolveLogisticRegression;
 
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML, ImageLabel, GridLabel};
@@ -99,7 +99,7 @@ impl TraverseProgramsAndModels {
         {
             let tpam = TraverseProgramsAndModels::new()?;
             let task_vec: Vec<Task> = tpam.to_task_vec();
-            let mut instance = ExperimentWithLogisticRegression::new(task_vec);
+            let mut instance = SolveLogisticRegression::new(task_vec);
             instance.run()?;
             return Ok(());
         }
@@ -1597,11 +1597,10 @@ impl TraverseProgramsAndModels {
 
         // The logistic regression has not solved any of the tasks in the hidden ARC dataset.
         // so no point in having it enabled.
-        let try_logistic_regression = false;
+        let try_logistic_regression = true;
 
-        // How many ARC tasks be solved using the `splitview` solver.
-        // Of the public ARC dataset. It can solve 17 tasks.
-        let try_solve_split = true;
+        // Solve `splitview` like tasks.
+        let try_solve_split = false;
 
         // When processing the hidden ARC dataset, I suspect most of the solutions are found 
         // without doing any mutation of existing solutions.
@@ -1805,10 +1804,11 @@ impl TraverseProgramsAndModels {
                 let pb = ProgressBar::new(number_of_tasks as u64);
                 let verbose_logistic_regression = false;
                 let verify_test_output = false;
+                let mut count_tasks_solved: usize = 0;
                 for model_item in &runner.plan.scheduled_model_item_vec {
                     let task: Task = model_item.borrow().task.clone();
                     
-                    let predictions: Vec<Prediction> = match ExperimentWithLogisticRegression::process_task(&task, verify_test_output) {
+                    let testitem_vec: Vec<TestItem> = match SolveLogisticRegression::process_task(&task, verify_test_output) {
                         Ok(value) => value,
                         Err(error) => {
                             if verbose_logistic_regression {
@@ -1818,21 +1818,16 @@ impl TraverseProgramsAndModels {
                             continue;
                         }
                     };
+                    count_tasks_solved += 1;
                     if verbose_logistic_regression {
-                        println!("task: {} - predictions.len(): {}", task.id, predictions.len());
+                        pb.println(format!("solved task: {}", task.id));
                     }
     
-                    let model_id: ModelItemId = model_item.borrow().id.clone(); 
-    
-                    let test_item = TestItem { 
-                        output_id: 0,
-                        number_of_predictions: predictions.len() as u8,
-                        predictions: predictions,
-                    };
+                    let model_id: ModelItemId = model_item.borrow().id.clone();    
                     let task_name: String = model_id.file_stem();
                     let task_item = TaskItem {
                         task_name: task_name,
-                        test_vec: vec![test_item],
+                        test_vec: testitem_vec,
                     };
                     // Future experiment: don't add if already exists
                     state.current_tasks.push(task_item);        
@@ -1844,7 +1839,7 @@ impl TraverseProgramsAndModels {
                     &self.arc_config.path_solution_teamid_json,
                     &state.current_tasks
                 );
-                println!("{} - Executable elapsed: {}.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
+                println!("{} - Executable elapsed: {}. Solved {} tasks.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()), count_tasks_solved);
     
                 println!("Done!");
                 return Ok(());

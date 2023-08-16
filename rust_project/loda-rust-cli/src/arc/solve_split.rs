@@ -1,5 +1,8 @@
 //! Solve `split-view` like tasks.
 //! 
+//! * With the public ARC 1 dataset. It can solve 17 tasks.
+//! * With the hidden ARC 1 dataset. It can solve 0 tasks.
+//! 
 //! Known problem: Can only split into columns or rows, not both.
 //! 
 //! In tasks where the input images have splits, and the output images happens to have the exact same size as one of the split parts.
@@ -8,6 +11,9 @@
 //! * The input image is splitted into two or more parts.
 //! * Transformations is applied to the input parts, starting from simple operations, and ending with more complex operations.
 //! * This may yield a formula for output images.
+//! 
+//! Future experiments:
+//! * Return multiple predictions, up to 3 is allowed.
 use super::arc_work_model::{Task, Input, PairType};
 use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram, ColorMap};
 use super::{Image, ImageMaskBoolean, Histogram, ImageReplaceColor};

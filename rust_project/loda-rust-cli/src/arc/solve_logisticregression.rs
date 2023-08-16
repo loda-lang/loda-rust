@@ -2,15 +2,20 @@
 //! 
 //! This doesn't solve any of the tasks from the hidden dataset.
 //!
-//! This solves 41 of the 800 tasks in the public ARC dataset.
-//! 009d5c81, 00d62c1b, 0a2355a6, 2281f1f4, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 
-//! 4258a5f9, 50cb2852, 543a7ed5, 67385a82, 67a3c6ac, 69889d6e, 6c434453, 6d75e8bb, 6e82a1ae, 
-//! 6f8cd79b, 810b9b61, 84f2aca1, 903d1b4a, 95990924, a699fb00, a9f96cdd, ae58858e, aedd82e4, 
-//! b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, 
-//! d2abd087, d364b489, d406998b, e0fb7511, e8593010
+//! This solves 49 of the 800 tasks in the public ARC dataset.
+//! 009d5c81, 00d62c1b, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280, 25d8a9c8, 32597951, 
+//! 332efdb3, 3618c87e, 4258a5f9, 44d8ac46, 4612dd53, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 
+//! 6c434453, 6d75e8bb, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, 
+//! a79310a0, a8d7556c, a9f96cdd, ae58858e, aedd82e4, b1948b0a, b60334d2, b6afb2da, bb43febb, 
+//! c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, dbc1a6ce, 
+//! ded97339, e0fb7511, e7dd8335, ef135b50
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
+//! 
+//! Future experiments:
+//! * Serialize the obfuscated color with different offsets, so the logistic regression don't get a color bias.
+//! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise};
@@ -177,12 +182,12 @@ impl Record {
     }
 }
 
-pub struct ExperimentWithLogisticRegression {
+pub struct SolveLogisticRegression {
     #[allow(dead_code)]
     tasks: Vec<Task>,
 }
 
-impl ExperimentWithLogisticRegression {
+impl SolveLogisticRegression {
     #[allow(dead_code)]
     pub fn new(tasks: Vec<Task>) -> Self {
         // println!("loaded {} tasks", tasks.len());
@@ -219,7 +224,7 @@ impl ExperimentWithLogisticRegression {
         Ok(())
     }
 
-    pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
+    pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
         // println!("exporting task: {}", task.id);
 
         if !task.is_output_size_same_as_input_size() {
@@ -1901,6 +1906,12 @@ impl ExperimentWithLogisticRegression {
                     // }
 
                     // Future experiments
+                    // for each color draw horizontal lines between the left most pixel, and the right most pixel.
+                    // for each color draw vertical lines between the top most pixel, and the bottom most pixel.
+                    //
+                    // shape type
+                    // shape bounding box
+                    //
                     // push all the training pairs that have been rotated by 90 degrees.
                     // push all the training pairs that have been flipped.
                     //
@@ -1980,13 +1991,13 @@ impl ExperimentWithLogisticRegression {
             }
         }
 
-        let predictions: Vec::<arcathon_solution_json::Prediction> = perform_logistic_regression(
+        let testitem_vec: Vec::<arcathon_solution_json::TestItem> = perform_logistic_regression(
             task, 
             &records, 
             verify_test_output,
         )?;
 
-        Ok(predictions)
+        Ok(testitem_vec)
     }
 }
 
@@ -2048,8 +2059,16 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
     Ok(instance)
 }
 
-fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::Prediction>> {
+fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
     // println!("task_id: {}", task.id);
+
+    // Future experiment:
+    // If there are multiple `test` pairs, then the `test` pairs should be split into multiple `valid` pairs.
+    // Currently assumes that there is only 1 `test` pair. So the `pred.get(address)` behaves the same for all the `test` pairs.
+    //
+    // Run logistic regression on the `train` pairs. By adding the `train` pairs to the `valid` pairs. 
+    // If all the `train` inputs yields the correct output.
+    // Then run logistic regression on the `test` pairs.
 
     let dataset: Dataset<f64, usize, Ix1>;
     let ratio: f32;
@@ -2089,16 +2108,12 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
     // print out the predicted output pixel values
     // println!("{:?}", pred);
 
-    let mut predictions = Vec::<arcathon_solution_json::Prediction>::new();
-    let mut count_test: usize = 0;
+    let mut testitem_vec = Vec::<arcathon_solution_json::TestItem>::new();
     for pair in &task.pairs {
         if pair.pair_type != PairType::Test {
             continue;
         }
 
-        let index: usize = count_test;
-        count_test += 1;
-        
         let original_input: Image = pair.input.image.clone();
 
         let width: u8 = original_input.width();
@@ -2121,14 +2136,19 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
         {
             let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&computed_image);
             let prediction = arcathon_solution_json::Prediction {
-                // I think I made a mistake setting the index too high. Explaining why this didn't solve anything on the hidden dataset.
-                // Needs to be investigated.
-                // predicted_id should not be `index`, but should instead be 0.
-                // Instead of returning a Prediction vector, then return a TestItem vector
-                prediction_id: index as u8,
+                prediction_id: 0,
                 output: grid,
             };
-            predictions.push(prediction);
+
+            let predictions: Vec<arcathon_solution_json::Prediction> = vec![prediction];
+
+            let output_id: u8 = testitem_vec.len().min(255) as u8;
+            let testitem = arcathon_solution_json::TestItem {
+                output_id,
+                number_of_predictions: predictions.len().min(255) as u8,
+                predictions: predictions,
+            };
+            testitem_vec.push(testitem);
         }
 
         if WRITE_TO_HTMLLOG {
@@ -2163,5 +2183,8 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>, verify_test_o
     // predicted and targets)
     // println!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc());
     // HtmlLog::text(format!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc()));
-    Ok(predictions)
+    if testitem_vec.len() != task.count_test() {
+        return Err(anyhow::anyhow!("task: {} testitem_vec.len() != task.count_test()", task.id));
+    }
+    Ok(testitem_vec)
 }
