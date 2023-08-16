@@ -2,7 +2,7 @@
 //! 
 //! This doesn't solve any of the tasks from the hidden dataset.
 //!
-//! This solves 49 of the 800 tasks in the public ARC dataset.
+//! This solves 51 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280, 25d8a9c8, 32597951, 
 //! 332efdb3, 3618c87e, 4258a5f9, 44d8ac46, 4612dd53, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 
 //! 6c434453, 6d75e8bb, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, 
@@ -13,9 +13,18 @@
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 //! 
+//! Run Logistic regression multiple times:
+//! Take the predicted output, and use as input for the next iteration.
+//! I have not seen any improvement of the prediction accuracy.
+//! The number of iterations I have tried 1, 2, .., 5, 6.
+//! I have tried adding lots of noise initially and then reduce the noise in the later iterations.
+//! 
+//! Run Logistic regression multiple times:
+//! Serialize the obfuscated color with different offsets, so the logistic regression don't get a color bias.
+//! In each iteration the obfuscation offset is randomized.
+//! However I don't see any improvement of the prediction accuracy.
+//! 
 //! Future experiments:
-//! * Do a few iterations, passing in the predicted output, and use as input for the next iteration.
-//! * Serialize the obfuscated color with different offsets, so the logistic regression don't get a color bias.
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
