@@ -19,7 +19,7 @@
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
@@ -264,6 +264,14 @@ impl SolveLogisticRegression {
             }
         }
 
+        let mut task_graph = TaskGraph::new();
+        match task_graph.populate_with_task(&task) {
+            Ok(()) => {},
+            Err(error) => {
+                return Err(anyhow::anyhow!("unable to populate graph. {:?}", error));
+            }
+        }
+
         let mut records = Vec::<Record>::new();
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             let pair_id: u8 = pair_index.min(255) as u8;
@@ -299,6 +307,67 @@ impl SolveLogisticRegression {
             if let Some(grid_pattern) = &pair.input.grid_pattern {
                 grid_mask = grid_pattern.line_mask.clone();
                 grid_color = grid_pattern.color;
+            }
+
+            let mut shape_type_image_connectivity8: Image = original_input.clone_zero();
+            let pair_index_u8: u8 = pair_index.min(255) as u8;
+            for y in 0..height {
+                for x in 0..width {
+                    let shape_type: ShapeType = task_graph.get_shapetype_for_input_pixel(pair_index_u8, x, y, PixelConnectivity::Connectivity8)?;
+                    let color: u8 = match shape_type {
+                        ShapeType::Rectangle => 1,
+                        ShapeType::Box => 2,
+                        ShapeType::Plus => 3,
+                        ShapeType::Crosshair => 4,
+                        ShapeType::X => 5,
+                        ShapeType::L => 6,
+                        ShapeType::UpTack => 7,
+                        ShapeType::U4 => 8,
+                        ShapeType::U5 => 9,
+                        ShapeType::HUppercase => 10,
+                        ShapeType::HLowercase => 11,
+                        ShapeType::InvertedFork => 12,
+                        ShapeType::RotatedK => 13,
+                        ShapeType::TurnedV => 14,
+                        ShapeType::Diagonal2 => 15,
+                        ShapeType::Diagonal3 => 16,
+                        ShapeType::SkewTetromino => 17,
+                        ShapeType::LowerLeftTriangle => 18,
+                        ShapeType::FlippedJ => 19,
+                        ShapeType::LeftPlus => 20,
+                        ShapeType::LeftwardsHarpoonWithBarbUpwards => 21,
+                        ShapeType::BoxWithoutOneCorner => 22,
+                        ShapeType::RotatedD => 23,
+                        ShapeType::RotatedJRound => 24,
+                        ShapeType::BoxWithoutDiagonal => 25,
+                        ShapeType::RotatedS => 26,
+                        ShapeType::PlusWithOneCorner => 27,
+                        ShapeType::SquareWithoutDiagonalCorners => 28,
+                        ShapeType::GameOfLifeBoat => 29,
+                        ShapeType::LWith45DegreeLine => 30,
+                        ShapeType::XWithoutOneCorner => 31,
+                        ShapeType::LSkew => 32,
+                        ShapeType::UpTackSkew => 33,
+                        ShapeType::LowerLeftTriangleWithCorner => 34,
+                        ShapeType::IUppercaseMovedCorner => 35,
+                        ShapeType::SkewTetrominoWithTopLeftCorner => 36,
+                        ShapeType::RotatedUppercaseE => 37,
+                        ShapeType::TurnedW => 38,
+                        ShapeType::LineAroundObstacle => 39,
+                        ShapeType::BoxWithTwoHoles => 40,
+                        ShapeType::BoxWith2x2Holes => 41,
+                        ShapeType::XMovedCorner => 42,
+                        ShapeType::LowerLeftTriangleWithoutCorner => 43,
+                        ShapeType::LowerLeftTriangleMovedCorner => 44,
+                        ShapeType::RotatedP => 45,
+                        ShapeType::RotatedLowercaseF => 46,
+                        ShapeType::BoxWithRightwardsTick => 47,
+                        ShapeType::OpenBoxWithHoleInCenterOfTopBorder => 48,
+                        ShapeType::OpenBoxWithHoleInRightSideOfTopBorder => 49,
+                        _ => 0,
+                    };
+                    _ = shape_type_image_connectivity8.set(x as i32, y as i32, color);
+                }
             }
 
             // let mut repair_mask: Image = Image::zero(width, height);
@@ -2004,6 +2073,12 @@ impl SolveLogisticRegression {
                             record.serialize_u8(pixel);
                             // record.serialize_onehot(pixel, 4);
                         }
+                    }
+
+                    {
+                        let pixel: u8 = shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
+                        // record.serialize_u8(pixel);
+                        record.serialize_onehot(pixel, 50);
                     }
 
 

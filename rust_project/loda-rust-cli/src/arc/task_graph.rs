@@ -29,6 +29,7 @@ use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, S
 use super::arc_work_model::{Task, Pair, PairType};
 use super::prompt_shape_transform::PromptShapeTransformSerializer;
 use super::prompt::{PromptSerialize, PromptType};
+use anyhow::Context;
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
 
@@ -949,6 +950,15 @@ impl TaskGraph {
             }
         };
         Ok(pair_nodeindex)
+    }
+
+    pub fn get_shapetype_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<ShapeType> {
+        let pair_node: NodeIndex = self.get_pair(pair_index).context("get_pair")?;
+        let image_node: NodeIndex = self.get_image_for_pair(pair_node, ImageType::Input).context("get_image_for_pair")?;
+        let pixel_node: NodeIndex = self.get_pixel_nodeindex_at_xy_coordinate(image_node, x, y).context("get_pixel_nodeindex_at_xy_coordinate")?;
+        let object_node: NodeIndex = self.get_object_from_pixel(pixel_node, connectivity).context("get_object_from_pixel")?;
+        let shape_type: ShapeType = self.get_shapetype_from_object(object_node, connectivity).context("get_shapetype_from_object")?;
+        Ok(shape_type)
     }
 
     /// Find the `Image` node via the `Pair` node.
