@@ -2081,6 +2081,52 @@ impl SolveLogisticRegression {
                         record.serialize_onehot(pixel, 50);
                     }
 
+                    // {
+                    //     let mut count_xminus1: u8 = 0;
+                    //     let mut count_x: u8 = 0;
+                    //     let mut count_xplus1: u8 = 0;
+                    //     if x > 0 {
+                    //         if let Some(hist) = histogram_columns.get((x - 1) as usize) {
+                    //             let count: u16 = hist.number_of_counters_greater_than_zero();
+                    //             count_xminus1 = count.min(255) as u8;
+                    //         }
+                    //     }
+                    //     if let Some(hist) = histogram_columns.get(x as usize) {
+                    //         let count: u16 = hist.number_of_counters_greater_than_zero();
+                    //         count_x = count.min(255) as u8;
+                    //     }
+                    //     if let Some(hist) = histogram_columns.get((x + 1) as usize) {
+                    //         let count: u16 = hist.number_of_counters_greater_than_zero();
+                    //         count_xplus1 = count.min(255) as u8;
+                    //     }
+                    //     record.serialize_u8(count_xminus1);
+                    //     record.serialize_u8(count_x);
+                    //     record.serialize_u8(count_xplus1);
+                    // }
+
+                    // {
+                    //     let mut count_xminus1: u8 = 0;
+                    //     let mut count_x: u8 = 0;
+                    //     let mut count_xplus1: u8 = 0;
+                    //     if y > 0 {
+                    //         if let Some(hist) = histogram_rows.get((y - 1) as usize) {
+                    //             let count: u16 = hist.number_of_counters_greater_than_zero();
+                    //             count_xminus1 = count.min(255) as u8;
+                    //         }
+                    //     }
+                    //     if let Some(hist) = histogram_rows.get(y as usize) {
+                    //         let count: u16 = hist.number_of_counters_greater_than_zero();
+                    //         count_x = count.min(255) as u8;
+                    //     }
+                    //     if let Some(hist) = histogram_rows.get((y + 1) as usize) {
+                    //         let count: u16 = hist.number_of_counters_greater_than_zero();
+                    //         count_xplus1 = count.min(255) as u8;
+                    //     }
+                    //     record.serialize_u8(count_xminus1);
+                    //     record.serialize_u8(count_x);
+                    //     record.serialize_u8(count_xplus1);
+                    // }
+
 
                     // skewed pixel with x skewed or y skewed. Worsens the predictions.
                     // {
