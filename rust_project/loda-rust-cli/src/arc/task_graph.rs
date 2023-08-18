@@ -957,7 +957,7 @@ impl TaskGraph {
         let image_node: NodeIndex = self.get_image_for_pair(pair_node, ImageType::Input).context("get_image_for_pair")?;
         let pixel_node: NodeIndex = self.get_pixel_nodeindex_at_xy_coordinate(image_node, x, y).context("get_pixel_nodeindex_at_xy_coordinate")?;
         let object_node: NodeIndex = self.get_object_from_pixel(pixel_node, connectivity).context("get_object_from_pixel")?;
-        let shape_type: ShapeType = self.get_shapetype_from_object(object_node, connectivity).context("get_shapetype_from_object")?;
+        let shape_type: ShapeType = self.get_shapetype_from_object(object_node).context("get_shapetype_from_object")?;
         Ok(shape_type)
     }
 
@@ -1031,13 +1031,9 @@ impl TaskGraph {
         Ok(objectsinsideimage_nodeindex)
     }
 
-    fn get_shapetype_from_object(&self, object_nodeindex: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<ShapeType> {
+    fn get_shapetype_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<ShapeType> {
         match &self.graph[object_nodeindex] {
-            NodeData::Object { connectivity: the_connectivity } => { 
-                if *the_connectivity != connectivity {
-                    return Err(anyhow::anyhow!("connectivity mismatch"));
-                }
-            },
+            NodeData::Object { connectivity: _ } => {},
             _ => { 
                 return Err(anyhow::anyhow!("expected NodeData::Pixel"));
             }
@@ -1121,8 +1117,8 @@ impl TaskGraph {
             let nodeindex0: NodeIndex = NodeIndex::new(value_min);
             let nodeindex1: NodeIndex = NodeIndex::new(value_max);
 
-            let shapetype0: ShapeType = self.get_shapetype_from_object(nodeindex0, connectivity)?;
-            let shapetype1: ShapeType = self.get_shapetype_from_object(nodeindex1, connectivity)?;
+            let shapetype0: ShapeType = self.get_shapetype_from_object(nodeindex0)?;
+            let shapetype1: ShapeType = self.get_shapetype_from_object(nodeindex1)?;
             if shapetype0 == shapetype1 {
                 continue;
             }
