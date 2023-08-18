@@ -10,6 +10,10 @@
 //! c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, dbc1a6ce, 
 //! ded97339, e0fb7511, e7dd8335, ef135b50
 //! 
+//! Known problem:
+//! Only does logistic regression on the first the `test` pairs.
+//! Tasks that have multiple `test` pairs, will skip the remaining `test` pairs.
+//! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 //! 
@@ -345,6 +349,13 @@ impl SolveLogisticRegression {
 
         let mut records = Vec::<Record>::new();
         for (pair_index, pair) in task.pairs.iter().enumerate() {
+            if let Some(test_index) = pair.test_index {
+                if test_index > 0 {
+                    // The logistic regression can only handle 1 test pair.
+                    // Encountering multiple test pairs, then ignore the remaining.
+                    continue;
+                }
+            }
             let pair_id: u8 = pair_index.min(255) as u8;
 
             let is_test: u8;
