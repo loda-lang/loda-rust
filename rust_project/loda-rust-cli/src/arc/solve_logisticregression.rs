@@ -455,6 +455,7 @@ impl SolveLogisticRegression {
                 grid_color = grid_pattern.color;
             }
 
+            // let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
 
             // let mut repair_mask: Image = Image::zero(width, height);
@@ -2221,6 +2222,10 @@ impl SolveLogisticRegression {
                         }
                     }
 
+                    // {
+                    //     let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_onehot(pixel, 50);
+                    // }
                     {
                         let pixel: u8 = shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
                         record.serialize_onehot(pixel, 50);
