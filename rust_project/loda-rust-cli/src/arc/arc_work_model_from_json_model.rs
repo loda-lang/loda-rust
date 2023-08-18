@@ -21,6 +21,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
         {
             let pairs: Vec<arc_json_model::ImagePair> = json_task.images_train()?;
             for (index, pair) in pairs.iter().enumerate() {
+                let train_index: u8 = index.min(255) as u8;
                 let histogram_input: Histogram = pair.input.histogram_all();
                 let histogram_output: Histogram = pair.output.histogram_all();
 
@@ -66,6 +67,8 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                 };
                 let result_pair = arc_work_model::Pair {
                     pair_index,
+                    train_index: Some(train_index),
+                    test_index: None,
                     id: format!("{},pair{},train", task_id, index),
                     pair_type: arc_work_model::PairType::Train,
                     input: buffer_input,
@@ -85,6 +88,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
         {
             let pairs: Vec<arc_json_model::ImagePair> = json_task.images_test()?;
             for (index, pair) in pairs.iter().enumerate() {
+                let test_index: u8 = index.min(255) as u8;
                 let buffer_input = arc_work_model::Input {
                     id: format!("{},input{},test", task_id, index),
                     image: pair.input.clone(),
@@ -108,6 +112,8 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                 };
                 let result_pair = arc_work_model::Pair {
                     pair_index,
+                    train_index: None,
+                    test_index: Some(test_index),
                     id: format!("{},pair{},test", task_id, index),
                     pair_type: arc_work_model::PairType::Test,
                     input: buffer_input,
