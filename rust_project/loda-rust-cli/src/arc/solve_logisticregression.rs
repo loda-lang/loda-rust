@@ -32,7 +32,7 @@
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
@@ -43,6 +43,7 @@ use rand::seq::SliceRandom;
 use rand::{SeedableRng, Rng};
 use rand::rngs::StdRng;
 use serde::Serialize;
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use linfa::prelude::*;
 use linfa_logistic::MultiLogisticRegression;
@@ -308,6 +309,36 @@ impl SolveLogisticRegression {
         Ok(image)
     }
 
+    fn shape_transformation_images(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
+        let mut image_normal: Image = Image::zero(width, height);
+        let mut image_rotate_cw_90: Image = Image::zero(width, height);
+        let mut image_rotate_cw_180: Image = Image::zero(width, height);
+        let mut image_rotate_cw_270: Image = Image::zero(width, height);
+        let mut image_flipx: Image = Image::zero(width, height);
+        let mut image_flipx_rotate_cw_90: Image = Image::zero(width, height);
+        let mut image_flipx_rotate_cw_180: Image = Image::zero(width, height);
+        let mut image_flipx_rotate_cw_270: Image = Image::zero(width, height);
+        for y in 0..height {
+            for x in 0..width {
+                let transformations: Vec<ShapeTransformation> = task_graph.get_shapetransformations_for_input_pixel(pair_index, x, y, connectivity)?;
+                for transformation in transformations {
+                    let image: &mut Image = match transformation {
+                        ShapeTransformation::Normal => image_normal.borrow_mut(),
+                        ShapeTransformation::RotateCw90 => image_rotate_cw_90.borrow_mut(),
+                        ShapeTransformation::RotateCw180 => image_rotate_cw_180.borrow_mut(),
+                        ShapeTransformation::RotateCw270 => image_rotate_cw_270.borrow_mut(),
+                        ShapeTransformation::FlipX => image_flipx.borrow_mut(),
+                        ShapeTransformation::FlipXRotateCw90 => image_flipx_rotate_cw_90.borrow_mut(),
+                        ShapeTransformation::FlipXRotateCw180 => image_flipx_rotate_cw_180.borrow_mut(),
+                        ShapeTransformation::FlipXRotateCw270 => image_flipx_rotate_cw_270.borrow_mut(),
+                    };
+                    _ = image.set(x as i32, y as i32, 1);
+                }
+            }
+        }
+        Ok(vec![image_normal, image_rotate_cw_90, image_rotate_cw_180, image_rotate_cw_270, image_flipx, image_flipx_rotate_cw_90, image_flipx_rotate_cw_180, image_flipx_rotate_cw_270])
+    }
+
     fn process_task_iteration(task: &Task, process_task_iteration_index: usize, computed_images: Vec<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
 
@@ -457,6 +488,9 @@ impl SolveLogisticRegression {
 
             // let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+
+            // let shape_transformation_images_connectivity4: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            // let shape_transformation_images_connectivity8: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
 
             // let mut repair_mask: Image = Image::zero(width, height);
             // if let Some(mask) = &pair.input.repair_mask {
@@ -2221,7 +2255,7 @@ impl SolveLogisticRegression {
                             // record.serialize_onehot(pixel, 4);
                         }
                     }
-
+                    
                     // {
                     //     let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
                     //     record.serialize_onehot(pixel, 50);
@@ -2230,6 +2264,14 @@ impl SolveLogisticRegression {
                         let pixel: u8 = shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
                         record.serialize_onehot(pixel, 50);
                     }
+                    // for shape_transformation_image in &shape_transformation_images_connectivity4 {
+                    //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_u8(pixel);
+                    // }
+                    // for shape_transformation_image in &shape_transformation_images_connectivity8 {
+                    //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_u8(pixel);
+                    // }
 
                     {
 
@@ -2363,12 +2405,8 @@ impl SolveLogisticRegression {
                     // }
 
                     // Future experiments
-                    // for each color draw horizontal lines between the left most pixel, and the right most pixel.
-                    // for each color draw vertical lines between the top most pixel, and the bottom most pixel.
-                    //
-                    // shape type
+                    // shape id
                     // shape bounding box
-                    // shape transformations: normal, rot90, rot180, rot270, flipx, flipy.
                     //
                     // push all the training pairs that have been rotated by 90 degrees.
                     // push all the training pairs that have been flipped.

@@ -952,6 +952,7 @@ impl TaskGraph {
         Ok(pair_nodeindex)
     }
 
+    /// Get the `ShapeType` for pixel.
     pub fn get_shapetype_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<ShapeType> {
         let pair_node: NodeIndex = self.get_pair(pair_index).context("get_pair")?;
         let image_node: NodeIndex = self.get_image_for_pair(pair_node, ImageType::Input).context("get_image_for_pair")?;
@@ -959,6 +960,16 @@ impl TaskGraph {
         let object_node: NodeIndex = self.get_object_from_pixel(pixel_node, connectivity).context("get_object_from_pixel")?;
         let shape_type: ShapeType = self.get_shapetype_from_object(object_node).context("get_shapetype_from_object")?;
         Ok(shape_type)
+    }
+
+    /// Get the `ShapeTransformation` vector for pixel.
+    pub fn get_shapetransformations_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<ShapeTransformation>> {
+        let pair_node: NodeIndex = self.get_pair(pair_index).context("get_pair")?;
+        let image_node: NodeIndex = self.get_image_for_pair(pair_node, ImageType::Input).context("get_image_for_pair")?;
+        let pixel_node: NodeIndex = self.get_pixel_nodeindex_at_xy_coordinate(image_node, x, y).context("get_pixel_nodeindex_at_xy_coordinate")?;
+        let object_node: NodeIndex = self.get_object_from_pixel(pixel_node, connectivity).context("get_object_from_pixel")?;
+        let transformations: Vec<ShapeTransformation> = self.get_shapetransformations_from_object(object_node).context("get_shapetransformations_from_object")?;
+        Ok(transformations)
     }
 
     /// Find the `Image` node via the `Pair` node.
@@ -1035,7 +1046,7 @@ impl TaskGraph {
         match &self.graph[object_nodeindex] {
             NodeData::Object { connectivity: _ } => {},
             _ => { 
-                return Err(anyhow::anyhow!("expected NodeData::Pixel"));
+                return Err(anyhow::anyhow!("expected NodeData::Object"));
             }
         }
 
@@ -1058,6 +1069,35 @@ impl TaskGraph {
             return Ok(shapetype);
         }
         Err(anyhow::anyhow!("Object is not linked with a shapetype. Is supposed to be linked with only one shapetype."))
+    }
+
+    fn get_shapetransformations_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<Vec<ShapeTransformation>> {
+        match &self.graph[object_nodeindex] {
+            NodeData::Object { connectivity: _ } => {},
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Object"));
+            }
+        }
+
+        let mut found_shapetransformations: Option<Vec<ShapeTransformation>> = None;
+        let mut ambiguous_count: usize = 0;
+        for edge in self.graph.edges(object_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::ShapeTransformations { transformations } => { 
+                    found_shapetransformations = Some(transformations.clone());
+                    ambiguous_count += 1;
+                },
+                _ => continue
+            }
+        }
+        if ambiguous_count > 1 {
+            return Err(anyhow::anyhow!("Object is linked with multiple ShapeTransformations. Is supposed to be linked with only one ShapeTransformations."));
+        }
+        if let Some(transformations) = found_shapetransformations {
+            return Ok(transformations);
+        }
+        Err(anyhow::anyhow!("Object is not linked with a ShapeTransformations. Is supposed to be linked with only one ShapeTransformations."))
     }
 
     fn find_shapetype_changes_between_input_and_output(&mut self, task: &Task, pair: &Pair, input_image_nodeindex: NodeIndex, output_image_nodeindex: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<()> {
