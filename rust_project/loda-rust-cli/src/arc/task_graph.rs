@@ -982,6 +982,13 @@ impl TaskGraph {
         Ok(index)
     }
 
+    /// Get the width and height of the shape for pixel.
+    pub fn get_shapesize_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<ImageSize> {
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
+        let shape_size: ImageSize = self.get_shapesize_from_object(object_node).context("get_shapesize_from_object")?;
+        Ok(shape_size)
+    }
+
     /// Find the `Image` node via the `Pair` node.
     fn get_image_for_pair(&self, pair_nodeindex: NodeIndex, image_type: ImageType) -> anyhow::Result<NodeIndex> {
         let mut found_nodeindex: Option<NodeIndex> = None;
@@ -1079,6 +1086,35 @@ impl TaskGraph {
             return Ok(shapetype);
         }
         Err(anyhow::anyhow!("Object is not linked with a shapetype. Is supposed to be linked with only one shapetype."))
+    }
+
+    fn get_shapesize_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<ImageSize> {
+        match &self.graph[object_nodeindex] {
+            NodeData::Object { connectivity: _ } => {},
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Object"));
+            }
+        }
+
+        let mut found_shapesize: Option<ImageSize> = None;
+        let mut ambiguous_count: usize = 0;
+        for edge in self.graph.edges(object_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::ShapeSize { width, height } => { 
+                    found_shapesize = Some(ImageSize::new(*width, *height));
+                    ambiguous_count += 1;
+                },
+                _ => continue
+            }
+        }
+        if ambiguous_count > 1 {
+            return Err(anyhow::anyhow!("Object is linked with multiple ShapeSize's. Is supposed to be linked with only one ShapeSize."));
+        }
+        if let Some(shapesize) = found_shapesize {
+            return Ok(shapesize);
+        }
+        Err(anyhow::anyhow!("Object is not linked with a ShapeSize. Is supposed to be linked with only one ShapeSize."))
     }
 
     fn get_shapetransformations_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<Vec<ShapeTransformation>> {

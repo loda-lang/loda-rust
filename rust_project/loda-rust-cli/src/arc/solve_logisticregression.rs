@@ -351,6 +351,19 @@ impl SolveLogisticRegression {
         Ok(vec![image_normal, image_rotate_cw_90, image_rotate_cw_180, image_rotate_cw_270, image_flipx, image_flipx_rotate_cw_90, image_flipx_rotate_cw_180, image_flipx_rotate_cw_270])
     }
 
+    fn shape_size_images(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
+        let mut image_shape_width: Image = Image::zero(width, height);
+        let mut image_shape_height: Image = Image::zero(width, height);
+        for y in 0..height {
+            for x in 0..width {
+                let shape_size: ImageSize = task_graph.get_shapesize_for_input_pixel(pair_index, x, y, connectivity)?;
+                _ = image_shape_width.set(x as i32, y as i32, shape_size.width);
+                _ = image_shape_height.set(x as i32, y as i32, shape_size.height);
+            }
+        }
+        Ok(vec![image_shape_width, image_shape_height])
+    }
+
     fn process_task_iteration(task: &Task, process_task_iteration_index: usize, computed_images: Vec<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
 
@@ -503,9 +516,12 @@ impl SolveLogisticRegression {
 
             // let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
-
+            
             // let shape_transformation_images_connectivity4: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             // let shape_transformation_images_connectivity8: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+
+            let shape_size_images_connectivity4: Vec<Image> = Self::shape_size_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            let shape_size_images_connectivity8: Vec<Image> = Self::shape_size_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
 
             // let mut repair_mask: Image = Image::zero(width, height);
             // if let Some(mask) = &pair.input.repair_mask {
@@ -2299,6 +2315,17 @@ impl SolveLogisticRegression {
                     // for shape_transformation_image in &shape_transformation_images_connectivity8 {
                     //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
                     //     record.serialize_u8(pixel);
+                    // }
+
+                    // for shape_size_image in &shape_size_images_connectivity4 {
+                    //     let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_u8(pixel);
+                    //     record.serialize_onehot(pixel, 30);
+                    // }
+                    // for shape_size_image in &shape_size_images_connectivity8 {
+                    //     let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_u8(pixel);
+                    //     record.serialize_onehot(pixel, 30);
                     // }
 
                     {
