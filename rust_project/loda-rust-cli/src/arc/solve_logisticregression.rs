@@ -246,6 +246,18 @@ impl SolveLogisticRegression {
         Ok(testitem_vec)
     }
 
+    fn object_id_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+        let mut image: Image = Image::zero(width, height);
+        for y in 0..height {
+            for x in 0..width {
+                let object_id: usize = task_graph.get_objectid_for_input_pixel(pair_index, x, y, connectivity)?;
+                let color: u8 = object_id.min(255) as u8;
+                _ = image.set(x as i32, y as i32, color);
+            }
+        }
+        Ok(image)
+    }
+
     fn shape_type_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         let mut image: Image = Image::zero(width, height);
         for y in 0..height {
@@ -485,6 +497,9 @@ impl SolveLogisticRegression {
                 grid_mask = grid_pattern.line_mask.clone();
                 grid_color = grid_pattern.color;
             }
+
+            let object_id_image_connectivity4: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            let object_id_image_connectivity8: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
 
             // let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
@@ -2257,6 +2272,19 @@ impl SolveLogisticRegression {
                     }
                     
                     // {
+                    //     let pixel: u8 = object_id_image_connectivity4.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_onehot(pixel, 255);
+                    //     record.serialize_u8(pixel);
+                    //     record.serialize_complex(pixel as u16, 256);
+                    // }
+                    // {
+                    //     let pixel: u8 = object_id_image_connectivity8.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_onehot(pixel, 255);
+                    //     record.serialize_u8(pixel);
+                    //     record.serialize_complex(pixel as u16, 256);
+                    // }
+
+                    // {
                     //     let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
                     //     record.serialize_onehot(pixel, 50);
                     // }
@@ -2405,7 +2433,6 @@ impl SolveLogisticRegression {
                     // }
 
                     // Future experiments
-                    // shape id
                     // shape bounding box
                     //
                     // push all the training pairs that have been rotated by 90 degrees.

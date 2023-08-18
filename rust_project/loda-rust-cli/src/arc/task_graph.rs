@@ -952,24 +952,34 @@ impl TaskGraph {
         Ok(pair_nodeindex)
     }
 
-    /// Get the `ShapeType` for pixel.
-    pub fn get_shapetype_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<ShapeType> {
+    /// Get the object `NodeIndex` for pixel.
+    fn get_object_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<NodeIndex> {
         let pair_node: NodeIndex = self.get_pair(pair_index).context("get_pair")?;
         let image_node: NodeIndex = self.get_image_for_pair(pair_node, ImageType::Input).context("get_image_for_pair")?;
         let pixel_node: NodeIndex = self.get_pixel_nodeindex_at_xy_coordinate(image_node, x, y).context("get_pixel_nodeindex_at_xy_coordinate")?;
         let object_node: NodeIndex = self.get_object_from_pixel(pixel_node, connectivity).context("get_object_from_pixel")?;
+        Ok(object_node)
+    }
+
+    /// Get the `ShapeType` for pixel.
+    pub fn get_shapetype_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<ShapeType> {
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
         let shape_type: ShapeType = self.get_shapetype_from_object(object_node).context("get_shapetype_from_object")?;
         Ok(shape_type)
     }
 
     /// Get the `ShapeTransformation` vector for pixel.
     pub fn get_shapetransformations_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<ShapeTransformation>> {
-        let pair_node: NodeIndex = self.get_pair(pair_index).context("get_pair")?;
-        let image_node: NodeIndex = self.get_image_for_pair(pair_node, ImageType::Input).context("get_image_for_pair")?;
-        let pixel_node: NodeIndex = self.get_pixel_nodeindex_at_xy_coordinate(image_node, x, y).context("get_pixel_nodeindex_at_xy_coordinate")?;
-        let object_node: NodeIndex = self.get_object_from_pixel(pixel_node, connectivity).context("get_object_from_pixel")?;
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
         let transformations: Vec<ShapeTransformation> = self.get_shapetransformations_from_object(object_node).context("get_shapetransformations_from_object")?;
         Ok(transformations)
+    }
+
+    /// Get the object ID for pixel.
+    pub fn get_objectid_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<usize> {
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
+        let index: usize = object_node.index();
+        Ok(index)
     }
 
     /// Find the `Image` node via the `Pair` node.
