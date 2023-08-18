@@ -17,6 +17,8 @@
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 //! 
+//! Weakness: Struggles with tasks that have diagonal lines/stripes/patterns.
+//! 
 //! Run Logistic regression multiple times:
 //! Take the predicted output, and use as input for the next iteration.
 //! I have not seen any improvement of the prediction accuracy.
