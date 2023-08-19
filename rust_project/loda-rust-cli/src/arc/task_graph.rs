@@ -64,6 +64,7 @@ pub enum NodeData {
     ShapeScale { x: u8, y: u8 },
     ShapeSize { width: u8, height: u8 },
     ShapeTransformations { transformations: Vec<ShapeTransformation> },
+    // CenterOfMassUncompressedObject { x, y }
     // Input,
     // Output,
     // PairTrain,
@@ -989,6 +990,13 @@ impl TaskGraph {
         Ok(shape_size)
     }
 
+    /// Get the position (x, y) of the shape for pixel.
+    pub fn get_objectposition_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<(u8, u8)> {
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
+        let xy_tupple: (u8, u8) = self.get_position_from_object(object_node).context("get_position_from_object")?;
+        Ok(xy_tupple)
+    }
+
     /// Find the `Image` node via the `Pair` node.
     fn get_image_for_pair(&self, pair_nodeindex: NodeIndex, image_type: ImageType) -> anyhow::Result<NodeIndex> {
         let mut found_nodeindex: Option<NodeIndex> = None;
@@ -1115,6 +1123,45 @@ impl TaskGraph {
             return Ok(shapesize);
         }
         Err(anyhow::anyhow!("Object is not linked with a ShapeSize. Is supposed to be linked with only one ShapeSize."))
+    }
+
+    fn get_position_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<(u8, u8)> {
+        match &self.graph[object_nodeindex] {
+            NodeData::Object { connectivity: _ } => {},
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Object"));
+            }
+        }
+
+        let mut found_x: Option<u8> = None;
+        let mut found_y: Option<u8> = None;
+        let mut ambiguous_x_count: usize = 0;
+        let mut ambiguous_y_count: usize = 0;
+        for edge in self.graph.edges(object_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::PositionX { x } => { 
+                    found_x = Some(*x);
+                    ambiguous_x_count += 1;
+                },
+                NodeData::PositionY { y } => { 
+                    found_y = Some(*y);
+                    ambiguous_y_count += 1;
+                },
+                _ => continue
+            }
+        }
+        if ambiguous_x_count > 1 || ambiguous_y_count > 1 {
+            return Err(anyhow::anyhow!("Object is linked with multiple PositionX's or multiple PositionY's. Is supposed to be linked with only one."));
+        }
+        match (found_x, found_y) {
+            (Some(x), Some(y)) => {
+                return Ok((x, y));
+            },
+            _ => {
+                return Err(anyhow::anyhow!("Object is not linked with both a PositionX and a PositionY. Is supposed to be linked with only one."));
+            }
+        }
     }
 
     fn get_shapetransformations_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<Vec<ShapeTransformation>> {

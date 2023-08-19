@@ -260,6 +260,27 @@ impl SolveLogisticRegression {
         Ok(image)
     }
 
+    fn relative_position_images(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
+        let mut image_x: Image = Image::zero(width, height);
+        let mut image_y: Image = Image::zero(width, height);
+        for y in 0..height {
+            for x in 0..width {
+                let (position_x, position_y) = task_graph.get_objectposition_for_input_pixel(pair_index, x, y, connectivity)?;
+                let relative_x: i32 = (x as i32) - (position_x as i32);
+                let relative_y: i32 = (y as i32) - (position_y as i32);
+                {
+                    let color: u8 = relative_x.min(255) as u8;
+                    _ = image_x.set(x as i32, y as i32, color);
+                }
+                {
+                    let color: u8 = relative_y.min(255) as u8;
+                    _ = image_y.set(x as i32, y as i32, color);
+                }
+            }
+        }
+        Ok(vec![image_x, image_y])
+    }
+
     fn shape_type_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         let mut image: Image = Image::zero(width, height);
         for y in 0..height {
@@ -515,6 +536,9 @@ impl SolveLogisticRegression {
 
             let object_id_image_connectivity4: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             let object_id_image_connectivity8: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+
+            let relative_position_images_connectivity4: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            let relative_position_images_connectivity8: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
 
             // let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
@@ -2300,6 +2324,17 @@ impl SolveLogisticRegression {
                     //     record.serialize_onehot(pixel, 255);
                     //     record.serialize_u8(pixel);
                     //     record.serialize_complex(pixel as u16, 256);
+                    // }
+
+                    // for relative_position_image in &relative_position_images_connectivity4 {
+                    //     let pixel: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_u8(pixel);
+                    //     // record.serialize_onehot(pixel, 30);
+                    // }
+                    // for relative_position_image in &relative_position_images_connectivity8 {
+                    //     let pixel: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_u8(pixel);
+                    //     // record.serialize_onehot(pixel, 30);
                     // }
 
                     // {
