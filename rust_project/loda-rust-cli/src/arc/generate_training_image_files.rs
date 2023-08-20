@@ -16,21 +16,17 @@ impl GenerateTrainingImageFiles {
             input = input.overlay_with_position(&pair.input.image, 0, 0)?;
             input = input.padding_with_color(1, color_padding)?;
 
-            let output_image: &Image;
-            let output_padding_color: u8;
+            let mut output = Image::color(30, 30, color_outside);
+            output = output.padding_with_color(1, color_padding)?;
             match pair.pair_type {
                 PairType::Train => {
-                    output_image = &pair.output.image;
-                    output_padding_color = color_padding;
+                    output = output.overlay_with_position(&pair.output.image, 1, 1)?;
                 },
                 PairType::Test => {
-                    output_image = &pair.output.test_image;
-                    output_padding_color = color_padding_highlight;
+                    let image: Image = pair.output.test_image.padding_with_color(1, color_padding_highlight)?;
+                    output = output.overlay_with_position(&image, 0, 0)?;
                 },
             }
-            let mut output = Image::color(30, 30, color_outside);
-            output = output.overlay_with_position(output_image, 0, 0)?;
-            output = output.padding_with_color(1, output_padding_color)?;
             let pair_image: Image = input.vjoin(output)?;
 
             images.push(pair_image);
