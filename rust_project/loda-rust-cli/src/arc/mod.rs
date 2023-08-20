@@ -25,6 +25,7 @@ mod convolution_with_program;
 mod experiment_with_convolution;
 mod export_tasks;
 mod generate_pattern;
+mod generate_training_image_files;
 mod grid;
 mod grid_to_label;
 mod histogram;
