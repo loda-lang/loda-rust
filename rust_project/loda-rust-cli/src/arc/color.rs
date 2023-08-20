@@ -10,6 +10,9 @@ pub enum Color {
     Orange = 7,
     Teal = 8,
     Brown = 9,
+    DarkGrey = 10,
+    LightGrey = 11,
+    White = 12,
 
     CannotCompute = 254,
 }
@@ -28,6 +31,9 @@ impl Color {
         if symbol == Self::Orange as u8 { return 0xFF851B; }
         if symbol == Self::Teal as u8 { return 0x7FDBFF; }
         if symbol == Self::Brown as u8 { return 0x870C25; }
+        if symbol == Self::DarkGrey as u8 { return 0x282828; }
+        if symbol == Self::LightGrey as u8 { return 0xd0d0d0; }
+        if symbol == Self::White as u8 { return 0xffffff; }
         0xffffff
     }
 }
@@ -48,6 +54,9 @@ mod tests {
         assert_eq!(Color::rgb(7), 0xFF851B);
         assert_eq!(Color::rgb(8), 0x7FDBFF);
         assert_eq!(Color::rgb(9), 0x870C25);
+        assert_eq!(Color::rgb(10), 0x282828);
+        assert_eq!(Color::rgb(11), 0xd0d0d0);
+        assert_eq!(Color::rgb(12), 0xffffff);
         assert_eq!(Color::rgb(255), 0xffffff);
     }
 }
