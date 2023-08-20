@@ -2,17 +2,28 @@ use super::{Color, Image, ImageSize};
 use anyhow::Context;
 use std::path::Path;
 
-struct ImageExport;
+pub trait ImageExport {
+    /// Save the image to a file.
+    /// 
+    /// The `path` must be absolute.
+    /// 
+    /// Supported file types (lossless): `png`. Recommended.
+    /// 
+    /// Supported file types (lossy): `jpg`. Not recommended.
+    /// 
+    /// Unsupported file types: `webp`.
+    fn save_as_file(&self, path: &Path) -> anyhow::Result<()>;
+}
 
-impl ImageExport {
-    fn save(image: &Image, path: &Path) -> anyhow::Result<()> {
-        let size: ImageSize = image.size();
+impl ImageExport for Image {
+    fn save_as_file(&self, path: &Path) -> anyhow::Result<()> {
+        let size: ImageSize = self.size();
         if size.is_empty() {
             return Err(anyhow::anyhow!("The image must be 1x1 or bigger"));
         }
         let mut output = image_crate::ImageBuffer::new(size.width as u32, size.height as u32);
         for (x, y, pixel) in output.enumerate_pixels_mut() {
-            let color_symbol: u8 = image.get(x as i32, y as i32).unwrap_or(255);
+            let color_symbol: u8 = self.get(x as i32, y as i32).unwrap_or(255);
             let rgb: u32 = Color::rgb(color_symbol);
             let r: u8 = ((rgb >> 16) & 255) as u8;
             let g: u8 = ((rgb >> 8) & 255) as u8;
@@ -47,7 +58,7 @@ mod tests {
         let input: Image = Image::try_create(4, 3, pixels).expect("image");
         
         // Act
-        ImageExport::save(&input, &path)?;
+        input.save_as_file(&path)?;
 
         // Assert
         assert_eq!(path.is_file(), true);
