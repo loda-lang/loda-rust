@@ -156,6 +156,8 @@ impl MutationConfig {
 #[derive(Debug, Clone, Default)]
 pub struct GenerateTrainingImageFiles {
     classification_counters: [u32; 10],
+    accumulated_file_count: u32,
+    accumulated_byte_count: u64,
 }
 
 impl GenerateTrainingImageFiles {
@@ -230,7 +232,11 @@ impl GenerateTrainingImageFiles {
                     let path: PathBuf = basepath.join(filename);
 
                     Self::export_image(task, test_index, x, y, config, &path)?;
+                    let filesize: u64 = path.metadata()?.len();
+
                     self.classification_counters[counter_index] += 1;
+                    self.accumulated_file_count += 1;
+                    self.accumulated_byte_count += filesize;
                 }
             }
         }
@@ -352,7 +358,15 @@ impl GenerateTrainingImageFiles {
                     println!("Index {} Failed to export task with mutation: {} error: {:?}", index, mutation_name, error);
                 }
             }
+
+            let reached_limit_file_count: bool = self.accumulated_file_count > 10000;
+            let reached_limit_byte_count: bool = self.accumulated_byte_count > 1024 * 1024 * 50;
+            if reached_limit_file_count || reached_limit_byte_count {
+                println!("Index {} reached_limit_file_count: {} reached_limit_byte_count: {}", index, reached_limit_file_count, reached_limit_byte_count);
+                break;
+            }
         }
+        println!("accumulated_file_count: {} self.accumulated_byte_count: {}", self.accumulated_file_count, self.accumulated_byte_count);
         Ok(())
     }
 
