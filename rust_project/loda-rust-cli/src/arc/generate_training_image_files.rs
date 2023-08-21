@@ -1,5 +1,5 @@
 use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize};
-use super::arc_work_model::{Task, PairType};
+use super::arc_work_model::{Task, Pair, PairType};
 use std::path::PathBuf;
 
 // Future experiments
@@ -22,35 +22,44 @@ use std::path::PathBuf;
 pub struct GenerateTrainingImageFiles;
 
 impl GenerateTrainingImageFiles {
-    fn export_pixel(task: &Task, test_index: u8, x: u8, y: u8, classification: u8) -> anyhow::Result<()> {
+    fn generate_pair_image(pair: &Pair, test_index: u8, x: u8, y: u8) -> anyhow::Result<Image> {
         let color_outside: u8 = Color::DarkGrey as u8;
         let color_padding: u8 = Color::LightGrey as u8;
         let color_padding_highlight: u8 = Color::White as u8;
 
+        let mut input = Image::color(30, 30, color_outside);
+        input = input.overlay_with_position(&pair.input.image, 0, 0)?;
+        input = input.padding_with_color(1, color_padding)?;
+
+        let the_output: Image;
+        match pair.pair_type {
+            PairType::Train => {
+                let mut output = Image::color(30, 30, color_outside);
+                output = output.overlay_with_position(&pair.output.image, 0, 0)?;
+                output = output.padding_with_color(1, color_padding)?;
+                the_output = output;
+            },
+            PairType::Test => {
+                let output_size: ImageSize = pair.output.test_image.size();
+                let mut image: Image = Image::color(output_size.width, output_size.height, color_outside);
+                if pair.test_index == Some(test_index) {
+                    _ = image.set(x as i32, y as i32, color_padding_highlight);
+                }
+                image = image.padding_with_color(1, color_padding_highlight)?;
+                let mut output = Image::color(30, 30, color_outside);
+                output = output.padding_with_color(1, color_padding)?;
+                output = output.overlay_with_position(&image, 0, 0)?;
+                the_output = output;
+            }
+        }
+        let pair_image: Image = input.vjoin(the_output)?;
+        Ok(pair_image)
+    }
+
+    fn export_pixel(task: &Task, test_index: u8, x: u8, y: u8, classification: u8) -> anyhow::Result<()> {
         let mut images = Vec::<Image>::new();
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
-            let mut input = Image::color(30, 30, color_outside);
-            input = input.overlay_with_position(&pair.input.image, 0, 0)?;
-            input = input.padding_with_color(1, color_padding)?;
-
-            let mut output = Image::color(30, 30, color_outside);
-            output = output.padding_with_color(1, color_padding)?;
-            match pair.pair_type {
-                PairType::Train => {
-                    output = output.overlay_with_position(&pair.output.image, 1, 1)?;
-                },
-                PairType::Test => {
-                    let output_size: ImageSize = pair.output.test_image.size();
-                    let mut image: Image = Image::color(output_size.width, output_size.height, color_outside);
-                    if pair.test_index == Some(test_index) {
-                        _ = image.set(x as i32, y as i32, color_padding_highlight);
-                    }
-                    image = image.padding_with_color(1, color_padding_highlight)?;
-                    output = output.overlay_with_position(&image, 0, 0)?;
-            },
-            }
-            let pair_image: Image = input.vjoin(output)?;
-
+            let pair_image: Image = Self::generate_pair_image(pair, test_index, x, y)?;
             images.push(pair_image);
         }
         let task_image: Image = Image::hstack(images)?;
