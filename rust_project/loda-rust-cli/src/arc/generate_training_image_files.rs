@@ -22,15 +22,37 @@ use std::path::PathBuf;
 pub struct GenerateTrainingImageFiles;
 
 impl GenerateTrainingImageFiles {
-    fn generate_pair_image(pair: &Pair, test_index: u8, x: u8, y: u8) -> anyhow::Result<Image> {
+    fn take_position_id(index: &mut u64) -> OverlayPositionId {
+        let variant: u64 = *index % 5;
+        *index /= 5;
+        match variant {
+            0 => OverlayPositionId::Zero,
+            1 => OverlayPositionId::OneThird,
+            2 => OverlayPositionId::Half,
+            3 => OverlayPositionId::TwoThird,
+            _ => OverlayPositionId::One,
+        }
+    }
+
+    fn generate_pair_image(pair: &Pair, test_index: u8, x: u8, y: u8, mutation_index: u64) -> anyhow::Result<Image> {
         let color_outside: u8 = Color::DarkGrey as u8;
         let color_padding: u8 = Color::LightGrey as u8;
         let color_padding_highlight: u8 = Color::White as u8;
 
-        let in_x = OverlayPositionId::Half;
-        let in_y = OverlayPositionId::Half;
-        let out_x = OverlayPositionId::Half;
-        let out_y = OverlayPositionId::Half;
+        let mut in_x = OverlayPositionId::Half;
+        let mut in_y = OverlayPositionId::Half;
+        let mut out_x = OverlayPositionId::Half;
+        let mut out_y = OverlayPositionId::Half;
+
+        {
+            let mut current_mutation: u64 = mutation_index;
+
+            // Position of the image: top-left corner, centered, bottom-right, random x, random y.
+            in_x = Self::take_position_id(&mut current_mutation);
+            in_y = Self::take_position_id(&mut current_mutation);
+            out_x = Self::take_position_id(&mut current_mutation);
+            out_y = Self::take_position_id(&mut current_mutation);
+        }
 
         let mut input = Image::color(30, 30, color_outside);
         input = input.overlay_with_position_id(&pair.input.image, in_x, in_y)?;
@@ -61,22 +83,22 @@ impl GenerateTrainingImageFiles {
         Ok(pair_image)
     }
 
-    fn export_image(task: &Task, test_index: u8, x: u8, y: u8, classification: u8) -> anyhow::Result<()> {
+    fn export_image(task: &Task, test_index: u8, x: u8, y: u8, mutation_index: u64, classification: u8) -> anyhow::Result<()> {
         let mut images = Vec::<Image>::new();
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
-            let pair_image: Image = Self::generate_pair_image(pair, test_index, x, y)?;
+            let pair_image: Image = Self::generate_pair_image(pair, test_index, x, y, mutation_index)?;
             images.push(pair_image);
         }
         let task_image: Image = Image::hstack(images)?;
 
-        let filename = format!("{}_test{}_x{}_y{}_color{}.png", task.id, test_index, x, y, classification);
+        let filename = format!("{}_test{}_x{}_y{}_color{}_mutation{}.png", task.id, test_index, x, y, classification, mutation_index);
         let basepath: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
         let path: PathBuf = basepath.join(filename);
         task_image.save_as_file(&path)?;
         Ok(())
     }
     
-    fn export_test_pairs(task: &Task, test_index: u8) -> anyhow::Result<()> {
+    fn export_test_pairs(task: &Task, test_index: u8, mutation_index: u64) -> anyhow::Result<()> {
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
             if pair.test_index != Some(test_index) {
                 continue;
@@ -86,18 +108,34 @@ impl GenerateTrainingImageFiles {
             for y in 0..output_size.height {
                 for x in 0..output_size.width {
                     let classification: u8 = output_image.get(x as i32, y as i32).unwrap_or(255);
-                    Self::export_image(task, test_index, x, y, classification)?;
+                    Self::export_image(task, test_index, x, y, mutation_index, classification)?;
                 }
             }
         }
         Ok(())
     }
 
-    pub fn export_task(task: &Task) -> anyhow::Result<()> {
+    pub fn export_task_with_mutation(task: &Task, mutation_index: u64) -> anyhow::Result<()> {
         let count_test: u8 = task.count_test().min(255) as u8;
         for test_index in 0..count_test {
-            Self::export_test_pairs(task, test_index)?;
+            Self::export_test_pairs(task, test_index, mutation_index)?;
         }        
+        Ok(())
+    }
+
+    pub fn export_task(task: &Task) -> anyhow::Result<()> {
+        let mutation_indexes: [u64; 4] = [
+            0,
+            4,
+            // 12,
+            // 20,
+            // 24,
+            312,
+            624,
+        ];
+        for mutation_index in mutation_indexes {
+            Self::export_task_with_mutation(task, mutation_index)?;
+        }
         Ok(())
     }
 }

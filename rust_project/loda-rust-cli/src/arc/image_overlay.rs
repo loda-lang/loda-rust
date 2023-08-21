@@ -1,5 +1,6 @@
 use super::{Image, ImageMix, MixMode, ImageSize};
 
+#[derive(Debug, Clone)]
 pub enum OverlayPositionId {
     /// On the x-axis, this is the `left` position.
     /// On the y-axis, this is the `top` position.
