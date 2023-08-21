@@ -5,17 +5,12 @@ use std::path::PathBuf;
 // Future experiments
 // Order of training pairs: ascending, descending, permuted.
 // Order of test pairs: ascending, descending, permuted.
-// Positions within a single pair between input image and output image: follows same position, no correspondence.
 // Positions across pairs: follows same position, no correspondence.
 // Colors of the image: normal histogram, reversed histogram, different colors, random colors.
 // Amount of previously predicted data: none, pixels from input, all pixels from output, mix of input/output, random junk.
 // Use mispredicted output from logistic regression as content in the prediction area.
 // Noise pixels in the input data. Can it still make correct predictions despite some noise.
 // Image size. Don't always use 30x30 as the image size. Sometimes use a compact representation, such as 10x10.
-// Transformation: Double the size of the input images, as long as they stay below 30x30.
-// Transformation: Double the size of the output images, as long as they stay below 30x30.
-// Transformation: Pad the input image with 1..3 pixel wide border.
-// Transformation: Pad the output image with 1..3 pixel wide border.
 
 pub struct GenerateTrainingImageFiles;
 
@@ -105,7 +100,7 @@ impl GenerateTrainingImageFiles {
         }
         let task_image: Image = Image::hstack(images)?;
 
-        let filename = format!("{}_test{}_x{}_y{}_color{}_mutation{}.png", task.id, test_index, x, y, classification, mutation_name);
+        let filename = format!("{}_mutation{}_test{}_x{}_y{}_color{}.png", task.id, mutation_name, test_index, x, y, classification);
         let basepath: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
         let path: PathBuf = basepath.join(filename);
         task_image.save_as_file(&path)?;
@@ -129,7 +124,16 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
 
-    fn transform_image(image: &Image, is_flipx: bool, rotate_count: u8, scalex: u8, scaley: u8) -> anyhow::Result<Image> {
+    /// Transform the original images.
+    /// 
+    /// Double/triple the size of the input images, as long as they stay below 30x30.
+    /// 
+    /// Flip x.
+    /// 
+    /// Rotate 90, 180, 270.
+    /// 
+    /// Padding with 1..3 pixel wide border.
+    fn transform_image(image: &Image, is_flipx: bool, rotate_count: u8, scalex: u8, scaley: u8, padding: u8, padding_color: u8) -> anyhow::Result<Image> {
         let mut image = image.clone();
         if scalex > 1 || scaley > 1 {
             let width: u16 = image.width() as u16 * scalex as u16;
@@ -144,6 +148,12 @@ impl GenerateTrainingImageFiles {
         }
         if rotate_count > 0 {
             image = image.rotate(rotate_count as i8)?;
+        }
+        if padding > 0 {
+            image = image.padding_with_color(padding, padding_color)?;
+            if image.width() > 30 || image.height() > 30 {
+                return Err(anyhow::anyhow!("Cannot create mutation, the image is too large. Width: {}, Height: {}", image.width(), image.height()));
+            }
         }
         Ok(image)
     }
@@ -165,19 +175,25 @@ impl GenerateTrainingImageFiles {
         let out_scalex = Self::take_u8(&mut current_mutation, 3) + 1;
         let out_scaley = Self::take_u8(&mut current_mutation, 3) + 1;
 
+        // Pad the image.
+        let in_padding_count = Self::take_u8(&mut current_mutation, 3);
+        let in_padding_color = Self::take_u8(&mut current_mutation, 10);
+        let out_padding_count = Self::take_u8(&mut current_mutation, 3);
+        let out_padding_color = Self::take_u8(&mut current_mutation, 10);
+
         let mut task_copy: Task = task.clone();
         for pair in task_copy.pairs.iter_mut() {
             {
-                let image: Image = Self::transform_image(&pair.input.image, in_flipx, in_rotate, in_scalex, in_scaley)?;
+                let image: Image = Self::transform_image(&pair.input.image, in_flipx, in_rotate, in_scalex, in_scaley, in_padding_count, in_padding_color)?;
                 pair.input.image = image;
             }
             match pair.pair_type {
                 PairType::Train => {
-                    let image: Image = Self::transform_image(&pair.output.image, out_flipx, out_rotate, out_scalex, out_scaley)?;
+                    let image: Image = Self::transform_image(&pair.output.image, out_flipx, out_rotate, out_scalex, out_scaley, out_padding_count, out_padding_color)?;
                     pair.output.image = image;
                 },
                 PairType::Test => {
-                    let image: Image = Self::transform_image(&pair.output.test_image, out_flipx, out_rotate, out_scalex, out_scaley)?;
+                    let image: Image = Self::transform_image(&pair.output.test_image, out_flipx, out_rotate, out_scalex, out_scaley, out_padding_count, out_padding_color)?;
                     pair.output.test_image = image;
                 }
             }
@@ -193,9 +209,9 @@ impl GenerateTrainingImageFiles {
     pub fn export_task(task: &Task) -> anyhow::Result<()> {
         let mutation_indexes: [u64; 4] = [
             0,
-            4 * 256 + 10 * 16,
-            312 * 256 + 9 * 16 + 2,
-            624 * 256 + 15 * 16 + 1,
+            (4 * 256 + 10 * 16) * 30 + 14,
+            (312 * 256 + 10 * 16 + 2) * 30,
+            (624 * 256 + 14 * 16 + 1) * 30 + 20,
         ];
         for mutation_index in mutation_indexes {
             let mutation_name: String = format!("{}", mutation_index);
