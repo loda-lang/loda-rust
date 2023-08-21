@@ -36,7 +36,8 @@ struct MutationConfig {
     out_padding_color: u8,
 
     // Rotate the color palette.
-    in_out_color_offset: u8,
+    color_offset: u8,
+    color_map: HashMap<u8, u8>,
 
     // Positioning of the images inside the template
     in_x: OverlayPositionId,
@@ -97,7 +98,7 @@ impl MutationConfig {
         let out_padding_color = Self::take_u8(&mut current_mutation, 10);
 
         // Rotate the color palette.
-        let in_out_color_offset = Self::take_u8(&mut current_mutation, 20);
+        let color_offset = Self::take_u8(&mut current_mutation, 20);
         
         // Position of the image: top-left corner, centered, bottom-right.
         // Future experiment with position: random x, random y.
@@ -119,12 +120,36 @@ impl MutationConfig {
             out_scaley,
             out_padding_count,
             out_padding_color,
-            in_out_color_offset,
+            color_offset,
             in_x,
             in_y,
             out_x,
             out_y,
+            color_map: Self::transformed_color_map(color_offset),
         }
+    }
+
+    /// When the `offset` is zero, then the color palette is unchanged.
+    /// 
+    /// When the `offset` is a value in the range [1..9]
+    /// Then the color palette gets rotated forward by that amount.
+    /// 
+    /// When the `offset` is a value in the range [10..19]
+    /// Then the color palette gets rotated backwards by that amount.
+    fn transformed_color_map(offset: u8) -> HashMap<u8, u8> {
+        let mut color_map = HashMap::<u8, u8>::new();
+        if offset >= 10 {
+            // Reverse the color palette and rotate
+            for i in 0..10u8 {
+                color_map.insert(i, (9 + offset - i) % 10);
+            }
+        } else {
+            // Rotate the color palette
+            for i in 0..10u8 {
+                color_map.insert(i, (i + offset) % 10);
+            }
+        }
+        color_map
     }
 }
 
@@ -214,14 +239,8 @@ impl GenerateTrainingImageFiles {
     /// 
     /// Padding with 1..3 pixel wide border.
     /// 
-    /// When the `color_offset` is zero, then the color palette is unchanged.
-    /// 
-    /// When the `color_offset` is a value in the range [1..9]
-    /// Then the color palette gets rotated forward by that amount.
-    /// 
-    /// When the `color_offset` is a value in the range [10..19]
-    /// Then the color palette gets rotated backwards by that amount.
-    fn transform_image(image: &Image, is_flipx: bool, rotate_count: u8, scalex: u8, scaley: u8, padding: u8, padding_color: u8, color_offset: u8) -> anyhow::Result<Image> {
+    /// Apply color map.
+    fn transform_image(image: &Image, is_flipx: bool, rotate_count: u8, scalex: u8, scaley: u8, padding: u8, padding_color: u8, color_map: &HashMap<u8, u8>) -> anyhow::Result<Image> {
         let mut image = image.clone();
         if scalex > 1 || scaley > 1 {
             let width: u16 = image.width() as u16 * scalex as u16;
@@ -243,24 +262,10 @@ impl GenerateTrainingImageFiles {
                 return Err(anyhow::anyhow!("Cannot create mutation, the image is too large. Width: {}, Height: {}", image.width(), image.height()));
             }
         }
-        if color_offset > 0 {
-            // Future experiments:
-            // Randomize colors.
 
-            let mut color_map = HashMap::<u8, u8>::new();
-            if color_offset >= 10 {
-                // Reverse the color palette and rotate
-                for i in 0..10u8 {
-                    color_map.insert(i, (9 + color_offset - i) % 10);
-                }
-            } else {
-                // Rotate the color palette
-                for i in 0..10u8 {
-                    color_map.insert(i, (i + color_offset) % 10);
-                }
-            }
-            image = image.replace_colors_with_hashmap(&color_map)?;
-        }
+        // Future experiments:
+        // Randomize colors.
+        image = image.replace_colors_with_hashmap(color_map)?;
         Ok(image)
     }
 
@@ -284,7 +289,7 @@ impl GenerateTrainingImageFiles {
                 config.in_scaley, 
                 config.in_padding_count, 
                 config.in_padding_color, 
-                config.in_out_color_offset
+                &config.color_map,
             )?;
             pair.input.image = transformed_image;
         }
@@ -303,7 +308,7 @@ impl GenerateTrainingImageFiles {
                 config.out_scaley, 
                 config.out_padding_count, 
                 config.out_padding_color, 
-                config.in_out_color_offset
+                &config.color_map,
             )?;
             match pair.pair_type {
                 PairType::Train => {
