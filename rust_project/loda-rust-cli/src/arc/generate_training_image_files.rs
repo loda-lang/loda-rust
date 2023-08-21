@@ -264,9 +264,7 @@ impl GenerateTrainingImageFiles {
         Ok(image)
     }
 
-    pub fn export_task_with_mutation(task: &Task, mutation_index: u64, mutation_name: &str) -> anyhow::Result<()> {
-        let config = MutationConfig::create(mutation_index);
-
+    fn export_task_with_mutation(task: &Task, config: &MutationConfig, mutation_name: &str) -> anyhow::Result<()> {
         if config.in_padding_count > 0 && task.input_histogram_intersection.get(config.in_padding_color) > 0 {
             return Err(anyhow::anyhow!("Cannot create mutation, the color cannot be used for padding"));
         }
@@ -275,46 +273,44 @@ impl GenerateTrainingImageFiles {
         }
 
         let mut task_copy: Task = task.clone();
+
+        // Transform the input images
         for pair in task_copy.pairs.iter_mut() {
-            {
-                let image: Image = Self::transform_image(
-                    &pair.input.image, 
-                    config.in_flipx, 
-                    config.in_rotate, 
-                    config.in_scalex, 
-                    config.in_scaley, 
-                    config.in_padding_count, 
-                    config.in_padding_color, 
-                    config.in_out_color_offset
-                )?;
-                pair.input.image = image;
-            }
+            let transformed_image: Image = Self::transform_image(
+                &pair.input.image, 
+                config.in_flipx, 
+                config.in_rotate, 
+                config.in_scalex, 
+                config.in_scaley, 
+                config.in_padding_count, 
+                config.in_padding_color, 
+                config.in_out_color_offset
+            )?;
+            pair.input.image = transformed_image;
+        }
+
+        // Transform the output images
+        for pair in task_copy.pairs.iter_mut() {
+            let original_image: Image = match pair.pair_type {
+                PairType::Train => pair.output.image.clone(),
+                PairType::Test => pair.output.test_image.clone(),
+            };
+            let transformed_image: Image = Self::transform_image(
+                &original_image, 
+                config.out_flipx, 
+                config.out_rotate, 
+                config.out_scalex, 
+                config.out_scaley, 
+                config.out_padding_count, 
+                config.out_padding_color, 
+                config.in_out_color_offset
+            )?;
             match pair.pair_type {
                 PairType::Train => {
-                    let image: Image = Self::transform_image(
-                        &pair.output.image, 
-                        config.out_flipx, 
-                        config.out_rotate, 
-                        config.out_scalex, 
-                        config.out_scaley, 
-                        config.out_padding_count, 
-                        config.out_padding_color, 
-                        config.in_out_color_offset
-                    )?;
-                    pair.output.image = image;
+                    pair.output.image = transformed_image;
                 },
                 PairType::Test => {
-                    let image: Image = Self::transform_image(
-                        &pair.output.test_image, 
-                        config.out_flipx, 
-                        config.out_rotate, 
-                        config.out_scalex, 
-                        config.out_scaley, 
-                        config.out_padding_count, 
-                        config.out_padding_color, 
-                        config.in_out_color_offset
-                    )?;
-                    pair.output.test_image = image;
+                    pair.output.test_image = transformed_image;
                 }
             }
         }
@@ -334,9 +330,10 @@ impl GenerateTrainingImageFiles {
             523106332,
         ];
         for (index, mutation_index) in mutation_indexes.iter().enumerate() {
+            let config = MutationConfig::create(*mutation_index);
             let mutation_name: String = format!("{}", mutation_index);
-            println!("Index {} mutation: {}", index, mutation_name);
-            match Self::export_task_with_mutation(task, *mutation_index, &mutation_name) {
+            println!("Index {} mutation: {} config: {:?}", index, mutation_name, config);
+            match Self::export_task_with_mutation(task, &config, &mutation_name) {
                 Ok(()) => {},
                 Err(error) => {
                     println!("Index {} Failed to export task with mutation: {} error: {:?}", index, mutation_name, error);
