@@ -181,6 +181,13 @@ impl GenerateTrainingImageFiles {
         let out_padding_count = Self::take_u8(&mut current_mutation, 3);
         let out_padding_color = Self::take_u8(&mut current_mutation, 10);
 
+        if in_padding_count > 0 && task.input_histogram_intersection.get(in_padding_color) > 0 {
+            return Err(anyhow::anyhow!("Cannot create mutation, the color cannot be used for padding"));
+        }
+        if out_padding_count > 0 && task.output_histogram_intersection.get(out_padding_color) > 0 {
+            return Err(anyhow::anyhow!("Cannot create mutation, the color cannot be used for padding"));
+        }
+
         let mut task_copy: Task = task.clone();
         for pair in task_copy.pairs.iter_mut() {
             {
@@ -210,15 +217,15 @@ impl GenerateTrainingImageFiles {
         let mutation_indexes: [u64; 4] = [
             0,
             (4 * 256 + 10 * 16) * 30 + 14,
-            (312 * 256 + 10 * 16 + 2) * 30,
+            (312 * 256 + 10 * 16 + 2) * 30 + 5,
             (624 * 256 + 14 * 16 + 1) * 30 + 20,
         ];
-        for mutation_index in mutation_indexes {
+        for (index, mutation_index) in mutation_indexes.iter().enumerate() {
             let mutation_name: String = format!("{}", mutation_index);
-            match Self::export_task_with_mutation(task, mutation_index, &mutation_name) {
+            match Self::export_task_with_mutation(task, *mutation_index, &mutation_name) {
                 Ok(()) => {},
                 Err(error) => {
-                    println!("Failed to export task with mutation: {} error: {:?}", mutation_name, error);
+                    println!("Index {} Failed to export task with mutation: {} error: {:?}", index, mutation_name, error);
                 }
             }
         }
