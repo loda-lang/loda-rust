@@ -1,16 +1,17 @@
-use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize, OverlayPositionId, ImageSymmetry, ImageRotate, ImageResize};
+use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize, OverlayPositionId, ImageSymmetry, ImageRotate, ImageResize, ImageReplaceColor};
 use super::arc_work_model::{Task, Pair, PairType};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 // Future experiments
 // Order of training pairs: ascending, descending, permuted.
 // Order of test pairs: ascending, descending, permuted.
 // Positions across pairs: follows same position, no correspondence.
-// Colors of the image: normal histogram, reversed histogram, different colors, random colors.
 // Amount of previously predicted data: none, pixels from input, all pixels from output, mix of input/output, random junk.
 // Use mispredicted output from logistic regression as content in the prediction area.
 // Noise pixels in the input data. Can it still make correct predictions despite some noise.
 // Image size. Don't always use 30x30 as the image size. Sometimes use a compact representation, such as 10x10.
+// Combine 2 tasks into 1 task, separated with a splitview.
 
 pub struct GenerateTrainingImageFiles;
 
@@ -133,7 +134,15 @@ impl GenerateTrainingImageFiles {
     /// Rotate 90, 180, 270.
     /// 
     /// Padding with 1..3 pixel wide border.
-    fn transform_image(image: &Image, is_flipx: bool, rotate_count: u8, scalex: u8, scaley: u8, padding: u8, padding_color: u8) -> anyhow::Result<Image> {
+    /// 
+    /// When the `color_offset` is zero, then the color palette is unchanged.
+    /// 
+    /// When the `color_offset` is a value in the range [1..9]
+    /// Then the color palette gets rotated forward by that amount.
+    /// 
+    /// When the `color_offset` is a value in the range [10..19]
+    /// Then the color palette gets rotated backwards by that amount.
+    fn transform_image(image: &Image, is_flipx: bool, rotate_count: u8, scalex: u8, scaley: u8, padding: u8, padding_color: u8, color_offset: u8) -> anyhow::Result<Image> {
         let mut image = image.clone();
         if scalex > 1 || scaley > 1 {
             let width: u16 = image.width() as u16 * scalex as u16;
@@ -154,6 +163,24 @@ impl GenerateTrainingImageFiles {
             if image.width() > 30 || image.height() > 30 {
                 return Err(anyhow::anyhow!("Cannot create mutation, the image is too large. Width: {}, Height: {}", image.width(), image.height()));
             }
+        }
+        if color_offset > 0 {
+            // Future experiments:
+            // Randomize colors.
+
+            let mut color_map = HashMap::<u8, u8>::new();
+            if color_offset >= 10 {
+                // Reverse the color palette and rotate
+                for i in 0..10u8 {
+                    color_map.insert(i, (9 + color_offset - i) % 10);
+                }
+            } else {
+                // Rotate the color palette
+                for i in 0..10u8 {
+                    color_map.insert(i, (i + color_offset) % 10);
+                }
+            }
+            image = image.replace_colors_with_hashmap(&color_map)?;
         }
         Ok(image)
     }
@@ -181,6 +208,9 @@ impl GenerateTrainingImageFiles {
         let out_padding_count = Self::take_u8(&mut current_mutation, 3);
         let out_padding_color = Self::take_u8(&mut current_mutation, 10);
 
+        // Rotate the color palette.
+        let in_out_color_offset = Self::take_u8(&mut current_mutation, 20);
+
         if in_padding_count > 0 && task.input_histogram_intersection.get(in_padding_color) > 0 {
             return Err(anyhow::anyhow!("Cannot create mutation, the color cannot be used for padding"));
         }
@@ -191,16 +221,16 @@ impl GenerateTrainingImageFiles {
         let mut task_copy: Task = task.clone();
         for pair in task_copy.pairs.iter_mut() {
             {
-                let image: Image = Self::transform_image(&pair.input.image, in_flipx, in_rotate, in_scalex, in_scaley, in_padding_count, in_padding_color)?;
+                let image: Image = Self::transform_image(&pair.input.image, in_flipx, in_rotate, in_scalex, in_scaley, in_padding_count, in_padding_color, in_out_color_offset)?;
                 pair.input.image = image;
             }
             match pair.pair_type {
                 PairType::Train => {
-                    let image: Image = Self::transform_image(&pair.output.image, out_flipx, out_rotate, out_scalex, out_scaley, out_padding_count, out_padding_color)?;
+                    let image: Image = Self::transform_image(&pair.output.image, out_flipx, out_rotate, out_scalex, out_scaley, out_padding_count, out_padding_color, in_out_color_offset)?;
                     pair.output.image = image;
                 },
                 PairType::Test => {
-                    let image: Image = Self::transform_image(&pair.output.test_image, out_flipx, out_rotate, out_scalex, out_scaley, out_padding_count, out_padding_color)?;
+                    let image: Image = Self::transform_image(&pair.output.test_image, out_flipx, out_rotate, out_scalex, out_scaley, out_padding_count, out_padding_color, in_out_color_offset)?;
                     pair.output.test_image = image;
                 }
             }
@@ -216,12 +246,13 @@ impl GenerateTrainingImageFiles {
     pub fn export_task(task: &Task) -> anyhow::Result<()> {
         let mutation_indexes: [u64; 4] = [
             0,
-            (4 * 256 + 10 * 16) * 30 + 14,
-            (312 * 256 + 10 * 16 + 2) * 30 + 5,
-            (624 * 256 + 14 * 16 + 1) * 30 + 20,
+            259818103,
+            480205127,
+            523106332,
         ];
         for (index, mutation_index) in mutation_indexes.iter().enumerate() {
             let mutation_name: String = format!("{}", mutation_index);
+            println!("Index {} mutation: {}", index, mutation_name);
             match Self::export_task_with_mutation(task, *mutation_index, &mutation_name) {
                 Ok(()) => {},
                 Err(error) => {
