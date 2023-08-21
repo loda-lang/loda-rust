@@ -7,8 +7,6 @@ use std::path::PathBuf;
 // Order of training pairs: ascending, descending, permuted.
 // Order of test pairs: ascending, descending, permuted.
 // Positions across pairs: follows same position, no correspondence.
-// Amount of previously predicted data: none, pixels from input, all pixels from output, mix of input/output, random junk.
-// Use mispredicted output from logistic regression as content in the prediction area.
 // Noise pixels in the input data. Can it still make correct predictions despite some noise.
 // Image size. Don't always use 30x30 as the image size. Sometimes use a compact representation, such as 10x10.
 // Combine 2 tasks into 1 task, separated with a splitview.
@@ -80,6 +78,13 @@ impl GenerateTrainingImageFiles {
             },
             PairType::Test => {
                 let output_size: ImageSize = pair.output.test_image.size();
+                // Future experiments
+                // Partially copy pixel data from the expected output image.
+                // Partially copy pixel data from the input image.
+                // Mix between data from the input image and the expected output image.
+                // Use mispredicted output from logistic regression as content in the prediction area.
+                // Partially fill with junk data.
+                // When copying, then copy with noise data to mimic bad predictions.
                 let mut image: Image = Image::color(output_size.width, output_size.height, color_outside);
                 if pair.test_index == Some(test_index) {
                     _ = image.set(x as i32, y as i32, color_padding_highlight);
