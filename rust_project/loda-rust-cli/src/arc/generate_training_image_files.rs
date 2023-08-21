@@ -230,6 +230,7 @@ impl GenerateTrainingImageFiles {
 
                     // let filename = format!("{}_mutation{}_test{}_x{}_y{}_color{}.png", task.id, mutation_name, test_index, x, y, classification);
                     let filename = format!("color{}.{}.png", classification, counter);
+                    // let filename = format!("{}.png", self.accumulated_file_count);
                     let basepath: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
                     let path: PathBuf = basepath.join(filename);
 
@@ -384,9 +385,17 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
 
-    pub fn export_task(task: &Task) -> anyhow::Result<()> {
+    pub fn export_task_train(task: &Task) -> anyhow::Result<()> {
         let random_seed: u64 = 0;
         let include_zero: bool = false;
+        let mut instance = Self::default();
+        instance.export_task_inner(task, random_seed, include_zero)?;
+        Ok(())
+    }
+
+    pub fn export_task_test(task: &Task) -> anyhow::Result<()> {
+        let random_seed: u64 = 42;
+        let include_zero: bool = true;
         let mut instance = Self::default();
         instance.export_task_inner(task, random_seed, include_zero)?;
         Ok(())
@@ -402,7 +411,8 @@ mod tests {
     fn save_as_file(name: &str) -> anyhow::Result<()> {
         let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(name)?;
         let task: Task = Task::try_from(&json_task)?;
-        GenerateTrainingImageFiles::export_task(&task)?;
+        GenerateTrainingImageFiles::export_task_train(&task)?;
+        // GenerateTrainingImageFiles::export_task_test(&task)?;
         Ok(())
     }
 
