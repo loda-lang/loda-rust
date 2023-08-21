@@ -56,7 +56,7 @@ impl GenerateTrainingImageFiles {
         Ok(pair_image)
     }
 
-    fn export_pixel(task: &Task, test_index: u8, x: u8, y: u8, classification: u8) -> anyhow::Result<()> {
+    fn export_image(task: &Task, test_index: u8, x: u8, y: u8, classification: u8) -> anyhow::Result<()> {
         let mut images = Vec::<Image>::new();
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
             let pair_image: Image = Self::generate_pair_image(pair, test_index, x, y)?;
@@ -71,7 +71,7 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
     
-    fn export_pair(task: &Task, test_index: u8) -> anyhow::Result<()> {
+    fn export_test_pairs(task: &Task, test_index: u8) -> anyhow::Result<()> {
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
             if pair.test_index != Some(test_index) {
                 continue;
@@ -81,7 +81,7 @@ impl GenerateTrainingImageFiles {
             for y in 0..output_size.height {
                 for x in 0..output_size.width {
                     let classification: u8 = output_image.get(x as i32, y as i32).unwrap_or(255);
-                    Self::export_pixel(task, test_index, x, y, classification)?;
+                    Self::export_image(task, test_index, x, y, classification)?;
                 }
             }
         }
@@ -91,7 +91,7 @@ impl GenerateTrainingImageFiles {
     pub fn export_task(task: &Task) -> anyhow::Result<()> {
         let count_test: u8 = task.count_test().min(255) as u8;
         for test_index in 0..count_test {
-            Self::export_pair(task, test_index)?;
+            Self::export_test_pairs(task, test_index)?;
         }        
         Ok(())
     }
