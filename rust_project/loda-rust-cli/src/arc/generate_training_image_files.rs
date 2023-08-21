@@ -2,6 +2,8 @@ use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, I
 use super::arc_work_model::{Task, Pair, PairType};
 use std::collections::HashMap;
 use std::path::{PathBuf, Path};
+use rand::{SeedableRng, Rng};
+use rand::rngs::StdRng;
 
 // Future experiments
 // Order of training pairs: ascending, descending, permuted.
@@ -341,17 +343,25 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
 
-    fn export_task_inner(&mut self, task: &Task) -> anyhow::Result<()> {
-        let mutation_indexes: [u64; 4] = [
-            0,
-            259818103,
-            480205127,
-            523106332,
-        ];
-        for (index, mutation_index) in mutation_indexes.iter().enumerate() {
-            let config = MutationConfig::create(*mutation_index);
+    fn export_task_inner(&mut self, task: &Task, random_seed: u64, include_zero: bool) -> anyhow::Result<()> {
+        let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
+
+        let limit_iteration_count: usize = 100000;
+        let mut iteration_count: usize = 0;
+        while iteration_count < limit_iteration_count { 
+            let index: usize = iteration_count;
+            iteration_count += 1;
+
+            let mutation_index: u64;
+            if index == 0 && include_zero {
+                mutation_index = 0;
+            } else {
+                mutation_index = rng.gen();
+            }
+            let config = MutationConfig::create(mutation_index);
             let mutation_name: String = format!("{}", mutation_index);
-            println!("Index {} mutation: {} config: {:?}", index, mutation_name, config);
+            println!("Index {} accumulated_file_count: {} accumulated_byte_count: {} classification_counters: {:?}", index, self.accumulated_file_count, self.accumulated_byte_count, self.classification_counters);
+            // println!("Index {} mutation: {} config: {:?}", index, mutation_name, config);
             match self.export_task_with_mutation(task, &config, &mutation_name) {
                 Ok(()) => {},
                 Err(error) => {
@@ -366,6 +376,8 @@ impl GenerateTrainingImageFiles {
                 break;
             }
         }
+
+        println!("iteration_count: {}", iteration_count);
         println!("accumulated_file_count: {}", self.accumulated_file_count);
         println!("accumulated_byte_count: {}", self.accumulated_byte_count);
         println!("number of files per classification: {:?}", self.classification_counters);
@@ -373,8 +385,10 @@ impl GenerateTrainingImageFiles {
     }
 
     pub fn export_task(task: &Task) -> anyhow::Result<()> {
+        let random_seed: u64 = 0;
+        let include_zero: bool = false;
         let mut instance = Self::default();
-        instance.export_task_inner(task)?;
+        instance.export_task_inner(task, random_seed, include_zero)?;
         Ok(())
     }
 }
