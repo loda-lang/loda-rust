@@ -13,9 +13,39 @@ use std::path::PathBuf;
 // Export the entire obfuscated task to a json file.
 // Explain what settings the mutation index gets translated into.
 
-pub struct GenerateTrainingImageFiles;
+#[derive(Debug, Clone)]
+struct MutationConfig {
+    // Flip the image.
+    in_flipx: bool,
+    out_flipx: bool,
 
-impl GenerateTrainingImageFiles {
+    // Rotate the image.
+    in_rotate: u8,
+    out_rotate: u8,
+
+    // Scale of the image.
+    in_scalex: u8,
+    in_scaley: u8,
+    out_scalex: u8,
+    out_scaley: u8,
+
+    // Padding around the image.
+    in_padding_count: u8,
+    in_padding_color: u8,
+    out_padding_count: u8,
+    out_padding_color: u8,
+
+    // Rotate the color palette.
+    in_out_color_offset: u8,
+
+    // Positioning of the images inside the template
+    in_x: OverlayPositionId,
+    in_y: OverlayPositionId,
+    out_x: OverlayPositionId,
+    out_y: OverlayPositionId,
+}
+
+impl MutationConfig {
     fn take_position_id(index: &mut u64) -> OverlayPositionId {
         let variant: u64 = *index % 5;
         *index /= 5;
@@ -43,36 +73,78 @@ impl GenerateTrainingImageFiles {
         variant.min(255) as u8
     }
 
-    fn generate_pair_image(pair: &Pair, test_index: u8, x: u8, y: u8, mutation_index: u64) -> anyhow::Result<Image> {
+    fn create(mutation_index: u64) -> Self {
+        let mut current_mutation: u64 = mutation_index;
+
+        // Flip the image.
+        let in_flipx = Self::take_bool(&mut current_mutation);
+        let out_flipx = Self::take_bool(&mut current_mutation);
+
+        // Rotate the image.
+        let in_rotate = Self::take_u8(&mut current_mutation, 4);
+        let out_rotate = Self::take_u8(&mut current_mutation, 4);
+
+        // Scale the image.
+        let in_scalex = Self::take_u8(&mut current_mutation, 3) + 1;
+        let in_scaley = Self::take_u8(&mut current_mutation, 3) + 1;
+        let out_scalex = Self::take_u8(&mut current_mutation, 3) + 1;
+        let out_scaley = Self::take_u8(&mut current_mutation, 3) + 1;
+
+        // Pad the image.
+        let in_padding_count = Self::take_u8(&mut current_mutation, 3);
+        let in_padding_color = Self::take_u8(&mut current_mutation, 10);
+        let out_padding_count = Self::take_u8(&mut current_mutation, 3);
+        let out_padding_color = Self::take_u8(&mut current_mutation, 10);
+
+        // Rotate the color palette.
+        let in_out_color_offset = Self::take_u8(&mut current_mutation, 20);
+        
+        // Position of the image: top-left corner, centered, bottom-right.
+        // Future experiment with position: random x, random y.
+        let in_x = Self::take_position_id(&mut current_mutation);
+        let in_y = Self::take_position_id(&mut current_mutation);
+        let out_x = Self::take_position_id(&mut current_mutation);
+        let out_y = Self::take_position_id(&mut current_mutation);
+
+        Self {
+            in_flipx,
+            in_rotate,
+            in_scalex,
+            in_scaley,
+            in_padding_count,
+            in_padding_color,
+            out_flipx,
+            out_rotate,
+            out_scalex,
+            out_scaley,
+            out_padding_count,
+            out_padding_color,
+            in_out_color_offset,
+            in_x,
+            in_y,
+            out_x,
+            out_y,
+        }
+    }
+}
+
+pub struct GenerateTrainingImageFiles;
+
+impl GenerateTrainingImageFiles {
+    fn generate_pair_image(pair: &Pair, test_index: u8, x: u8, y: u8, config: &MutationConfig) -> anyhow::Result<Image> {
         let color_outside: u8 = Color::DarkGrey as u8;
         let color_padding: u8 = Color::LightGrey as u8;
         let color_padding_highlight: u8 = Color::White as u8;
 
-        let mut in_x = OverlayPositionId::Half;
-        let mut in_y = OverlayPositionId::Half;
-        let mut out_x = OverlayPositionId::Half;
-        let mut out_y = OverlayPositionId::Half;
-
-        {
-            let mut current_mutation: u64 = mutation_index;
-
-            // Position of the image: top-left corner, centered, bottom-right.
-            // Future experiment with position: random x, random y.
-            in_x = Self::take_position_id(&mut current_mutation);
-            in_y = Self::take_position_id(&mut current_mutation);
-            out_x = Self::take_position_id(&mut current_mutation);
-            out_y = Self::take_position_id(&mut current_mutation);
-        }
-
         let mut input = Image::color(30, 30, color_outside);
-        input = input.overlay_with_position_id(&pair.input.image, in_x, in_y)?;
+        input = input.overlay_with_position_id(&pair.input.image, config.in_x, config.in_y)?;
         input = input.padding_with_color(1, color_padding)?;
 
         let the_output: Image;
         match pair.pair_type {
             PairType::Train => {
                 let mut output = Image::color(30, 30, color_outside);
-                output = output.overlay_with_position_id(&pair.output.image, out_x, out_y)?;
+                output = output.overlay_with_position_id(&pair.output.image, config.out_x, config.out_y)?;
                 output = output.padding_with_color(1, color_padding)?;
                 the_output = output;
             },
@@ -92,7 +164,7 @@ impl GenerateTrainingImageFiles {
                 image = image.padding_with_color(1, color_padding_highlight)?;
                 let mut output = Image::color(30, 30, color_outside);
                 output = output.padding_with_color(1, color_padding)?;
-                output = output.overlay_with_position_id(&image, out_x, out_y)?;
+                output = output.overlay_with_position_id(&image, config.out_x, config.out_y)?;
                 the_output = output;
             }
         }
@@ -100,10 +172,10 @@ impl GenerateTrainingImageFiles {
         Ok(pair_image)
     }
 
-    fn export_image(task: &Task, test_index: u8, x: u8, y: u8, mutation_index: u64, mutation_name: &str, classification: u8) -> anyhow::Result<()> {
+    fn export_image(task: &Task, test_index: u8, x: u8, y: u8, config: &MutationConfig, mutation_name: &str, classification: u8) -> anyhow::Result<()> {
         let mut images = Vec::<Image>::new();
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
-            let pair_image: Image = Self::generate_pair_image(pair, test_index, x, y, mutation_index)?;
+            let pair_image: Image = Self::generate_pair_image(pair, test_index, x, y, config)?;
             images.push(pair_image);
         }
         let task_image: Image = Image::hstack(images)?;
@@ -115,7 +187,7 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
     
-    fn export_test_pairs(task: &Task, test_index: u8, mutation_index: u64, mutation_name: &str) -> anyhow::Result<()> {
+    fn export_test_pairs(task: &Task, test_index: u8, config: &MutationConfig, mutation_name: &str) -> anyhow::Result<()> {
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
             if pair.test_index != Some(test_index) {
                 continue;
@@ -125,7 +197,7 @@ impl GenerateTrainingImageFiles {
             for y in 0..output_size.height {
                 for x in 0..output_size.width {
                     let classification: u8 = output_image.get(x as i32, y as i32).unwrap_or(255);
-                    Self::export_image(task, test_index, x, y, mutation_index, mutation_name, classification)?;
+                    Self::export_image(task, test_index, x, y, config, mutation_name, classification)?;
                 }
             }
         }
@@ -193,51 +265,55 @@ impl GenerateTrainingImageFiles {
     }
 
     pub fn export_task_with_mutation(task: &Task, mutation_index: u64, mutation_name: &str) -> anyhow::Result<()> {
-        let mut current_mutation: u64 = mutation_index;
+        let config = MutationConfig::create(mutation_index);
 
-        // Flip the image.
-        let in_flipx = Self::take_bool(&mut current_mutation);
-        let out_flipx = Self::take_bool(&mut current_mutation);
-
-        // Rotate the image.
-        let in_rotate = Self::take_u8(&mut current_mutation, 4);
-        let out_rotate = Self::take_u8(&mut current_mutation, 4);
-
-        // Scale the image.
-        let in_scalex = Self::take_u8(&mut current_mutation, 3) + 1;
-        let in_scaley = Self::take_u8(&mut current_mutation, 3) + 1;
-        let out_scalex = Self::take_u8(&mut current_mutation, 3) + 1;
-        let out_scaley = Self::take_u8(&mut current_mutation, 3) + 1;
-
-        // Pad the image.
-        let in_padding_count = Self::take_u8(&mut current_mutation, 3);
-        let in_padding_color = Self::take_u8(&mut current_mutation, 10);
-        let out_padding_count = Self::take_u8(&mut current_mutation, 3);
-        let out_padding_color = Self::take_u8(&mut current_mutation, 10);
-
-        // Rotate the color palette.
-        let in_out_color_offset = Self::take_u8(&mut current_mutation, 20);
-
-        if in_padding_count > 0 && task.input_histogram_intersection.get(in_padding_color) > 0 {
+        if config.in_padding_count > 0 && task.input_histogram_intersection.get(config.in_padding_color) > 0 {
             return Err(anyhow::anyhow!("Cannot create mutation, the color cannot be used for padding"));
         }
-        if out_padding_count > 0 && task.output_histogram_intersection.get(out_padding_color) > 0 {
+        if config.out_padding_count > 0 && task.output_histogram_intersection.get(config.out_padding_color) > 0 {
             return Err(anyhow::anyhow!("Cannot create mutation, the color cannot be used for padding"));
         }
 
         let mut task_copy: Task = task.clone();
         for pair in task_copy.pairs.iter_mut() {
             {
-                let image: Image = Self::transform_image(&pair.input.image, in_flipx, in_rotate, in_scalex, in_scaley, in_padding_count, in_padding_color, in_out_color_offset)?;
+                let image: Image = Self::transform_image(
+                    &pair.input.image, 
+                    config.in_flipx, 
+                    config.in_rotate, 
+                    config.in_scalex, 
+                    config.in_scaley, 
+                    config.in_padding_count, 
+                    config.in_padding_color, 
+                    config.in_out_color_offset
+                )?;
                 pair.input.image = image;
             }
             match pair.pair_type {
                 PairType::Train => {
-                    let image: Image = Self::transform_image(&pair.output.image, out_flipx, out_rotate, out_scalex, out_scaley, out_padding_count, out_padding_color, in_out_color_offset)?;
+                    let image: Image = Self::transform_image(
+                        &pair.output.image, 
+                        config.out_flipx, 
+                        config.out_rotate, 
+                        config.out_scalex, 
+                        config.out_scaley, 
+                        config.out_padding_count, 
+                        config.out_padding_color, 
+                        config.in_out_color_offset
+                    )?;
                     pair.output.image = image;
                 },
                 PairType::Test => {
-                    let image: Image = Self::transform_image(&pair.output.test_image, out_flipx, out_rotate, out_scalex, out_scaley, out_padding_count, out_padding_color, in_out_color_offset)?;
+                    let image: Image = Self::transform_image(
+                        &pair.output.test_image, 
+                        config.out_flipx, 
+                        config.out_rotate, 
+                        config.out_scalex, 
+                        config.out_scaley, 
+                        config.out_padding_count, 
+                        config.out_padding_color, 
+                        config.in_out_color_offset
+                    )?;
                     pair.output.test_image = image;
                 }
             }
@@ -245,7 +321,7 @@ impl GenerateTrainingImageFiles {
 
         let count_test: u8 = task_copy.count_test().min(255) as u8;
         for test_index in 0..count_test {
-            Self::export_test_pairs(&task_copy, test_index, mutation_index, mutation_name)?;
+            Self::export_test_pairs(&task_copy, test_index, &config, mutation_name)?;
         }        
         Ok(())
     }
