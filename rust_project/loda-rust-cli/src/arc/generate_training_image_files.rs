@@ -1,4 +1,4 @@
-use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize, OverlayPositionId, ImageSymmetry, ImageRotate};
+use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize, OverlayPositionId, ImageSymmetry, ImageRotate, ImageResize};
 use super::arc_work_model::{Task, Pair, PairType};
 use std::path::PathBuf;
 
@@ -129,6 +129,25 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
 
+    fn transform_image(image: &Image, is_flipx: bool, rotate_count: u8, scalex: u8, scaley: u8) -> anyhow::Result<Image> {
+        let mut image = image.clone();
+        if scalex > 1 || scaley > 1 {
+            let width: u16 = image.width() as u16 * scalex as u16;
+            let height: u16 = image.height() as u16 * scaley as u16;
+            if width > 30 || height > 30 {
+                return Err(anyhow::anyhow!("Cannot create mutation, the image is too large. Width: {}, Height: {}", width, height));
+            }
+            image = image.resize(width as u8, height as u8)?;
+        }
+        if is_flipx {
+            image = image.flip_x()?;
+        }
+        if rotate_count > 0 {
+            image = image.rotate(rotate_count as i8)?;
+        }
+        Ok(image)
+    }
+
     pub fn export_task_with_mutation(task: &Task, mutation_index: u64, mutation_name: &str) -> anyhow::Result<()> {
         let mut current_mutation: u64 = mutation_index;
 
@@ -137,30 +156,30 @@ impl GenerateTrainingImageFiles {
         let out_flipx = Self::take_bool(&mut current_mutation);
 
         // Rotate the image.
-        let in_rotate_count = Self::take_u8(&mut current_mutation, 4);
-        let out_rotate_count = Self::take_u8(&mut current_mutation, 4);
+        let in_rotate = Self::take_u8(&mut current_mutation, 4);
+        let out_rotate = Self::take_u8(&mut current_mutation, 4);
+
+        // Scale the image.
+        let in_scalex = Self::take_u8(&mut current_mutation, 3) + 1;
+        let in_scaley = Self::take_u8(&mut current_mutation, 3) + 1;
+        let out_scalex = Self::take_u8(&mut current_mutation, 3) + 1;
+        let out_scaley = Self::take_u8(&mut current_mutation, 3) + 1;
 
         let mut task_copy: Task = task.clone();
         for pair in task_copy.pairs.iter_mut() {
             {
-                let mut image: Image = pair.input.image.clone();
-                if in_flipx {
-                    image = image.flip_x()?;
-                }
-                if in_rotate_count > 0 {
-                    image = image.rotate(in_rotate_count as i8)?;
-                }
+                let image: Image = Self::transform_image(&pair.input.image, in_flipx, in_rotate, in_scalex, in_scaley)?;
                 pair.input.image = image;
             }
-            {
-                let mut image: Image = pair.output.test_image.clone();
-                if out_flipx {
-                    image = image.flip_x()?;
+            match pair.pair_type {
+                PairType::Train => {
+                    let image: Image = Self::transform_image(&pair.output.image, out_flipx, out_rotate, out_scalex, out_scaley)?;
+                    pair.output.image = image;
+                },
+                PairType::Test => {
+                    let image: Image = Self::transform_image(&pair.output.test_image, out_flipx, out_rotate, out_scalex, out_scaley)?;
+                    pair.output.test_image = image;
                 }
-                if out_rotate_count > 0 {
-                    image = image.rotate(out_rotate_count as i8)?;
-                }
-                pair.output.test_image = image;
             }
         }
 
@@ -173,14 +192,19 @@ impl GenerateTrainingImageFiles {
 
     pub fn export_task(task: &Task) -> anyhow::Result<()> {
         let mutation_indexes: [u64; 4] = [
-            0 * 16,
-            4 * 16 + 10,
-            312 * 16 + 9,
-            624 * 16 + 15,
+            0,
+            4 * 256 + 10 * 16,
+            312 * 256 + 9 * 16 + 2,
+            624 * 256 + 15 * 16 + 1,
         ];
         for mutation_index in mutation_indexes {
             let mutation_name: String = format!("{}", mutation_index);
-            Self::export_task_with_mutation(task, mutation_index, &mutation_name)?;
+            match Self::export_task_with_mutation(task, mutation_index, &mutation_name) {
+                Ok(()) => {},
+                Err(error) => {
+                    println!("Failed to export task with mutation: {} error: {:?}", mutation_name, error);
+                }
+            }
         }
         Ok(())
     }
