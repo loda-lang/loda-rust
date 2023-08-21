@@ -366,7 +366,9 @@ impl GenerateTrainingImageFiles {
                 break;
             }
         }
-        println!("accumulated_file_count: {} self.accumulated_byte_count: {}", self.accumulated_file_count, self.accumulated_byte_count);
+        println!("accumulated_file_count: {}", self.accumulated_file_count);
+        println!("accumulated_byte_count: {}", self.accumulated_byte_count);
+        println!("number of files per classification: {:?}", self.classification_counters);
         Ok(())
     }
 
