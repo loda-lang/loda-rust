@@ -194,7 +194,7 @@ pub use image_noise_color::ImageNoiseColor;
 pub use image_object_enumerate::ImageObjectEnumerate;
 pub use image_offset::ImageOffset;
 pub use image_outline::ImageOutline;
-pub use image_overlay::ImageOverlay;
+pub use image_overlay::{ImageOverlay, OverlayPositionId};
 pub use image_padding::ImagePadding;
 pub use image_palette::ImageCreatePalette;
 pub use image_periodicity::ImagePeriodicity;
