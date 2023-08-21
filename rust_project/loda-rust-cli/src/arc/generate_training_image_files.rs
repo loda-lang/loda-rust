@@ -1,7 +1,7 @@
 use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize, OverlayPositionId, ImageSymmetry, ImageRotate, ImageResize, ImageReplaceColor};
 use super::arc_work_model::{Task, Pair, PairType};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 
 // Future experiments
 // Order of training pairs: ascending, descending, permuted.
@@ -153,7 +153,10 @@ impl MutationConfig {
     }
 }
 
-pub struct GenerateTrainingImageFiles;
+#[derive(Debug, Clone, Default)]
+pub struct GenerateTrainingImageFiles {
+    classification_counters: [u32; 10],
+}
 
 impl GenerateTrainingImageFiles {
     fn generate_pair_image(pair: &Pair, test_index: u8, x: u8, y: u8, config: &MutationConfig) -> anyhow::Result<Image> {
@@ -197,22 +200,18 @@ impl GenerateTrainingImageFiles {
         Ok(pair_image)
     }
 
-    fn export_image(task: &Task, test_index: u8, x: u8, y: u8, config: &MutationConfig, mutation_name: &str, classification: u8) -> anyhow::Result<()> {
+    fn export_image(task: &Task, test_index: u8, x: u8, y: u8, config: &MutationConfig, path: &Path) -> anyhow::Result<()> {
         let mut images = Vec::<Image>::new();
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
             let pair_image: Image = Self::generate_pair_image(pair, test_index, x, y, config)?;
             images.push(pair_image);
         }
         let task_image: Image = Image::hstack(images)?;
-
-        let filename = format!("{}_mutation{}_test{}_x{}_y{}_color{}.png", task.id, mutation_name, test_index, x, y, classification);
-        let basepath: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
-        let path: PathBuf = basepath.join(filename);
         task_image.save_as_file(&path)?;
         Ok(())
     }
     
-    fn export_test_pairs(task: &Task, test_index: u8, config: &MutationConfig, mutation_name: &str) -> anyhow::Result<()> {
+    fn export_test_pairs(&mut self, task: &Task, test_index: u8, config: &MutationConfig, mutation_name: &str) -> anyhow::Result<()> {
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
             if pair.test_index != Some(test_index) {
                 continue;
@@ -222,7 +221,16 @@ impl GenerateTrainingImageFiles {
             for y in 0..output_size.height {
                 for x in 0..output_size.width {
                     let classification: u8 = output_image.get(x as i32, y as i32).unwrap_or(255);
-                    Self::export_image(task, test_index, x, y, config, mutation_name, classification)?;
+                    let counter_index: usize = (classification as usize) % 10;
+                    let counter: u32 = self.classification_counters[counter_index];
+
+                    // let filename = format!("{}_mutation{}_test{}_x{}_y{}_color{}.png", task.id, mutation_name, test_index, x, y, classification);
+                    let filename = format!("color{}.{}.png", classification, counter);
+                    let basepath: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
+                    let path: PathBuf = basepath.join(filename);
+
+                    Self::export_image(task, test_index, x, y, config, &path)?;
+                    self.classification_counters[counter_index] += 1;
                 }
             }
         }
@@ -269,7 +277,7 @@ impl GenerateTrainingImageFiles {
         Ok(image)
     }
 
-    fn export_task_with_mutation(task: &Task, config: &MutationConfig, mutation_name: &str) -> anyhow::Result<()> {
+    fn export_task_with_mutation(&mut self, task: &Task, config: &MutationConfig, mutation_name: &str) -> anyhow::Result<()> {
         if config.in_padding_count > 0 && task.input_histogram_intersection.get(config.in_padding_color) > 0 {
             return Err(anyhow::anyhow!("Cannot create mutation, the color cannot be used for padding"));
         }
@@ -322,12 +330,12 @@ impl GenerateTrainingImageFiles {
 
         let count_test: u8 = task_copy.count_test().min(255) as u8;
         for test_index in 0..count_test {
-            Self::export_test_pairs(&task_copy, test_index, &config, mutation_name)?;
+            self.export_test_pairs(&task_copy, test_index, &config, mutation_name)?;
         }        
         Ok(())
     }
 
-    pub fn export_task(task: &Task) -> anyhow::Result<()> {
+    fn export_task_inner(&mut self, task: &Task) -> anyhow::Result<()> {
         let mutation_indexes: [u64; 4] = [
             0,
             259818103,
@@ -338,13 +346,19 @@ impl GenerateTrainingImageFiles {
             let config = MutationConfig::create(*mutation_index);
             let mutation_name: String = format!("{}", mutation_index);
             println!("Index {} mutation: {} config: {:?}", index, mutation_name, config);
-            match Self::export_task_with_mutation(task, &config, &mutation_name) {
+            match self.export_task_with_mutation(task, &config, &mutation_name) {
                 Ok(()) => {},
                 Err(error) => {
                     println!("Index {} Failed to export task with mutation: {} error: {:?}", index, mutation_name, error);
                 }
             }
         }
+        Ok(())
+    }
+
+    pub fn export_task(task: &Task) -> anyhow::Result<()> {
+        let mut instance = Self::default();
+        instance.export_task_inner(task)?;
         Ok(())
     }
 }
