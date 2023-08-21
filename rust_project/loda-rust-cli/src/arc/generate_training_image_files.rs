@@ -10,7 +10,9 @@ use std::path::PathBuf;
 // Positions across pairs: follows same position, no correspondence.
 // Colors of the image: normal histogram, reversed histogram, different colors, random colors.
 // Amount of previously predicted data: none, pixels from input, all pixels from output, mix of input/output, random junk.
+// Use mispredicted output from logistic regression as content in the prediction area.
 // Noise pixels in the input data. Can it still make correct predictions despite some noise.
+// Image size. Don't always use 30x30 as the image size. Sometimes use a compact representation, such as 10x10.
 // Transformation: Double the size of the input images, as long as they stay below 30x30.
 // Transformation: Double the size of the output images, as long as they stay below 30x30.
 // Transformation: Flip x, flip y, rotate 90, rotate 180, rotate 270.
@@ -38,20 +40,14 @@ impl GenerateTrainingImageFiles {
                     output = output.overlay_with_position(&pair.output.image, 1, 1)?;
                 },
                 PairType::Test => {
+                    let output_size: ImageSize = pair.output.test_image.size();
+                    let mut image: Image = Image::color(output_size.width, output_size.height, color_outside);
                     if pair.test_index == Some(test_index) {
-                        let output_size: ImageSize = pair.output.test_image.size();
-                        let mut image: Image = Image::color(output_size.width, output_size.height, color_outside);
                         _ = image.set(x as i32, y as i32, color_padding_highlight);
-                        // let mut image: Image = pair.output.test_image.clone();
-                        image = image.padding_with_color(1, color_padding_highlight)?;
-                        output = output.overlay_with_position(&image, 0, 0)?;
-                    } else {
-                        let output_size: ImageSize = pair.output.test_image.size();
-                        let image: Image = Image::color(output_size.width, output_size.height, color_outside);
-                        // let image: Image = pair.output.test_image.clone();
-                        output = output.overlay_with_position(&image, 1, 1)?;
                     }
-                },
+                    image = image.padding_with_color(1, color_padding_highlight)?;
+                    output = output.overlay_with_position(&image, 0, 0)?;
+            },
             }
             let pair_image: Image = input.vjoin(output)?;
 
@@ -59,7 +55,7 @@ impl GenerateTrainingImageFiles {
         }
         let task_image: Image = Image::hstack(images)?;
 
-        let filename = format!("color{}_test{}_x{}_y{}.png", classification, test_index, x, y);
+        let filename = format!("{}_test{}_x{}_y{}_color{}.png", task.id, test_index, x, y, classification);
         let basepath: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
         let path: PathBuf = basepath.join(filename);
         task_image.save_as_file(&path)?;
@@ -108,5 +104,15 @@ mod tests {
     // #[test]
     fn test_90000_overlay_cf98881b() {
         save_as_file("cf98881b").expect("ok");
+    }
+
+    // #[test]
+    fn test_90001_overlay_281123b4() {
+        save_as_file("281123b4").expect("ok");
+    }
+
+    // #[test]
+    fn test_90002_overlay_e98196ab() {
+        save_as_file("e98196ab").expect("ok");
     }
 }
