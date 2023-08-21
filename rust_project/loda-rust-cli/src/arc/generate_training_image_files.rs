@@ -2,10 +2,25 @@ use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, I
 use super::arc_work_model::{Task, PairType};
 use std::path::PathBuf;
 
+// Future experiments
+// Order of training pairs: ascending, descending, permuted.
+// Order of test pairs: ascending, descending, permuted.
+// Position of the image: top-left corner, centered, bottom-right, random x, random y.
+// Positions within a single pair between input image and output image: follows same position, no correspondence.
+// Positions across pairs: follows same position, no correspondence.
+// Colors of the image: normal histogram, reversed histogram, different colors, random colors.
+// Amount of previously predicted data: none, pixels from input, all pixels from output, mix of input/output, random junk.
+// Noise pixels in the input data. Can it still make correct predictions despite some noise.
+// Transformation: Double the size of the input images, as long as they stay below 30x30.
+// Transformation: Double the size of the output images, as long as they stay below 30x30.
+// Transformation: Flip x, flip y, rotate 90, rotate 180, rotate 270.
+// Transformation: Pad the input image with 1..3 pixel wide border.
+// Transformation: Pad the output image with 1..3 pixel wide border.
+
 pub struct GenerateTrainingImageFiles;
 
 impl GenerateTrainingImageFiles {
-    pub fn export_pixel(task: &Task, test_index: u8, x: u8, y: u8, classification: u8) -> anyhow::Result<()> {
+    fn export_pixel(task: &Task, test_index: u8, x: u8, y: u8, classification: u8) -> anyhow::Result<()> {
         let color_outside: u8 = Color::DarkGrey as u8;
         let color_padding: u8 = Color::LightGrey as u8;
         let color_padding_highlight: u8 = Color::White as u8;
@@ -44,7 +59,7 @@ impl GenerateTrainingImageFiles {
         }
         let task_image: Image = Image::hstack(images)?;
 
-        let filename = format!("color{}_pair{}_x{}_y{}.png", classification, test_index, x, y);
+        let filename = format!("color{}_test{}_x{}_y{}.png", classification, test_index, x, y);
         let basepath: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
         let path: PathBuf = basepath.join(filename);
         task_image.save_as_file(&path)?;
