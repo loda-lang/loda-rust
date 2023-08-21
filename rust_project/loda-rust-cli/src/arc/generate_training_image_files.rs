@@ -1,4 +1,4 @@
-use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize};
+use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize, OverlayPositionId};
 use super::arc_work_model::{Task, Pair, PairType};
 use std::path::PathBuf;
 
@@ -27,15 +27,20 @@ impl GenerateTrainingImageFiles {
         let color_padding: u8 = Color::LightGrey as u8;
         let color_padding_highlight: u8 = Color::White as u8;
 
+        let in_x = OverlayPositionId::Half;
+        let in_y = OverlayPositionId::Half;
+        let out_x = OverlayPositionId::Half;
+        let out_y = OverlayPositionId::Half;
+
         let mut input = Image::color(30, 30, color_outside);
-        input = input.overlay_with_position(&pair.input.image, 0, 0)?;
+        input = input.overlay_with_position_id(&pair.input.image, in_x, in_y)?;
         input = input.padding_with_color(1, color_padding)?;
 
         let the_output: Image;
         match pair.pair_type {
             PairType::Train => {
                 let mut output = Image::color(30, 30, color_outside);
-                output = output.overlay_with_position(&pair.output.image, 0, 0)?;
+                output = output.overlay_with_position_id(&pair.output.image, out_x, out_y)?;
                 output = output.padding_with_color(1, color_padding)?;
                 the_output = output;
             },
@@ -48,7 +53,7 @@ impl GenerateTrainingImageFiles {
                 image = image.padding_with_color(1, color_padding_highlight)?;
                 let mut output = Image::color(30, 30, color_outside);
                 output = output.padding_with_color(1, color_padding)?;
-                output = output.overlay_with_position(&image, 0, 0)?;
+                output = output.overlay_with_position_id(&image, out_x, out_y)?;
                 the_output = output;
             }
         }
