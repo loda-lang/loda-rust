@@ -12,6 +12,8 @@ use std::path::PathBuf;
 // Noise pixels in the input data. Can it still make correct predictions despite some noise.
 // Image size. Don't always use 30x30 as the image size. Sometimes use a compact representation, such as 10x10.
 // Combine 2 tasks into 1 task, separated with a splitview.
+// Export the entire obfuscated task to a json file.
+// Explain what settings the mutation index gets translated into.
 
 pub struct GenerateTrainingImageFiles;
 
