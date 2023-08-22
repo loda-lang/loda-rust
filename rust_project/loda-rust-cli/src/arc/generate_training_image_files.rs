@@ -223,7 +223,16 @@ impl GenerateTrainingImageFiles {
             images.push(pair_image);
         }
         let task_image: Image = Image::hstack(images)?;
-        task_image.save_as_file(&path)?;
+
+        // let color_padding: u8 = Color::LightGrey as u8;
+        // let mut task_image_resized = Image::color(224, 224, color_padding);
+        // task_image_resized = task_image_resized.overlay_with_position_id(&task_image, OverlayPositionId::Half, OverlayPositionId::Half)?;
+        // task_image_resized = task_image_resized.overlay_with_position_id(&task_image, OverlayPositionId::Zero, OverlayPositionId::Zero)?;
+
+        // task_image.save_as_file(&path)?;
+        // task_image.save_as_file_onechannel_raw(&path)?;
+        task_image.save_as_file_onechannel_normalized(&path)?;
+        // task_image_resized.save_as_file_onechannel_normalized(&path)?;
         Ok(())
     }
     

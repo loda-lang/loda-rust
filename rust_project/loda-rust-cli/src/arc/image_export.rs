@@ -13,6 +13,9 @@ pub trait ImageExport {
     /// 
     /// Unsupported file types: `webp`.
     fn save_as_file(&self, path: &Path) -> anyhow::Result<()>;
+
+    fn save_as_file_onechannel_raw(&self, path: &Path) -> anyhow::Result<()>;
+    fn save_as_file_onechannel_normalized(&self, path: &Path) -> anyhow::Result<()>;
 }
 
 impl ImageExport for Image {
@@ -28,6 +31,41 @@ impl ImageExport for Image {
             let r: u8 = ((rgb >> 16) & 255) as u8;
             let g: u8 = ((rgb >> 8) & 255) as u8;
             let b: u8 = (rgb & 255) as u8;
+            *pixel = image_crate::Rgb([r, g, b]);
+        }
+        output.save(path).context("output.save")?;
+        Ok(())
+    }
+
+    fn save_as_file_onechannel_raw(&self, path: &Path) -> anyhow::Result<()> {
+        let size: ImageSize = self.size();
+        if size.is_empty() {
+            return Err(anyhow::anyhow!("The image must be 1x1 or bigger"));
+        }
+        let mut output = image_crate::ImageBuffer::new(size.width as u32, size.height as u32);
+        for (x, y, pixel) in output.enumerate_pixels_mut() {
+            let color_symbol: u8 = self.get(x as i32, y as i32).unwrap_or(255);
+            let r: u8 = color_symbol;
+            let g: u8 = 0;
+            let b: u8 = 0;
+            *pixel = image_crate::Rgb([r, g, b]);
+        }
+        output.save(path).context("output.save")?;
+        Ok(())
+    }
+
+    fn save_as_file_onechannel_normalized(&self, path: &Path) -> anyhow::Result<()> {
+        let size: ImageSize = self.size();
+        if size.is_empty() {
+            return Err(anyhow::anyhow!("The image must be 1x1 or bigger"));
+        }
+        let mut output = image_crate::ImageBuffer::new(size.width as u32, size.height as u32);
+        for (x, y, pixel) in output.enumerate_pixels_mut() {
+            let color_symbol: u8 = self.get(x as i32, y as i32).unwrap_or(255);
+            let color_normalized: u16 = (color_symbol as u16) * 255 / 13;
+            let r: u8 = (color_normalized & 255) as u8;
+            let g: u8 = 0;
+            let b: u8 = 0;
             *pixel = image_crate::Rgb([r, g, b]);
         }
         output.save(path).context("output.save")?;
