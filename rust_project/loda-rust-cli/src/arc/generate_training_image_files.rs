@@ -367,11 +367,13 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
 
-    fn export_task_inner(&mut self, task: &Task, random_seed: u64, include_zero: bool) -> anyhow::Result<()> {
+    fn export_task_inner(&mut self, task: &Task, random_seed: u64, include_zero: bool, limit_file_count: u32, limit_byte_count: u64) -> anyhow::Result<()> {
         let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
 
         let limit_iteration_count: usize = 100000;
+        let limit_successive_error_count: usize = 100;
         let mut iteration_count: usize = 0;
+        let mut successive_error_count: usize = 0;
         while iteration_count < limit_iteration_count { 
             let index: usize = iteration_count;
             iteration_count += 1;
@@ -387,14 +389,21 @@ impl GenerateTrainingImageFiles {
             println!("Index {} accumulated_file_count: {} accumulated_byte_count: {} classification_counters: {:?}", index, self.accumulated_file_count, self.accumulated_byte_count, self.classification_counters);
             // println!("Index {} mutation: {} config: {:?}", index, mutation_name, config);
             match self.export_task_with_mutation(task, &config, &mutation_name) {
-                Ok(()) => {},
+                Ok(()) => {
+                    successive_error_count = 0;
+                },
                 Err(error) => {
-                    println!("Index {} Failed to export task with mutation: {} error: {:?}", index, mutation_name, error);
+                    debug!("Index {} Failed to export task with mutation: {} error: {:?}", index, mutation_name, error);
+                    successive_error_count += 1;
+                    if successive_error_count > limit_successive_error_count {
+                        error!("Too many successive errors");
+                        break;
+                    }
                 }
             }
 
-            let reached_limit_file_count: bool = self.accumulated_file_count > 10000;
-            let reached_limit_byte_count: bool = self.accumulated_byte_count > 1024 * 1024 * 50;
+            let reached_limit_file_count: bool = self.accumulated_file_count > limit_file_count;
+            let reached_limit_byte_count: bool = self.accumulated_byte_count > limit_byte_count;
             if reached_limit_file_count || reached_limit_byte_count {
                 println!("Index {} reached_limit_file_count: {} reached_limit_byte_count: {}", index, reached_limit_file_count, reached_limit_byte_count);
                 break;
@@ -411,18 +420,22 @@ impl GenerateTrainingImageFiles {
     pub fn export_task_train(task: &Task) -> anyhow::Result<()> {
         let random_seed: u64 = 0;
         let include_zero: bool = false;
+        let limit_file_count: u32 = 10000;
+        let limit_byte_count: u64 = 1024 * 1024 * 50;
         let mut instance = Self::default();
         instance.filename_mode = FilenameMode::LabelAndIncrementingCounter;
-        instance.export_task_inner(task, random_seed, include_zero)?;
+        instance.export_task_inner(task, random_seed, include_zero, limit_file_count, limit_byte_count)?;
         Ok(())
     }
 
     pub fn export_task_test(task: &Task) -> anyhow::Result<()> {
         let random_seed: u64 = 42;
         let include_zero: bool = true;
+        let limit_file_count: u32 = 1000;
+        let limit_byte_count: u64 = 1024 * 1024 * 5;
         let mut instance = Self::default();
         instance.filename_mode = FilenameMode::IncrementingCounter;
-        instance.export_task_inner(task, random_seed, include_zero)?;
+        instance.export_task_inner(task, random_seed, include_zero, limit_file_count, limit_byte_count)?;
         Ok(())
     }
 }
