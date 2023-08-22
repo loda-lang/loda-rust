@@ -1,6 +1,7 @@
 use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize, OverlayPositionId, ImageSymmetry, ImageRotate, ImageResize, ImageReplaceColor};
 use super::arc_work_model::{Task, Pair, PairType};
 use std::collections::HashMap;
+use std::fs;
 use std::path::{PathBuf, Path};
 use rand::{SeedableRng, Rng};
 use rand::rngs::StdRng;
@@ -162,12 +163,9 @@ enum FilenameMode {
     IncrementingCounter,
 }
 
-impl Default for FilenameMode {
-    fn default() -> Self { FilenameMode::Verbose }
-}
-
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct GenerateTrainingImageFiles {
+    save_dir: PathBuf,
     filename_mode: FilenameMode,
     classification_counters: [u32; 10],
     accumulated_file_count: u32,
@@ -175,6 +173,16 @@ pub struct GenerateTrainingImageFiles {
 }
 
 impl GenerateTrainingImageFiles {
+    fn new(save_dir: &Path) -> Self {
+        Self {
+            save_dir: PathBuf::from(save_dir),
+            filename_mode: FilenameMode::Verbose,
+            classification_counters: [0; 10],
+            accumulated_file_count: 0,
+            accumulated_byte_count: 0,
+        }
+    }
+
     fn generate_pair_image(pair: &Pair, test_index: u8, x: u8, y: u8, config: &MutationConfig) -> anyhow::Result<Image> {
         let color_outside: u8 = Color::DarkGrey as u8;
         let color_padding: u8 = Color::LightGrey as u8;
@@ -254,8 +262,7 @@ impl GenerateTrainingImageFiles {
                         FilenameMode::LabelAndIncrementingCounter => format!("color{}.{}.png", classification, counter),
                         FilenameMode::IncrementingCounter => format!("{}.png", self.accumulated_file_count),
                     };
-                    let basepath: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
-                    let path: PathBuf = basepath.join(filename);
+                    let path: PathBuf = self.save_dir.join(filename);
 
                     Self::export_image(task, test_index, x, y, config, &path)?;
                     let filesize: u64 = path.metadata()?.len();
@@ -417,25 +424,79 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
 
-    pub fn export_task_train(task: &Task) -> anyhow::Result<()> {
+    fn export_task_train(task: &Task, save_dir: &Path) -> anyhow::Result<()> {
         let random_seed: u64 = 0;
         let include_zero: bool = false;
         let limit_file_count: u32 = 10000;
         let limit_byte_count: u64 = 1024 * 1024 * 50;
-        let mut instance = Self::default();
+        let mut instance = Self::new(save_dir);
         instance.filename_mode = FilenameMode::LabelAndIncrementingCounter;
         instance.export_task_inner(task, random_seed, include_zero, limit_file_count, limit_byte_count)?;
         Ok(())
     }
 
-    pub fn export_task_test(task: &Task) -> anyhow::Result<()> {
+    fn export_task_test(task: &Task, save_dir: &Path) -> anyhow::Result<()> {
         let random_seed: u64 = 42;
         let include_zero: bool = true;
         let limit_file_count: u32 = 1000;
         let limit_byte_count: u64 = 1024 * 1024 * 5;
-        let mut instance = Self::default();
+        let mut instance = Self::new(save_dir);
         instance.filename_mode = FilenameMode::IncrementingCounter;
         instance.export_task_inner(task, random_seed, include_zero, limit_file_count, limit_byte_count)?;
+        Ok(())
+    }
+
+    pub fn export_task(task: &Task) -> anyhow::Result<()> {
+        let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
+        if !basedir.exists() {
+            match fs::create_dir(&basedir) {
+                Ok(_) => {},
+                Err(err) => {
+                    panic!("Unable to create directory: {:?}, error: {:?}", basedir, err);
+                }
+            }
+        }
+        if !basedir.is_dir() {
+            panic!("Cannot create dir: {:?}", basedir);
+        }
+
+        let task_dir: PathBuf = basedir.join(&task.id);
+        if task_dir.is_dir() {
+            println!("task_dir already exists: {:?}, no need to generate files for this dir.", task_dir);
+            return Ok(());
+        }
+        match fs::create_dir(&task_dir) {
+            Ok(_) => {},
+            Err(err) => {
+                panic!("Unable to create directory: {:?}, error: {:?}", task_dir, err);
+            }
+        }
+
+        let train_dir: PathBuf = task_dir.join("train");
+        match fs::create_dir(&train_dir) {
+            Ok(_) => {},
+            Err(err) => {
+                panic!("Unable to create directory: {:?}, error: {:?}", train_dir, err);
+            }
+        }
+
+        let test_dir: PathBuf = task_dir.join("test");
+        match fs::create_dir(&test_dir) {
+            Ok(_) => {},
+            Err(err) => {
+                panic!("Unable to create directory: {:?}, error: {:?}", test_dir, err);
+            }
+        }
+
+        if !train_dir.is_dir() {
+            panic!("There is supposed to be a 'train' dir: {:?}", train_dir);
+        }
+        if !test_dir.is_dir() {
+            panic!("There is supposed to be a 'test' dir: {:?}", test_dir);
+        }
+    
+        Self::export_task_train(&task, &train_dir)?;
+        Self::export_task_test(&task, &test_dir)?;
         Ok(())
     }
 }
@@ -449,8 +510,7 @@ mod tests {
     fn save_as_file(name: &str) -> anyhow::Result<()> {
         let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(name)?;
         let task: Task = Task::try_from(&json_task)?;
-        GenerateTrainingImageFiles::export_task_train(&task)?;
-        // GenerateTrainingImageFiles::export_task_test(&task)?;
+        GenerateTrainingImageFiles::export_task(&task)?;
         Ok(())
     }
 
