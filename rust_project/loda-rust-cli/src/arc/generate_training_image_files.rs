@@ -155,8 +155,20 @@ impl MutationConfig {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum FilenameMode {
+    Verbose,
+    LabelAndIncrementingCounter,
+    IncrementingCounter,
+}
+
+impl Default for FilenameMode {
+    fn default() -> Self { FilenameMode::Verbose }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct GenerateTrainingImageFiles {
+    filename_mode: FilenameMode,
     classification_counters: [u32; 10],
     accumulated_file_count: u32,
     accumulated_byte_count: u64,
@@ -228,9 +240,11 @@ impl GenerateTrainingImageFiles {
                     let counter_index: usize = (classification as usize) % 10;
                     let counter: u32 = self.classification_counters[counter_index];
 
-                    // let filename = format!("{}_mutation{}_test{}_x{}_y{}_color{}.png", task.id, mutation_name, test_index, x, y, classification);
-                    let filename = format!("color{}.{}.png", classification, counter);
-                    // let filename = format!("{}.png", self.accumulated_file_count);
+                    let filename: String = match self.filename_mode {
+                        FilenameMode::Verbose => format!("{}_mutation{}_test{}_x{}_y{}_color{}.png", task.id, mutation_name, test_index, x, y, classification),
+                        FilenameMode::LabelAndIncrementingCounter => format!("color{}.{}.png", classification, counter),
+                        FilenameMode::IncrementingCounter => format!("{}.png", self.accumulated_file_count),
+                    };
                     let basepath: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
                     let path: PathBuf = basepath.join(filename);
 
@@ -389,6 +403,7 @@ impl GenerateTrainingImageFiles {
         let random_seed: u64 = 0;
         let include_zero: bool = false;
         let mut instance = Self::default();
+        instance.filename_mode = FilenameMode::LabelAndIncrementingCounter;
         instance.export_task_inner(task, random_seed, include_zero)?;
         Ok(())
     }
@@ -397,6 +412,7 @@ impl GenerateTrainingImageFiles {
         let random_seed: u64 = 42;
         let include_zero: bool = true;
         let mut instance = Self::default();
+        instance.filename_mode = FilenameMode::IncrementingCounter;
         instance.export_task_inner(task, random_seed, include_zero)?;
         Ok(())
     }
