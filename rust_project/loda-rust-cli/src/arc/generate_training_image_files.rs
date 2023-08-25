@@ -515,9 +515,23 @@ mod tests {
     }
 
     // #[test]
-    fn test_90000_overlay() {
+    fn test_90000_export_images() {
+        // Overlay
         save_as_file("cf98881b").expect("ok");
+
+        // Overlay
         save_as_file("281123b4").expect("ok");
+        
+        // Overlay
         save_as_file("e98196ab").expect("ok");
+
+        // AND
+        save_as_file("0520fde7").expect("ok");
+
+        // OR
+        save_as_file("f2829549").expect("ok");
+
+        // XOR
+        save_as_file("3428a4f5").expect("ok");
     }
 }
