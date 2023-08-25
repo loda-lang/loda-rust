@@ -515,17 +515,9 @@ mod tests {
     }
 
     // #[test]
-    fn test_90000_overlay_cf98881b() {
+    fn test_90000_overlay() {
         save_as_file("cf98881b").expect("ok");
-    }
-
-    // #[test]
-    fn test_90001_overlay_281123b4() {
         save_as_file("281123b4").expect("ok");
-    }
-
-    // #[test]
-    fn test_90002_overlay_e98196ab() {
         save_as_file("e98196ab").expect("ok");
     }
 }
