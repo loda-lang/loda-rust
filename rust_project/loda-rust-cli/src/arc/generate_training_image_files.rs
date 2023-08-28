@@ -241,6 +241,7 @@ impl GenerateTrainingImageFiles {
         // task_image.save_as_file_onechannel_raw(&path)?;
         task_image.save_as_file_onechannel_normalized(&path)?;
         // task_image_resized.save_as_file_onechannel_normalized(&path)?;
+        // task_image.save_as_file_onechannel_remap_and_normalized(&path)?;
         Ok(())
     }
     
@@ -533,5 +534,15 @@ mod tests {
 
         // XOR
         save_as_file("3428a4f5").expect("ok");
+    }
+
+    #[test]
+    fn test_90001_export_images() {
+        save_as_file("23581191").expect("ok");
+        save_as_file("48131b3c").expect("ok");
+        save_as_file("a59b95c0").expect("ok");
+        save_as_file("c48954c1").expect("ok");
+        save_as_file("8d5021e8").expect("ok");
+        save_as_file("ded97339").expect("ok");
     }
 }
