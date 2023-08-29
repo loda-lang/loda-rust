@@ -1,15 +1,25 @@
+//! Generate a huge number of training images for a vision transformer (ViT)
+//! 
+//! Takes the original ARC dataset and makes a synthetic dataset.
+//! The way it works is that it takes the original images and applies a series of transformations.
+//! - Rotate 90, 180, 270, flip.
+//! - Scale by 2, 3.
+//! - Add padding around the image.
+//! - Rotate the color palette.
+//! - Permute the ordering of the pairs.
+//! - Randomize position of the images, such as centered, top-aligned, position near 2/3 of the width.
+//! 
+//! This way an original task with 3 pairs can be transformed into more than 10000 images.
 use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize, OverlayPositionId, ImageSymmetry, ImageRotate, ImageResize, ImageReplaceColor};
 use super::arc_work_model::{Task, Pair, PairType};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{PathBuf, Path};
+use rand::seq::SliceRandom;
 use rand::{SeedableRng, Rng};
 use rand::rngs::StdRng;
 
 // Future experiments
-// Order of training pairs: ascending, descending, permuted.
-// Order of test pairs: ascending, descending, permuted.
-// Positions across pairs: follows same position, no correspondence.
 // Noise pixels in the input data. Can it still make correct predictions despite some noise.
 // Image size. Don't always use 30x30 as the image size. Sometimes use a compact representation, such as 10x10.
 // Combine 2 tasks into 1 task, separated with a splitview.
@@ -18,6 +28,8 @@ use rand::rngs::StdRng;
 
 #[derive(Debug, Clone)]
 struct MutationConfig {
+    mutation_index: u64,
+
     // Flip the image.
     in_flipx: bool,
     out_flipx: bool,
@@ -111,6 +123,7 @@ impl MutationConfig {
         let out_y = Self::take_position_id(&mut current_mutation);
 
         Self {
+            mutation_index,
             in_flipx,
             in_rotate,
             in_scalex,
@@ -326,6 +339,16 @@ impl GenerateTrainingImageFiles {
         }
 
         let mut task_copy: Task = task.clone();
+        // Permute the order of the pairs, both train and test
+        if config.mutation_index > 0 {
+            // For zero, go over the pairs in the original order they appear in the task.
+            // For non-zero, shuffle the pairs.
+            let mut rng: StdRng = StdRng::seed_from_u64(config.mutation_index);
+            task_copy.pairs.shuffle(&mut rng);
+
+            let shuffled_pair_indexes: Vec<u8> = task_copy.pairs.iter().map(|pair| pair.pair_index).collect();
+            // println!("task: {} shuffled_pair_indexes: {:?}", task.id, shuffled_pair_indexes);
+        }
 
         // Transform the input images
         for pair in task_copy.pairs.iter_mut() {
@@ -536,7 +559,7 @@ mod tests {
         save_as_file("3428a4f5").expect("ok");
     }
 
-    #[test]
+    // #[test]
     fn test_90001_export_images() {
         save_as_file("23581191").expect("ok");
         save_as_file("48131b3c").expect("ok");
@@ -544,5 +567,15 @@ mod tests {
         save_as_file("c48954c1").expect("ok");
         save_as_file("8d5021e8").expect("ok");
         save_as_file("ded97339").expect("ok");
+    }
+
+    // #[test]
+    fn test_90002_export_images() {
+        save_as_file("7e0986d6").expect("ok");
+        save_as_file("56ff96f3").expect("ok");
+        save_as_file("d2abd087").expect("ok");
+        save_as_file("6e82a1ae").expect("ok");
+        save_as_file("45737921").expect("ok");
+        save_as_file("cd3c21df").expect("ok");
     }
 }
