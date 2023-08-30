@@ -578,4 +578,14 @@ mod tests {
         save_as_file("45737921").expect("ok");
         save_as_file("cd3c21df").expect("ok");
     }
+
+    // #[test]
+    fn test_90003_export_images() {
+        save_as_file("be94b721").expect("ok");
+        save_as_file("6773b310").expect("ok");
+        save_as_file("1c0d0a4b").expect("ok");
+        save_as_file("c3202e5a").expect("ok");
+        save_as_file("0b148d64").expect("ok");
+        save_as_file("95a58926").expect("ok");
+    }
 }
