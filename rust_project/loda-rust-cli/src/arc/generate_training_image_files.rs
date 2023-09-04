@@ -588,4 +588,11 @@ mod tests {
         save_as_file("0b148d64").expect("ok");
         save_as_file("95a58926").expect("ok");
     }
+
+    // #[test]
+    fn test_90004_export_images() {
+        save_as_file("af902bf9").expect("ok");
+        save_as_file("810b9b61").expect("ok");
+        save_as_file("d631b094").expect("ok");
+    }
 }
