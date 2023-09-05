@@ -25,4 +25,5 @@ pub enum PromptType {
     ShapeAndTransformConnectivity8,
     RunLengthEncoding,
     Position,
+    Compact,
 }

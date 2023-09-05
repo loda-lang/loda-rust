@@ -630,6 +630,7 @@ impl SubcommandARCWeb {
 
     fn prompt_id_for_prompttype(prompt_type: &PromptType) -> &'static str {
         match prompt_type {
+            PromptType::Compact => "prompt-compact",
             PromptType::Position => "prompt-position",
             PromptType::RunLengthEncoding => "prompt-run-length-encoding",
             PromptType::ShapeAndTransformConnectivity4 => "prompt-shape-and-transform-connectivity4",
@@ -639,6 +640,7 @@ impl SubcommandARCWeb {
 
     fn option_value_for_prompttype(prompt_type: &PromptType) -> &'static str {
         match prompt_type {
+            PromptType::Compact => "option-compact",
             PromptType::Position => "option-position",
             PromptType::RunLengthEncoding => "option-run-length-encoding",
             PromptType::ShapeAndTransformConnectivity4 => "option-shape-and-transform-connectivity4",
@@ -667,6 +669,7 @@ impl SubcommandARCWeb {
             PromptType::ShapeAndTransformConnectivity8,
             PromptType::RunLengthEncoding,
             PromptType::Position,
+            PromptType::Compact,
         ];
         let prompt_records: Vec<PromptRecord> = prompt_types.iter().map(|prompt_type| {
             let prompt_id: String = Self::prompt_id_for_prompttype(prompt_type).into();

@@ -113,6 +113,7 @@ mod objects_to_grid;
 mod objects_unique_color_count;
 mod output_specification;
 mod prompt;
+mod prompt_compact;
 mod prompt_position;
 mod prompt_run_length_encoding;
 mod prompt_shape_transform;
