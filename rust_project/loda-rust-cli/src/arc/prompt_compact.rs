@@ -16,6 +16,108 @@ lazy_static! {
     static ref ALL_DIGITS: Regex = Regex::new(r"^\d+$").unwrap();
 }
 
+const MOCK_REPLY1: &str = r#"
+```python
+output[19] = 'width5,height3,00008,88888,00008'
+```
+"#;
+
+#[derive(Clone, Debug)]
+pub struct PromptCompactDeserializer {
+    pub lines: Vec<String>,
+}
+
+impl PromptCompactDeserializer {
+    #[allow(dead_code)]
+    pub fn reply_example1() -> String {
+        MOCK_REPLY1.to_string()
+    }
+
+    fn interpret_line_and_draw(_line_index: usize, line: &str, image: &mut Image) -> anyhow::Result<()> {
+        let (output_image, status) = TextToImage::convert(line)?;
+        if let Some(status) = status {
+            println!("PromptCompactDeserializer. Problems: {}", status);
+        }
+        image.set_image(output_image);        
+        Ok(())
+    }
+
+    fn interpret_and_draw(&self, image: &mut Image) {
+        for (line_index, line) in self.lines.iter().enumerate() {
+            match Self::interpret_line_and_draw(line_index, line, image) {
+                Ok(_) => {},
+                Err(error) => {
+                    println!("Error: {}", error);
+                }
+            }
+        }
+    }
+}
+
+impl PromptDeserialize for PromptCompactDeserializer {
+    fn image(&self) -> anyhow::Result<Image> {
+        let mut image = Image::zero(30, 30);
+        self.interpret_and_draw(&mut image);
+        Ok(image)
+    }
+
+    fn status(&self) -> Option<String> {
+        None
+    }
+}
+
+impl TryFrom<&str> for PromptCompactDeserializer {
+    type Error = anyhow::Error;
+
+    fn try_from(multiline_text: &str) -> Result<Self, Self::Error> {
+        let mut lines_with_prefix = Vec::<String>::new();
+        let mut inside_code_block = false;
+        let mut count_unrecognized_inside_code_block: usize = 0;
+        let mut count_code_block: usize = 0;
+        for line in multiline_text.split("\n") {
+            let trimmed_line: &str = line.trim();
+            if trimmed_line.contains("```python") {
+                if count_code_block == 0 {
+                    inside_code_block = true;
+                }
+                count_code_block += 1;
+                continue;
+            }
+            if !inside_code_block {
+                continue;
+            }
+            if trimmed_line == "```" {
+                inside_code_block = false;
+                continue;
+            }
+            if trimmed_line.is_empty() {
+                continue;
+            }
+            if trimmed_line.contains("#") {
+                continue;
+            }
+            if trimmed_line.starts_with("output[") {
+                lines_with_prefix.push(trimmed_line.to_string());
+                continue;
+            }
+            count_unrecognized_inside_code_block += 1;
+        }
+        if count_code_block == 0 {
+            anyhow::bail!("No code block found. Expected a code block starting with 3 backticks and python.");
+        }
+        if count_code_block >= 2 {
+            anyhow::bail!("Multiple code blocks found. Expected just one code block starting with 3 backticks and python.");
+        }
+        if count_unrecognized_inside_code_block > 0 {
+            anyhow::bail!("{} unrecognized lines inside the code block", count_unrecognized_inside_code_block);
+        }
+        let instance = Self {
+            lines: lines_with_prefix,
+        };
+        Ok(instance)
+    }
+}
+
 struct TextToImage;
 
 impl TextToImage {
@@ -283,5 +385,20 @@ mod tests {
         let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
         assert_eq!(actual.0, expected);
         assert_eq!(actual.1, None);
+    }
+
+    #[test]
+    fn test_30000_deserialize_ok() {
+        // Arrange
+        let s: String = PromptCompactDeserializer::reply_example1();
+        let s1: &str = &s;
+
+        // Act
+        let actual: PromptCompactDeserializer = PromptCompactDeserializer::try_from(s1).expect("ok");
+
+        // Assert
+        assert_eq!(actual.lines.len(), 1);
+        let image: Image = actual.image().expect("ok");
+        assert_eq!(image.size(), ImageSize::new(5, 3));
     }
 }
