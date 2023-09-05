@@ -6,6 +6,9 @@ use regex::Regex;
 use anyhow::{Result, Context};
 
 lazy_static! {
+    /// Remove prefix and suffix, so only the image data remains.
+    static ref EXTRACT_IMAGE_DATA: Regex = Regex::new(r"(width\d+,height\d+(?:,(:?\d+))+)").unwrap();
+
     /// Extract string, value from a string like: `width29`
     static ref EXTRACT_STRING_VALUE: Regex = Regex::new(r"(\w+)(\d+)").unwrap();
 
@@ -18,10 +21,19 @@ struct TextToImage;
 impl TextToImage {
     /// Decode a compact string representation into an ARC image.
     fn convert(input: &str) -> anyhow::Result<(Image, Option<String>)> {
+        // Remove prefix and suffix
+        let capture = match EXTRACT_IMAGE_DATA.captures(input) {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("no image data found"));
+            }
+        };
+        let input_trimmed: &str = capture.get(1).map_or("", |m| m.as_str());
+
         // Extract parameters for: `width`, `height`.
         let mut found_width: Option<u8> = None;
         let mut found_height: Option<u8> = None;
-        for capture in EXTRACT_STRING_VALUE.captures_iter(input) {
+        for capture in EXTRACT_STRING_VALUE.captures_iter(input_trimmed) {
             let capture1: &str = capture.get(1).map_or("", |m| m.as_str());
             let capture2: &str = capture.get(2).map_or("", |m| m.as_str());
             let value: u8 = capture2.parse::<u8>().context("value")?;
@@ -42,7 +54,7 @@ impl TextToImage {
         let mut rows = Vec::<String>::new();
         let mut width_max: usize = usize::MIN;
         let mut width_min: usize = usize::MAX;
-        for item in input.split(",") {
+        for item in input_trimmed.split(",") {
             if !ALL_DIGITS.is_match(item) {
                 continue;
             }
@@ -252,5 +264,24 @@ mod tests {
         assert_eq!(actual.0, expected);
         let message: String = actual.1.expect("error message");
         assert_eq!(message.contains("width_min: 2 width_max: 4"), true);
+    }
+
+    #[test]
+    fn test_20002_text_to_image_remove_prefix_and_suffix() {
+        // Arrange
+        let input: &str = "junk`output[8] = 'width2,height3,12,34,56'`junk";
+
+        // Act
+        let actual = TextToImage::convert(input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 2,
+            3, 4,
+            5, 6,
+        ];
+        let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
+        assert_eq!(actual.0, expected);
+        assert_eq!(actual.1, None);
     }
 }
