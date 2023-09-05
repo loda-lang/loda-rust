@@ -1,4 +1,4 @@
-use super::{Image, TaskGraph};
+use super::{Image, TaskGraph, ImageRotate};
 use super::prompt::{PromptSerialize, PromptDeserialize};
 use super::arc_work_model::{Task, PairType};
 use lazy_static::lazy_static;
@@ -250,18 +250,30 @@ impl PromptSerialize for PromptCompactSerializer {
         };
 
         let include_size: bool = true;
+        let include_rotated: bool = false;
 
         let mut rows = Vec::<String>::new();
 
-        rows.push("Hi, I'm doing Python experiments.\n\n".to_string());
-
-        rows.push("These are images.".to_string());
+        rows.push("You answer questions about the logic puzzles.".to_string());
 
         rows.push("".to_string());
         rows.push("".to_string());
+        rows.push("Use the below article on a logic puzzle to answer the subsequent question. If the answer cannot be found, write \"I don't know.\"".to_string());
+
+        rows.push("".to_string());
+        rows.push("Focus on the `MISSING`, this is what I want you to fill in.".to_string());
+
+        rows.push("".to_string());
+        rows.push("Article start marker".to_string());
         rows.push("```python".to_string());
         rows.push("input = {}".to_string());
+        if include_rotated {
+            rows.push("input_rotate90 = {}".to_string());
+        }
         rows.push("output = {}".to_string());
+        if include_rotated {
+            rows.push("output_rotate90 = {}".to_string());
+        }
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             rows.push(format!("# Group{}", pair_index));
 
@@ -270,23 +282,46 @@ impl PromptSerialize for PromptCompactSerializer {
                 let s1: String = format!("input[{}] = '{}'", pair_index, s0);
                 rows.push(s1);
             }
+            if include_rotated {
+                let image: Image = pair.input.image.rotate_cw()?;
+                let s0: String = ImageToText::convert(&image, include_size)?;
+                let s1: String = format!("input_rotate90[{}] = '{}'", pair_index, s0);
+                rows.push(s1);
+            }
 
             match pair.pair_type {
                 PairType::Train => {
                     let s0: String = ImageToText::convert(&pair.output.image, include_size)?;
                     let s1: String = format!("output[{}] = '{}'", pair_index, s0);
                     rows.push(s1);
+
+                    if include_rotated {
+                        let image: Image = pair.output.image.rotate_cw()?;
+                        let s0: String = ImageToText::convert(&image, include_size)?;
+                        let s1: String = format!("output_rotate90[{}] = '{}'", pair_index, s0);
+                        rows.push(s1);
+                    }
                 },
                 PairType::Test => {
-                    let s1: String = format!("output[{}] = 'PREDICT'", pair_index);
+                    let s1: String = format!("output[{}] = 'MISSING'", pair_index);
                     rows.push(s1);
+
+                    if include_rotated {
+                        let s2: String = format!("output_rotate90[{}] = 'MISSING'", pair_index);
+                        rows.push(s2);
+                    }
                 }
             }
         }
         rows.push("```".to_string());
-        rows.push("".to_string());
-        
+        rows.push("Article end marker".to_string());
 
+        rows.push("".to_string());
+        rows.push("Question: Write 10 bullet points with observations about input and output.".to_string());
+
+        rows.push("".to_string());
+        rows.push("Question: Fill in the `MISSING` piece in the code.".to_string());
+        
         Ok(rows.join("\n"))
     }
 }
