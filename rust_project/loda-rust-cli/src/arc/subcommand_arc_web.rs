@@ -1,5 +1,6 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
+use super::prompt_compact::PromptCompactDeserializer;
 use super::prompt_position::PromptPositionDeserializer;
 use super::prompt_run_length_encoding::PromptRLEDeserializer;
 use super::prompt_shape_transform::PromptShapeTransformDeserializer;
@@ -798,6 +799,14 @@ impl SubcommandARCWeb {
             }
         }
         match PromptPositionDeserializer::try_from(multiline_text) {
+            Ok(prompt_deserialize) => {
+                prompt_deserialize_vec.push(Box::new(prompt_deserialize));
+            },
+            Err(error) => {
+                problems.push(format!("cannot parse the reply text. error: {:?}", error));
+            }
+        }
+        match PromptCompactDeserializer::try_from(multiline_text) {
             Ok(prompt_deserialize) => {
                 prompt_deserialize_vec.push(Box::new(prompt_deserialize));
             },
