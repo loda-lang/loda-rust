@@ -266,7 +266,7 @@ impl PromptSerialize for PromptCompactSerializer {
         rows.push("".to_string());
         rows.push("Grids".to_string());
         rows.push("- The `input` and `output` dictionaries contain key-value pairs.".to_string());
-        rows.push("- The `key` is the group number.".to_string());
+        rows.push("- The `key` is the group number, starting with 0 and is incremented for each group.".to_string());
         rows.push("- The `value` is a string that represent a 2D grid.".to_string());
         rows.push("- The first two fields of the string specify the grid width and height. Example: `width30,height19` specifies a grid with 30 columns and 19 rows.".to_string());
         rows.push("- The remaining part of the string is a one-dimensional representation of a 2D grid.".to_string());
@@ -328,6 +328,7 @@ impl PromptSerialize for PromptCompactSerializer {
 
         rows.push("".to_string());
         rows.push("Question: Write 10 bullet points with observations about input and output.".to_string());
+        rows.push("Don't repeat text from the prompt that is already well specified.".to_string());
         rows.push("".to_string());
 
         let mut output_pair_index: usize = 0;
