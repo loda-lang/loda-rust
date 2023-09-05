@@ -318,9 +318,20 @@ impl PromptSerialize for PromptCompactSerializer {
 
         rows.push("".to_string());
         rows.push("Question: Write 10 bullet points with observations about input and output.".to_string());
-
         rows.push("".to_string());
-        rows.push("Question: Fill in the `MISSING` piece in the code.".to_string());
+
+        let mut output_pair_index: usize = 0;
+        for (pair_index, pair) in task.pairs.iter().enumerate() {
+            if pair.pair_type == PairType::Test {
+                output_pair_index = pair_index;
+                break;
+            }
+        }
+
+        rows.push("Question: Fill in the `MISSING` piece into this python code block.".to_string());
+        rows.push("```python".to_string());
+        rows.push(format!("output[{}] = 'MISSING'", output_pair_index));
+        rows.push("```".to_string());
         
         Ok(rows.join("\n"))
     }
