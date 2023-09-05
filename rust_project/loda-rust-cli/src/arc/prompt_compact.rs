@@ -264,6 +264,12 @@ impl PromptSerialize for PromptCompactSerializer {
         rows.push("Focus on the `MISSING`, this is what I want you to fill in.".to_string());
 
         rows.push("".to_string());
+        rows.push("Grids".to_string());
+        rows.push("- The `input` and `output` dictionaries contain key-value pairs where keys are group numbers and values are strings that represent 2D grids.".to_string());
+        rows.push("- The first two fields in each string of both input and output dictionaries specify the grid width and height. Example: `width30,height19` specifies a grid with 30 columns and 19 rows.".to_string());
+        rows.push("- The remaining part of the string is a one-dimensional representation of a 2D grid.".to_string());
+
+        rows.push("".to_string());
         rows.push("Article start marker".to_string());
         rows.push("```python".to_string());
         rows.push("input = {}".to_string());
@@ -315,6 +321,8 @@ impl PromptSerialize for PromptCompactSerializer {
         }
         rows.push("```".to_string());
         rows.push("Article end marker".to_string());
+
+        // rows.push("Question: Is this a repair job. Are there masked out parts in the input image, that are present in the output. If so then the task is to repair these pixels.".to_string());
 
         rows.push("".to_string());
         rows.push("Question: Write 10 bullet points with observations about input and output.".to_string());
