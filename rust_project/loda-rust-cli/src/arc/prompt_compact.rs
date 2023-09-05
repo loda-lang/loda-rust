@@ -10,7 +10,7 @@ lazy_static! {
     static ref EXTRACT_IMAGE_DATA: Regex = Regex::new(r"(width\d+,height\d+(?:,(:?\d+))+)").unwrap();
 
     /// Extract string, value from a string like: `width29`
-    static ref EXTRACT_STRING_VALUE: Regex = Regex::new(r"(\w+)(\d+)").unwrap();
+    static ref EXTRACT_STRING_VALUE: Regex = Regex::new(r"([a-z]+)(\d+)").unwrap();
 
     /// Determine if it's all digits in the range 0..=9
     static ref ALL_DIGITS: Regex = Regex::new(r"^\d+$").unwrap();
@@ -138,12 +138,13 @@ impl TextToImage {
         for capture in EXTRACT_STRING_VALUE.captures_iter(input_trimmed) {
             let capture1: &str = capture.get(1).map_or("", |m| m.as_str());
             let capture2: &str = capture.get(2).map_or("", |m| m.as_str());
-            let value: u8 = capture2.parse::<u8>().context("value")?;
             match capture1 {
                 "width" => {
+                    let value: u8 = capture2.parse::<u8>().context("width value")?;
                     found_width = Some(value);
                 },
                 "height" => {
+                    let value: u8 = capture2.parse::<u8>().context("height value")?;
                     found_height = Some(value);
                 },
                 _ => {}
@@ -383,6 +384,40 @@ mod tests {
             5, 6,
         ];
         let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
+        assert_eq!(actual.0, expected);
+        assert_eq!(actual.1, None);
+    }
+
+    #[test]
+    fn test_20003_text_to_image_width_2digits() {
+        // Arrange
+        let input: &str = "width12,height1,012345678901";
+
+        // Act
+        let actual = TextToImage::convert(input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1,
+        ];
+        let expected: Image = Image::try_create(12, 1, expected_pixels).expect("image");
+        assert_eq!(actual.0, expected);
+        assert_eq!(actual.1, None);
+    }
+
+    #[test]
+    fn test_20004_text_to_image_height_2digits() {
+        // Arrange
+        let input: &str = "width1,height12,0,1,2,3,4,5,6,7,8,9,0,1";
+
+        // Act
+        let actual = TextToImage::convert(input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1,
+        ];
+        let expected: Image = Image::try_create(1, 12, expected_pixels).expect("image");
         assert_eq!(actual.0, expected);
         assert_eq!(actual.1, None);
     }
