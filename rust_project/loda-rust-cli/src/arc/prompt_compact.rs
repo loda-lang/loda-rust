@@ -275,6 +275,13 @@ impl PromptSerialize for PromptCompactSerializer {
         rows.push("- The first two fields of the string specify the grid width and height. Example: `width30,height19` specifies a grid with 30 columns and 19 rows.".to_string());
         rows.push("- The remaining part of the string is a one-dimensional representation of a 2D grid.".to_string());
 
+        // rows.push("".to_string());
+        // rows.push("Pixeldata".to_string());
+        // rows.push("- The input histogram is the same as the output histogram.".to_string());
+        // rows.push("".to_string());
+        // rows.push("Gravity".to_string());
+        // rows.push("- The pixels move in a direction.".to_string());
+        
         rows.push("".to_string());
         rows.push("Article start marker".to_string());
         rows.push("```python".to_string());
@@ -329,6 +336,11 @@ impl PromptSerialize for PromptCompactSerializer {
         rows.push("Article end marker".to_string());
 
         // rows.push("Question: Is this a repair job. Are there masked out parts in the input image, that are present in the output. If so then the task is to repair these pixels.".to_string());
+        // rows.push("Question: What 2D shapes do you see in the input and in the output. Does each shape type a have a specific integer value. Does the shapes have a point of interest such as the center?".to_string());
+        // rows.push("Question: Are there connecting lines between the shapes?".to_string());
+        // rows.push("Question: In the 2d grid output, explain what happens to color 1.".to_string());
+        // rows.push("Question: Determine the background color. There is usually something in the center of the grid that isn't the background. The color that surrounds the center and extends to the edge is often the background color.".to_string());
+        // rows.push("Question: Determine if there is an obvious background color. There is usually stuff in the center of the grid that isn't the background. The color that surrounds the center and extends to the edge is often the background color. Sometimes there are puzzles without a background color. Sometimes there are 2 background colors within a single image.".to_string());
 
         rows.push("".to_string());
         rows.push("Question: Write 10 bullet points with observations about input and output.".to_string());
