@@ -1,4 +1,4 @@
-use super::{Image, TaskGraph, ImageRotate};
+use super::{Image, TaskGraph, ImageRotate, ImageHistogram, Histogram};
 use super::prompt::{PromptSerialize, PromptDeserialize};
 use super::arc_work_model::{Task, PairType};
 use lazy_static::lazy_static;
@@ -56,8 +56,12 @@ impl PromptCompactDeserializer {
 
 impl PromptDeserialize for PromptCompactDeserializer {
     fn image(&self) -> anyhow::Result<Image> {
-        let mut image = Image::zero(30, 30);
+        let mut image = Image::color(30, 30, 255);
         self.interpret_and_draw(&mut image);
+        let histogram: Histogram = image.histogram_all();
+        if histogram.get(255) == 900 {
+            return Err(anyhow::anyhow!("didn't overwrite the placeholder image"));
+        }
         Ok(image)
     }
 
