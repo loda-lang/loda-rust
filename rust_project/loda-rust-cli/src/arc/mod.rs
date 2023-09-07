@@ -141,6 +141,7 @@ mod symmetry_to_label;
 mod task_graph;
 mod test_convert;
 mod time_util;
+mod trace_path;
 mod traverse_programs_and_models;
 
 pub use action_label_util::ActionLabelUtil;
