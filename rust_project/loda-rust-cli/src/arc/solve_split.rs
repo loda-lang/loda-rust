@@ -1,6 +1,6 @@
 //! Solve `split-view` like tasks.
 //! 
-//! * With the public ARC 1 dataset. It can partially solve 28 tasks, the majority can be solved, a few of them are partially solved.
+//! * With the public ARC 1 dataset. It can partially solve 27 tasks, the majority can be solved, a few of them are partially solved.
 //! * With the hidden ARC 1 dataset. It can solve 0 tasks.
 //! 
 //! Known problem: Can only split into columns or rows, not both.
@@ -340,6 +340,7 @@ impl SolveSplit {
         // Is the output sometimes the same as one of the inputs
         let mut output_is_always_one_of_the_parts: bool = true;
         let mut output_is_always_one_of_the_parts_mapping = Vec::<usize>::new();
+        let mut output_is_always_one_of_the_parts_pattern = String::new();
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             if pair.pair_type != PairType::Train {
                 output_is_always_one_of_the_parts_mapping.push(0);
@@ -350,12 +351,15 @@ impl SolveSplit {
             let mut number_of_matches: usize = 0;
             for (image_index, image) in images.iter().enumerate() {
                 if *image == pair.output.image {
+                    output_is_always_one_of_the_parts_pattern += "1";
                     output_is_always_one_of_the_parts_mapping.push(image_index);
                     number_of_matches += 1;
                     if self.verbose {
                         HtmlLog::text(format!("task: {} output is the same as image: {}", task.id, image_index));
                         HtmlLog::image(&image);
                     }
+                } else {
+                    output_is_always_one_of_the_parts_pattern += "0";
                 }
             }
             if number_of_matches != 1 {
@@ -365,35 +369,54 @@ impl SolveSplit {
         }
         if output_is_always_one_of_the_parts_mapping.len() != task.pairs.len() {
             output_is_always_one_of_the_parts_mapping.truncate(0);
+            output_is_always_one_of_the_parts_pattern = "invalidpattern".to_string();
         }
         if output_is_always_one_of_the_parts {
-            // println!("task: {} pick one of the parts: {:?}", task.id, output_is_always_one_of_the_parts_mapping);
+            println!("task: {} pick one of the parts: {:?}", task.id, output_is_always_one_of_the_parts_mapping);
             // determine what may be the reasoning behind picking a particular part
             // Pick image with/without horizontal/vertical/diagonal symmetry
             // Pick image with most unique colors
             // Pick image with fewest unique colors
             // Pick image with biggest object
 
-            // for (pair_index, _pair) in task.pairs.iter().enumerate() {
-            //     let images: &Vec<Image> = &pair_splitted_images[pair_index];
-            //     let expected_image_index: usize = output_is_always_one_of_the_parts_mapping[pair_index];
+            let mut pattern_normal = String::new();
+            let mut pattern_inverted = String::new();
+            for (pair_index, _pair) in task.pairs.iter().enumerate() {
+                let images: &Vec<Image> = &pair_splitted_images[pair_index];
+                let expected_image_index: usize = output_is_always_one_of_the_parts_mapping[pair_index];
 
-            //     let mut mapping = Vec::<usize>::new();
-            //     for (image_index, image) in images.iter().enumerate() {
-            //         let is_symmetric_x: bool = image.is_symmetric_x()?;
-            //         let is_symmetric_y: bool = image.is_symmetric_y()?;
-            //         let is_symmetric_diagonal_a: bool = image.is_symmetric_diagonal_a()?;
-            //         let is_symmetric_diagonal_b: bool = image.is_symmetric_diagonal_b()?;
-            //         let is_symmetric: bool = is_symmetric_x || is_symmetric_y || is_symmetric_diagonal_a || is_symmetric_diagonal_b;
-            //         let is_symmetric_x_or_y: bool = is_symmetric_x || is_symmetric_y;
-            //         let is_symmetric_diagonal_a_or_b: bool = is_symmetric_diagonal_a || is_symmetric_diagonal_b;
+                for (image_index, image) in images.iter().enumerate() {
+                    let is_symmetric_x: bool = image.is_symmetric_x()?;
+                    let is_symmetric_y: bool = image.is_symmetric_y()?;
+                    let is_symmetric_diagonal_a: bool = image.is_symmetric_diagonal_a()?;
+                    let is_symmetric_diagonal_b: bool = image.is_symmetric_diagonal_b()?;
+                    let is_symmetric: bool = is_symmetric_x || is_symmetric_y || is_symmetric_diagonal_a || is_symmetric_diagonal_b;
+                    let is_symmetric_x_or_y: bool = is_symmetric_x || is_symmetric_y;
+                    let is_symmetric_diagonal_a_or_b: bool = is_symmetric_diagonal_a || is_symmetric_diagonal_b;
 
-            //         // For training pairs:
-            //         // determine if there is a parameter that corresponds with the expected_image_index
-            //         // For the test pairs:
-            //         // use the parameter that was identified.
-            //     }
-            // }
+                    if is_symmetric_diagonal_a_or_b {
+                        pattern_normal += "1";
+                        pattern_inverted += "0";
+                    } else {
+                        pattern_normal += "0";
+                        pattern_inverted += "1";
+                    }
+
+                    // For training pairs:
+                    // determine if there is a parameter that corresponds with the expected_image_index
+                    // For the test pairs:
+                    // use the parameter that was identified.
+                }
+            }
+            println!("output_is_always_one_of_the_parts_pattern: {}", output_is_always_one_of_the_parts_pattern);
+            println!("pattern_normal: {}", pattern_normal);
+            println!("pattern_inverted: {}", pattern_inverted);
+            if pattern_normal.starts_with(&output_is_always_one_of_the_parts_pattern) {
+                println!("match normal: {}", pattern_normal);
+            }
+            if pattern_inverted.starts_with(&output_is_always_one_of_the_parts_pattern) {
+                println!("match inverted: {}", pattern_inverted);
+            }
             return Err(anyhow::anyhow!("Cannot solve task. It appears to be a splitview where one part is being extracted. Unable to determine the guiding rule for why a split part is being picked"));
         }
 
@@ -1078,5 +1101,13 @@ mod tests {
         let actual: SolveSplitFoundSolution = solve("0520fde7", false).expect("ok");
         assert_eq!(actual.explanation, "MaskAnd");
         assert_eq!(actual.status(), "ok train3 test1");
+    }
+
+    // #[test]
+    fn test_94000_pick_662c240a() {
+        let actual: SolveSplitFoundSolution = solve("662c240a", true).expect("ok");
+        println!("actual: {:?}", actual);
+        assert_eq!(actual.explanation, "pick the item that is without diagonal symmetry");
+        assert_eq!(actual.status(), "ok train4 test1");
     }
 }
