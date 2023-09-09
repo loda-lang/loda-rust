@@ -1,6 +1,6 @@
 //! Solve `split-view` like tasks.
 //! 
-//! * With the public ARC 1 dataset. It can partially solve 27 tasks, the majority can be solved, a few of them are partially solved.
+//! * With the public ARC 1 dataset. It can partially solve 28 tasks, the majority can be solved, a few of them are partially solved.
 //! * With the hidden ARC 1 dataset. It can solve 0 tasks.
 //! 
 //! Known problem: Can only split into columns or rows, not both.
@@ -34,6 +34,17 @@ use itertools::Itertools;
 pub struct OperationState {
     /// One or more `Operation::Overlay` caused an overlap.
     pub operation_overlay_detected_overlap: bool,
+}
+
+#[derive(Debug, Clone)]
+pub enum PickParameter {
+    SymmetryDiagonal,
+
+    // Future experiments
+    // Pick image with/without horizontal/vertical/diagonal symmetry
+    // Pick image with most unique colors
+    // Pick image with fewest unique colors
+    // Pick image with biggest object
 }
 
 #[derive(Debug, Clone)]
@@ -372,51 +383,77 @@ impl SolveSplit {
             output_is_always_one_of_the_parts_pattern = "invalidpattern".to_string();
         }
         if output_is_always_one_of_the_parts {
-            println!("task: {} pick one of the parts: {:?}", task.id, output_is_always_one_of_the_parts_mapping);
+            // println!("task: {} pick one of the parts: {:?}", task.id, output_is_always_one_of_the_parts_mapping);
             // determine what may be the reasoning behind picking a particular part
-            // Pick image with/without horizontal/vertical/diagonal symmetry
-            // Pick image with most unique colors
-            // Pick image with fewest unique colors
-            // Pick image with biggest object
 
-            let mut pattern_normal = String::new();
-            let mut pattern_inverted = String::new();
-            for (pair_index, _pair) in task.pairs.iter().enumerate() {
-                let images: &Vec<Image> = &pair_splitted_images[pair_index];
-                let expected_image_index: usize = output_is_always_one_of_the_parts_mapping[pair_index];
+            let parameters = [
+                PickParameter::SymmetryDiagonal,
+            ];
+            for parameter in &parameters {
+                let mut pattern_normal = String::new();
+                let mut pattern_inverted = String::new();
 
-                for (image_index, image) in images.iter().enumerate() {
-                    let is_symmetric_x: bool = image.is_symmetric_x()?;
-                    let is_symmetric_y: bool = image.is_symmetric_y()?;
-                    let is_symmetric_diagonal_a: bool = image.is_symmetric_diagonal_a()?;
-                    let is_symmetric_diagonal_b: bool = image.is_symmetric_diagonal_b()?;
-                    let is_symmetric: bool = is_symmetric_x || is_symmetric_y || is_symmetric_diagonal_a || is_symmetric_diagonal_b;
-                    let is_symmetric_x_or_y: bool = is_symmetric_x || is_symmetric_y;
-                    let is_symmetric_diagonal_a_or_b: bool = is_symmetric_diagonal_a || is_symmetric_diagonal_b;
+                let mut predicted_output_images_normal = Vec::<Image>::new();
+                let mut predicted_output_images_inverted = Vec::<Image>::new();
+                for (pair_index, _pair) in task.pairs.iter().enumerate() {
+                    let images: &Vec<Image> = &pair_splitted_images[pair_index];
+    
+                    for (image_index, image) in images.iter().enumerate() {
+                        let is_symmetric_x: bool = image.is_symmetric_x()?;
+                        let is_symmetric_y: bool = image.is_symmetric_y()?;
+                        let is_symmetric_diagonal_a: bool = image.is_symmetric_diagonal_a()?;
+                        let is_symmetric_diagonal_b: bool = image.is_symmetric_diagonal_b()?;
+                        let is_symmetric: bool = is_symmetric_x || is_symmetric_y || is_symmetric_diagonal_a || is_symmetric_diagonal_b;
+                        let is_symmetric_x_or_y: bool = is_symmetric_x || is_symmetric_y;
+                        let is_symmetric_diagonal_a_or_b: bool = is_symmetric_diagonal_a || is_symmetric_diagonal_b;
 
-                    if is_symmetric_diagonal_a_or_b {
-                        pattern_normal += "1";
-                        pattern_inverted += "0";
-                    } else {
-                        pattern_normal += "0";
-                        pattern_inverted += "1";
+                        let value: bool = match parameter {
+                            PickParameter::SymmetryDiagonal => is_symmetric_diagonal_a_or_b,
+                        };
+    
+                        if value {
+                            pattern_normal += "1";
+                            pattern_inverted += "0";
+
+                        } else {
+                            pattern_normal += "0";
+                            pattern_inverted += "1";
+                        }
+
+                        if value {
+                            predicted_output_images_normal.push(image.clone());
+                        } else {
+                            predicted_output_images_inverted.push(image.clone());
+                        }
                     }
+                }
+                // println!("output_is_always_one_of_the_parts_pattern: {}", output_is_always_one_of_the_parts_pattern);
+                // println!("pattern_normal: {}", pattern_normal);
+                // println!("pattern_inverted: {}", pattern_inverted);
 
-                    // For training pairs:
-                    // determine if there is a parameter that corresponds with the expected_image_index
-                    // For the test pairs:
-                    // use the parameter that was identified.
+                // Check matching prefix
+                // For training pairs:
+                // determine if there is a parameter that corresponds with the expected_image_index
+                if pattern_normal.starts_with(&output_is_always_one_of_the_parts_pattern) {
+                    let instance = SolveSplitFoundSolution {
+                        task_id: task.id.clone(),
+                        explanation: format!("pick split where {:?} is true", parameter),
+                        predicted_output_images: predicted_output_images_normal,
+                        verified_status: None,
+                    };
+                    return Ok(instance);
+                }
+                if pattern_inverted.starts_with(&output_is_always_one_of_the_parts_pattern) {
+                    let instance = SolveSplitFoundSolution {
+                        task_id: task.id.clone(),
+                        explanation: format!("pick split where {:?} is false", parameter),
+                        predicted_output_images: predicted_output_images_inverted,
+                        verified_status: None,
+                    };
+                    return Ok(instance);
                 }
             }
-            println!("output_is_always_one_of_the_parts_pattern: {}", output_is_always_one_of_the_parts_pattern);
-            println!("pattern_normal: {}", pattern_normal);
-            println!("pattern_inverted: {}", pattern_inverted);
-            if pattern_normal.starts_with(&output_is_always_one_of_the_parts_pattern) {
-                println!("match normal: {}", pattern_normal);
-            }
-            if pattern_inverted.starts_with(&output_is_always_one_of_the_parts_pattern) {
-                println!("match inverted: {}", pattern_inverted);
-            }
+
             return Err(anyhow::anyhow!("Cannot solve task. It appears to be a splitview where one part is being extracted. Unable to determine the guiding rule for why a split part is being picked"));
         }
 
@@ -1103,11 +1140,10 @@ mod tests {
         assert_eq!(actual.status(), "ok train3 test1");
     }
 
-    // #[test]
+    #[test]
     fn test_94000_pick_662c240a() {
-        let actual: SolveSplitFoundSolution = solve("662c240a", true).expect("ok");
-        println!("actual: {:?}", actual);
-        assert_eq!(actual.explanation, "pick the item that is without diagonal symmetry");
+        let actual: SolveSplitFoundSolution = solve("662c240a", false).expect("ok");
+        assert_eq!(actual.explanation, "pick split where SymmetryDiagonal is false");
         assert_eq!(actual.status(), "ok train4 test1");
     }
 }
