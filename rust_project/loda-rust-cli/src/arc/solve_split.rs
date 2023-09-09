@@ -9,6 +9,9 @@
 //! It doesn't attempt to find a better solution.
 //! It may return a partial match as a solution, without trying to find a full solution.
 //! 
+//! Known problem: All the pairs must have the same number of splits.
+//! If there is one pair with a different number of splits, then the task cannot be solved.
+//! 
 //! In tasks where the input images have splits, and the output images happens to have the exact same size as one of the split parts.
 //! 
 //! How does it work:
@@ -201,15 +204,24 @@ impl SplitRecord {
         let mut record_vec = Vec::<SplitRecord>::new();
         for pair in &task.pairs {
             let input: &Input = &pair.input;
-            let size: ImageSize = input.image.size();
-            let size_value: u8 = if is_horizontal_split {
-                size.width
-            } else {
-                size.height
-            };
-            let remain: u8 = size_value % part_count;
+            let mut input_size: ImageSize = input.image.size();
+            if !is_horizontal_split {
+                input_size = input_size.rotate();
+            }
+            let remain: u8 = input_size.width % part_count;
             if remain != 0 {
                 return Err(anyhow::anyhow!("Unable to split into {} parts", part_count));
+            }
+            let output_width: u8 = input_size.width / part_count;
+            let mut output_size: ImageSize = ImageSize { width: output_width, height: input_size.height };
+            if !is_horizontal_split {
+                output_size = output_size.rotate();
+            }
+
+            if pair.pair_type == PairType::Train {
+                if pair.output.image.size() != output_size {
+                    return Err(anyhow::anyhow!("Unable to split into {} parts. Output size doesn't match", part_count));
+                }
             }
             let record = SplitRecord {
                 part_count,
