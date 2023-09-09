@@ -1,9 +1,13 @@
 //! Solve `split-view` like tasks.
 //! 
-//! * With the public ARC 1 dataset. It can solve 17 tasks.
+//! * With the public ARC 1 dataset. It can partially solve 28 tasks, the majority can be solved, a few of them are partially solved.
 //! * With the hidden ARC 1 dataset. It can solve 0 tasks.
 //! 
 //! Known problem: Can only split into columns or rows, not both.
+//! 
+//! Known problem: Returns a result the moment it finds something that seems to be a solution.
+//! It doesn't attempt to find a better solution.
+//! It may return a partial match as a solution, without trying to find a full solution.
 //! 
 //! In tasks where the input images have splits, and the output images happens to have the exact same size as one of the split parts.
 //! 
@@ -15,7 +19,7 @@
 //! Future experiments:
 //! * Return multiple predictions, up to 3 is allowed.
 use super::arc_work_model::{Task, Input, PairType};
-use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram, ColorMap};
+use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram, ColorMap, ImageSize};
 use super::{Image, ImageMaskBoolean, Histogram, ImageReplaceColor};
 use super::{arcathon_solution_json, arc_json_model};
 use super::arc_json_model::GridFromImage;
@@ -139,7 +143,7 @@ struct SplitRecord {
 }
 
 impl SplitRecord {
-    fn create_record_foreach_pair(task: &Task, is_horizontal_split: bool) -> anyhow::Result<Vec<SplitRecord>> {
+    fn create_record_foreach_pair_with_separator(task: &Task, is_horizontal_split: bool) -> anyhow::Result<Vec<SplitRecord>> {
         let mut record_vec = Vec::<SplitRecord>::new();
         for pair in &task.pairs {
             let input: &Input = &pair.input;
@@ -192,6 +196,29 @@ impl SplitRecord {
         }
         Ok(record_vec)
     }
+
+    fn create_record_foreach_pair_without_separator(task: &Task, part_count: u8, is_horizontal_split: bool) -> anyhow::Result<Vec<SplitRecord>> {
+        let mut record_vec = Vec::<SplitRecord>::new();
+        for pair in &task.pairs {
+            let input: &Input = &pair.input;
+            let size: ImageSize = input.image.size();
+            let size_value: u8 = if is_horizontal_split {
+                size.width
+            } else {
+                size.height
+            };
+            let remain: u8 = size_value % part_count;
+            if remain != 0 {
+                return Err(anyhow::anyhow!("Unable to split into {} parts", part_count));
+            }
+            let record = SplitRecord {
+                part_count,
+                separator_size: 0,
+            };
+            record_vec.push(record);
+        }
+        Ok(record_vec)
+    }
 }
 
 pub struct SolveSplit {
@@ -211,8 +238,40 @@ impl SolveSplit {
         Ok(solution)
     }
 
-    /// Can only split into columns or rows, not both.
     fn solve(&self, task: &Task) -> anyhow::Result<SolveSplitFoundSolution> {
+        // Try if there are clearly visible separator lines, then split using these separators
+        if let Ok(result) = self.solve_with_separator(task) {
+            return Ok(result);
+        }
+
+        // No luck splitting using separator lines.
+        // Try splitting without a separator line.
+        // direction: horizontal, vertical
+        // parts: 2, 3, 4, 5
+        let split_directions = [ImageSplitDirection::IntoColumns, ImageSplitDirection::IntoRows];
+        let part_counts: [u8; 4] = [2, 3, 4, 5];
+        for split_direction in &split_directions {
+            let is_horizontal_split: bool = match split_direction {
+                ImageSplitDirection::IntoColumns => true,
+                ImageSplitDirection::IntoRows => false,
+            };
+            for part_count in &part_counts {
+                let record_vec: Vec<SplitRecord> = match SplitRecord::create_record_foreach_pair_without_separator(task, *part_count, is_horizontal_split) {
+                    Ok(value) => value,
+                    Err(_) => {
+                        continue;
+                    }
+                };
+                if let Ok(result) = self.solve_inner(task, record_vec, *split_direction) {
+                    return Ok(result);
+                }
+            }
+        }
+        Err(anyhow::anyhow!("Unable to find solution to this task"))
+    }
+
+    /// If there are clearly visible separator lines, then try split using these separators
+    fn solve_with_separator(&self, task: &Task) -> anyhow::Result<SolveSplitFoundSolution> {
         let is_split_x: bool = task.is_output_size_same_as_input_splitview_x();
         let is_split_y: bool = task.is_output_size_same_as_input_splitview_y();
         let is_horizontal_split: bool;
@@ -233,8 +292,12 @@ impl SolveSplit {
                 split_direction = ImageSplitDirection::IntoRows;
             }
         }
+        let record_vec: Vec<SplitRecord> = SplitRecord::create_record_foreach_pair_with_separator(task, is_horizontal_split)?;
+        self.solve_inner(task, record_vec, split_direction)
+    }
 
-        let record_vec: Vec<SplitRecord> = SplitRecord::create_record_foreach_pair(task, is_horizontal_split)?;
+    /// Can only split into columns or rows, not both.
+    fn solve_inner(&self, task: &Task, record_vec: Vec<SplitRecord>, split_direction: ImageSplitDirection) -> anyhow::Result<SolveSplitFoundSolution> {
         if record_vec.len() != task.pairs.len() {
             return Err(anyhow::anyhow!("task: {} mismatch in number of records and number of pairs", task.id));
         }
@@ -923,6 +986,20 @@ mod tests {
     }
 
     #[test]
+    fn test_90003_overlay_3d31c5b3() {
+        let actual: SolveSplitFoundSolution = solve("3d31c5b3", false).expect("ok");
+        assert_eq!(actual.explanation, "overlay [2, 3, 1, 0]");
+        assert_eq!(actual.status(), "ok train6 test1");
+    }
+
+    #[test]
+    fn test_90004_and_6a11f6da() {
+        let actual: SolveSplitFoundSolution = solve("6a11f6da", false).expect("ok");
+        assert_eq!(actual.explanation, "overlay [1, 0, 2]");
+        assert_eq!(actual.status(), "ok train5 test1");
+    }
+
+    #[test]
     fn test_91000_xor_3428a4f5() {
         let actual: SolveSplitFoundSolution = solve("3428a4f5", false).expect("ok");
         assert_eq!(actual.explanation, "MaskXor");
@@ -934,6 +1011,13 @@ mod tests {
         let actual: SolveSplitFoundSolution = solve("f2829549", false).expect("ok");
         assert_eq!(actual.explanation, "MaskOr");
         assert_eq!(actual.status(), "ok train5 test1");
+    }
+
+    #[test]
+    fn test_92001_or_94f9d214() {
+        let actual: SolveSplitFoundSolution = solve("94f9d214", false).expect("ok");
+        assert_eq!(actual.explanation, "MaskOr");
+        assert_eq!(actual.status(), "ok train4 test1");
     }
 
     #[test]
