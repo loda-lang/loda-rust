@@ -23,7 +23,7 @@
 //! * Return multiple predictions, up to 3 is allowed.
 use super::arc_work_model::{Task, Input, PairType};
 use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram, ColorMap, ImageSize};
-use super::{Image, ImageMaskBoolean, Histogram, ImageReplaceColor};
+use super::{Image, ImageMaskBoolean, Histogram, ImageReplaceColor, ImageSymmetry};
 use super::{arcathon_solution_json, arc_json_model};
 use super::arc_json_model::GridFromImage;
 use super::HtmlLog;
@@ -338,22 +338,63 @@ impl SolveSplit {
 
         // Is the output always the same as one of the inputs
         // Is the output sometimes the same as one of the inputs
+        let mut output_is_always_one_of_the_parts: bool = true;
+        let mut output_is_always_one_of_the_parts_mapping = Vec::<usize>::new();
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             if pair.pair_type != PairType::Train {
+                output_is_always_one_of_the_parts_mapping.push(0);
                 continue;
             }
             let images: &Vec<Image> = &pair_splitted_images[pair_index];
 
-            // let mut number_of_matches: usize = 0;
+            let mut number_of_matches: usize = 0;
             for (image_index, image) in images.iter().enumerate() {
                 if *image == pair.output.image {
-                    // number_of_matches += 1;
+                    output_is_always_one_of_the_parts_mapping.push(image_index);
+                    number_of_matches += 1;
                     if self.verbose {
                         HtmlLog::text(format!("task: {} output is the same as image: {}", task.id, image_index));
                         HtmlLog::image(&image);
                     }
                 }
             }
+            if number_of_matches != 1 {
+                output_is_always_one_of_the_parts = false;
+                break;
+            }
+        }
+        if output_is_always_one_of_the_parts_mapping.len() != task.pairs.len() {
+            output_is_always_one_of_the_parts_mapping.truncate(0);
+        }
+        if output_is_always_one_of_the_parts {
+            // println!("task: {} pick one of the parts: {:?}", task.id, output_is_always_one_of_the_parts_mapping);
+            // determine what may be the reasoning behind picking a particular part
+            // Pick image with/without horizontal/vertical/diagonal symmetry
+            // Pick image with most unique colors
+            // Pick image with fewest unique colors
+            // Pick image with biggest object
+
+            // for (pair_index, _pair) in task.pairs.iter().enumerate() {
+            //     let images: &Vec<Image> = &pair_splitted_images[pair_index];
+            //     let expected_image_index: usize = output_is_always_one_of_the_parts_mapping[pair_index];
+
+            //     let mut mapping = Vec::<usize>::new();
+            //     for (image_index, image) in images.iter().enumerate() {
+            //         let is_symmetric_x: bool = image.is_symmetric_x()?;
+            //         let is_symmetric_y: bool = image.is_symmetric_y()?;
+            //         let is_symmetric_diagonal_a: bool = image.is_symmetric_diagonal_a()?;
+            //         let is_symmetric_diagonal_b: bool = image.is_symmetric_diagonal_b()?;
+            //         let is_symmetric: bool = is_symmetric_x || is_symmetric_y || is_symmetric_diagonal_a || is_symmetric_diagonal_b;
+            //         let is_symmetric_x_or_y: bool = is_symmetric_x || is_symmetric_y;
+            //         let is_symmetric_diagonal_a_or_b: bool = is_symmetric_diagonal_a || is_symmetric_diagonal_b;
+
+            //         // For training pairs:
+            //         // determine if there is a parameter that corresponds with the expected_image_index
+            //         // For the test pairs:
+            //         // use the parameter that was identified.
+            //     }
+            // }
+            return Err(anyhow::anyhow!("Cannot solve task. It appears to be a splitview where one part is being extracted. Unable to determine the guiding rule for why a split part is being picked"));
         }
 
         // The output image have only 2 colors
