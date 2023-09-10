@@ -26,6 +26,7 @@ use rand::rngs::StdRng;
 // Export the entire obfuscated task to a json file.
 // Explain what settings the mutation index gets translated into.
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct MutationConfig {
     mutation_index: u64,
@@ -62,6 +63,7 @@ struct MutationConfig {
 }
 
 impl MutationConfig {
+    #[allow(dead_code)]
     fn take_position_id(index: &mut u64) -> OverlayPositionId {
         let variant: u64 = *index % 5;
         *index /= 5;
@@ -74,6 +76,7 @@ impl MutationConfig {
         }
     }
 
+    #[allow(dead_code)]
     fn take_bool(index: &mut u64) -> bool {
         let variant: u64 = *index % 2;
         *index /= 2;
@@ -83,6 +86,7 @@ impl MutationConfig {
         }
     }
 
+    #[allow(dead_code)]
     fn take_u8(index: &mut u64, count: u8) -> u8 {
         let variant: u64 = *index % (count as u64);
         *index /= count as u64;
@@ -152,6 +156,7 @@ impl MutationConfig {
     /// 
     /// When the `offset` is a value in the range [10..19]
     /// Then the color palette gets rotated backwards by that amount.
+    #[allow(dead_code)]
     fn transformed_color_map(offset: u8) -> HashMap<u8, u8> {
         let mut color_map = HashMap::<u8, u8>::new();
         if offset >= 10 {
@@ -169,6 +174,7 @@ impl MutationConfig {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 enum FilenameMode {
     Verbose,
@@ -176,6 +182,7 @@ enum FilenameMode {
     IncrementingCounter,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct GenerateTrainingImageFiles {
     save_dir: PathBuf,
@@ -186,6 +193,7 @@ pub struct GenerateTrainingImageFiles {
 }
 
 impl GenerateTrainingImageFiles {
+    #[allow(dead_code)]
     fn new(save_dir: &Path) -> Self {
         Self {
             save_dir: PathBuf::from(save_dir),
@@ -196,6 +204,7 @@ impl GenerateTrainingImageFiles {
         }
     }
 
+    #[allow(dead_code)]
     fn generate_pair_image(pair: &Pair, test_index: u8, x: u8, y: u8, config: &MutationConfig) -> anyhow::Result<Image> {
         let color_outside: u8 = Color::DarkGrey as u8;
         let color_padding: u8 = Color::LightGrey as u8;
@@ -237,6 +246,7 @@ impl GenerateTrainingImageFiles {
         Ok(pair_image)
     }
 
+    #[allow(dead_code)]
     fn export_image(task: &Task, test_index: u8, x: u8, y: u8, config: &MutationConfig, path: &Path) -> anyhow::Result<()> {
         let mut images = Vec::<Image>::new();
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
@@ -258,6 +268,7 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
     
+    #[allow(dead_code)]
     fn export_test_pairs(&mut self, task: &Task, test_index: u8, config: &MutationConfig, mutation_name: &str) -> anyhow::Result<()> {
         for (_pair_index, pair) in task.pairs.iter().enumerate() {
             if pair.test_index != Some(test_index) {
@@ -301,6 +312,7 @@ impl GenerateTrainingImageFiles {
     /// Padding with 1..3 pixel wide border.
     /// 
     /// Apply color map.
+    #[allow(dead_code)]
     fn transform_image(image: &Image, is_flipx: bool, rotate_count: u8, scalex: u8, scaley: u8, padding: u8, padding_color: u8, color_map: &HashMap<u8, u8>) -> anyhow::Result<Image> {
         let mut image = image.clone();
         if scalex > 1 || scaley > 1 {
@@ -330,6 +342,7 @@ impl GenerateTrainingImageFiles {
         Ok(image)
     }
 
+    #[allow(dead_code)]
     fn export_task_with_mutation(&mut self, task: &Task, config: &MutationConfig, mutation_name: &str) -> anyhow::Result<()> {
         if config.in_padding_count > 0 && task.input_histogram_intersection.get(config.in_padding_color) > 0 {
             return Err(anyhow::anyhow!("Cannot create mutation, the color cannot be used for padding"));
@@ -347,6 +360,7 @@ impl GenerateTrainingImageFiles {
             task_copy.pairs.shuffle(&mut rng);
 
             let shuffled_pair_indexes: Vec<u8> = task_copy.pairs.iter().map(|pair| pair.pair_index).collect();
+            _ = shuffled_pair_indexes;
             // println!("task: {} shuffled_pair_indexes: {:?}", task.id, shuffled_pair_indexes);
         }
 
@@ -398,6 +412,7 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn export_task_inner(&mut self, task: &Task, random_seed: u64, include_zero: bool, limit_file_count: u32, limit_byte_count: u64) -> anyhow::Result<()> {
         let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
 
@@ -448,6 +463,7 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn export_task_train(task: &Task, save_dir: &Path) -> anyhow::Result<()> {
         let random_seed: u64 = 0;
         let include_zero: bool = false;
@@ -459,6 +475,7 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn export_task_test(task: &Task, save_dir: &Path) -> anyhow::Result<()> {
         let random_seed: u64 = 42;
         let include_zero: bool = true;
@@ -470,6 +487,7 @@ impl GenerateTrainingImageFiles {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn export_task(task: &Task) -> anyhow::Result<()> {
         let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/image_save");
         if !basedir.exists() {
@@ -539,6 +557,7 @@ mod tests {
     }
 
     // #[test]
+    #[allow(dead_code)]
     fn test_90000_export_images() {
         // Overlay
         save_as_file("cf98881b").expect("ok");
@@ -560,6 +579,7 @@ mod tests {
     }
 
     // #[test]
+    #[allow(dead_code)]
     fn test_90001_export_images() {
         save_as_file("23581191").expect("ok");
         save_as_file("48131b3c").expect("ok");
@@ -570,6 +590,7 @@ mod tests {
     }
 
     // #[test]
+    #[allow(dead_code)]
     fn test_90002_export_images() {
         save_as_file("7e0986d6").expect("ok");
         save_as_file("56ff96f3").expect("ok");
@@ -580,6 +601,7 @@ mod tests {
     }
 
     // #[test]
+    #[allow(dead_code)]
     fn test_90003_export_images() {
         save_as_file("be94b721").expect("ok");
         save_as_file("6773b310").expect("ok");
@@ -590,6 +612,7 @@ mod tests {
     }
 
     // #[test]
+    #[allow(dead_code)]
     fn test_90004_export_images() {
         save_as_file("af902bf9").expect("ok");
         save_as_file("810b9b61").expect("ok");

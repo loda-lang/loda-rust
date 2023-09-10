@@ -398,13 +398,15 @@ impl SolveSplit {
                 for (pair_index, _pair) in task.pairs.iter().enumerate() {
                     let images: &Vec<Image> = &pair_splitted_images[pair_index];
     
-                    for (image_index, image) in images.iter().enumerate() {
+                    for (_image_index, image) in images.iter().enumerate() {
                         let is_symmetric_x: bool = image.is_symmetric_x()?;
                         let is_symmetric_y: bool = image.is_symmetric_y()?;
                         let is_symmetric_diagonal_a: bool = image.is_symmetric_diagonal_a()?;
                         let is_symmetric_diagonal_b: bool = image.is_symmetric_diagonal_b()?;
                         let is_symmetric: bool = is_symmetric_x || is_symmetric_y || is_symmetric_diagonal_a || is_symmetric_diagonal_b;
+                        _ = is_symmetric;
                         let is_symmetric_x_or_y: bool = is_symmetric_x || is_symmetric_y;
+                        _ = is_symmetric_x_or_y;
                         let is_symmetric_diagonal_a_or_b: bool = is_symmetric_diagonal_a || is_symmetric_diagonal_b;
 
                         let value: bool = match parameter {

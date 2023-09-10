@@ -971,6 +971,7 @@ impl TaskGraph {
     }
 
     /// Get the `ShapeTransformation` vector for pixel.
+    #[allow(dead_code)]
     pub fn get_shapetransformations_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<ShapeTransformation>> {
         let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
         let transformations: Vec<ShapeTransformation> = self.get_shapetransformations_from_object(object_node).context("get_shapetransformations_from_object")?;

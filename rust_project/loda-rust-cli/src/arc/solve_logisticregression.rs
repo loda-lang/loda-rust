@@ -344,6 +344,7 @@ impl SolveLogisticRegression {
         Ok(image)
     }
 
+    #[allow(dead_code)]
     fn shape_transformation_images(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
         let mut image_normal: Image = Image::zero(width, height);
         let mut image_rotate_cw_90: Image = Image::zero(width, height);
@@ -535,10 +536,14 @@ impl SolveLogisticRegression {
             }
 
             let object_id_image_connectivity4: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            _ = object_id_image_connectivity4;
             let object_id_image_connectivity8: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            _ = object_id_image_connectivity8;
 
             let relative_position_images_connectivity4: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            _ = relative_position_images_connectivity4;
             let relative_position_images_connectivity8: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            _ = relative_position_images_connectivity8;
 
             // let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
@@ -547,7 +552,9 @@ impl SolveLogisticRegression {
             // let shape_transformation_images_connectivity8: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
 
             let shape_size_images_connectivity4: Vec<Image> = Self::shape_size_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            _ = shape_size_images_connectivity4;
             let shape_size_images_connectivity8: Vec<Image> = Self::shape_size_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            _ = shape_size_images_connectivity8;
 
             // let mut repair_mask: Image = Image::zero(width, height);
             // if let Some(mask) = &pair.input.repair_mask {
@@ -1071,6 +1078,10 @@ impl SolveLogisticRegression {
                     Err(_) => {},
                 }
             }
+            _ = image_neighbour_upleft;
+            _ = image_neighbour_upright;
+            _ = image_neighbour_downleft;
+            _ = image_neighbour_downright;
 
             let mut holes_connectivity4 = HashMap::<u8, Image>::new();
             let mut holes_connectivity8 = HashMap::<u8, Image>::new();
@@ -1321,26 +1332,46 @@ impl SolveLogisticRegression {
                     let y_mod3: u8 = y % 3;
                     let x_reverse_mod3: u8 = x_reverse % 3;
                     let y_reverse_mod3: u8 = y_reverse % 3;
+                    _ = x_mod3;
+                    _ = y_mod3;
+                    _ = x_reverse_mod3;
+                    _ = y_reverse_mod3;
 
                     let x_mod4: u8 = x % 4;
                     let y_mod4: u8 = y % 4;
                     let x_reverse_mod4: u8 = x_reverse % 4;
                     let y_reverse_mod4: u8 = y_reverse % 4;
+                    _ = x_mod4;
+                    _ = y_mod4;
+                    _ = x_reverse_mod4;
+                    _ = y_reverse_mod4;
 
                     let x_mod5: u8 = x % 5;
                     let y_mod5: u8 = y % 5;
                     let x_reverse_mod5: u8 = x_reverse % 5;
                     let y_reverse_mod5: u8 = y_reverse % 5;
+                    _ = x_mod5;
+                    _ = y_mod5;
+                    _ = x_reverse_mod5;
+                    _ = y_reverse_mod5;
 
                     let x2_mod2: u8 = (x / 2) % 2;
                     let y2_mod2: u8 = (y / 2) % 2;
                     let x2_reverse_mod2: u8 = (x_reverse / 2) % 2;
                     let y2_reverse_mod2: u8 = (y_reverse / 2) % 2;
+                    _ = x2_mod2;
+                    _ = y2_mod2;
+                    _ = x2_reverse_mod2;
+                    _ = y2_reverse_mod2;
 
                     let x4_mod2: u8 = (x / 4) % 2;
                     let y4_mod2: u8 = (y / 4) % 2;
                     let x4_reverse_mod2: u8 = (x_reverse / 4) % 2;
                     let y4_reverse_mod2: u8 = (y_reverse / 4) % 2;
+                    _ = x4_mod2;
+                    _ = y4_mod2;
+                    _ = x4_reverse_mod2;
+                    _ = y4_reverse_mod2;
 
                     let mut preserve_edge: bool = false;
 
@@ -1848,6 +1879,7 @@ impl SolveLogisticRegression {
                             inside_bounding_box = true;
                         }
                     }
+                    _ = inside_bounding_box;
 
                     let half_horizontal: i8;
                     if xx * 2 == width as i32 { 
