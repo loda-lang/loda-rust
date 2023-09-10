@@ -1,7 +1,7 @@
 //! Solve `split-view` like tasks.
 //! 
-//! * With the public ARC 1 dataset. It can partially solve 28 tasks, the majority can be solved, a few of them are partially solved.
-//! * With the hidden ARC 1 dataset. It can solve 0 tasks.
+//! * With the public ARC 1 dataset. It solves 27 tasks (fully), and 1 partially solves 1 task.
+//! * With the hidden ARC 1 dataset. It solves zero tasks!
 //! 
 //! Known problem: Can only split into columns or rows, not both.
 //! 
