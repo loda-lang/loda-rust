@@ -83,6 +83,7 @@ mod image_resize;
 mod image_rotate;
 mod image_set_pixel_where;
 mod image_size;
+mod image_skew;
 mod image_sort;
 mod image_split;
 mod image_stack;
