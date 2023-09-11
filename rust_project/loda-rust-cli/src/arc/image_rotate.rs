@@ -23,20 +23,20 @@ impl ImageRotate for Image {
         let y_max: i32 = (self.height() as i32) - 1;
 
         // Copy pixels with coordinates rotated
-        let mut bitmap = Image::zero(self.height(), self.width());
+        let mut image = Image::zero(self.height(), self.width());
         for y in 0..=y_max {
             for x in 0..=x_max {
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);
                 let set_y: i32 = y_max - y;
-                match bitmap.set(set_y, x, pixel_value) {
+                match image.set(set_y, x, pixel_value) {
                     Some(()) => {},
                     None => {
-                        return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", set_y, x));
+                        return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result image", set_y, x));
                     }
                 }
             }
         }
-        return Ok(bitmap);
+        Ok(image)
     }
 
     fn rotate_ccw(&self) -> anyhow::Result<Image> {
@@ -48,11 +48,11 @@ impl ImageRotate for Image {
         if count == 0 {
             return Ok(self.clone());
         }
-        let mut bitmap: Image = self.clone();
+        let mut image: Image = self.clone();
         for _ in 0..count {
-            bitmap = bitmap.rotate_cw()?;
+            image = image.rotate_cw()?;
         }
-        Ok(bitmap)
+        Ok(image)
     }
 }
 
