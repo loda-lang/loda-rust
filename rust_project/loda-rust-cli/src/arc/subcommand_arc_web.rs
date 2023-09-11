@@ -1,5 +1,6 @@
 use crate::common::find_json_files_recursively;
 use crate::config::Config;
+use super::prompt_compact::PromptCompactDeserializer;
 use super::prompt_position::PromptPositionDeserializer;
 use super::prompt_run_length_encoding::PromptRLEDeserializer;
 use super::prompt_shape_transform::PromptShapeTransformDeserializer;
@@ -106,6 +107,7 @@ impl SubcommandARCWeb {
             all_json_paths,
             cache: cache_arc,
         });
+        app.with(tide::log::LogMiddleware::new());
         app.at("/task").get(Self::get_task_list);
         app.at("/task/:task_id").get(Self::get_task_with_id);
         app.at("/task/:task_id/prompt").get(Self::get_prompt);
@@ -259,7 +261,7 @@ impl SubcommandARCWeb {
     async fn find_node_pixel(req: Request<State>) -> tide::Result {
         let task_id: &str = req.param("task_id").unwrap_or("world");
         let query: FindNodePixel = req.query()?;
-        // println!("find_node_pixel x: {}, y: {} id: {}", query.x, query.y, query.id);
+        debug!("find_node_pixel x: {}, y: {} id: {}", query.x, query.y, query.id);
 
         let task_graph: TaskGraph = match Self::load_task_graph(&req, task_id).await {
             Ok(value) => value,
@@ -285,7 +287,7 @@ impl SubcommandARCWeb {
                         continue;
                     }
                     if found_id_node_index.is_some() {
-                        println!("found multiple nodes with the same id: {}", id);
+                        debug!("found multiple nodes with the same id: {}", id);
                     }
                     found_id_node_index = Some(node_index);
                 },
@@ -302,14 +304,14 @@ impl SubcommandARCWeb {
                 return Ok(response);
             }
         };
-        // println!("id_node_index: {:?}", id_node_index);
+        debug!("find_node_pixel id_node_index: {:?}", id_node_index);
 
         // Find the `Image` node that is a child of the `Id` node.
         let mut found_image_node_index: Option<NodeIndex> = None;
         for edge in graph.edges(id_node_index) {
             let child_index: NodeIndex = edge.target();
             if found_image_node_index.is_some() {
-                println!("found multiple image nodes for the given id.");
+                debug!("found multiple image nodes for the given id.");
             }
             found_image_node_index = Some(child_index);
         }
@@ -323,60 +325,37 @@ impl SubcommandARCWeb {
                 return Ok(response);
             }
         };
-        // println!("image_node_index: {:?}", image_node_index);
+        debug!("find_node_pixel image_node_index: {:?}", image_node_index);
 
         // Find the `Pixel` node that is a child of the `Image` node.
-        let mut found_pixel_node_index: Option<NodeIndex> = None;
-        for edge_image in graph.edges(image_node_index) {
-            let node_index: NodeIndex = edge_image.target();
-            match &graph[node_index] {
-                NodeData::Pixel => {},
-                _ => continue
+        let found_pixel_node_index: Option<NodeIndex> = match task_graph.get_pixel_nodeindex_at_xy_coordinate(image_node_index, query.x, query.y) {
+            Ok(value) => Some(value),
+            Err(error) => {
+                debug!("find_node_pixel get_pixel_nodeindex_at_xy_coordinate returned an error: {:?}", error);
+                None
             }
-            let pixel_index: NodeIndex = node_index;
-
-            let mut found_x: Option<u8> = None;
-            let mut found_y: Option<u8> = None;
-            for edge_pixel in graph.edges(pixel_index) {
-                let child_index: NodeIndex = edge_pixel.target();
-                let child_node: &NodeData = &graph[child_index];
-                match child_node {
-                    NodeData::PositionX { x } => { found_x = Some(*x); },
-                    NodeData::PositionY { y } => { found_y = Some(*y); },
-                    _ => {}
-                }
-            }
-            let (pixel_x, pixel_y) = match (found_x, found_y) {
-                (Some(x), Some(y)) => (x, y),
-                _ => continue
-            };
-            if pixel_x != query.x || pixel_y != query.y {
-                continue;
-            }
-            if found_pixel_node_index.is_some() {
-                println!("multiple candidates found. x: {} y: {}", query.x, query.y);
-                continue;
-            }
-            found_pixel_node_index = Some(node_index);
-        }
+        };
+        debug!("find_node_pixel found_pixel_node_index: {:?}", found_pixel_node_index);
         let pixel_node_index: usize = match found_pixel_node_index {
             Some(value) => value.index(),
             None => {
-                return Err(tide::Error::from_str(500, "Cannot find the pixel in the graph"));
+                return Err(tide::Error::from_str(500, "Cannot convert nodeindex to usize"));
             }
         };
         // println!("pixel_node_index: {:?}", pixel_node_index);
 
         let current_url: &Url = req.url();
+        // debug!("find_node_pixel url: {:?}", current_url);
+
         let redirect_url: Url;
-        if let Some(domain) = current_url.domain() {
+        if let Some(host) = current_url.host_str() {
             let base_url = match current_url.port() {
-                Some(port) => format!("{}://{}:{}", current_url.scheme(), domain, port),
-                None => format!("{}://{}", current_url.scheme(), domain),
+                Some(port) => format!("{}://{}:{}", current_url.scheme(), host, port),
+                None => format!("{}://{}", current_url.scheme(), host),
             };
             redirect_url = Url::parse(&format!("{}/task/{}/node/{}", base_url, task_id, pixel_node_index))?;
         } else {
-            return Err(tide::Error::from_str(500, "URL does not have a base URL"));
+            return Err(tide::Error::from_str(500, "Cannot construct a base URL. The current_url does not have a host_str"));
         }
 
         let response = Response::builder(303)
@@ -652,6 +631,7 @@ impl SubcommandARCWeb {
 
     fn prompt_id_for_prompttype(prompt_type: &PromptType) -> &'static str {
         match prompt_type {
+            PromptType::Compact => "prompt-compact",
             PromptType::Position => "prompt-position",
             PromptType::RunLengthEncoding => "prompt-run-length-encoding",
             PromptType::ShapeAndTransformConnectivity4 => "prompt-shape-and-transform-connectivity4",
@@ -661,6 +641,7 @@ impl SubcommandARCWeb {
 
     fn option_value_for_prompttype(prompt_type: &PromptType) -> &'static str {
         match prompt_type {
+            PromptType::Compact => "option-compact",
             PromptType::Position => "option-position",
             PromptType::RunLengthEncoding => "option-run-length-encoding",
             PromptType::ShapeAndTransformConnectivity4 => "option-shape-and-transform-connectivity4",
@@ -689,6 +670,7 @@ impl SubcommandARCWeb {
             PromptType::ShapeAndTransformConnectivity8,
             PromptType::RunLengthEncoding,
             PromptType::Position,
+            PromptType::Compact,
         ];
         let prompt_records: Vec<PromptRecord> = prompt_types.iter().map(|prompt_type| {
             let prompt_id: String = Self::prompt_id_for_prompttype(prompt_type).into();
@@ -817,6 +799,14 @@ impl SubcommandARCWeb {
             }
         }
         match PromptPositionDeserializer::try_from(multiline_text) {
+            Ok(prompt_deserialize) => {
+                prompt_deserialize_vec.push(Box::new(prompt_deserialize));
+            },
+            Err(error) => {
+                problems.push(format!("cannot parse the reply text. error: {:?}", error));
+            }
+        }
+        match PromptCompactDeserializer::try_from(multiline_text) {
             Ok(prompt_deserialize) => {
                 prompt_deserialize_vec.push(Box::new(prompt_deserialize));
             },

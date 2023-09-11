@@ -144,6 +144,22 @@ pub struct Pair {
     /// Where there are two vectors with pairs, one for the `train` pairs, and one for the `test` pairs.
     pub pair_index: u8,
 
+    /// The position among the `train` pairs.
+    /// 
+    /// This is the same as in the ARC dataset json file. 
+    /// Where there are two vectors with pairs, one for the `train` pairs, and one for the `test` pairs.
+    /// 
+    /// If the pair is a `test` pair, then this is set to `None`.
+    pub train_index: Option<u8>,
+
+    /// The position among the `test` pairs.
+    /// 
+    /// This is the same as in the ARC dataset json file. 
+    /// Where there are two vectors with pairs, one for the `train` pairs, and one for the `test` pairs.
+    /// 
+    /// If the pair is a `train` pair, then this is set to `None`.
+    pub test_index: Option<u8>,
+
     /// Shows the position in the ARC dataset json file.
     /// Where there are two vectors with pairs, one for the `train` pairs, and one for the `test` pairs.
     /// 

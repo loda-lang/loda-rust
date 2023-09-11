@@ -23,12 +23,14 @@
 //! Create output images for the test pairs
 //! - reapply the same transformations to the input images.        
 //!
+use super::prompt_compact::PromptCompactSerializer;
 use super::prompt_position::PromptPositionSerializer;
 use super::prompt_run_length_encoding::PromptRLESerializer;
 use super::{Image, ImageSize, PixelConnectivity, SingleColorObject, ShapeType, ShapeIdentificationFromSingleColorObject, ColorAndShape, Rectangle, ShapeTransformation};
 use super::arc_work_model::{Task, Pair, PairType};
 use super::prompt_shape_transform::PromptShapeTransformSerializer;
 use super::prompt::{PromptSerialize, PromptType};
+use anyhow::Context;
 use petgraph::{stable_graph::{NodeIndex, EdgeIndex}, visit::EdgeRef};
 use std::collections::{HashSet, HashMap};
 
@@ -63,6 +65,7 @@ pub enum NodeData {
     ShapeScale { x: u8, y: u8 },
     ShapeSize { width: u8, height: u8 },
     ShapeTransformations { transformations: Vec<ShapeTransformation> },
+    // CenterOfMassUncompressedObject { x, y }
     // Input,
     // Output,
     // PairTrain,
@@ -824,6 +827,46 @@ impl TaskGraph {
         Ok(position_to_pixelnodeindex)
     }
 
+    /// Get the node index of the pixel at the given coordinate.
+    pub fn get_pixel_nodeindex_at_xy_coordinate(&self, image_node_index: NodeIndex, find_x: u8, find_y: u8) -> anyhow::Result<NodeIndex> {
+        let mut found_pixel_node_index: Option<NodeIndex> = None;
+        for edge_image in self.graph.edges(image_node_index) {
+            let node_index: NodeIndex = edge_image.target();
+            match &self.graph[node_index] {
+                NodeData::Pixel => {},
+                _ => continue
+            }
+            let pixel_index: NodeIndex = node_index;
+
+            let mut found_x: Option<u8> = None;
+            let mut found_y: Option<u8> = None;
+            for edge_pixel in self.graph.edges(pixel_index) {
+                let child_index: NodeIndex = edge_pixel.target();
+                let child_node: &NodeData = &self.graph[child_index];
+                match child_node {
+                    NodeData::PositionX { x } => { found_x = Some(*x); },
+                    NodeData::PositionY { y } => { found_y = Some(*y); },
+                    _ => {}
+                }
+            }
+            let (pixel_x, pixel_y) = match (found_x, found_y) {
+                (Some(x), Some(y)) => (x, y),
+                _ => continue
+            };
+            if pixel_x != find_x || pixel_y != find_y {
+                continue;
+            }
+            if found_pixel_node_index.is_some() {
+                return Err(anyhow::anyhow!("multiple candidates found. x: {} y: {}", find_x, find_y));
+            }
+            found_pixel_node_index = Some(node_index);
+        }
+        match found_pixel_node_index {
+            Some(pixel_node_index) => Ok(pixel_node_index),
+            None => Err(anyhow::anyhow!("Cannot find the pixel in the graph"))
+        }
+    }
+
     fn get_color_of_pixel(&self, pixel_nodeindex: NodeIndex) -> anyhow::Result<u8> {
         match &self.graph[pixel_nodeindex] {
             NodeData::Pixel => {},
@@ -911,6 +954,51 @@ impl TaskGraph {
         Ok(pair_nodeindex)
     }
 
+    /// Get the object `NodeIndex` for pixel.
+    fn get_object_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<NodeIndex> {
+        let pair_node: NodeIndex = self.get_pair(pair_index).context("get_pair")?;
+        let image_node: NodeIndex = self.get_image_for_pair(pair_node, ImageType::Input).context("get_image_for_pair")?;
+        let pixel_node: NodeIndex = self.get_pixel_nodeindex_at_xy_coordinate(image_node, x, y).context("get_pixel_nodeindex_at_xy_coordinate")?;
+        let object_node: NodeIndex = self.get_object_from_pixel(pixel_node, connectivity).context("get_object_from_pixel")?;
+        Ok(object_node)
+    }
+
+    /// Get the `ShapeType` for pixel.
+    pub fn get_shapetype_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<ShapeType> {
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
+        let shape_type: ShapeType = self.get_shapetype_from_object(object_node).context("get_shapetype_from_object")?;
+        Ok(shape_type)
+    }
+
+    /// Get the `ShapeTransformation` vector for pixel.
+    #[allow(dead_code)]
+    pub fn get_shapetransformations_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<ShapeTransformation>> {
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
+        let transformations: Vec<ShapeTransformation> = self.get_shapetransformations_from_object(object_node).context("get_shapetransformations_from_object")?;
+        Ok(transformations)
+    }
+
+    /// Get the object ID for pixel.
+    pub fn get_objectid_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<usize> {
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
+        let index: usize = object_node.index();
+        Ok(index)
+    }
+
+    /// Get the width and height of the shape for pixel.
+    pub fn get_shapesize_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<ImageSize> {
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
+        let shape_size: ImageSize = self.get_shapesize_from_object(object_node).context("get_shapesize_from_object")?;
+        Ok(shape_size)
+    }
+
+    /// Get the position (x, y) of the shape for pixel.
+    pub fn get_objectposition_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<(u8, u8)> {
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
+        let xy_tupple: (u8, u8) = self.get_position_from_object(object_node).context("get_position_from_object")?;
+        Ok(xy_tupple)
+    }
+
     /// Find the `Image` node via the `Pair` node.
     fn get_image_for_pair(&self, pair_nodeindex: NodeIndex, image_type: ImageType) -> anyhow::Result<NodeIndex> {
         let mut found_nodeindex: Option<NodeIndex> = None;
@@ -981,15 +1069,11 @@ impl TaskGraph {
         Ok(objectsinsideimage_nodeindex)
     }
 
-    fn get_shapetype_from_object(&self, object_nodeindex: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<ShapeType> {
+    fn get_shapetype_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<ShapeType> {
         match &self.graph[object_nodeindex] {
-            NodeData::Object { connectivity: the_connectivity } => { 
-                if *the_connectivity != connectivity {
-                    return Err(anyhow::anyhow!("connectivity mismatch"));
-                }
-            },
+            NodeData::Object { connectivity: _ } => {},
             _ => { 
-                return Err(anyhow::anyhow!("expected NodeData::Pixel"));
+                return Err(anyhow::anyhow!("expected NodeData::Object"));
             }
         }
 
@@ -1012,6 +1096,103 @@ impl TaskGraph {
             return Ok(shapetype);
         }
         Err(anyhow::anyhow!("Object is not linked with a shapetype. Is supposed to be linked with only one shapetype."))
+    }
+
+    fn get_shapesize_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<ImageSize> {
+        match &self.graph[object_nodeindex] {
+            NodeData::Object { connectivity: _ } => {},
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Object"));
+            }
+        }
+
+        let mut found_shapesize: Option<ImageSize> = None;
+        let mut ambiguous_count: usize = 0;
+        for edge in self.graph.edges(object_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::ShapeSize { width, height } => { 
+                    found_shapesize = Some(ImageSize::new(*width, *height));
+                    ambiguous_count += 1;
+                },
+                _ => continue
+            }
+        }
+        if ambiguous_count > 1 {
+            return Err(anyhow::anyhow!("Object is linked with multiple ShapeSize's. Is supposed to be linked with only one ShapeSize."));
+        }
+        if let Some(shapesize) = found_shapesize {
+            return Ok(shapesize);
+        }
+        Err(anyhow::anyhow!("Object is not linked with a ShapeSize. Is supposed to be linked with only one ShapeSize."))
+    }
+
+    fn get_position_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<(u8, u8)> {
+        match &self.graph[object_nodeindex] {
+            NodeData::Object { connectivity: _ } => {},
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Object"));
+            }
+        }
+
+        let mut found_x: Option<u8> = None;
+        let mut found_y: Option<u8> = None;
+        let mut ambiguous_x_count: usize = 0;
+        let mut ambiguous_y_count: usize = 0;
+        for edge in self.graph.edges(object_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::PositionX { x } => { 
+                    found_x = Some(*x);
+                    ambiguous_x_count += 1;
+                },
+                NodeData::PositionY { y } => { 
+                    found_y = Some(*y);
+                    ambiguous_y_count += 1;
+                },
+                _ => continue
+            }
+        }
+        if ambiguous_x_count > 1 || ambiguous_y_count > 1 {
+            return Err(anyhow::anyhow!("Object is linked with multiple PositionX's or multiple PositionY's. Is supposed to be linked with only one."));
+        }
+        match (found_x, found_y) {
+            (Some(x), Some(y)) => {
+                return Ok((x, y));
+            },
+            _ => {
+                return Err(anyhow::anyhow!("Object is not linked with both a PositionX and a PositionY. Is supposed to be linked with only one."));
+            }
+        }
+    }
+
+    fn get_shapetransformations_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<Vec<ShapeTransformation>> {
+        match &self.graph[object_nodeindex] {
+            NodeData::Object { connectivity: _ } => {},
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Object"));
+            }
+        }
+
+        let mut found_shapetransformations: Option<Vec<ShapeTransformation>> = None;
+        let mut ambiguous_count: usize = 0;
+        for edge in self.graph.edges(object_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::ShapeTransformations { transformations } => { 
+                    found_shapetransformations = Some(transformations.clone());
+                    ambiguous_count += 1;
+                },
+                _ => continue
+            }
+        }
+        if ambiguous_count > 1 {
+            return Err(anyhow::anyhow!("Object is linked with multiple ShapeTransformations. Is supposed to be linked with only one ShapeTransformations."));
+        }
+        if let Some(transformations) = found_shapetransformations {
+            return Ok(transformations);
+        }
+        Err(anyhow::anyhow!("Object is not linked with a ShapeTransformations. Is supposed to be linked with only one ShapeTransformations."))
     }
 
     fn find_shapetype_changes_between_input_and_output(&mut self, task: &Task, pair: &Pair, input_image_nodeindex: NodeIndex, output_image_nodeindex: NodeIndex, connectivity: PixelConnectivity) -> anyhow::Result<()> {
@@ -1071,8 +1252,8 @@ impl TaskGraph {
             let nodeindex0: NodeIndex = NodeIndex::new(value_min);
             let nodeindex1: NodeIndex = NodeIndex::new(value_max);
 
-            let shapetype0: ShapeType = self.get_shapetype_from_object(nodeindex0, connectivity)?;
-            let shapetype1: ShapeType = self.get_shapetype_from_object(nodeindex1, connectivity)?;
+            let shapetype0: ShapeType = self.get_shapetype_from_object(nodeindex0)?;
+            let shapetype1: ShapeType = self.get_shapetype_from_object(nodeindex1)?;
             if shapetype0 == shapetype1 {
                 continue;
             }
@@ -1374,6 +1555,7 @@ impl TaskGraph {
 
     fn prompt_serializer(prompt_type: &PromptType) -> Box<dyn PromptSerialize> {
         match prompt_type {
+            PromptType::Compact => Box::new(PromptCompactSerializer),
             PromptType::Position => Box::new(PromptPositionSerializer),
             PromptType::RunLengthEncoding => Box::new(PromptRLESerializer),
             PromptType::ShapeAndTransformConnectivity4 => Box::new(PromptShapeTransformSerializer::new_connectivity4()),
