@@ -81,6 +81,7 @@ mod image_replace_regex;
 mod image_replace_simple;
 mod image_resize;
 mod image_rotate;
+mod image_rotate45;
 mod image_set_pixel_where;
 mod image_size;
 mod image_skew;
