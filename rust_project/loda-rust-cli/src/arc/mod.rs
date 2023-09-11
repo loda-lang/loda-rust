@@ -217,6 +217,7 @@ pub use image_resize::ImageResize;
 pub use image_rotate::ImageRotate;
 pub use image_set_pixel_where::ImageSetPixelWhere;
 pub use image_size::ImageSize;
+pub use image_skew::ImageSkew;
 pub use image_sort::{ImageSort, ImageSortMode};
 pub use image_split::{ImageSplit, ImageSplitDirection};
 pub use image_stack::ImageStack;
