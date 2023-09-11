@@ -27,7 +27,7 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
 
     let combined_u16: u16 = original.width() as u16 + original.height() as u16 - 1;
     if combined_u16 > 255 {
-        return Err(anyhow::anyhow!("Unable to skew image. The combined width and height is too large: {}", combined_u16));
+        return Err(anyhow::anyhow!("Unable to rotate image. The combined width and height is too large: {}", combined_u16));
     }
 
     // Rotate by 45 degrees
