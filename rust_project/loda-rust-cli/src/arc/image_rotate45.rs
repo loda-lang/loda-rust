@@ -3,9 +3,15 @@ use super::Image;
 
 pub trait ImageRotate45 {
     /// Rotate an image by 45 degrees. clockwise (CW)
+    /// 
+    /// Where rotate by 90 degrees is a simple operation, rotate by 45 degrees is a bit more complex.
+    /// This yields gaps in the rotated image. Every pixel has 4 gaps surrounding it.
     fn rotate_cw_45(&self, fill_color: u8) -> anyhow::Result<Image>;
 
     /// Rotate an image by 45 degrees. counter clockwise (CCW)
+    /// 
+    /// Where rotate by 90 degrees is a simple operation, rotate by 45 degrees is a bit more complex.
+    /// This yields gaps in the rotated image. Every pixel has 4 gaps surrounding it.
     fn rotate_ccw_45(&self, fill_color: u8) -> anyhow::Result<Image>;
 }
 
