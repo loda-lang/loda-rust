@@ -9,6 +9,10 @@
 //! One diagonal line that is 11 pixels long, gets classified as `ShapeType::Unclassified`.
 //! Another diagonal line that is 13 pixels long, also gets classified as `ShapeType::Unclassified`.
 //! There is no way to tell that the diagonal lines are similar.
+//! 
+//! Future experiments:
+//! Distinguish between `Rectangle` and `Line`. Currently a line gets compressed into a 1x1 rectangle.
+//! It may be helpful identifying lines.
 use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop, ImageResize, ImageMaskCount};
 use std::fmt;
 use std::collections::HashSet;
