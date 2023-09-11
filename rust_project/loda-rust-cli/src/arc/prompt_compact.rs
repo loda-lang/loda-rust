@@ -1,4 +1,4 @@
-use super::{Image, TaskGraph, ImageRotate, ImageHistogram, Histogram};
+use super::{Image, TaskGraph, ImageRotate90, ImageHistogram, Histogram};
 use super::prompt::{PromptSerialize, PromptDeserialize};
 use super::arc_work_model::{Task, PairType};
 use lazy_static::lazy_static;

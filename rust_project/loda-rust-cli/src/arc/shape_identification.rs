@@ -13,7 +13,7 @@
 //! Future experiments:
 //! Distinguish between `Rectangle` and `Line`. Currently a line gets compressed into a 1x1 rectangle.
 //! It may be helpful identifying lines.
-use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop, ImageResize, ImageMaskCount};
+use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate90, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop, ImageResize, ImageMaskCount, ImageSkew};
 use std::fmt;
 use std::collections::HashSet;
 use lazy_static::lazy_static;

@@ -1,4 +1,4 @@
-use super::{Image, ImageHistogram, ImageRotate, Histogram};
+use super::{Image, ImageHistogram, ImageRotate90, Histogram};
 
 pub trait ImageCountUniqueColors {
     /// Returns an image that is 1 pixel wide and the same height as `self.height`.

@@ -1,4 +1,4 @@
-use super::{Image, ImageRotate};
+use super::{Image, ImageRotate90};
 
 pub trait ImageRepairOffset {
     /// Fix damaged pixels in the horizontal plane, by copying good pixels from the same row with `offset * n`.

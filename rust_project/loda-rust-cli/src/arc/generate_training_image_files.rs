@@ -10,7 +10,7 @@
 //! - Randomize position of the images, such as centered, top-aligned, position near 2/3 of the width.
 //! 
 //! This way an original task with 3 pairs can be transformed into more than 10000 images.
-use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize, OverlayPositionId, ImageSymmetry, ImageRotate, ImageResize, ImageReplaceColor};
+use super::{Image, ImageExport, ImageOverlay, ImageStack, ImagePadding, Color, ImageSize, OverlayPositionId, ImageSymmetry, ImageRotate90, ImageResize, ImageReplaceColor};
 use super::arc_work_model::{Task, Pair, PairType};
 use std::collections::HashMap;
 use std::fs;

@@ -1,4 +1,4 @@
-use super::{Image, ImageRotate, ImageSymmetry};
+use super::{Image, ImageRotate90, ImageSymmetry};
 
 #[derive(Clone, Copy, Debug)]
 pub enum GravityDirection {

@@ -1,4 +1,4 @@
-use super::{Image, ImageRotate};
+use super::{Image, ImageRotate90};
 
 pub trait ImageRemoveDuplicates {
     fn remove_duplicate_rows(&self) -> anyhow::Result<Image>;

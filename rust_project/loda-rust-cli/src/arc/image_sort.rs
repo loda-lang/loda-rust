@@ -1,4 +1,4 @@
-use super::{Image, ImageCrop, ImageOverlay, ImageSymmetry, Rectangle, ImageRotate};
+use super::{Image, ImageCrop, ImageOverlay, ImageSymmetry, Rectangle, ImageRotate90};
 
 #[derive(Clone, Copy, Debug)]
 pub enum ImageSortMode {

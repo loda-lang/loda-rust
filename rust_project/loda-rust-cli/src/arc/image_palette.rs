@@ -1,4 +1,4 @@
-use super::{Image, ImageHistogram, ImageExtractRowColumn, ImageStack, ImageTryCreate, ImageRotate};
+use super::{Image, ImageHistogram, ImageExtractRowColumn, ImageStack, ImageTryCreate, ImageRotate90};
 use super::{ImageSymmetry, ImageDetectColorSymmetry, ImageDetectColorSymmetryMode};
 
 pub trait ImageCreatePalette {

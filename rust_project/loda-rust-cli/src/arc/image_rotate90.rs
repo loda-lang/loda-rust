@@ -1,10 +1,11 @@
+//! Rotate an image by 90 degrees.
 use super::Image;
 
-pub trait ImageRotate {
-    /// Rotate clockwise (CW)
+pub trait ImageRotate90 {
+    /// Rotate an image by 90 degrees. clockwise (CW)
     fn rotate_cw(&self) -> anyhow::Result<Image>;
 
-    /// Rotate counter clockwise (CCW)
+    /// Rotate an image by 90 degrees. counter clockwise (CCW)
     fn rotate_ccw(&self) -> anyhow::Result<Image>;
 
     /// Rotate by `N * 90` degrees in any direction
@@ -13,7 +14,7 @@ pub trait ImageRotate {
     fn rotate(&self, direction: i8) -> anyhow::Result<Image>;
 }
 
-impl ImageRotate for Image {
+impl ImageRotate90 for Image {
     fn rotate_cw(&self) -> anyhow::Result<Image> {
         if self.width() <= 1 && self.height() <= 1 {
             // No point in rotating an empty image or a 1x1 image.

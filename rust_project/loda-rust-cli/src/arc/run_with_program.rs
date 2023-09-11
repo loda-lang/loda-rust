@@ -2,7 +2,7 @@ use super::{arc_json_model, InspectPredicted};
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model;
 use super::{Image, ImageSize, ImageToNumber, NumberToImage, register_arc_functions, Prediction};
-use super::{ImageRotate, ImageSymmetry, Color};
+use super::{ImageRotate90, ImageSymmetry, Color};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;

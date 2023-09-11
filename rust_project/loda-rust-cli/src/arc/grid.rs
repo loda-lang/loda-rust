@@ -1,5 +1,5 @@
 //! Detect grid patterns in images.
-use super::{Histogram, Image, ImageDrawRect, ImageHistogram, ImageRotate, Rectangle};
+use super::{Histogram, Image, ImageDrawRect, ImageHistogram, ImageRotate90, Rectangle};
 use std::collections::HashSet;
 
 // ARC tasks where the grid cannot be detected

@@ -1,4 +1,4 @@
-use super::{Image, ImageRotate, ImageSize, ImageRepeat};
+use super::{Image, ImageRotate90, ImageSize, ImageRepeat};
 
 #[allow(dead_code)]
 pub enum GeneratePattern {

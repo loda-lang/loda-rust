@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageRotate, ImageHistogram, ImageReplaceColor, ImageMask, ImageMaskBoolean, ImageMix, MixMode, ImageMaskCount};
+use super::{Histogram, Image, ImageRotate90, ImageHistogram, ImageReplaceColor, ImageMask, ImageMaskBoolean, ImageMix, MixMode, ImageMaskCount};
 
 pub trait ImageDrawLineWhere {
     /// Draw a horizontal line if the `mask` contains one or more non-zero pixels.

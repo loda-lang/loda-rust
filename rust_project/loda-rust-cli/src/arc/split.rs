@@ -1,5 +1,5 @@
 //! Detect split views where a separator extends from edge to edge near the middle.
-use super::{Histogram, Image, ImageHistogram, ImageRotate};
+use super::{Histogram, Image, ImageHistogram, ImageRotate90};
 use std::collections::HashMap;
 use std::fmt;
 

@@ -1,5 +1,5 @@
 //! Mimic rotation by 45 degrees by skewing the image.
-use super::{Image, ImageRotate};
+use super::{Image, ImageRotate90};
 
 pub trait ImageSkew {
     /// Skew the image in the horizontal direction by 45 degrees.

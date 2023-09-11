@@ -1,4 +1,4 @@
-use super::{Image, ImageRotate, ImageSymmetry};
+use super::{Image, ImageRotate90, ImageSymmetry};
 use std::collections::HashMap;
 
 type HistogramBigramKey = (u8,u8);
