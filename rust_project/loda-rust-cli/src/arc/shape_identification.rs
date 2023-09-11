@@ -13,7 +13,7 @@
 //! Future experiments:
 //! Distinguish between `Rectangle` and `Line`. Currently a line gets compressed into a 1x1 rectangle.
 //! It may be helpful identifying lines.
-use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate90, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop, ImageResize, ImageMaskCount, ImageSkew};
+use super::{Image, ImageSize, ImageTrim, ImageRemoveDuplicates, ImageTryCreate, ImageRotate45, ImageRotate90, ImageSymmetry, CenterOfMass, Rectangle, ImageCrop, ImageResize, ImageMaskCount, ImagePadding, convolution3x3};
 use std::fmt;
 use std::collections::HashSet;
 use lazy_static::lazy_static;
@@ -3679,5 +3679,53 @@ mod tests {
         assert_eq!(actual.normalized_mask, Some(expected_compact));
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipX]));
         assert_eq!(actual.scale_to_string(), "2x1");
+    }
+
+    #[test]
+    fn test_610000_rotate45() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 0,
+            0, 1, 0, 1, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 0, 1, 0,
+            0, 0, 0, 0, 1,
+        ];
+        let input0: Image = Image::try_create(5, 5, pixels).expect("image");
+        let input1: Image = input0.rotate_ccw_45(255).expect("ok");
+
+        // padding with 1 pixel
+        let input2: Image = input1.padding_with_color(1, 255).expect("ok");
+
+        // Repair gaps in the rotated image. Every pixel has 4 gaps surrounding it.
+        // Which convolution 3x3 variant will behave nicest when processing diagonal data.
+        // A: If there is no center pixel and it has top+bottom=2 or left+right=2, then fill the center pixel.
+        // B: If there is no center pixel and have 2 or more neighbors, then fill the center pixel.
+        // I choose A. And I have not tried out B.
+        let input: Image = convolution3x3(&input2, |image| {
+            let color_center: u8 = image.get(1, 1).unwrap_or(255);
+            if color_center != 255 {
+                // If the center pixel has a meaningful value, then keep the center pixel as it is.
+                return Ok(color_center);
+            }
+            let color_top: u8 = image.get(1, 0).unwrap_or(255);
+            let color_bottom: u8 = image.get(1, 2).unwrap_or(255);
+            let color_left: u8 = image.get(0, 1).unwrap_or(255);
+            let color_right: u8 = image.get(2, 1).unwrap_or(255);
+            let same_top_bottom: bool = color_top == 1 && color_bottom == 1;
+            let same_left_right: bool = color_left == 1 && color_right == 1;
+            if same_top_bottom || same_left_right {
+                return Ok(1);
+            }
+            Ok(0)
+        }).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⊥");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipX]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 }
