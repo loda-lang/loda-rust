@@ -1095,6 +1095,7 @@ pub struct ShapeIdentification {
     /// No compression is applied. No transformation is applied.
     pub mass: u16,
 
+    /// What shape type does it become when rotating the original shape by 90 degrees and doing horz/vert compression.
     /// The recognized shape type, or `Unclassified` if the shape is not recognized.
     pub shape_type: ShapeType,
 
@@ -1107,8 +1108,10 @@ pub struct ShapeIdentification {
     /// is it scaled down without losing information, apply scale factor to get original size.
     pub scale: Option<ScaleXY>,
 
-    // Future experiments
-    // diagonal compression, so that a 10pixel long diagonal line and a 13pixel long diagonal line, gets the same representation.
+    /// Diagonal compression, so that a 10pixel long diagonal line and a 13pixel long diagonal line, gets the same representation.
+    /// What shape type does it become when rotating the original shape by 45 degrees followed by horz/vert compression.
+    /// The recognized shape type, or `Unclassified` if the shape is not recognized.
+    pub shape_type45: ShapeType,
 }
 
 impl ShapeIdentification {
@@ -1138,6 +1141,7 @@ impl ShapeIdentification {
             let scale = ScaleXY { x: 1, y: 1 };
             let shape = Self {
                 shape_type: ShapeType::Rectangle,
+                shape_type45: ShapeType::Rectangle,
                 mask_uncropped: mask.clone(),
                 mask_cropped: trimmed_mask.clone(),
                 rect,
@@ -1157,6 +1161,7 @@ impl ShapeIdentification {
             let scale = ScaleXY { x: trimmed_mask.width(), y: trimmed_mask.height() };
             let shape = Self {
                 shape_type: ShapeType::Rectangle,
+                shape_type45: ShapeType::Unclassified,
                 mask_uncropped: mask.clone(),
                 mask_cropped: trimmed_mask.clone(),
                 rect,
@@ -1168,26 +1173,73 @@ impl ShapeIdentification {
             return Ok(shape);    
         }
 
-        let transformation_image_vec: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&compact_mask)?;
+        // The color values in the `trimmed_mask` is either 0 or 1.
+        // The color `0` is where the shape is transparent.
+        // The color `1` is where the shape is solid.
 
-        // Loop over all the basic shapes and see if any of them matches the transformed image
-        // It's computationally cheaper to check for basic shapes, than analyzing an `Unclassified` shape.
-        {
-            let optional_sat0: Option<ShapeAndTransformations> = ShapeAndTransformations::find(&transformation_image_vec);
-            if let Some(sat) = optional_sat0 {
-                let mut shape = Self {
-                    shape_type: sat.shape_type,
-                    mask_uncropped: mask.clone(),
-                    mask_cropped: trimmed_mask.clone(),
-                    rect,
-                    transformations: sat.transformations,
-                    normalized_mask: None,
-                    scale: None,
-                    mass,
-                };
-                shape.autodetect_scale(&trimmed_mask, &sat.recognized_image)?;
-                return Ok(shape);
+        // The color values in the rotated mask is either 0 or 1 or 255.
+        // The color `0` is where the shape is transparent.
+        // The color `1` is where the shape is solid.
+        // The color `255` are the gaps introduced by rotate45, and the surrounding space around the rotate45 image.
+
+        let rotated45_raw: Image = trimmed_mask.rotate_ccw_45(255)?;
+        let rotated45_padding: Image = rotated45_raw.padding_with_color(1, 255)?;
+
+        // Repair gaps in the rotated image. Every pixel has 4 gaps surrounding it.
+        // Which convolution 3x3 variant will behave nicest when processing diagonal data.
+        // A: If there is no center pixel and it has top+bottom=2 or left+right=2, then fill the center pixel.
+        // B: If there is no center pixel and have 2 or more neighbors, then fill the center pixel.
+        // I choose A. And I have not tried out B.
+        //
+        // This gets rid of the color `255` and settles on either `0` or `1`.
+        let repaired45: Image = convolution3x3(&rotated45_padding, |image| {
+            let color_center: u8 = image.get(1, 1).unwrap_or(255);
+            if color_center != 255 {
+                // If the center pixel has a meaningful value, then keep the center pixel as it is.
+                return Ok(color_center);
             }
+            let color_top: u8 = image.get(1, 0).unwrap_or(255);
+            let color_bottom: u8 = image.get(1, 2).unwrap_or(255);
+            let color_left: u8 = image.get(0, 1).unwrap_or(255);
+            let color_right: u8 = image.get(2, 1).unwrap_or(255);
+            let same_top_bottom: bool = color_top == 1 && color_bottom == 1;
+            let same_left_right: bool = color_left == 1 && color_right == 1;
+            if same_top_bottom || same_left_right {
+                return Ok(1);
+            }
+            Ok(0)
+        })?;
+
+        let trimmed_mask45: Image = repaired45.trim_color(0)?;
+
+        // Compact the shape even more by removing duplicate rows and columns
+        let compact_mask45: Image = trimmed_mask45.remove_duplicates()?;
+        // println!("compact_mask45: {:?}", compact_mask45);
+
+        let transformation_image_vec: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&compact_mask)?;
+        let optional_sat0: Option<ShapeAndTransformations> = ShapeAndTransformations::find(&transformation_image_vec);
+
+        let transformation_image_vec45: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&compact_mask45)?;
+        let optional_sat45: Option<ShapeAndTransformations> = ShapeAndTransformations::find(&transformation_image_vec45);
+        let shape_type45: ShapeType = optional_sat45.map(|sat| sat.shape_type).unwrap_or(ShapeType::Unclassified);
+
+        // If we have a shape for the 0,90,180,270 transformations then stop here.
+        // We don't care about the 45 degree transformations.
+        // It's computationally cheaper to check for basic shapes, than analyzing an `Unclassified` shape.
+        if let Some(sat) = optional_sat0 {
+            let mut shape = Self {
+                shape_type: sat.shape_type,
+                shape_type45,
+                mask_uncropped: mask.clone(),
+                mask_cropped: trimmed_mask.clone(),
+                rect,
+                transformations: sat.transformations,
+                normalized_mask: None,
+                scale: None,
+                mass,
+            };
+            shape.autodetect_scale(&trimmed_mask, &sat.recognized_image)?;
+            return Ok(shape);
         }
 
         // The shape is more advanced than the basic ones we can recognize
@@ -1195,6 +1247,7 @@ impl ShapeIdentification {
         let (transformations, normalized_mask) = Self::normalize(compact_mask.size(), transformation_image_vec)?;
         let mut shape = Self {
             shape_type: ShapeType::Unclassified,
+            shape_type45,
             mask_uncropped: mask.clone(),
             mask_cropped: trimmed_mask.clone(),
             rect,
@@ -1305,6 +1358,7 @@ impl fmt::Display for ShapeIdentification {
     }
 }
 
+#[derive(Debug, Clone)]
 struct ShapeAndTransformations {
     shape_type: ShapeType, 
     transformations: HashSet<ShapeTransformation>,
@@ -3705,7 +3759,7 @@ mod tests {
     }
 
     #[test]
-    fn test_610000_rotate45() {
+    fn test_610000_rotate45_uptack() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 0, 0,
@@ -3714,41 +3768,79 @@ mod tests {
             0, 0, 0, 1, 0,
             0, 0, 0, 0, 1,
         ];
-        let input0: Image = Image::try_create(5, 5, pixels).expect("image");
-        let input1: Image = input0.rotate_ccw_45(255).expect("ok");
-
-        // padding with 1 pixel
-        let input2: Image = input1.padding_with_color(1, 255).expect("ok");
-
-        // Repair gaps in the rotated image. Every pixel has 4 gaps surrounding it.
-        // Which convolution 3x3 variant will behave nicest when processing diagonal data.
-        // A: If there is no center pixel and it has top+bottom=2 or left+right=2, then fill the center pixel.
-        // B: If there is no center pixel and have 2 or more neighbors, then fill the center pixel.
-        // I choose A. And I have not tried out B.
-        let input: Image = convolution3x3(&input2, |image| {
-            let color_center: u8 = image.get(1, 1).unwrap_or(255);
-            if color_center != 255 {
-                // If the center pixel has a meaningful value, then keep the center pixel as it is.
-                return Ok(color_center);
-            }
-            let color_top: u8 = image.get(1, 0).unwrap_or(255);
-            let color_bottom: u8 = image.get(1, 2).unwrap_or(255);
-            let color_left: u8 = image.get(0, 1).unwrap_or(255);
-            let color_right: u8 = image.get(2, 1).unwrap_or(255);
-            let same_top_bottom: bool = color_top == 1 && color_bottom == 1;
-            let same_left_right: bool = color_left == 1 && color_right == 1;
-            if same_top_bottom || same_left_right {
-                return Ok(1);
-            }
-            Ok(0)
-        }).expect("image");
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
         // Act
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
-        assert_eq!(actual.to_string(), "⊥");
-        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipX]));
-        assert_eq!(actual.scale_to_string(), "none");
+        assert_eq!(actual.shape_type45.name(), "⊥");
+        assert_eq!(actual.to_string(), "unclassified");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw270, ShapeTransformation::RotateCw180]));
+        assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_610001_rotate45_box() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 0, 0,
+            0, 1, 0, 1, 0,
+            1, 0, 0, 0, 1,
+            0, 1, 0, 1, 0,
+            0, 0, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.shape_type45.name(), "box");
+        assert_eq!(actual.to_string(), "unclassified");
+        assert_eq!(actual.transformations, ShapeTransformation::all());
+        assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_610002_rotate45_tetris_tetromino() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 1, 0,
+            0, 1, 0, 1,
+        ];
+        let input: Image = Image::try_create(4, 2, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.shape_type45.name(), "⥊");
+        assert_eq!(actual.to_string(), "unclassified");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_610003_rotate45_uppercase_e() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0,
+            0, 1, 0, 1, 0, 0,
+            0, 0, 1, 0, 0, 0,
+            0, 0, 0, 1, 0, 1,
+            0, 0, 0, 0, 1, 0,
+        ];
+        let input: Image = Image::try_create(6, 6, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.shape_type45.name(), "⧢");
+        assert_eq!(actual.to_string(), "unclassified");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "1x1");
     }
 }
