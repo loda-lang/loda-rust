@@ -323,7 +323,13 @@ impl ShapeTypeImage {
             1, 1, 1, 1, 1,
         ])?;
 
-        let image_number_sign: Image = Image::try_create(5, 5, vec![
+        let image_grid3x2: Image = Image::try_create(5, 3, vec![
+            0, 1, 0, 1, 0,
+            1, 1, 1, 1, 1,
+            0, 1, 0, 1, 0,
+        ])?;
+
+        let image_grid3x3: Image = Image::try_create(5, 5, vec![
             0, 1, 0, 1, 0,
             1, 1, 1, 1, 1,
             0, 1, 0, 1, 0,
@@ -391,7 +397,8 @@ impl ShapeTypeImage {
         items.push((image_open_box_with_hole_in_center_of_top_border, ShapeType::OpenBoxWithHoleInCenterOfTopBorder));
         items.push((image_open_box_with_hole_in_right_side_of_top_border, ShapeType::OpenBoxWithHoleInRightSideOfTopBorder));
         items.push((image_box_with_uptick, ShapeType::BoxWithUptick));
-        items.push((image_number_sign, ShapeType::NumberSign));
+        items.push((image_grid3x2, ShapeType::Grid3x2));
+        items.push((image_grid3x3, ShapeType::Grid3x3));
         items.push((image_grid4x3, ShapeType::Grid4x3));
 
         let instance = Self {
@@ -928,6 +935,15 @@ pub enum ShapeType {
     /// ```
     BoxWithUptick,
 
+    /// Shape `++` similar 3x2 empty cells with a line in between.
+    /// 
+    /// ````
+    /// 0, 1, 0, 1, 0
+    /// 1, 1, 1, 1, 1
+    /// 0, 1, 0, 1, 0
+    /// ```
+    Grid3x2,
+
     /// Shape `#` that is 3x3 empty cells with a line in between.
     /// 
     /// ````
@@ -937,7 +953,7 @@ pub enum ShapeType {
     /// 1, 1, 1, 1, 1
     /// 0, 1, 0, 1, 0
     /// ```
-    NumberSign,
+    Grid3x3,
 
     /// Shape `‡‡‡` similar 4x3 empty cells with a line in between.
     /// 
@@ -1017,7 +1033,8 @@ impl ShapeType {
             Self::OpenBoxWithHoleInCenterOfTopBorder => "[_]",
             Self::OpenBoxWithHoleInRightSideOfTopBorder => "[_|",
             Self::BoxWithUptick => "box-with-uptick",
-            Self::NumberSign => "#",
+            Self::Grid3x2 => "++",
+            Self::Grid3x3 => "#",
             Self::Grid4x3 => "‡‡‡",
             Self::Unclassified => "unclassified",
         }
@@ -3641,7 +3658,29 @@ mod tests {
     }
 
     #[test]
-    fn test_591000_number_sign() {
+    fn test_591000_grid3x2() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0, 1, 0,
+            1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1,
+            0, 1, 0, 1, 0,
+            0, 1, 0, 1, 0,
+        ];
+        let input: Image = Image::try_create(5, 6, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "++");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::FlipXRotateCw180, ShapeTransformation::RotateCw180, ShapeTransformation::FlipX, ShapeTransformation::Normal]));
+        assert_eq!(actual.scale_to_string(), "none");
+    }
+
+    #[test]
+    fn test_592000_grid3x3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 0, 1, 0,
@@ -3664,7 +3703,7 @@ mod tests {
     }
 
     #[test]
-    fn test_592000_grid4x3() {
+    fn test_593000_grid4x3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 0, 1, 0, 1, 0,
