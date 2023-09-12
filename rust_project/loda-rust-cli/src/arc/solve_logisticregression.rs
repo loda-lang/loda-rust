@@ -2,13 +2,13 @@
 //! 
 //! This doesn't solve any of the tasks from the hidden dataset.
 //!
-//! This solves 51 of the 800 tasks in the public ARC dataset.
-//! 009d5c81, 00d62c1b, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280, 25d8a9c8, 32597951, 
-//! 332efdb3, 3618c87e, 4258a5f9, 44d8ac46, 4612dd53, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 
-//! 6c434453, 6d75e8bb, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, 
-//! a79310a0, a8d7556c, a9f96cdd, ae58858e, aedd82e4, b1948b0a, b60334d2, b6afb2da, bb43febb, 
-//! c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, dbc1a6ce, 
-//! ded97339, e0fb7511, e7dd8335, ef135b50
+//! This solves 54 of the 800 tasks in the public ARC dataset.
+//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280, 
+//! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 4258a5f9, 44d8ac46, 4612dd53, 543a7ed5, 6455b5f5, 
+//! 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, 
+//! a5313dff, a61f2674, a699fb00, a79310a0, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e, 
+//! aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, 
+//! ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, ded97339, e0fb7511, e9c9d9a1, ef135b50, 
 //! 
 //! Known problem:
 //! Only does logistic regression on the first the `test` pairs.
@@ -248,7 +248,7 @@ impl SolveLogisticRegression {
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
         let mut accumulated_images = Vec::<Image>::new();
         let mut computed_images = Vec::<Image>::new();
-        let number_of_iterations: usize = 3;
+        let number_of_iterations: usize = 5;
         for iteration_index in 0..number_of_iterations {
             let records = Self::process_task_iteration(task, iteration_index, computed_images)?;
             computed_images = perform_logistic_regression(task, &records)?;
@@ -433,8 +433,8 @@ impl SolveLogisticRegression {
             return Err(anyhow::anyhow!("skipping task: {} because output size is not the same as input size", task.id));
         }
 
-        // let obfuscated_color_offset: f64 = process_task_iteration_index as f64 * 0.1;
-        let obfuscated_color_offset: f64 = 0.2;
+        // let obfuscated_color_offset: f64 = 0.2;
+        let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
 
         let mut earlier_prediction_image_vec = Vec::<Image>::new();
         if !computed_images.is_empty() {
@@ -443,12 +443,9 @@ impl SolveLogisticRegression {
 
             let strategy_vec: Vec<(u8,usize)> = match process_task_iteration_index {
                 0 => vec![(0, 10), (1, 10), (2, 80)],
-                1 => vec![(0, 10), (1, 10), (2, 80)],
-                2 => vec![(0, 10), (1, 10), (2, 80)],
-                3 => vec![(0, 10), (1, 20), (2, 70)],
-                4 => vec![(0, 10), (1, 40), (2, 50)],
-                5 => vec![(0, 10), (1, 60), (2, 30)],
-                _ => vec![(0, 10), (1, 80), (2, 10)],
+                1 => vec![(0, 10), (1, 30), (2, 60)],
+                2 => vec![(0, 5), (1, 50), (2, 45)],
+                _ => vec![(0, 3), (1, 80), (2, 17)],
             };
 
             for pair in &task.pairs {
@@ -2499,55 +2496,59 @@ impl SolveLogisticRegression {
                         // if let Some(image) = &earlier_prediction_mass_connectivity4 {
                         //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
                         //     record.serialize_color_complex(mass, obfuscated_color_offset);
+                        //     record.serialize_u8(mass);
+                        //     record.serialize_onehot_discard_overflow(mass, 40);
                         // }
 
                         // if let Some(image) = &earlier_prediction_mass_connectivity8 {
                         //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
                         //     record.serialize_color_complex(mass, obfuscated_color_offset);
+                        //     record.serialize_u8(mass);
+                        //     record.serialize_onehot_discard_overflow(mass, 40);
                         // }
 
                         if let Some(image) = earlier_prediction_image {
-                            let pixel: u8 = image.get(xx, yy).unwrap_or(0);
-                            record.serialize_onehot(pixel, 10);
+                            // let pixel: u8 = image.get(xx, yy).unwrap_or(0);
+                            // record.serialize_onehot(pixel, 10);
                             // record.serialize_bool_onehot(pixel == center);
                             // record.serialize_color_complex(pixel, obfuscated_color_offset);
 
-                            // {
-                            //     let pixel: u8 = image.get(xx - 1, yy - 1).unwrap_or(255);
-                            //     record.serialize_onehot_discard_overflow(pixel, 10);
-                            // }
-                            // {
-                            //     let pixel: u8 = image.get(xx, yy - 1).unwrap_or(255);
-                            //     record.serialize_onehot_discard_overflow(pixel, 10);
-                            // }
-                            // {
-                            //     let pixel: u8 = image.get(xx + 1, yy - 1).unwrap_or(255);
-                            //     record.serialize_onehot_discard_overflow(pixel, 10);
-                            // }
-                            // {
-                            //     let pixel: u8 = image.get(xx - 1, yy).unwrap_or(255);
-                            //     record.serialize_onehot_discard_overflow(pixel, 10);
-                            // }
+                            {
+                                let pixel: u8 = image.get(xx - 1, yy - 1).unwrap_or(255);
+                                record.serialize_onehot_discard_overflow(pixel, 10);
+                            }
+                            {
+                                let pixel: u8 = image.get(xx, yy - 1).unwrap_or(255);
+                                record.serialize_onehot_discard_overflow(pixel, 10);
+                            }
+                            {
+                                let pixel: u8 = image.get(xx + 1, yy - 1).unwrap_or(255);
+                                record.serialize_onehot_discard_overflow(pixel, 10);
+                            }
+                            {
+                                let pixel: u8 = image.get(xx - 1, yy).unwrap_or(255);
+                                record.serialize_onehot_discard_overflow(pixel, 10);
+                            }
                             // {
                             //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             //     record.serialize_onehot_discard_overflow(pixel, 10);
                             // }
-                            // {
-                            //     let pixel: u8 = image.get(xx + 1, yy).unwrap_or(255);
-                            //     record.serialize_onehot_discard_overflow(pixel, 10);
-                            // }
-                            // {
-                            //     let pixel: u8 = image.get(xx - 1, yy + 1).unwrap_or(255);
-                            //     record.serialize_onehot_discard_overflow(pixel, 10);
-                            // }
-                            // {
-                            //     let pixel: u8 = image.get(xx, yy + 1).unwrap_or(255);
-                            //     record.serialize_onehot_discard_overflow(pixel, 10);
-                            // }
-                            // {
-                            //     let pixel: u8 = image.get(xx + 1, yy + 1).unwrap_or(255);
-                            //     record.serialize_onehot_discard_overflow(pixel, 10);
-                            // }
+                            {
+                                let pixel: u8 = image.get(xx + 1, yy).unwrap_or(255);
+                                record.serialize_onehot_discard_overflow(pixel, 10);
+                            }
+                            {
+                                let pixel: u8 = image.get(xx - 1, yy + 1).unwrap_or(255);
+                                record.serialize_onehot_discard_overflow(pixel, 10);
+                            }
+                            {
+                                let pixel: u8 = image.get(xx, yy + 1).unwrap_or(255);
+                                record.serialize_onehot_discard_overflow(pixel, 10);
+                            }
+                            {
+                                let pixel: u8 = image.get(xx + 1, yy + 1).unwrap_or(255);
+                                record.serialize_onehot_discard_overflow(pixel, 10);
+                            }
                         }
                     }
 
