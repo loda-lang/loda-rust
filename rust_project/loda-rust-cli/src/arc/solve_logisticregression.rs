@@ -1253,19 +1253,44 @@ impl SolveLogisticRegression {
 
             let earlier_prediction_image: Option<&Image> = earlier_prediction_image_vec.get(pair_index);
             let mut earlier_prediction_shapetype_image: Option<Image> = None;
+            let mut earlier_prediction_shapetype45_image: Option<Image> = None;
+            let mut earlier_prediction_mass_connectivity4: Option<Image> = None;
+            let mut earlier_prediction_mass_connectivity8: Option<Image> = None;
 
             if let Some(ep_image) = earlier_prediction_image {
                 let sco: SingleColorObject = SingleColorObject::find_objects(&ep_image)?;
-                let connectivity = PixelConnectivity::Connectivity8;
-                let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, connectivity)?;
-                let mut shapetype_image: Image = ep_image.clone_zero();
-                for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
-                    let shape_type: ShapeType = color_and_shape.shape_identification.shape_type;
-                    let color: u8 = Self::color_from_shape_type(shape_type);
-                    let mode = MixMode::PickColor1WhenColor0IsZero { color };
-                    shapetype_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype_image, mode)?;
+                {
+                    let connectivity = PixelConnectivity::Connectivity8;
+                    let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, connectivity)?;
+                    let mut shapetype_image: Image = ep_image.clone_zero();
+                    for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                        let shape_type: ShapeType = color_and_shape.shape_identification.shape_type;
+                        let color: u8 = Self::color_from_shape_type(shape_type);
+                        let mode = MixMode::PickColor1WhenColor0IsZero { color };
+                        shapetype_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype_image, mode)?;
+                    }
+                    earlier_prediction_shapetype_image = Some(shapetype_image);
+
+                    let mut shapetype45_image: Image = ep_image.clone_zero();
+                    for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                        let shape_type: ShapeType = color_and_shape.shape_identification.shape_type45;
+                        let color: u8 = Self::color_from_shape_type(shape_type);
+                        let mode = MixMode::PickColor1WhenColor0IsZero { color };
+                        shapetype45_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype45_image, mode)?;
+                    }
+                    earlier_prediction_shapetype45_image = Some(shapetype45_image);
                 }
-                earlier_prediction_shapetype_image = Some(shapetype_image);
+
+                let mut image_mass_connectivity4: Image = Image::zero(width, height);
+                let mut image_mass_connectivity8: Image = Image::zero(width, height);
+                if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity4) {
+                    image_mass_connectivity4 = image_mass_connectivity4.overlay_with_position(&image, 0, 0)?;
+                }
+                if let Ok(image) = sco.mass_as_image(PixelConnectivity::Connectivity8) {
+                    image_mass_connectivity8 = image_mass_connectivity8.overlay_with_position(&image, 0, 0)?;
+                }
+                earlier_prediction_mass_connectivity4 = Some(image_mass_connectivity4);
+                earlier_prediction_mass_connectivity8 = Some(image_mass_connectivity8);
             }
 
             for y in 0..height {
@@ -2465,6 +2490,21 @@ impl SolveLogisticRegression {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
                             record.serialize_onehot(pixel, 56);
                         }
+
+                        if let Some(image) = &earlier_prediction_shapetype45_image {
+                            let pixel: u8 = image.get(xx, yy).unwrap_or(0);
+                            record.serialize_onehot(pixel, 56);
+                        }
+
+                        // if let Some(image) = &earlier_prediction_mass_connectivity4 {
+                        //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
+                        //     record.serialize_color_complex(mass, obfuscated_color_offset);
+                        // }
+
+                        // if let Some(image) = &earlier_prediction_mass_connectivity8 {
+                        //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
+                        //     record.serialize_color_complex(mass, obfuscated_color_offset);
+                        // }
 
                         if let Some(image) = earlier_prediction_image {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
