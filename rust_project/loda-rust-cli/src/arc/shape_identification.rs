@@ -1173,28 +1173,20 @@ impl ShapeIdentification {
         // Loop over all the basic shapes and see if any of them matches the transformed image
         // It's computationally cheaper to check for basic shapes, than analyzing an `Unclassified` shape.
         {
-            let images_to_recognize: &Vec::<(Image, ShapeType)> = &SHAPE_TYPE_IMAGE.image_shapetype_vec;
-            let mut found_transformations = HashSet::<ShapeTransformation>::new();
-            for (image_to_recognize, recognized_shape_type) in images_to_recognize {
-                for (transformation_type, transformed_image) in &transformation_image_vec {
-                    if *transformed_image == *image_to_recognize {
-                        found_transformations.insert(transformation_type.clone());
-                    }
-                }
-                if !found_transformations.is_empty() {
-                    let mut shape = Self {
-                        shape_type: *recognized_shape_type,
-                        mask_uncropped: mask.clone(),
-                        mask_cropped: trimmed_mask.clone(),
-                        rect,
-                        transformations: found_transformations,
-                        normalized_mask: None,
-                        scale: None,
-                        mass,
-                    };
-                    shape.autodetect_scale(&trimmed_mask, &image_to_recognize)?;
-                    return Ok(shape);
-                }
+            let optional_sat0: Option<ShapeAndTransformations> = ShapeAndTransformations::find(&transformation_image_vec);
+            if let Some(sat) = optional_sat0 {
+                let mut shape = Self {
+                    shape_type: sat.shape_type,
+                    mask_uncropped: mask.clone(),
+                    mask_cropped: trimmed_mask.clone(),
+                    rect,
+                    transformations: sat.transformations,
+                    normalized_mask: None,
+                    scale: None,
+                    mass,
+                };
+                shape.autodetect_scale(&trimmed_mask, &sat.recognized_image)?;
+                return Ok(shape);
             }
         }
 
@@ -1311,6 +1303,36 @@ impl fmt::Display for ShapeIdentification {
         let s: String = format!("{}", self.shape_type.name());
         write!(f, "{}", s)
     }
+}
+
+struct ShapeAndTransformations {
+    shape_type: ShapeType, 
+    transformations: HashSet<ShapeTransformation>,
+    recognized_image: Image,
+}
+
+impl ShapeAndTransformations {
+    /// Loop over all the basic shapes and see if any of them matches the transformed image
+    fn find(transformation_image_vec: &Vec<(ShapeTransformation, Image)>) -> Option<Self> {
+        let images_to_recognize: &Vec::<(Image, ShapeType)> = &SHAPE_TYPE_IMAGE.image_shapetype_vec;
+        let mut found_transformations = HashSet::<ShapeTransformation>::new();
+        for (image_to_recognize, recognized_shape_type) in images_to_recognize {
+            for (transformation_type, transformed_image) in transformation_image_vec {
+                if *transformed_image == *image_to_recognize {
+                    found_transformations.insert(transformation_type.clone());
+                }
+            }
+            if !found_transformations.is_empty() {
+                let instance = Self {
+                    shape_type: *recognized_shape_type,
+                    transformations: found_transformations,
+                    recognized_image: image_to_recognize.clone(),
+                };
+                return Some(instance)
+            }
+        }
+        None
+    }    
 }
 
 #[cfg(test)]
