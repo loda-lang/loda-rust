@@ -1079,9 +1079,6 @@ pub struct ScaleXY {
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShapeIdentification {
-    /// The recognized shape type, or `Unclassified` if the shape is not recognized.
-    pub shape_type: ShapeType,
-
     /// The original mask, without any cropping.
     /// No compression is applied. No transformation is applied.
     pub mask_uncropped: Image,
@@ -1094,6 +1091,13 @@ pub struct ShapeIdentification {
     /// The size of the bounding box is the same as the size of the `mask_cropped`.
     pub rect: Rectangle,
 
+    /// The number of solid pixels in the original mask. Transparent pixels does not count.
+    /// No compression is applied. No transformation is applied.
+    pub mass: u16,
+
+    /// The recognized shape type, or `Unclassified` if the shape is not recognized.
+    pub shape_type: ShapeType,
+
     /// The transformations that converts from the original shape to the normalized shape.
     pub transformations: HashSet<ShapeTransformation>,
 
@@ -1102,9 +1106,6 @@ pub struct ShapeIdentification {
 
     /// is it scaled down without losing information, apply scale factor to get original size.
     pub scale: Option<ScaleXY>,
-
-    /// The number of solid pixels in the shape. Transparent pixels does not count.
-    pub mass: u16,
 
     // Future experiments
     // diagonal compression, so that a 10pixel long diagonal line and a 13pixel long diagonal line, gets the same representation.
