@@ -131,6 +131,20 @@ impl Record {
         self.values.push(other as f64);
     }
 
+    /// Onehot encoding of a bitmask. 
+    /// 
+    /// Bits that are 1 are set to 1.
+    /// 
+    /// Otherwise the counters are zero.
+    #[allow(dead_code)]
+    fn serialize_bitmask_as_onehot(&mut self, value: u16, count: u8) {
+        for i in 0..(count.min(16)) {
+            let mask: u16 = 1 << i;
+            let v: u8 = if (value & mask) > 0 { 1 } else { 0 };
+            self.values.push(v as f64);
+        }
+    }
+
     /// Set the counter to 1 that are equal to the value.
     /// 
     /// Otherwise the counters are zero.
@@ -2399,10 +2413,12 @@ impl SolveLogisticRegression {
                     // for shape_transformation_image in &shape_transformation_images_connectivity4 {
                     //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
                     //     record.serialize_u8(pixel);
+                    //     record.serialize_bitmask_as_onehot(pixel as u16, 8);
                     // }
                     // for shape_transformation_image in &shape_transformation_images_connectivity8 {
                     //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
                     //     record.serialize_u8(pixel);
+                    //     record.serialize_bitmask_as_onehot(pixel as u16, 8);
                     // }
 
                     for shape_size_image in &shape_size_images_connectivity4 {
