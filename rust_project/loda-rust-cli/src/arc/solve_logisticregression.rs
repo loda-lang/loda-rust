@@ -34,7 +34,7 @@
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, ShapeIdentification, SingleColorObject, ShapeIdentificationFromSingleColorObject};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
@@ -246,11 +246,19 @@ impl SolveLogisticRegression {
     }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
+        let mut accumulated_images = Vec::<Image>::new();
         let mut computed_images = Vec::<Image>::new();
-        let number_of_iterations: usize = 1;
+        let number_of_iterations: usize = 3;
         for iteration_index in 0..number_of_iterations {
             let records = Self::process_task_iteration(task, iteration_index, computed_images)?;
             computed_images = perform_logistic_regression(task, &records)?;
+
+            for image in &computed_images {
+                accumulated_images.push(image.clone());
+            }
+        }
+        if WRITE_TO_HTMLLOG {
+            HtmlLog::compare_images(accumulated_images);
         }
 
         let testitem_vec: Vec::<arcathon_solution_json::TestItem> = testitems_from_computed_images(
@@ -1244,6 +1252,21 @@ impl SolveLogisticRegression {
             let input_denoise_type1: Image = input.denoise_type1(most_popular_color.unwrap_or(255))?;
 
             let earlier_prediction_image: Option<&Image> = earlier_prediction_image_vec.get(pair_index);
+            let mut earlier_prediction_shapetype_image: Option<Image> = None;
+
+            if let Some(ep_image) = earlier_prediction_image {
+                let sco: SingleColorObject = SingleColorObject::find_objects(&ep_image)?;
+                let connectivity = PixelConnectivity::Connectivity8;
+                let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, connectivity)?;
+                let mut shapetype_image: Image = ep_image.clone_zero();
+                for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                    let shape_type: ShapeType = color_and_shape.shape_identification.shape_type;
+                    let color: u8 = Self::color_from_shape_type(shape_type);
+                    let mode = MixMode::PickColor1WhenColor0IsZero { color };
+                    shapetype_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype_image, mode)?;
+                }
+                earlier_prediction_shapetype_image = Some(shapetype_image);
+            }
 
             for y in 0..height {
                 for x in 0..width {
@@ -2438,11 +2461,53 @@ impl SolveLogisticRegression {
 
                     {
 
+                        if let Some(image) = &earlier_prediction_shapetype_image {
+                            let pixel: u8 = image.get(xx, yy).unwrap_or(0);
+                            record.serialize_onehot(pixel, 56);
+                        }
+
                         if let Some(image) = earlier_prediction_image {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
                             record.serialize_onehot(pixel, 10);
-                            record.serialize_bool_onehot(pixel == center);
-                            record.serialize_color_complex(pixel, obfuscated_color_offset);
+                            // record.serialize_bool_onehot(pixel == center);
+                            // record.serialize_color_complex(pixel, obfuscated_color_offset);
+
+                            // {
+                            //     let pixel: u8 = image.get(xx - 1, yy - 1).unwrap_or(255);
+                            //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            // }
+                            // {
+                            //     let pixel: u8 = image.get(xx, yy - 1).unwrap_or(255);
+                            //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            // }
+                            // {
+                            //     let pixel: u8 = image.get(xx + 1, yy - 1).unwrap_or(255);
+                            //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            // }
+                            // {
+                            //     let pixel: u8 = image.get(xx - 1, yy).unwrap_or(255);
+                            //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            // }
+                            // {
+                            //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
+                            //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            // }
+                            // {
+                            //     let pixel: u8 = image.get(xx + 1, yy).unwrap_or(255);
+                            //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            // }
+                            // {
+                            //     let pixel: u8 = image.get(xx - 1, yy + 1).unwrap_or(255);
+                            //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            // }
+                            // {
+                            //     let pixel: u8 = image.get(xx, yy + 1).unwrap_or(255);
+                            //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            // }
+                            // {
+                            //     let pixel: u8 = image.get(xx + 1, yy + 1).unwrap_or(255);
+                            //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            // }
                         }
                     }
 
