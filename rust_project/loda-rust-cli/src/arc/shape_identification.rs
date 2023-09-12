@@ -243,8 +243,14 @@ impl ShapeTypeImage {
             1, 0, 1, 0, 1,
         ])?;
 
-        let image_line_around_obstacle: Image = Image::try_create(5, 2, vec![
+        let image_line_around_small_obstacle: Image = Image::try_create(5, 2, vec![
             0, 1, 1, 1, 0,
+            1, 1, 0, 1, 1,
+        ])?;
+
+        let image_line_around_big_obstacle: Image = Image::try_create(5, 3, vec![
+            0, 1, 1, 1, 0,
+            0, 1, 0, 1, 0,
             1, 1, 0, 1, 1,
         ])?;
 
@@ -349,7 +355,8 @@ impl ShapeTypeImage {
         items.push((image_skew_tetromino_with_top_left_corner, ShapeType::SkewTetrominoWithTopLeftCorner));
         items.push((image_rotated_uppercase_e, ShapeType::RotatedUppercaseE));
         items.push((image_turned_w, ShapeType::TurnedW));
-        items.push((image_line_around_obstacle, ShapeType::LineAroundObstacle));
+        items.push((image_line_around_small_obstacle, ShapeType::LineAroundSmallObstacle));
+        items.push((image_line_around_big_obstacle, ShapeType::LineAroundBigObstacle));
         items.push((image_box_with_two_holes, ShapeType::BoxWithTwoHoles));
         items.push((image_box_with_2x2_holes, ShapeType::BoxWith2x2Holes));
         items.push((image_x_moved_corner, ShapeType::XMovedCorner));
@@ -764,13 +771,24 @@ pub enum ShapeType {
     /// ```
     TurnedW,
 
-    /// A horizontal line shape `▟▀▙` around an obstacle.
+    /// A horizontal line shape `▟▀▙` around a small 1px obstacle.
     /// 
     /// ````
     /// 0, 1, 1, 1, 0
     /// 1, 1, 0, 1, 1
     /// ```
-    LineAroundObstacle,
+    LineAroundSmallObstacle,
+
+    /// A horizontal line shape `⎍` around a big 2px obstacle.
+    /// 
+    /// Unicode: Monostable Symbol
+    /// 
+    /// ````
+    /// 0, 1, 1, 1, 0
+    /// 0, 1, 0, 1, 0
+    /// 1, 1, 0, 1, 1
+    /// ```
+    LineAroundBigObstacle,
 
     /// Shape `◫` is similar to 2 boxes sharing the middle edge.
     /// 
@@ -926,7 +944,8 @@ impl ShapeType {
             Self::SkewTetrominoWithTopLeftCorner => "skew1",
             Self::RotatedUppercaseE => "⧢",
             Self::TurnedW => "ʍ",
-            Self::LineAroundObstacle => "▟▀▙",
+            Self::LineAroundSmallObstacle => "▟▀▙",
+            Self::LineAroundBigObstacle => "⎍",
             Self::BoxWithTwoHoles => "◫",
             Self::BoxWith2x2Holes => "𐌎",
             Self::XMovedCorner => "X1",
@@ -3268,7 +3287,7 @@ mod tests {
     }
 
     #[test]
-    fn test_490000_image_line_around_obstacle() {
+    fn test_490000_image_line_around_small_obstacle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 1, 1,
@@ -3286,6 +3305,29 @@ mod tests {
 
         // Assert
         assert_eq!(actual.to_string(), "▟▀▙");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "none");
+    }
+
+    #[test]
+    fn test_490001_image_line_around_big_obstacle() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 1, 1,
+            0, 0, 0, 1, 1,
+            1, 1, 1, 1, 1,
+            1, 1, 0, 0, 0,
+            1, 1, 1, 1, 1,
+            0, 0, 0, 1, 1,
+            0, 0, 0, 1, 1,
+        ];
+        let input: Image = Image::try_create(5, 7, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "⎍");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::FlipXRotateCw270]));
         assert_eq!(actual.scale_to_string(), "none");
     }

@@ -325,17 +325,18 @@ impl SolveLogisticRegression {
                     ShapeType::SkewTetrominoWithTopLeftCorner => 36,
                     ShapeType::RotatedUppercaseE => 37,
                     ShapeType::TurnedW => 38,
-                    ShapeType::LineAroundObstacle => 39,
-                    ShapeType::BoxWithTwoHoles => 40,
-                    ShapeType::BoxWith2x2Holes => 41,
-                    ShapeType::XMovedCorner => 42,
-                    ShapeType::LowerLeftTriangleWithoutCorner => 43,
-                    ShapeType::LowerLeftTriangleMovedCorner => 44,
-                    ShapeType::RotatedP => 45,
-                    ShapeType::RotatedLowercaseF => 46,
-                    ShapeType::BoxWithRightwardsTick => 47,
-                    ShapeType::OpenBoxWithHoleInCenterOfTopBorder => 48,
-                    ShapeType::OpenBoxWithHoleInRightSideOfTopBorder => 49,
+                    ShapeType::LineAroundSmallObstacle => 39,
+                    ShapeType::LineAroundBigObstacle => 40,
+                    ShapeType::BoxWithTwoHoles => 41,
+                    ShapeType::BoxWith2x2Holes => 42,
+                    ShapeType::XMovedCorner => 43,
+                    ShapeType::LowerLeftTriangleWithoutCorner => 44,
+                    ShapeType::LowerLeftTriangleMovedCorner => 45,
+                    ShapeType::RotatedP => 46,
+                    ShapeType::RotatedLowercaseF => 47,
+                    ShapeType::BoxWithRightwardsTick => 48,
+                    ShapeType::OpenBoxWithHoleInCenterOfTopBorder => 49,
+                    ShapeType::OpenBoxWithHoleInRightSideOfTopBorder => 50,
                     _ => 0,
                 };
                 _ = image.set(x as i32, y as i32, color);
@@ -2375,7 +2376,7 @@ impl SolveLogisticRegression {
                     // }
                     {
                         let pixel: u8 = shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
-                        record.serialize_onehot(pixel, 50);
+                        record.serialize_onehot(pixel, 51);
                     }
                     // for shape_transformation_image in &shape_transformation_images_connectivity4 {
                     //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
