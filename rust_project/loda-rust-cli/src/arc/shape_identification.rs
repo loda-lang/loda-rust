@@ -28,6 +28,8 @@ struct ShapeTypeImage {
 
 impl ShapeTypeImage {
     fn new() -> anyhow::Result<Self> {
+        let image_rectangle: Image = Image::color(1, 1, 1);
+
         let image_box: Image = Image::try_create(3, 3, vec![
             1, 1, 1,
             1, 0, 1,
@@ -309,6 +311,7 @@ impl ShapeTypeImage {
         ])?;
 
         let mut items = Vec::<(Image, ShapeType)>::new();
+        items.push((image_rectangle, ShapeType::Rectangle));
         items.push((image_box, ShapeType::Box));
         items.push((image_plus, ShapeType::Plus));
         items.push((image_crosshair, ShapeType::Crosshair));
@@ -1156,23 +1159,6 @@ impl ShapeIdentification {
         // Compact the shape even more by removing duplicate rows and columns
         let compact_mask: Image = trimmed_mask.remove_duplicates()?;
 
-        // If it compacts into a 1x1 pixel then it's a square or rectangle
-        if compact_mask.size() == ImageSize::new(1, 1) {
-            let scale = ScaleXY { x: trimmed_mask.width(), y: trimmed_mask.height() };
-            let shape = Self {
-                shape_type: ShapeType::Rectangle,
-                shape_type45: ShapeType::Unclassified,
-                mask_uncropped: mask.clone(),
-                mask_cropped: trimmed_mask.clone(),
-                rect,
-                transformations: ShapeTransformation::all(),
-                normalized_mask: None,
-                scale: Some(scale),
-                mass,
-            };
-            return Ok(shape);    
-        }
-
         // The color values in the `trimmed_mask` is either 0 or 1.
         // The color `0` is where the shape is transparent.
         // The color `1` is where the shape is solid.
@@ -1558,6 +1544,7 @@ mod tests {
         let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
 
         // Assert
+        assert_eq!(actual.shape_type45.name(), "rectangle");
         assert_eq!(actual.to_string(), "rectangle");
         assert_eq!(actual.transformations, ShapeTransformation::all());
         assert_eq!(actual.scale_to_string(), "1x1");
@@ -3841,6 +3828,94 @@ mod tests {
         assert_eq!(actual.shape_type45.name(), "⧢");
         assert_eq!(actual.to_string(), "unclassified");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90]));
+        assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_610004_rotate45_diagonal_line2() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0,
+            0, 1,
+        ];
+        let input: Image = Image::try_create(2, 2, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.shape_type45.name(), "rectangle");
+        assert_eq!(actual.to_string(), "▚");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipXRotateCw90, ShapeTransformation::FlipXRotateCw270, ShapeTransformation::RotateCw180]));
+        assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_610005_rotate45_diagonal_line3() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0,
+            0, 1, 0,
+            0, 0, 1,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.shape_type45.name(), "rectangle");
+        assert_eq!(actual.to_string(), "⋱");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw90, ShapeTransformation::FlipXRotateCw270]));
+        assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_610006_rotate45_diagonal_line4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.shape_type45.name(), "rectangle");
+        assert_eq!(actual.to_string(), "unclassified");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "1x1");
+    }
+
+    #[test]
+    fn test_610007_rotate45_diagonal_line5() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 0,
+            0, 1, 0, 0, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 0, 1, 0,
+            0, 0, 0, 0, 1,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.shape_type45.name(), "rectangle");
+        assert_eq!(actual.to_string(), "unclassified");
+        // The following transformations are 90degrees wrong. It seems like the center-of-mass algorithm
+        // cannot deal with this edge case. It must prefer the shape being as close to the bottom-left corner.
+        // and avoid the top-right corner. A compromise for a diagonal line, is to go from the top-left corner 
+        // to the bottom-right corner. This way the top-right corner is avoided, but the bottom-left corner is not reached.
+        // Future experiment:
+        // Tweak the center-of-mass algorithm so it can deal with this edge case.
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw90, ShapeTransformation::RotateCw270, ShapeTransformation::FlipX, ShapeTransformation::FlipXRotateCw180]));
         assert_eq!(actual.scale_to_string(), "1x1");
     }
 }
