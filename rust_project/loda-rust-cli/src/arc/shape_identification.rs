@@ -337,6 +337,12 @@ impl ShapeTypeImage {
             0, 1, 0, 1, 0,
         ])?;
 
+        let image_grid4x2: Image = Image::try_create(7, 3, vec![
+            0, 1, 0, 1, 0, 1, 0,
+            1, 1, 1, 1, 1, 1, 1,
+            0, 1, 0, 1, 0, 1, 0,
+        ])?;
+
         let image_grid4x3: Image = Image::try_create(7, 5, vec![
             0, 1, 0, 1, 0, 1, 0,
             1, 1, 1, 1, 1, 1, 1,
@@ -399,6 +405,7 @@ impl ShapeTypeImage {
         items.push((image_box_with_uptick, ShapeType::BoxWithUptick));
         items.push((image_grid3x2, ShapeType::Grid3x2));
         items.push((image_grid3x3, ShapeType::Grid3x3));
+        items.push((image_grid4x2, ShapeType::Grid4x2));
         items.push((image_grid4x3, ShapeType::Grid4x3));
 
         let instance = Self {
@@ -955,6 +962,15 @@ pub enum ShapeType {
     /// ```
     Grid3x3,
 
+    /// Shape `+++` similar 4x2 empty cells with a line in between.
+    /// 
+    /// ````
+    /// 0, 1, 0, 1, 0, 1, 0
+    /// 1, 1, 1, 1, 1, 1, 1
+    /// 0, 1, 0, 1, 0, 1, 0
+    /// ```
+    Grid4x2,
+
     /// Shape `‡‡‡` similar 4x3 empty cells with a line in between.
     /// 
     /// Unicode: Double dagger
@@ -1035,6 +1051,7 @@ impl ShapeType {
             Self::BoxWithUptick => "box-with-uptick",
             Self::Grid3x2 => "++",
             Self::Grid3x3 => "#",
+            Self::Grid4x2 => "+++",
             Self::Grid4x3 => "‡‡‡",
             Self::Unclassified => "unclassified",
         }
@@ -3703,7 +3720,28 @@ mod tests {
     }
 
     #[test]
-    fn test_593000_grid4x3() {
+    fn test_593000_grid4x2() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0, 1, 0, 1, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            0, 1, 0, 1, 0, 1, 0, 0,
+            0, 1, 0, 1, 0, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(8, 5, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "+++");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::FlipX, ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
+    }
+
+    #[test]
+    fn test_594000_grid4x3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 0, 1, 0, 1, 0,
