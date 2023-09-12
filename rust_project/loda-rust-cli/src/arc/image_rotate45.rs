@@ -37,7 +37,7 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
     }
 
     // Rotate by 45 degrees
-    let rads_amount: f32 = std::f32::consts::PI / 4.0;
+    let rads_amount: f32 = std::f32::consts::FRAC_PI_4; // pi divided by 4
     let rads: f32 = if is_clockwise { -rads_amount } else { rads_amount };
 
     let source_center_x: f32 = ((original.width() - 1) as f32) / 2.0;
@@ -46,7 +46,7 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
     let dest_center_y: f32 = ((combined_u16 - 1) as f32) / 2.0;
 
     // Increase the spacing between the points in the grid from 1 to sqrt(2)
-    let scale: f32 = 1.41421356; // sqrt(2)
+    let scale: f32 = std::f32::consts::SQRT_2;
 
     let mut image = Image::color(combined_u16 as u8, combined_u16 as u8, fill_color);
     for get_y in 0..original.height() {
