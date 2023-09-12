@@ -339,6 +339,7 @@ impl SolveLogisticRegression {
                     ShapeType::OpenBoxWithHoleInRightSideOfTopBorder => 50,
                     ShapeType::BoxWithUptick => 51,
                     ShapeType::NumberSign => 52,
+                    ShapeType::Grid4x3 => 53,
                     _ => 0,
                 };
                 _ = image.set(x as i32, y as i32, color);
@@ -2378,7 +2379,7 @@ impl SolveLogisticRegression {
                     // }
                     {
                         let pixel: u8 = shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
-                        record.serialize_onehot(pixel, 53);
+                        record.serialize_onehot(pixel, 54);
                     }
                     // for shape_transformation_image in &shape_transformation_images_connectivity4 {
                     //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
