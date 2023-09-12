@@ -90,7 +90,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    pub fn experiment_with_convolution() -> anyhow::Result<()> {
+    pub fn solve_with_logistic_regression() -> anyhow::Result<()> {
         // let tpam = TraverseProgramsAndModels::new()?;
         // let task_vec: Vec<Task> = tpam.to_task_vec();
         // let mut instance = ExperimentWithConvolution::new(task_vec);

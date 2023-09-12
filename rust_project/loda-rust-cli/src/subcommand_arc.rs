@@ -24,8 +24,8 @@ pub enum SubcommandARCMode {
     /// Create a file with training data.
     ExportDataset,
 
-    /// Exploring what a model may be like.
-    ExperimentWithConvolution,
+    /// Run all tasks using the logistic regression solver.
+    SolveWithLogisticRegression,
 
     /// Predict the output sizes for a single ARC task.
     PredictOutputSizesForSingleTask { task_json_file: PathBuf },
@@ -60,8 +60,8 @@ impl SubcommandARC {
             SubcommandARCMode::ExportDataset => {
                 return TraverseProgramsAndModels::export_dataset();
             },
-            SubcommandARCMode::ExperimentWithConvolution => {
-                return TraverseProgramsAndModels::experiment_with_convolution();
+            SubcommandARCMode::SolveWithLogisticRegression => {
+                return TraverseProgramsAndModels::solve_with_logistic_regression();
             },
             SubcommandARCMode::PredictOutputSizesForSingleTask { task_json_file } => {
                 return SubcommandARCSize::run(&task_json_file);
