@@ -316,6 +316,13 @@ impl ShapeTypeImage {
             1, 1, 1, 1,
         ])?;
 
+        let image_box_with_uptick: Image = Image::try_create(5, 4, vec![
+            0, 0, 1, 0, 0,
+            1, 1, 1, 1, 1,
+            1, 0, 0, 0, 1,
+            1, 1, 1, 1, 1,
+        ])?;
+
         let mut items = Vec::<(Image, ShapeType)>::new();
         items.push((image_rectangle, ShapeType::Rectangle));
         items.push((image_box, ShapeType::Box));
@@ -367,6 +374,7 @@ impl ShapeTypeImage {
         items.push((image_box_with_rightwards_tick, ShapeType::BoxWithRightwardsTick));
         items.push((image_open_box_with_hole_in_center_of_top_border, ShapeType::OpenBoxWithHoleInCenterOfTopBorder));
         items.push((image_open_box_with_hole_in_right_side_of_top_border, ShapeType::OpenBoxWithHoleInRightSideOfTopBorder));
+        items.push((image_box_with_uptick, ShapeType::BoxWithUptick));
 
         let instance = Self {
             image_shapetype_vec: items,
@@ -892,6 +900,16 @@ pub enum ShapeType {
     /// ```
     OpenBoxWithHoleInRightSideOfTopBorder,
 
+    /// Shape `box-with-uptick` or a box with a single pixel placed on top center of the box.
+    /// 
+    /// ````
+    /// 0, 0, 1, 0, 0
+    /// 1, 1, 1, 1, 1
+    /// 1, 0, 0, 0, 1
+    /// 1, 1, 1, 1, 1
+    /// ```
+    BoxWithUptick,
+
     /// Shapes that could not be recognized.
     Unclassified,
 
@@ -956,6 +974,7 @@ impl ShapeType {
             Self::BoxWithRightwardsTick => "⟥",
             Self::OpenBoxWithHoleInCenterOfTopBorder => "[_]",
             Self::OpenBoxWithHoleInRightSideOfTopBorder => "[_|",
+            Self::BoxWithUptick => "box-with-uptick",
             Self::Unclassified => "unclassified",
         }
     }
@@ -3512,6 +3531,26 @@ mod tests {
         assert_eq!(actual.to_string(), "⟥");
         assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw270]));
         assert_eq!(actual.scale_to_string(), "2x1");
+    }
+
+    #[test]
+    fn test_570001_image_box_with_uptick() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1, 1,
+            1, 0, 0, 0, 0, 1,
+            1, 1, 1, 1, 1, 1,
+            0, 0, 1, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 4, pixels).expect("image");
+
+        // Act
+        let actual: ShapeIdentification = ShapeIdentification::compute(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual.to_string(), "box-with-uptick");
+        assert_eq!(actual.transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180, ShapeTransformation::FlipXRotateCw180]));
+        assert_eq!(actual.scale_to_string(), "none");
     }
 
     #[test]
