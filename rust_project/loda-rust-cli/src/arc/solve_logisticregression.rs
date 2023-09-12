@@ -281,11 +281,14 @@ impl SolveLogisticRegression {
         Ok(vec![image_x, image_y])
     }
 
-    fn shape_type_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+    fn shape_type_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity, rotate45: bool) -> anyhow::Result<Image> {
         let mut image: Image = Image::zero(width, height);
         for y in 0..height {
             for x in 0..width {
-                let shape_type: ShapeType = task_graph.get_shapetype_for_input_pixel(pair_index, x, y, connectivity)?;
+                let shape_type: ShapeType = match rotate45 {
+                    false => task_graph.get_shapetype_for_input_pixel(pair_index, x, y, connectivity)?,
+                    true => task_graph.get_shapetype45_for_input_pixel(pair_index, x, y, connectivity)?
+                };
                 let color: u8 = match shape_type {
                     ShapeType::Rectangle => 1,
                     ShapeType::Box => 2,
@@ -551,8 +554,10 @@ impl SolveLogisticRegression {
             let relative_position_images_connectivity8: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
             _ = relative_position_images_connectivity8;
 
-            // let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
-            let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, false)?;
+            let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8, false)?;
+            let shape_type45_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, true)?;
+            let shape_type45_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8, true)?;
             
             // let shape_transformation_images_connectivity4: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             // let shape_transformation_images_connectivity8: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
@@ -2375,12 +2380,20 @@ impl SolveLogisticRegression {
                     //     // record.serialize_onehot(pixel, 30);
                     // }
 
-                    // {
-                    //     let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_onehot(pixel, 50);
-                    // }
+                    {
+                        let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
+                        record.serialize_onehot(pixel, 50);
+                    }
                     {
                         let pixel: u8 = shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
+                        record.serialize_onehot(pixel, 56);
+                    }
+                    {
+                        let pixel: u8 = shape_type45_image_connectivity4.get(xx, yy).unwrap_or(255);
+                        record.serialize_onehot(pixel, 56);
+                    }
+                    {
+                        let pixel: u8 = shape_type45_image_connectivity8.get(xx, yy).unwrap_or(255);
                         record.serialize_onehot(pixel, 56);
                     }
                     // for shape_transformation_image in &shape_transformation_images_connectivity4 {
@@ -2392,16 +2405,16 @@ impl SolveLogisticRegression {
                     //     record.serialize_u8(pixel);
                     // }
 
-                    // for shape_size_image in &shape_size_images_connectivity4 {
-                    //     let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_u8(pixel);
-                    //     record.serialize_onehot(pixel, 30);
-                    // }
-                    // for shape_size_image in &shape_size_images_connectivity8 {
-                    //     let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_u8(pixel);
-                    //     record.serialize_onehot(pixel, 30);
-                    // }
+                    for shape_size_image in &shape_size_images_connectivity4 {
+                        let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                        // record.serialize_u8(pixel);
+                        record.serialize_onehot(pixel, 30);
+                    }
+                    for shape_size_image in &shape_size_images_connectivity8 {
+                        let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                        // record.serialize_u8(pixel);
+                        record.serialize_onehot(pixel, 30);
+                    }
 
                     {
 
