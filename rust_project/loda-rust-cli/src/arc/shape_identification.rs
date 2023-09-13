@@ -1631,6 +1631,78 @@ mod tests {
     }
 
     #[test]
+    fn test_20003_normalize() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 1,
+            0, 0, 1, 0,
+            0, 1, 1, 0,
+            1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
+
+        // Act
+        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
+            ShapeTransformation::normalize(i).expect("ok")
+        ).collect();
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 1, 1, 0,
+            0, 0, 0, 1,
+        ];
+        let expected: Image = Image::try_create(4, 4, expected_pixels).expect("image");
+        for actual in actual_vec {
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn test_20004_normalize_incorrect_edgecase() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 1,
+            0, 0, 1, 0,
+            0, 1, 0, 0,
+            1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+        let inputs: Vec<Image> = transformed_images(&input).expect("ok");
+
+        // Act
+        let actual_vec: Vec<Image> = inputs.iter().map(|i| 
+            ShapeTransformation::normalize(i).expect("ok")
+        ).collect();
+
+        // Assert
+        // Edge case that is handled incorrectly.
+        // When the shape is a `diagonal line`, then this is what it should output.
+        // let expected_pixels: Vec<u8> = vec![
+        //     1, 0, 0, 0,
+        //     0, 1, 0, 0,
+        //     0, 0, 1, 0,
+        //     0, 0, 0, 1,
+        // ];
+        // When the shape is a diagonal line, then this is what it actually outputs.
+        // It's supposed to prefer transformations that causes its mass to be towards the bottom/left corner.
+        // And supposed to avoid pixels in the top-right corner.
+        // However the center-of-mass algorithm identifies it as being centered, and identifies nothing wrong with it.
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 1,
+            0, 0, 1, 0,
+            0, 1, 0, 0,
+            1, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(4, 4, expected_pixels).expect("image");
+        for actual in actual_vec {
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
     fn test_110000_empty() {
         // Arrange
         let pixels: Vec<u8> = vec![
