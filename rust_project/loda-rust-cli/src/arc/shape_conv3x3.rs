@@ -98,6 +98,28 @@ impl FindShape {
         }
         Ok((accumulated & 255) as u8)
     }
+
+    /// Find the shapeid and transformations for a 3x3 image.
+    /// 
+    /// Returns a tuple with the shapeid and the transformations.
+    /// The shapeid is a value in the range `0..=47`.
+    /// The set contains at least 1 transformation. And max 8 transformations `ShapeTransformation::all()`.
+    #[allow(dead_code)]
+    fn shapeid_and_transformations(&self, image: &Image) -> anyhow::Result<(u8, HashSet<ShapeTransformation>)> {
+        if image.width() != 3 || image.height() != 3 {
+            return Err(anyhow::anyhow!("image size is not 3x3"));
+        }
+        let image_id: u8 = Self::id_from_3x3image(image)?;
+        let shape_id: u8 = match self.index_to_shapeid.get(&image_id) {
+            Some(value) => *value,
+            None => return Err(anyhow::anyhow!("shape not found")),
+        };
+        let transformations: HashSet<ShapeTransformation> = match self.index_to_transformation.get(&image_id) {
+            Some(value) => value.clone(),
+            None => return Err(anyhow::anyhow!("transformations not found")),
+        };
+        Ok((shape_id, transformations))
+    }
 }
 
 #[cfg(test)]
@@ -261,5 +283,47 @@ mod tests {
 
         // Assert
         assert_eq!(actual, 255);
+    }
+
+    #[test]
+    fn test_40000_shapeid_and_transformations_first() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 8, 8,
+            8, 3, 8,
+            8, 8, 8,
+        ];
+        // The center pixel is surrounded with pixels of different color. This is the first shape id included in the catalog of shapes.
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: FindShape = FindShape::populate().expect("ok");
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 0);
+        assert_eq!(transformations, ShapeTransformation::all());
+    }
+
+    #[test]
+    fn test_40001_shapeid_and_transformations_last() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 8, 8,
+            8, 8, 8,
+            8, 8, 8,
+        ];
+        // The center pixel is surrounded with pixels of same color. This is the last shape id included in the catalog of shapes.
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: FindShape = FindShape::populate().expect("ok");
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 47);
+        assert_eq!(transformations, ShapeTransformation::all());
     }
 }
