@@ -3,11 +3,11 @@
 //! This doesn't solve any of the tasks from the hidden dataset.
 //!
 //! This solves 54 of the 800 tasks in the public ARC dataset.
-//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280, 
-//! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 4258a5f9, 44d8ac46, 4612dd53, 543a7ed5, 6455b5f5, 
-//! 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, 
-//! a5313dff, a61f2674, a699fb00, a79310a0, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e, 
-//! aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, 
+//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 25d8a9c8,
+//! 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 4612dd53, 50cb2852, 543a7ed5,
+//! 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6f8cd79b, 810b9b61, 84f2aca1,
+//! 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e,
+//! aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91,
 //! ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, ded97339, e0fb7511, e9c9d9a1, ef135b50, 
 //! 
 //! Known problem:
@@ -37,7 +37,7 @@ use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
-use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
+use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
 use super::human_readable_utc_timestamp;
 use anyhow::Context;
 use indicatif::ProgressBar;
@@ -1302,6 +1302,8 @@ impl SolveLogisticRegression {
                 input_orientation = 0;
             }
 
+            let number_of_shape3x3ids: u8 = Shape3x3::instance().number_of_shapes();
+
             for y in 0..height {
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -1310,8 +1312,9 @@ impl SolveLogisticRegression {
                     let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
-                    let area: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
-                    let center: u8 = area.get(2, 2).unwrap_or(255);
+                    let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
+                    let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
+                    let center: u8 = area5x5.get(2, 2).unwrap_or(255);
 
                     let image_top: u8 = input.get(xx, 0).unwrap_or(255);
                     let image_bottom: u8 = input.get(xx, original_input.height() as i32 - 1).unwrap_or(255);
@@ -1998,9 +2001,9 @@ impl SolveLogisticRegression {
                         pair_id,
                         values: vec!(),
                     };
-                    for area_y in 0..area.height() {
-                        for area_x in 0..area.width() {
-                            let color: u8 = area.get(area_x as i32, area_y as i32).unwrap_or(255);
+                    for area_y in 0..area5x5.height() {
+                        for area_x in 0..area5x5.width() {
+                            let color: u8 = area5x5.get(area_x as i32, area_y as i32).unwrap_or(255);
                             record.serialize_color_complex(color, obfuscated_color_offset);
                         }
                     }
@@ -2458,6 +2461,43 @@ impl SolveLogisticRegression {
                     //     record.serialize_u8(pixel);
                     //     // record.serialize_onehot(pixel, 30);
                     // }
+
+                    {
+                        let mut the_shapeid: u8 = 255;
+                        let mut transform_mask: u8 = 0;
+                        match Shape3x3::instance().shapeid_and_transformations(&area3x3) {
+                            Ok((shapeid, transformations)) => {
+                                the_shapeid = shapeid;
+                                if transformations.contains(&ShapeTransformation::Normal) {
+                                    transform_mask |= 1;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw90) {
+                                    transform_mask |= 2;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw180) {
+                                    transform_mask |= 4;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw270) {
+                                    transform_mask |= 8;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipX) {
+                                    transform_mask |= 16;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                                    transform_mask |= 32;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                                    transform_mask |= 64;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                                    transform_mask |= 128;
+                                }
+                            },
+                            Err(_) => {},
+                        }
+                        record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                        record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                    }
 
                     {
                         let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
