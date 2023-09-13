@@ -1597,10 +1597,10 @@ impl TraverseProgramsAndModels {
 
         // The logistic regression has not solved any of the tasks in the hidden ARC dataset.
         // so no point in having it enabled.
-        let try_logistic_regression = false;
+        let try_logistic_regression = true;
 
         // Solve `splitview` like tasks.
-        let try_solve_split = true;
+        let try_solve_split = false;
 
         // When processing the hidden ARC dataset, I suspect most of the solutions are found 
         // without doing any mutation of existing solutions.
