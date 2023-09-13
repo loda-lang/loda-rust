@@ -126,6 +126,7 @@ mod rectangle;
 mod register_arc_functions;
 mod reverse_color_popularity;
 mod run_with_program;
+mod shape_conv3x3;
 mod shape_identification;
 mod shape_identification_from_single_color_object;
 mod single_color_object;
