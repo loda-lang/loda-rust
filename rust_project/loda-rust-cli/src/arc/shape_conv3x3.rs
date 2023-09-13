@@ -70,6 +70,34 @@ impl FindShape {
         };
         Ok(instance)
     }
+
+    /// Create an 8bit representation from a 3x3 image.
+    /// 
+    /// If the pixels is the same as the center pixel, then the bit is 1.
+    /// 
+    /// If the pixels is the different than the center pixel, then the bit is 0.
+    #[allow(dead_code)]
+    fn id_from_3x3image(image: &Image) -> anyhow::Result<u8> {
+        if image.width() != 3 || image.height() != 3 {
+            return Err(anyhow::anyhow!("image size is not 3x3"));
+        }
+        let center: u8 = image.get(1, 1).unwrap_or(255);
+        let mut current_bit: u16 = 1;
+        let mut accumulated: u16 = 0;
+        for y in 0..=2u8 {
+            for x in 0..=2u8 {
+                if x == 1 && y == 1 {
+                    // Skip the center pixel. We are only interested in traversing the 8 pixels surrounding the center pixel.
+                    continue;
+                }
+                let color: u8 = image.get(x as i32, y as i32).unwrap_or(255);
+                let is_same: bool = color == center;
+                accumulated |= current_bit * is_same as u16;
+                current_bit *= 2;
+            }
+        }
+        Ok((accumulated & 255) as u8)
+    }
 }
 
 #[cfg(test)]
@@ -114,5 +142,124 @@ mod tests {
         assert_eq!(instance.image_to_shapeid.len(), 48);
         assert_eq!(instance.index_to_transformation.len(), 256);
         assert_eq!(instance.index_to_shapeid.len(), 256);
+    }
+
+    #[test]
+    fn test_30000_id_from_3x3image() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7,
+            7, 5, 7,
+            7, 7, 7,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+
+        // Assert
+        assert_eq!(actual, 0);
+    }
+
+    #[test]
+    fn test_30001_id_from_3x3image() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 7, 7,
+            7, 5, 7,
+            7, 7, 7,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+
+        // Assert
+        assert_eq!(actual, 1);
+    }
+
+    #[test]
+    fn test_30002_id_from_3x3image() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 5,
+            7, 5, 7,
+            7, 7, 7,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+
+        // Assert
+        assert_eq!(actual, 4);
+    }
+
+    #[test]
+    fn test_30003_id_from_3x3image() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7,
+            7, 5, 7,
+            5, 7, 7,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+
+        // Assert
+        assert_eq!(actual, 32);
+    }
+
+    #[test]
+    fn test_30004_id_from_3x3image() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7,
+            7, 5, 7,
+            7, 7, 5,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+
+        // Assert
+        assert_eq!(actual, 128);
+    }
+
+    #[test]
+    fn test_30005_id_from_3x3image() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5,
+            5, 5, 8,
+            5, 8, 8,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+
+        // Assert
+        assert_eq!(actual, 47);
+    }
+
+    #[test]
+    fn test_30006_id_from_3x3image() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5,
+            5, 5, 5,
+            5, 5, 5,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+
+        // Assert
+        assert_eq!(actual, 255);
     }
 }
