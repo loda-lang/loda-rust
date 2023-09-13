@@ -140,8 +140,8 @@ impl Record {
     fn serialize_bitmask_as_onehot(&mut self, value: u16, count: u8) {
         for i in 0..(count.min(16)) {
             let mask: u16 = 1 << i;
-            let v: u8 = if (value & mask) > 0 { 1 } else { 0 };
-            self.values.push(v as f64);
+            let is_bit_one: bool = (value & mask) > 0;
+            self.serialize_bool_onehot(is_bit_one);
         }
     }
 
