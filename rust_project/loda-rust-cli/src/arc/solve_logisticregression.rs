@@ -1308,6 +1308,8 @@ impl SolveLogisticRegression {
 
                     let center_x_reversed: u8 = input.get(x_reverse as i32, yy).unwrap_or(255);
                     let center_y_reversed: u8 = input.get(xx, y_reverse as i32).unwrap_or(255);
+                    let center_xy_reversed: u8 = input.get(x_reverse as i32, y_reverse as i32).unwrap_or(255);
+                    _ = center_xy_reversed;
                     
                     let center_denoise_type1: u8 = input_denoise_type1.get(xx, yy).unwrap_or(255);
 
@@ -1993,6 +1995,7 @@ impl SolveLogisticRegression {
 
                     record.serialize_color_complex(center_x_reversed, obfuscated_color_offset);
                     record.serialize_color_complex(center_y_reversed, obfuscated_color_offset);
+                    // record.serialize_color_complex(center_xy_reversed, obfuscated_color_offset);
                     record.serialize_color_complex(mass_connectivity4, obfuscated_color_offset);
                     record.serialize_color_complex(mass_connectivity8, obfuscated_color_offset);
                     // record.serialize_u8(mass_connectivity4);
