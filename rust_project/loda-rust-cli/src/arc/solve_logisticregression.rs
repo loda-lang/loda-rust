@@ -34,7 +34,7 @@
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, ShapeIdentification, SingleColorObject, ShapeIdentificationFromSingleColorObject};
+use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow};
@@ -1289,6 +1289,9 @@ impl SolveLogisticRegression {
                 earlier_prediction_mass_connectivity4 = Some(image_mass_connectivity4);
                 earlier_prediction_mass_connectivity8 = Some(image_mass_connectivity8);
             }
+
+            _ = earlier_prediction_mass_connectivity4;
+            _ = earlier_prediction_mass_connectivity8;
 
             for y in 0..height {
                 for x in 0..width {
