@@ -1087,7 +1087,7 @@ impl ShapeTransformation {
     }
 
     #[allow(dead_code)]
-    fn perform_all_transformations(image: &Image) -> anyhow::Result<Vec<(ShapeTransformation, Image)>> {
+    pub fn perform_all_transformations(image: &Image) -> anyhow::Result<Vec<(ShapeTransformation, Image)>> {
         let mut transformations = Vec::<(ShapeTransformation, Image)>::new();
         {
             let degree0: Image = image.clone();
@@ -1185,6 +1185,77 @@ impl ShapeTransformation {
 
         let scale: ScaleXY = ScaleXY { x: scale_x, y: scale_y };
         Ok(Some(scale))
+    }
+
+    /// The intention is to always yield the same image, no matter if the input is rotated or flipped.
+    /// 
+    /// - For a non-square image, ensure the image is in landscape orientation.
+    /// - The most massive side is resting on the floor.
+    /// - If there is a tie, the prefer object towards the left side.
+    /// - If there is a tie, then sort using the raw pixel data.
+    /// 
+    /// Returns a set of transformations. At least one transformation is always returned.
+    /// In case the image can be flipped/rotated then multiple transformations may be returned.
+    pub fn normalize_advanced(size: ImageSize, transformation_image_vec: Vec<(ShapeTransformation, Image)>) -> anyhow::Result<(HashSet<ShapeTransformation>, Image)> {
+        // Ensure the image is always in landscape orientation
+        let width: u8 = size.width.max(size.height);
+        let height: u8 = size.width.min(size.height);
+        let landscape_size: ImageSize = ImageSize::new(width, height);
+
+        // Obtain center of mass for each image
+        type Record = (i32, u32, Image, ShapeTransformation);
+        let mut y_x_image_transformation_vec: Vec<Record> = Vec::new();
+        for (transformation, image) in &transformation_image_vec {
+            if image.size() != landscape_size {
+                // Ignore portrait images
+                continue;
+            }
+            let scale: u32 = 10000;
+            if let Some((x, y)) = image.center_of_mass(scale) {
+                // println!("x: {}, y: {} {:?}", x, y, image);
+                let inverted_y: i32 = - (y.min(i32::MAX as u32) as i32);
+                y_x_image_transformation_vec.push((inverted_y, x, image.clone(), transformation.clone()));
+            }
+        }
+
+        // Sort by center of mass, y first, then x, then image data
+        // Prefer objects that are bottom heavy and leaning towards the left.
+        y_x_image_transformation_vec.sort();
+
+        // println!("SORTED");
+        // for (y, x, image) in &y_x_image_vec {
+        //     println!("x: {}, y: {} {:?}", x, y, image);
+        // }
+
+        if y_x_image_transformation_vec.is_empty() {
+            return Err(anyhow::anyhow!("Image vector is empty"));
+        }
+        // Pick the first image and first transformation
+        let record: &Record = &y_x_image_transformation_vec[0];
+        let first_image: Image = record.2.clone();
+        let first_transformation: ShapeTransformation = record.3.clone();
+
+        // Identify multiple transformations that yield the same image, and remember the transformations
+        let mut transformations = HashSet::<ShapeTransformation>::new();
+        for (transformation, image) in &transformation_image_vec {
+            if *transformation == first_transformation {
+                // No need to do expensive image comparison
+                continue;
+            }
+            if *image == first_image {
+                transformations.insert(transformation.clone());
+            }
+        }
+        transformations.insert(first_transformation);
+        Ok((transformations, first_image))
+    }
+
+    #[allow(dead_code)]
+    pub fn normalize(image_with_unknown_orientation: &Image) -> anyhow::Result<Image> {
+        let size: ImageSize = image_with_unknown_orientation.size();
+        let transformations: Vec<(ShapeTransformation, Image)> = Self::perform_all_transformations(&image_with_unknown_orientation)?;
+        let (_transformation, output) = Self::normalize_advanced(size, transformations)?;
+        Ok(output)
     }
 }
 
@@ -1346,7 +1417,7 @@ impl ShapeIdentification {
 
         // The shape is more advanced than the basic ones we can recognize
         // apply even more computational expensive transformations.
-        let (transformations, normalized_mask) = Self::normalize(compact_mask.size(), transformation_image_vec)?;
+        let (transformations, normalized_mask) = ShapeTransformation::normalize_advanced(compact_mask.size(), transformation_image_vec)?;
         let mut shape = Self {
             shape_type: ShapeType::Unclassified,
             shape_type45,
@@ -1370,69 +1441,6 @@ impl ShapeIdentification {
             }
         }
         Ok(())
-    }
-
-    /// The intention is to always yield the same image, no matter if the input is rotated or flipped.
-    /// 
-    /// - For a non-square image, ensure the image is in landscape orientation.
-    /// - The most massive side is resting on the floor.
-    /// - If there is a tie, the prefer object towards the left side.
-    /// - If there is a tie, then sort using the raw pixel data.
-    /// 
-    /// Returns a set of transformations. At least one transformation is always returned.
-    /// In case the image can be flipped/rotated then multiple transformations may be returned.
-    fn normalize(size: ImageSize, transformation_image_vec: Vec<(ShapeTransformation, Image)>) -> anyhow::Result<(HashSet<ShapeTransformation>, Image)> {
-        // Ensure the image is always in landscape orientation
-        let width: u8 = size.width.max(size.height);
-        let height: u8 = size.width.min(size.height);
-        let landscape_size: ImageSize = ImageSize::new(width, height);
-
-        // Obtain center of mass for each image
-        type Record = (i32, u32, Image, ShapeTransformation);
-        let mut y_x_image_transformation_vec: Vec<Record> = Vec::new();
-        for (transformation, image) in &transformation_image_vec {
-            if image.size() != landscape_size {
-                // Ignore portrait images
-                continue;
-            }
-            let scale: u32 = 10000;
-            if let Some((x, y)) = image.center_of_mass(scale) {
-                // println!("x: {}, y: {} {:?}", x, y, image);
-                let inverted_y: i32 = - (y.min(i32::MAX as u32) as i32);
-                y_x_image_transformation_vec.push((inverted_y, x, image.clone(), transformation.clone()));
-            }
-        }
-
-        // Sort by center of mass, y first, then x, then image data
-        // Prefer objects that are bottom heavy and leaning towards the left.
-        y_x_image_transformation_vec.sort();
-
-        // println!("SORTED");
-        // for (y, x, image) in &y_x_image_vec {
-        //     println!("x: {}, y: {} {:?}", x, y, image);
-        // }
-
-        if y_x_image_transformation_vec.is_empty() {
-            return Err(anyhow::anyhow!("Image vector is empty"));
-        }
-        // Pick the first image and first transformation
-        let record: &Record = &y_x_image_transformation_vec[0];
-        let first_image: Image = record.2.clone();
-        let first_transformation: ShapeTransformation = record.3.clone();
-
-        // Identify multiple transformations that yield the same image, and remember the transformations
-        let mut transformations = HashSet::<ShapeTransformation>::new();
-        for (transformation, image) in &transformation_image_vec {
-            if *transformation == first_transformation {
-                // No need to do expensive image comparison
-                continue;
-            }
-            if *image == first_image {
-                transformations.insert(transformation.clone());
-            }
-        }
-        transformations.insert(first_transformation);
-        Ok((transformations, first_image))
     }
 
     pub fn transformations_sorted_vec(&self) -> Vec<ShapeTransformation> {
@@ -1535,13 +1543,6 @@ mod tests {
         Ok(images)
     }
 
-    fn normalize(image_with_unknown_orientation: &Image) -> anyhow::Result<Image> {
-        let size: ImageSize = image_with_unknown_orientation.size();
-        let transformations: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&image_with_unknown_orientation)?;
-        let (_transformation, output) = ShapeIdentification::normalize(size, transformations)?;
-        Ok(output)
-    }
-
     #[test]
     fn test_20000_normalize() {
         // Arrange
@@ -1555,7 +1556,7 @@ mod tests {
 
         // Act
         let actual_vec: Vec<Image> = inputs.iter().map(|i| 
-            normalize(i).expect("ok")
+            ShapeTransformation::normalize(i).expect("ok")
         ).collect();
 
         // Assert
@@ -1584,7 +1585,7 @@ mod tests {
 
         // Act
         let actual_vec: Vec<Image> = inputs.iter().map(|i| 
-            normalize(i).expect("ok")
+            ShapeTransformation::normalize(i).expect("ok")
         ).collect();
 
         // Assert
@@ -1614,7 +1615,7 @@ mod tests {
 
         // Act
         let actual_vec: Vec<Image> = inputs.iter().map(|i| 
-            normalize(i).expect("ok")
+            ShapeTransformation::normalize(i).expect("ok")
         ).collect();
 
         // Assert
