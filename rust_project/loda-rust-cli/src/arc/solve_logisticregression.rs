@@ -1293,6 +1293,15 @@ impl SolveLogisticRegression {
             _ = earlier_prediction_mass_connectivity4;
             _ = earlier_prediction_mass_connectivity8;
 
+            let input_orientation: i8;
+            if width > height {
+                input_orientation = 1;
+            } else if width < height {
+                input_orientation = -1;
+            } else {
+                input_orientation = 0;
+            }
+
             for y in 0..height {
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -2005,6 +2014,7 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(mass_connectivity8);
                     // record.serialize_onehot_discard_overflow(mass_connectivity4, 40);
                     // record.serialize_onehot_discard_overflow(mass_connectivity8, 40);
+                    record.serialize_ternary(input_orientation);
                     record.serialize_u8(distance_top);
                     record.serialize_u8(distance_bottom);
                     record.serialize_u8(distance_left);
