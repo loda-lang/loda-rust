@@ -1,8 +1,13 @@
 use super::{Image, ImageMask, ImageTrim, ShapeTransformation, ImageSize, ImageTryCreate};
 use std::collections::{HashSet, HashMap};
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref SHAPE3X3: Shape3x3 = Shape3x3::populate().expect("populate");
+}
 
 #[allow(dead_code)]
-struct FindShape {
+pub struct Shape3x3 {
     shape_set: HashSet<Image>,
     shape_vec: Vec<Image>,
     image_to_shapeid: HashMap<Image, u8>,
@@ -10,7 +15,15 @@ struct FindShape {
     index_to_shapeid: HashMap::<u8, u8>,
 }
 
-impl FindShape {
+impl Shape3x3 {
+    pub fn instance() -> &'static Self {
+        &SHAPE3X3
+    }
+
+    pub fn number_of_shapes(&self) -> u8 {
+        (self.shape_vec.len() & 255) as u8
+    }
+    
     #[allow(dead_code)]
     fn analyze(image: &Image) -> anyhow::Result<(HashSet<ShapeTransformation>, Image)> {
         if image.width() != 3 || image.height() != 3 {
@@ -44,7 +57,7 @@ impl FindShape {
                 (i >> 5) & 1, (i >> 6) & 1, (i >> 7) & 1,
             ];
             let image: Image = Image::try_create(3, 3, values.to_vec())?;
-            let (transformations, output) = FindShape::analyze(&image).expect("image");
+            let (transformations, output) = Shape3x3::analyze(&image).expect("image");
             if !shape_set.contains(&output) {
                 let shapeid: u8 = (shape_set.len() & 255) as u8;
                 image_to_shapeid.insert(output.clone(), shapeid);
@@ -105,7 +118,7 @@ impl FindShape {
     /// The shapeid is a value in the range `0..=47`.
     /// The set contains at least 1 transformation. And max 8 transformations `ShapeTransformation::all()`.
     #[allow(dead_code)]
-    fn shapeid_and_transformations(&self, image: &Image) -> anyhow::Result<(u8, HashSet<ShapeTransformation>)> {
+    pub fn shapeid_and_transformations(&self, image: &Image) -> anyhow::Result<(u8, HashSet<ShapeTransformation>)> {
         if image.width() != 3 || image.height() != 3 {
             return Err(anyhow::anyhow!("image size is not 3x3"));
         }
@@ -138,7 +151,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let (transformations, output) = FindShape::analyze(&input).expect("image");
+        let (transformations, output) = Shape3x3::analyze(&input).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -156,7 +169,7 @@ mod tests {
         // Arrange
         
         // Act
-        let instance: FindShape = FindShape::populate().expect("populate");
+        let instance: Shape3x3 = Shape3x3::populate().expect("populate");
 
         // Assert
         assert_eq!(instance.shape_set.len(), 48);
@@ -177,7 +190,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+        let actual: u8 = Shape3x3::id_from_3x3image(&input).expect("id");
 
         // Assert
         assert_eq!(actual, 0);
@@ -194,7 +207,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+        let actual: u8 = Shape3x3::id_from_3x3image(&input).expect("id");
 
         // Assert
         assert_eq!(actual, 1);
@@ -211,7 +224,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+        let actual: u8 = Shape3x3::id_from_3x3image(&input).expect("id");
 
         // Assert
         assert_eq!(actual, 4);
@@ -228,7 +241,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+        let actual: u8 = Shape3x3::id_from_3x3image(&input).expect("id");
 
         // Assert
         assert_eq!(actual, 32);
@@ -245,7 +258,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+        let actual: u8 = Shape3x3::id_from_3x3image(&input).expect("id");
 
         // Assert
         assert_eq!(actual, 128);
@@ -262,7 +275,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+        let actual: u8 = Shape3x3::id_from_3x3image(&input).expect("id");
 
         // Assert
         assert_eq!(actual, 47);
@@ -279,7 +292,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let actual: u8 = FindShape::id_from_3x3image(&input).expect("id");
+        let actual: u8 = Shape3x3::id_from_3x3image(&input).expect("id");
 
         // Assert
         assert_eq!(actual, 255);
@@ -296,7 +309,7 @@ mod tests {
         // The center pixel is surrounded with pixels of different color. This is the first shape id included in the catalog of shapes.
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: FindShape = FindShape::populate().expect("ok");
+        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -317,7 +330,7 @@ mod tests {
         // The center pixel is surrounded with pixels of same color. This is the last shape id included in the catalog of shapes.
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: FindShape = FindShape::populate().expect("ok");
+        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
