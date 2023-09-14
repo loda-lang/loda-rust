@@ -41,7 +41,7 @@ use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, Im
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
 use super::human_readable_utc_timestamp;
 use anyhow::Context;
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use rand::seq::SliceRandom;
 use rand::{SeedableRng, Rng};
 use rand::rngs::StdRng;
@@ -233,10 +233,16 @@ impl SolveLogisticRegression {
         println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
         let count_solved = AtomicUsize::new(0);
         let pb = ProgressBar::new(number_of_tasks as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
+            .progress_chars("#>-")
+        );
         self.tasks.par_iter_mut().for_each(|task| {
             match Self::process_task(task, verify_test_output) {
                 Ok(_predictions) => {
                     count_solved.fetch_add(1, Ordering::Relaxed);
+                    let count: usize = count_solved.load(Ordering::Relaxed);
+                    pb.set_message(format!("Solved: {}", count));
                     pb.println(format!("task {} - solved", task.id));
                 },
                 Err(error) => {
