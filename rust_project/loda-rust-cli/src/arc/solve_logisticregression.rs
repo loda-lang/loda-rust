@@ -2262,7 +2262,7 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
-                                record.serialize_onehot(distance, 20);
+                                record.serialize_bool(distance == 0);
                             }
                         }
                         for connectivity in &connectivity_vec {
