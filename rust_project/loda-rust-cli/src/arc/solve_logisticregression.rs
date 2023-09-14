@@ -2530,6 +2530,7 @@ impl SolveLogisticRegression {
                     //     record.serialize_bitmask_as_onehot(pixel as u16, 8);
                     // }
 
+                    // Shape orientation: landscape, portrait, square
                     {
                         let mut shape_width: u8 = 0;
                         let mut shape_height: u8 = 0;
@@ -2554,6 +2555,33 @@ impl SolveLogisticRegression {
                         }
                         record.serialize_ternary(shape_orientation);
                     }
+
+                    // Shape orientation: landscape, portrait, square
+                    {
+                        let mut shape_width: u8 = 0;
+                        let mut shape_height: u8 = 0;
+                        for (shape_size_image_index, shape_size_image) in shape_size_images_connectivity8.iter().enumerate() {
+                            let value: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                            if shape_size_image_index == 0 {
+                                shape_width = value;
+                            }
+                            if shape_size_image_index == 1 {
+                                shape_height = value;
+                            }
+                        }
+                        let shape_orientation: i8;
+                        if shape_width > shape_height {
+                            shape_orientation = 1;
+                        } else {
+                            if shape_width < shape_height {
+                                shape_orientation = -1;
+                            } else {
+                                shape_orientation = 0;
+                            }
+                        }
+                        record.serialize_ternary(shape_orientation);
+                    }
+
                     for shape_size_image in &shape_size_images_connectivity4 {
                         let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
                         // record.serialize_u8(pixel);
