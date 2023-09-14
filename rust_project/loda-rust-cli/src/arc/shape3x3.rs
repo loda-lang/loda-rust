@@ -90,7 +90,7 @@ impl Shape3x3 {
     /// 
     /// If the pixels is the different than the center pixel, then the bit is 0.
     #[allow(dead_code)]
-    fn id_from_3x3image(image: &Image) -> anyhow::Result<u8> {
+    pub fn id_from_3x3image(image: &Image) -> anyhow::Result<u8> {
         if image.width() != 3 || image.height() != 3 {
             return Err(anyhow::anyhow!("image size is not 3x3"));
         }

@@ -148,13 +148,18 @@ impl Record {
         }
     }
 
+    #[allow(dead_code)]
+    fn serialize_onehot_discard_overflow(&mut self, value: u8, count: u8) {
+        self.serialize_onehot_discard_overflow_u16(value as u16, count as u16);
+    }
+
     /// Set the counter to 1 that are equal to the value.
     /// 
     /// Otherwise the counters are zero.
     /// 
     /// When the value overflows then all the counters are set to zero.
     #[allow(dead_code)]
-    fn serialize_onehot_discard_overflow(&mut self, value: u8, count: u8) {
+    fn serialize_onehot_discard_overflow_u16(&mut self, value: u16, count: u16) {
         for i in 0..count {
             let v: u8 = if i == value { 1 } else { 0 };
             self.values.push(v as f64);
@@ -2466,6 +2471,10 @@ impl SolveLogisticRegression {
                     //     // record.serialize_onehot(pixel, 30);
                     // }
 
+                    // {
+                    //     let image_id: u8 = Shape3x3::id_from_3x3image(&area3x3).unwrap_or(0);
+                    //     record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
+                    // }
                     {
                         let mut the_shapeid: u8 = 255;
                         let mut transform_mask: u8 = 0;
