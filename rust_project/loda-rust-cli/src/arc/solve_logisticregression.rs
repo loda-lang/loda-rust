@@ -2431,6 +2431,7 @@ impl SolveLogisticRegression {
                             is_inside_bounding_box = sco.is_inside_bounding_box(color, xx, yy);
                         }
                         record.serialize_bool(is_inside_bounding_box);
+                        // record.serialize_bool_onehot(is_inside_bounding_box)
                     }
 
                     // for linespan_image in &linespan_images {
@@ -2444,6 +2445,7 @@ impl SolveLogisticRegression {
                             let pixel: u8 = linespan_image.get(xx, yy).unwrap_or(255);
                             record.serialize_u8(pixel);
                             // record.serialize_onehot(pixel, 4);
+                            // record.serialize_onehot_discard_overflow(pixel, 2);
                         }
                     }
                     
