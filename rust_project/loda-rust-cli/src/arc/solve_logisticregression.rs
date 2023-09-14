@@ -2471,6 +2471,153 @@ impl SolveLogisticRegression {
                     //     // record.serialize_onehot(pixel, 30);
                     // }
 
+                    // Relative position inside shape value between -0.5 and +0.5
+                    // {
+                    //     let mut shape_width: u8 = 0;
+                    //     let mut shape_height: u8 = 0;
+                    //     for (shape_size_image_index, shape_size_image) in shape_size_images_connectivity8.iter().enumerate() {
+                    //         let value: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                    //         if shape_size_image_index == 0 {
+                    //             shape_width = value;
+                    //         }
+                    //         if shape_size_image_index == 1 {
+                    //             shape_height = value;
+                    //         }
+                    //     }
+                    //     shape_width = shape_width.max(1);
+                    //     shape_height = shape_height.max(1);
+
+                    //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity8.iter().enumerate() {
+                    //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                    //         let mut denominator: u8 = 1;
+                    //         if relative_position_image_index == 0 {
+                    //             denominator = shape_width;
+                    //         }
+                    //         if relative_position_image_index == 1 {
+                    //             denominator = shape_height;
+                    //         }
+                    //         let numerator: f64 = (value as f64) + 0.5;
+                    //         let pos: f64 = (numerator / (denominator as f64)) - 0.5;
+                    //         record.serialize_f64(pos);
+                    //     }
+                    // }
+
+                    // Extreme position inside shape, is it the min or the max or inbetween
+                    // {
+                    //     let mut shape_width: u8 = 0;
+                    //     let mut shape_height: u8 = 0;
+                    //     for (shape_size_image_index, shape_size_image) in shape_size_images_connectivity4.iter().enumerate() {
+                    //         let value: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                    //         if shape_size_image_index == 0 {
+                    //             shape_width = value;
+                    //         }
+                    //         if shape_size_image_index == 1 {
+                    //             shape_height = value;
+                    //         }
+                    //     }
+
+                    //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity4.iter().enumerate() {
+                    //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                    //         let mut shape_size: u8 = 0;
+                    //         if relative_position_image_index == 0 {
+                    //             shape_size = shape_width;
+                    //         }
+                    //         if relative_position_image_index == 1 {
+                    //             shape_size = shape_height;
+                    //         }
+                    //         let is_min: bool = value == 0;
+                    //         let is_max: bool = value + 1 == shape_size;
+                    //         record.serialize_bool_onehot(is_min);
+                    //         record.serialize_bool_onehot(is_max);
+                    //     }
+                    // }
+
+                    // Extreme position inside shape, is it the min or the max or inbetween
+                    // {
+                    //     let mut shape_width: u8 = 0;
+                    //     let mut shape_height: u8 = 0;
+                    //     for (shape_size_image_index, shape_size_image) in shape_size_images_connectivity8.iter().enumerate() {
+                    //         let value: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                    //         if shape_size_image_index == 0 {
+                    //             shape_width = value;
+                    //         }
+                    //         if shape_size_image_index == 1 {
+                    //             shape_height = value;
+                    //         }
+                    //     }
+
+                    //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity8.iter().enumerate() {
+                    //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                    //         let mut shape_size: u8 = 0;
+                    //         if relative_position_image_index == 0 {
+                    //             shape_size = shape_width;
+                    //         }
+                    //         if relative_position_image_index == 1 {
+                    //             shape_size = shape_height;
+                    //         }
+                    //         let is_min: bool = value == 0;
+                    //         let is_max: bool = value + 1 == shape_size;
+                    //         record.serialize_bool_onehot(is_min);
+                    //         record.serialize_bool_onehot(is_max);
+                    //     }
+                    // }
+
+                    // Relative position inside shape value in pixel count -shape_size/2 to +shape_size/2
+                    // {
+                    //     let mut shape_width: u8 = 0;
+                    //     let mut shape_height: u8 = 0;
+                    //     for (shape_size_image_index, shape_size_image) in shape_size_images_connectivity4.iter().enumerate() {
+                    //         let value: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                    //         if shape_size_image_index == 0 {
+                    //             shape_width = value;
+                    //         }
+                    //         if shape_size_image_index == 1 {
+                    //             shape_height = value;
+                    //         }
+                    //     }
+
+                    //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity4.iter().enumerate() {
+                    //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                    //         let mut shape_size: u8 = 0;
+                    //         if relative_position_image_index == 0 {
+                    //             shape_size = shape_width;
+                    //         }
+                    //         if relative_position_image_index == 1 {
+                    //             shape_size = shape_height;
+                    //         }
+                    //         let pos: f64 = (value as f64) - ((shape_size as f64) / 2.0);
+                    //         record.serialize_f64(pos);
+                    //     }
+                    // }
+
+                    // Relative position inside shape value in pixel count -shape_size/2 to +shape_size/2
+                    // {
+                    //     let mut shape_width: u8 = 0;
+                    //     let mut shape_height: u8 = 0;
+                    //     for (shape_size_image_index, shape_size_image) in shape_size_images_connectivity8.iter().enumerate() {
+                    //         let value: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                    //         if shape_size_image_index == 0 {
+                    //             shape_width = value;
+                    //         }
+                    //         if shape_size_image_index == 1 {
+                    //             shape_height = value;
+                    //         }
+                    //     }
+
+                    //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity8.iter().enumerate() {
+                    //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                    //         let mut shape_size: u8 = 0;
+                    //         if relative_position_image_index == 0 {
+                    //             shape_size = shape_width;
+                    //         }
+                    //         if relative_position_image_index == 1 {
+                    //             shape_size = shape_height;
+                    //         }
+                    //         let pos: f64 = (value as f64) - ((shape_size as f64) / 2.0);
+                    //         record.serialize_f64(pos);
+                    //     }
+                    // }
+
                     // {
                     //     let image_id: u8 = Shape3x3::id_from_3x3image(&area3x3).unwrap_or(0);
                     //     record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
