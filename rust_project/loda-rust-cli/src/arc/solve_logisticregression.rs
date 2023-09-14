@@ -50,6 +50,8 @@ use std::collections::HashMap;
 use linfa::prelude::*;
 use linfa_logistic::MultiLogisticRegression;
 use ndarray::prelude::*;
+use rayon::prelude::*;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 static WRITE_TO_HTMLLOG: bool = false;
 
@@ -223,12 +225,12 @@ impl SolveLogisticRegression {
         let verify_test_output = true;
         let number_of_tasks: u64 = self.tasks.len() as u64;
         println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
-        let mut count_solved: usize = 0;
+        let count_solved = AtomicUsize::new(0);
         let pb = ProgressBar::new(number_of_tasks as u64);
-        for task in &self.tasks {
+        self.tasks.par_iter_mut().for_each(|task| {
             match Self::process_task(task, verify_test_output) {
                 Ok(_predictions) => {
-                    count_solved += 1;
+                    count_solved.fetch_add(1, Ordering::Relaxed);
                     pb.println(format!("task {} - solved", task.id));
                 },
                 Err(error) => {
@@ -238,8 +240,9 @@ impl SolveLogisticRegression {
                 }
             }
             pb.inc(1);
-        }
+        });
         pb.finish_and_clear();
+        let count_solved: usize = count_solved.load(Ordering::Relaxed);
         println!("{} - run - end", human_readable_utc_timestamp());
         println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
         Ok(())
