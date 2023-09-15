@@ -1593,17 +1593,20 @@ impl TraverseProgramsAndModels {
         // When participating in the contest, then we want first to try out the existing solutions.
         // This may be a solution to one of the hidden puzzles.
         // However it's slow, so it's disabled while developing, where we only want to explore mutations.
+        // On the hidden ARC dataset, this solves 5 tasks.
         let try_existing_solutions = false;
 
-        // The logistic regression has not solved any of the tasks in the hidden ARC dataset.
-        // so no point in having it enabled.
+        // Run logistic regression.
+        // On the hidden ARC dataset, this solves 1 task.
         let try_logistic_regression = true;
 
         // Solve `splitview` like tasks.
+        // On the hidden ARC dataset, this doesn't solve any tasks.
         let try_solve_split = false;
 
         // When processing the hidden ARC dataset, I suspect most of the solutions are found 
         // without doing any mutation of existing solutions.
+        // On the hidden ARC dataset, this solves 1 task.
         let try_mutate_existing_solutions = false;
 
         let number_of_programs_to_generate: usize = 3;
