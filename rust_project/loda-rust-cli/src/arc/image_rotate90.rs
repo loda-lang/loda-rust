@@ -1,10 +1,11 @@
+//! Rotate an image by 90 degrees.
 use super::Image;
 
-pub trait ImageRotate {
-    /// Rotate clockwise (CW)
+pub trait ImageRotate90 {
+    /// Rotate an image by 90 degrees. clockwise (CW)
     fn rotate_cw(&self) -> anyhow::Result<Image>;
 
-    /// Rotate counter clockwise (CCW)
+    /// Rotate an image by 90 degrees. counter clockwise (CCW)
     fn rotate_ccw(&self) -> anyhow::Result<Image>;
 
     /// Rotate by `N * 90` degrees in any direction
@@ -13,7 +14,7 @@ pub trait ImageRotate {
     fn rotate(&self, direction: i8) -> anyhow::Result<Image>;
 }
 
-impl ImageRotate for Image {
+impl ImageRotate90 for Image {
     fn rotate_cw(&self) -> anyhow::Result<Image> {
         if self.width() <= 1 && self.height() <= 1 {
             // No point in rotating an empty image or a 1x1 image.
@@ -23,20 +24,20 @@ impl ImageRotate for Image {
         let y_max: i32 = (self.height() as i32) - 1;
 
         // Copy pixels with coordinates rotated
-        let mut bitmap = Image::zero(self.height(), self.width());
+        let mut image = Image::zero(self.height(), self.width());
         for y in 0..=y_max {
             for x in 0..=x_max {
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);
                 let set_y: i32 = y_max - y;
-                match bitmap.set(set_y, x, pixel_value) {
+                match image.set(set_y, x, pixel_value) {
                     Some(()) => {},
                     None => {
-                        return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", set_y, x));
+                        return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result image", set_y, x));
                     }
                 }
             }
         }
-        return Ok(bitmap);
+        Ok(image)
     }
 
     fn rotate_ccw(&self) -> anyhow::Result<Image> {
@@ -48,11 +49,11 @@ impl ImageRotate for Image {
         if count == 0 {
             return Ok(self.clone());
         }
-        let mut bitmap: Image = self.clone();
+        let mut image: Image = self.clone();
         for _ in 0..count {
-            bitmap = bitmap.rotate_cw()?;
+            image = image.rotate_cw()?;
         }
-        Ok(bitmap)
+        Ok(image)
     }
 }
 

@@ -1,4 +1,4 @@
-use super::{Image, ImageMask, ImageRotate, ImagePeriodicity, ImageRepairOffset};
+use super::{Image, ImageMask, ImageRotate90, ImagePeriodicity, ImageRepairOffset};
 
 pub trait ImageRepairPattern {
     /// Repair damaged pixels and recreate big repeating patterns such as mosaics.

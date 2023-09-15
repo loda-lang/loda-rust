@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageCompare, ImageCrop, ImageHistogram, ImageMaskCount, ImageRotate, ImageSymmetry, Rectangle, ImageMask};
+use super::{Histogram, Image, ImageCompare, ImageCrop, ImageHistogram, ImageMaskCount, ImageRotate90, ImageSymmetry, Rectangle, ImageMask};
 use std::fmt;
 
 const MAX_INSET_VALUE: u8 = 5;

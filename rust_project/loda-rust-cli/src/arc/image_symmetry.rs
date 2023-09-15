@@ -1,4 +1,4 @@
-use super::{Image, ImageRotate};
+use super::{Image, ImageRotate90};
 
 pub trait ImageSymmetry {
     /// Reverse the `x-axis`.

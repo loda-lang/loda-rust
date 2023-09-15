@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageDrawLineWhere, ImageDrawRect, ImageMaskCount, GeneratePattern, ObjectsAndPosition, ObjectsAndPositionMode};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate90, ImageDrawLineWhere, ImageDrawRect, ImageMaskCount, GeneratePattern, ObjectsAndPosition, ObjectsAndPositionMode};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean, PixelConnectivity, GravityDirection, ImageCountUniqueColors};

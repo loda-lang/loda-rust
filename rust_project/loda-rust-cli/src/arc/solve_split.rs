@@ -3,6 +3,14 @@
 //! * With the public ARC 1 dataset. It solves 27 tasks (fully), and 1 partially solves 1 task.
 //! * With the hidden ARC 1 dataset. It solves zero tasks!
 //! 
+//! These are the task that it solves:
+//! 0520fde7, 0c9aba6e, 195ba7dc, 1b2d62fb, 281123b4,
+//! 2dee498d, 31d5ba1a, 3428a4f5, 34b99a2b, 3d31c5b3,
+//! 506d28a5, 5d2a5c43, 6430c8c4, 662c240a, 66f2d22f,
+//! 6a11f6da, 94f9d214, 99b1bc43, bbb1b8b6, ce4f8723,
+//! cf98881b, d19f7514, dae9d2b5, e133d23d, e345f17b,
+//! e98196ab, f2829549, fafffa47
+//! 
 //! Known problem: Can only split into columns or rows, not both.
 //! 
 //! Known problem: Returns a result the moment it finds something that seems to be a solution.
@@ -21,6 +29,9 @@
 //! 
 //! Future experiments:
 //! * Return multiple predictions, up to 3 is allowed.
+//! 
+//! Hard splitview tasks that it currently cannot solve, and will require more advanced techniques:
+//! 136b0064, 351d6448, 93b4f4b3, d47aa2ff, e3497940
 use super::arc_work_model::{Task, Input, PairType};
 use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram, ColorMap, ImageSize};
 use super::{Image, ImageMaskBoolean, Histogram, ImageReplaceColor, ImageSymmetry};
@@ -456,6 +467,7 @@ impl SolveSplit {
                 }
             }
 
+            // println!("task {} unable to solve. It seems to have a split without separator", task.id);
             return Err(anyhow::anyhow!("Cannot solve task. It appears to be a splitview where one part is being extracted. Unable to determine the guiding rule for why a split part is being picked"));
         }
 
@@ -782,6 +794,7 @@ impl SolveSplit {
             return Ok(solution);
         }
 
+        // println!("task {} unable to solve. It seems to have a split with separator", task.id);
         Err(anyhow::anyhow!("task: {} no solution found", task.id))
     }
 }

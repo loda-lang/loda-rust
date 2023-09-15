@@ -180,8 +180,8 @@ async fn main() -> anyhow::Result<()> {
                 .hide(true)
         )
         .subcommand(
-            Command::new("arc-experiment-with-convolution")
-                .about("ARC - AI experiments - Exploring what a model may be like.")
+            Command::new("arc-logistic-regression")
+                .about("ARC - Solve all puzzles using logistic regression solver.")
                 .hide(true)
         )
         .subcommand(
@@ -350,9 +350,9 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if let Some(_sub_m) = matches.subcommand_matches("arc-experiment-with-convolution") {
+    if let Some(_sub_m) = matches.subcommand_matches("arc-logistic-regression") {
         let blocking_task = tokio::task::spawn_blocking(|| {
-            SubcommandARC::run(SubcommandARCMode::ExperimentWithConvolution).expect("ok");
+            SubcommandARC::run(SubcommandARCMode::SolveWithLogisticRegression).expect("ok");
         });
         blocking_task.await?;
         return Ok(());

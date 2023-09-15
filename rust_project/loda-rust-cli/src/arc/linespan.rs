@@ -11,7 +11,7 @@
 //! 
 //! Usecase:
 //! Fill the area after the right-most pixel in each row.
-use super::{Image, ImageSize, ImageRotate, ImageMaskBoolean};
+use super::{Image, ImageSize, ImageRotate90, ImageMaskBoolean};
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)]

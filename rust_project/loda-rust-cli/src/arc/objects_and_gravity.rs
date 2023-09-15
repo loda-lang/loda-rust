@@ -1,7 +1,7 @@
 //! Perform gravity operations on objects matching shapes into the corresponding holes.
 //! 
 //! The ARC task `6a1e5592` is an example of this.
-use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate, ImageMaskBoolean, Rectangle, ImageCrop, PixelConnectivity, ImageMaskGrow, ImageCompare, ImageMaskSolidGround};
+use super::{Image, ImageMask, ImageMaskCount, ImageSize, ImageOverlay, ImageReplaceColor, MixMode, ImageMix, ImageSymmetry, ImageRotate90, ImageMaskBoolean, Rectangle, ImageCrop, PixelConnectivity, ImageMaskGrow, ImageCompare, ImageMaskSolidGround};
 
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML, ImageLabel, GridLabel};

@@ -1,4 +1,4 @@
-use super::{Image, ImageOverlay, ImageRotate, ImageSymmetry};
+use super::{Image, ImageOverlay, ImageRotate90, ImageSymmetry};
 
 pub trait ImageRepeat {
     /// Make a big image by repeating the current image.

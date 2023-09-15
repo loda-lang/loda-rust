@@ -1,4 +1,4 @@
-use super::{Image, Histogram, ImageMask, ImageSymmetry, ImageRotate};
+use super::{Image, Histogram, ImageMask, ImageSymmetry, ImageRotate90};
 
 #[derive(Debug)]
 #[allow(dead_code)]

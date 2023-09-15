@@ -5,7 +5,7 @@ mod tests {
     use crate::arc::{ActionLabel, convolution3x3, ImageCollect, ImageSize, ImageLayout, ImageLayoutMode};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ConnectedComponent, PixelConnectivity, ConnectedComponentItem, ImageMask, Histogram};
-    use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
+    use crate::arc::{ImageFind, ImageOutline, ImageRotate90, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern, ImageFill};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
     use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ReverseColorPopularity, ObjectsAndMass};

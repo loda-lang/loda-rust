@@ -11,7 +11,7 @@
 //! 
 //! Future experiments:
 //! * Fuzzy detection of periodicity, that allows for color changes and noise.
-use super::{Image, ImageRotate};
+use super::{Image, ImageRotate90};
 use num_bigint::BigUint;
 use num_traits::{One, ToPrimitive};
 use num_integer::Integer;

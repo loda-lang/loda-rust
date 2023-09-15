@@ -62,6 +62,7 @@ pub enum NodeData {
     ObjectsInsideImage { connectivity: PixelConnectivity },
     Object { connectivity: PixelConnectivity },
     ShapeType { shape_type: ShapeType },
+    ShapeType45 { shape_type: ShapeType },
     ShapeScale { x: u8, y: u8 },
     ShapeSize { width: u8, height: u8 },
     ShapeTransformations { transformations: Vec<ShapeTransformation> },
@@ -433,6 +434,12 @@ impl TaskGraph {
 
             {
                 let node = NodeData::ShapeType { shape_type: color_and_shape.shape_identification.shape_type.clone() };
+                let index: NodeIndex = self.graph.add_node(node);
+                self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
+            }
+
+            {
+                let node = NodeData::ShapeType45 { shape_type: color_and_shape.shape_identification.shape_type45.clone() };
                 let index: NodeIndex = self.graph.add_node(node);
                 self.graph.add_edge(object_nodeindex, index, EdgeData::Link);
             }
@@ -970,6 +977,13 @@ impl TaskGraph {
         Ok(shape_type)
     }
 
+    /// Get the `ShapeType45` for pixel.
+    pub fn get_shapetype45_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<ShapeType> {
+        let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_object_from_pixel")?;
+        let shape_type: ShapeType = self.get_shapetype45_from_object(object_node).context("get_shapetype45_from_object")?;
+        Ok(shape_type)
+    }
+
     /// Get the `ShapeTransformation` vector for pixel.
     #[allow(dead_code)]
     pub fn get_shapetransformations_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<ShapeTransformation>> {
@@ -1090,12 +1104,41 @@ impl TaskGraph {
             }
         }
         if ambiguous_count > 1 {
-            return Err(anyhow::anyhow!("Object is linked with multiple shapetypes. Is supposed to be linked with only one shapetype."));
+            return Err(anyhow::anyhow!("Object is linked with multiple ShapeType's. Is supposed to be linked with only one ShapeType."));
         }
         if let Some(shapetype) = found_shapetype {
             return Ok(shapetype);
         }
-        Err(anyhow::anyhow!("Object is not linked with a shapetype. Is supposed to be linked with only one shapetype."))
+        Err(anyhow::anyhow!("Object is not linked with a ShapeType. Is supposed to be linked with only one ShapeType."))
+    }
+
+    fn get_shapetype45_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<ShapeType> {
+        match &self.graph[object_nodeindex] {
+            NodeData::Object { connectivity: _ } => {},
+            _ => { 
+                return Err(anyhow::anyhow!("expected NodeData::Object"));
+            }
+        }
+
+        let mut found_shapetype: Option<ShapeType> = None;
+        let mut ambiguous_count: usize = 0;
+        for edge in self.graph.edges(object_nodeindex) {
+            let node_index: NodeIndex = edge.target();
+            match &self.graph[node_index] {
+                NodeData::ShapeType45 { shape_type } => { 
+                    found_shapetype = Some(*shape_type);
+                    ambiguous_count += 1;
+                },
+                _ => continue
+            }
+        }
+        if ambiguous_count > 1 {
+            return Err(anyhow::anyhow!("Object is linked with multiple ShapeType45's. Is supposed to be linked with only one ShapeType45."));
+        }
+        if let Some(shapetype) = found_shapetype {
+            return Ok(shapetype);
+        }
+        Err(anyhow::anyhow!("Object is not linked with a ShapeType45. Is supposed to be linked with only one ShapeType45."))
     }
 
     fn get_shapesize_from_object(&self, object_nodeindex: NodeIndex) -> anyhow::Result<ImageSize> {
