@@ -1,6 +1,6 @@
 //! Performs logistic regression of each input pixel with the corresponding classification for the output pixel.
 //! 
-//! This doesn't solve any of the tasks from the hidden dataset.
+//! This solves 1 of the tasks from the hidden ARC dataset.
 //!
 //! This solves 56 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 1c0d0a4b, 21f83797, 2281f1f4, 23581191,
