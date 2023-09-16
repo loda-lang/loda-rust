@@ -1265,8 +1265,10 @@ impl SolveLogisticRegression {
             let input_denoise_type1: Image = input.denoise_type1(most_popular_color.unwrap_or(255))?;
 
             let earlier_prediction_image: Option<&Image> = earlier_prediction_image_vec.get(pair_index);
-            let mut earlier_prediction_shapetype_image: Option<Image> = None;
-            let mut earlier_prediction_shapetype45_image: Option<Image> = None;
+            let mut earlier_prediction_shapetype_connectivity4: Option<Image> = None;
+            let mut earlier_prediction_shapetype45_connectivity4: Option<Image> = None;
+            // let mut earlier_prediction_shapetype_connectivity8: Option<Image> = None;
+            // let mut earlier_prediction_shapetype45_connectivity8: Option<Image> = None;
             let mut earlier_prediction_mass_connectivity4: Option<Image> = None;
             let mut earlier_prediction_mass_connectivity8: Option<Image> = None;
 
@@ -1282,7 +1284,7 @@ impl SolveLogisticRegression {
                         let mode = MixMode::PickColor1WhenColor0IsZero { color };
                         shapetype_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype_image, mode)?;
                     }
-                    earlier_prediction_shapetype_image = Some(shapetype_image);
+                    earlier_prediction_shapetype_connectivity4 = Some(shapetype_image);
 
                     let mut shapetype45_image: Image = ep_image.clone_zero();
                     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
@@ -1291,8 +1293,30 @@ impl SolveLogisticRegression {
                         let mode = MixMode::PickColor1WhenColor0IsZero { color };
                         shapetype45_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype45_image, mode)?;
                     }
-                    earlier_prediction_shapetype45_image = Some(shapetype45_image);
+                    earlier_prediction_shapetype45_connectivity4 = Some(shapetype45_image);
                 }
+
+                // {
+                //     let connectivity = PixelConnectivity::Connectivity8;
+                //     let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, connectivity)?;
+                //     let mut shapetype_image: Image = ep_image.clone_zero();
+                //     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                //         let shape_type: ShapeType = color_and_shape.shape_identification.shape_type;
+                //         let color: u8 = Self::color_from_shape_type(shape_type);
+                //         let mode = MixMode::PickColor1WhenColor0IsZero { color };
+                //         shapetype_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype_image, mode)?;
+                //     }
+                //     earlier_prediction_shapetype_connectivity8 = Some(shapetype_image);
+
+                //     let mut shapetype45_image: Image = ep_image.clone_zero();
+                //     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                //         let shape_type: ShapeType = color_and_shape.shape_identification.shape_type45;
+                //         let color: u8 = Self::color_from_shape_type(shape_type);
+                //         let mode = MixMode::PickColor1WhenColor0IsZero { color };
+                //         shapetype45_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype45_image, mode)?;
+                //     }
+                //     earlier_prediction_shapetype45_connectivity8 = Some(shapetype45_image);
+                // }
 
                 let mut image_mass_connectivity4: Image = Image::zero(width, height);
                 let mut image_mass_connectivity8: Image = Image::zero(width, height);
@@ -2803,15 +2827,25 @@ impl SolveLogisticRegression {
                         //     }        
                         // }
 
-                        if let Some(image) = &earlier_prediction_shapetype_image {
+                        if let Some(image) = &earlier_prediction_shapetype_connectivity4 {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
                             record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                         }
 
-                        if let Some(image) = &earlier_prediction_shapetype45_image {
+                        if let Some(image) = &earlier_prediction_shapetype45_connectivity4 {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
                             record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                         }
+
+                        // if let Some(image) = &earlier_prediction_shapetype_connectivity8 {
+                        //     let pixel: u8 = image.get(xx, yy).unwrap_or(0);
+                        //     record.serialize_onehot_discard_overflow(pixel, shape_type_count);
+                        // }
+
+                        // if let Some(image) = &earlier_prediction_shapetype45_connectivity8 {
+                        //     let pixel: u8 = image.get(xx, yy).unwrap_or(0);
+                        //     record.serialize_onehot_discard_overflow(pixel, shape_type_count);
+                        // }
 
                         // if let Some(image) = &earlier_prediction_mass_connectivity4 {
                         //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
