@@ -592,6 +592,7 @@ impl SolveLogisticRegression {
             let relative_position_images_connectivity8: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
             _ = relative_position_images_connectivity8;
 
+            let shape_type_count: u8 = ShapeType::len();
             let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, false)?;
             let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8, false)?;
             let shape_type45_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, true)?;
@@ -2672,19 +2673,19 @@ impl SolveLogisticRegression {
 
                     {
                         let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
-                        record.serialize_onehot(pixel, 50);
+                        record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
                     {
                         let pixel: u8 = shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
-                        record.serialize_onehot(pixel, 56);
+                        record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
                     {
                         let pixel: u8 = shape_type45_image_connectivity4.get(xx, yy).unwrap_or(255);
-                        record.serialize_onehot(pixel, 56);
+                        record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
                     {
                         let pixel: u8 = shape_type45_image_connectivity8.get(xx, yy).unwrap_or(255);
-                        record.serialize_onehot(pixel, 56);
+                        record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
                     // for shape_transformation_image in &shape_transformation_images_connectivity4 {
                     //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
@@ -2804,12 +2805,12 @@ impl SolveLogisticRegression {
 
                         if let Some(image) = &earlier_prediction_shapetype_image {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
-                            record.serialize_onehot(pixel, 56);
+                            record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                         }
 
                         if let Some(image) = &earlier_prediction_shapetype45_image {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
-                            record.serialize_onehot(pixel, 56);
+                            record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                         }
 
                         // if let Some(image) = &earlier_prediction_mass_connectivity4 {
