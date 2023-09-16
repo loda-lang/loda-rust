@@ -2098,8 +2098,7 @@ impl SolveLogisticRegression {
                     // record.serialize_onehot_discard_overflow((x2_mod2 + y2_reverse_mod2) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x2_reverse_mod2 + y2_mod2) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x2_reverse_mod2 + y2_reverse_mod2) & 1, 2);
-                    record.serialize_bool(preserve_edge);
-                    record.serialize_bool(preserve_edge);
+                    record.serialize_bool_onehot(preserve_edge);
                     record.serialize_bool(full_row_and_column);
                     record.serialize_bool(full_row_xor_column);
                     record.serialize_bool(full_row_or_column);
