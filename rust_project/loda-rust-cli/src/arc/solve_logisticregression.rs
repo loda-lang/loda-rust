@@ -2110,6 +2110,8 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(the_holecount_connectivity8);
                     record.serialize_onehot_discard_overflow(the_holecount_connectivity4, 2);
                     record.serialize_onehot_discard_overflow(the_holecount_connectivity8, 2);
+                    // record.serialize_onehot_discard_overflow(the_holecount_connectivity4.min(9), 10);
+                    // record.serialize_onehot_discard_overflow(the_holecount_connectivity8.min(9), 10);
                     record.serialize_bool(corners_center1);
                     record.serialize_bool(corners_center2);
                     record.serialize_bool(corners_center3);
