@@ -2066,6 +2066,7 @@ impl SolveLogisticRegression {
                     record.serialize_ternary(half_vertical);
                     record.serialize_bool_onehot(input_is_noise_color);
                     record.serialize_bool_onehot(input_is_most_popular_color);
+                    // record.serialize_bool(input_is_removal_color == 1);
                     record.serialize_onehot_discard_overflow(x_mod2, 2);
                     record.serialize_onehot_discard_overflow(y_mod2, 2);
                     record.serialize_onehot_discard_overflow(x_reverse_mod2, 2);
@@ -2196,6 +2197,7 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 record.serialize_cluster_id(color, cluster_id);
+                                // record.serialize_cluster_id(color, 255 - cluster_id);
                                 // record.serialize_complex(cluster_id as u16, 41);
                             }
                         }
@@ -2208,6 +2210,7 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 record.serialize_complex(cluster_id as u16, 4);
+                                // record.serialize_onehot_discard_overflow(cluster_id, 4);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -2218,7 +2221,8 @@ impl SolveLogisticRegression {
                                     }
                                     None => 255
                                 };
-                                record.serialize_complex(cluster_id as u16, 3);
+                                // record.serialize_complex(cluster_id as u16, 3);
+                                record.serialize_onehot_discard_overflow(cluster_id, 3);
                             }
                         }
                         for connectivity in &connectivity_vec {
