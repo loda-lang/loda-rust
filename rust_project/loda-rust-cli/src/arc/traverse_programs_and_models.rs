@@ -1,6 +1,6 @@
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
-use super::{Prediction, TestItem, TaskItem, Tasks};
+use super::{Prediction, TestItem, TaskItem, ArcathonSolutionJsonFile};
 use super::{ActionLabel, ImageHistogram, ImageSize, Histogram, ExportTasks, SolveSplit};
 use super::human_readable_utc_timestamp;
 use crate::analytics::{AnalyticsDirectory, Analytics};
@@ -1614,11 +1614,11 @@ impl TraverseProgramsAndModels {
 
         let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
-        let initial_tasks: Tasks = match Tasks::read_solutions_json(&self.arc_config.path_solution_teamid_json) {
+        let initial_tasks: ArcathonSolutionJsonFile = match ArcathonSolutionJsonFile::load(&self.arc_config.path_solution_teamid_json) {
             Ok(value) => value,
             Err(error) => {
                 error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
-                Tasks::empty()
+                ArcathonSolutionJsonFile::empty()
             }
         };
         println!("initial_tasks.len: {}", initial_tasks.task_vec.len());
@@ -2428,8 +2428,8 @@ impl Record {
 }
 
 fn save_solutions_json(path_solution_dir: &Path, path_solution_teamid_json: &Path, task_vec: &Vec<TaskItem>) {
-    let tasks = Tasks { task_vec: task_vec.clone() };
-    match tasks.save_solutions_json(path_solution_dir, path_solution_teamid_json) {
+    let tasks = ArcathonSolutionJsonFile { task_vec: task_vec.clone() };
+    match tasks.save(path_solution_dir, path_solution_teamid_json) {
         Ok(()) => {
             debug!("updated solutions file: tasks.len(): {}", task_vec.len());
         },

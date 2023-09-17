@@ -1,3 +1,4 @@
+//! Read and write the `archathon_solution_json` file.
 use super::arc_json_model;
 use serde::{Deserialize, Serialize};
 use std::{path::Path, fs};
@@ -23,17 +24,19 @@ pub struct TaskItem {
     pub test_vec: Vec<TestItem>,
 }
 
-pub struct Tasks {
+/// Wrapper for the `archathon_solution_json` file.
+#[derive(Clone, Debug)]
+pub struct ArcathonSolutionJsonFile {
     pub task_vec: Vec<TaskItem>,
 }
 
-impl Tasks {
+impl ArcathonSolutionJsonFile {
     /// Load the `archaton_solution_json` file.
-    pub fn read_solutions_json(path_solution_teamid_json: &Path) -> anyhow::Result<Self> {
+    pub fn load(path_solution_teamid_json: &Path) -> anyhow::Result<Self> {
         let solution_teamid_json_string: String = match fs::read_to_string(path_solution_teamid_json) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("something went wrong reading the file: {:?} error: {:?}", path_solution_teamid_json, error));
+                return Err(anyhow::anyhow!("Something went wrong reading the file: {:?} error: {:?}", path_solution_teamid_json, error));
             }
         };
         let tasks: Vec<TaskItem> = match serde_json::from_str(&solution_teamid_json_string) {
@@ -55,7 +58,7 @@ impl Tasks {
     }
 
     /// Save the `archaton_solution_json` file.
-    pub fn save_solutions_json(&self, path_solution_dir: &Path, path_solution_teamid_json: &Path) -> anyhow::Result<()> {
+    pub fn save(&self, path_solution_dir: &Path, path_solution_teamid_json: &Path) -> anyhow::Result<()> {
         if !path_solution_dir.exists() {
                 match fs::create_dir(path_solution_dir) {
                 Ok(_) => {},
@@ -67,13 +70,13 @@ impl Tasks {
         let json: String = match serde_json::to_string(&self.task_vec) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("unable to serialize task_vec to json: {:?}", error));
+                return Err(anyhow::anyhow!("Unable to serialize task_vec to json: {:?}", error));
             }
         };
         match fs::write(&path_solution_teamid_json, json) {
             Ok(()) => {},
             Err(error) => {
-                return Err(anyhow::anyhow!("unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error));
+                return Err(anyhow::anyhow!("Unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error));
             }
         }
         Ok(())
@@ -157,12 +160,12 @@ mod tests {
         let path_solutions_json: PathBuf = basedir.join("solutions.json");
 
         let task_vec = mock_task_vec();
-        let tasks = Tasks {
+        let tasks = ArcathonSolutionJsonFile {
             task_vec
         };
 
         // Act
-        tasks.save_solutions_json(&basedir, &path_solutions_json)?;
+        tasks.save(&basedir, &path_solutions_json)?;
 
         // Assert
         let json: String = fs::read_to_string(&path_solutions_json)?;
@@ -181,7 +184,7 @@ mod tests {
         let path: PathBuf = path_testdata("arcathon_solution_format").expect("ok");
 
         // Act
-        let tasks_instance: Tasks = Tasks::read_solutions_json(&path).expect("ok");
+        let tasks_instance: ArcathonSolutionJsonFile = ArcathonSolutionJsonFile::load(&path).expect("ok");
 
         // Assert
         let tasks: Vec<TaskItem> = tasks_instance.task_vec.clone();
@@ -204,7 +207,7 @@ mod tests {
         let path: PathBuf = path_testdata("solution_notXORdinary").expect("ok");
 
         // Act
-        let tasks_instance: Tasks = Tasks::read_solutions_json(&path).expect("ok");
+        let tasks_instance: ArcathonSolutionJsonFile = ArcathonSolutionJsonFile::load(&path).expect("ok");
 
         // Assert
         let tasks: Vec<TaskItem> = tasks_instance.task_vec.clone();
