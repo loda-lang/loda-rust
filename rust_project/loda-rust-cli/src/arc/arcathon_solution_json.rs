@@ -1,5 +1,6 @@
 use super::arc_json_model;
 use serde::{Deserialize, Serialize};
+use std::{path::Path, fs};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Prediction {
@@ -22,12 +23,68 @@ pub struct TaskItem {
     pub test_vec: Vec<TestItem>,
 }
 
-pub type Tasks = Vec<TaskItem>;
+pub struct Tasks {
+    pub task_vec: Vec<TaskItem>,
+}
+
+impl Tasks {
+    /// Load the `archaton_solution_json` file.
+    pub fn read_solutions_json(path_solution_teamid_json: &Path) -> anyhow::Result<Self> {
+        let solution_teamid_json_string: String = match fs::read_to_string(path_solution_teamid_json) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("something went wrong reading the file: {:?} error: {:?}", path_solution_teamid_json, error));
+            }
+        };
+        let tasks: Vec<TaskItem> = match serde_json::from_str(&solution_teamid_json_string) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("Could not parse archaton_solution_json file, path: {:?} error: {:?} json: {:?}", path_solution_teamid_json, error, solution_teamid_json_string));
+            }
+        };
+        let instance = Self {
+            task_vec: tasks,
+        };
+        Ok(instance)
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            task_vec: vec!(),
+        }
+    }
+
+    /// Save the `archaton_solution_json` file.
+    pub fn save_solutions_json(&self, path_solution_dir: &Path, path_solution_teamid_json: &Path) -> anyhow::Result<()> {
+        if !path_solution_dir.exists() {
+                match fs::create_dir(path_solution_dir) {
+                Ok(_) => {},
+                Err(error) => {
+                    return Err(anyhow::anyhow!("Unable to create solution directory: {:?}, error: {:?}", path_solution_dir, error));
+                }
+            }
+        }
+        let json: String = match serde_json::to_string(&self.task_vec) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("unable to serialize task_vec to json: {:?}", error));
+            }
+        };
+        match fs::write(&path_solution_teamid_json, json) {
+            Ok(()) => {},
+            Err(error) => {
+                return Err(anyhow::anyhow!("unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error));
+            }
+        }
+        Ok(())
+    }    
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::read_testdata;
+    use crate::arc::path_testdata;
+    use std::path::PathBuf;
 
     fn mock_prediction() -> Prediction {
         Prediction {
@@ -83,7 +140,7 @@ mod tests {
         assert_eq!(json.contains("[[1,2],[3,4]]"), true);
     }
 
-    fn mock_tasks() -> Tasks {
+    fn mock_task_vec() -> Vec<TaskItem> {
         let mut task_vec = Vec::<TaskItem>::new();
         task_vec.push(mock_taskitem());
         task_vec.push(mock_taskitem());
@@ -91,26 +148,43 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_tasks_to_json() {
-        let instance = mock_tasks();
-        let json: String = serde_json::to_string(&instance).expect("string");
+    fn test_20000_save_solutions_json() -> anyhow::Result<()> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_20000_save_solutions_json");
+        fs::create_dir(&basedir)?;
+
+        let path_solutions_json: PathBuf = basedir.join("solutions.json");
+
+        let task_vec = mock_task_vec();
+        let tasks = Tasks {
+            task_vec
+        };
+
+        // Act
+        tasks.save_solutions_json(&basedir, &path_solutions_json)?;
+
+        // Assert
+        let json: String = fs::read_to_string(&path_solutions_json)?;
         assert_eq!(json.starts_with("[{"), true);
         assert_eq!(json.ends_with("}]"), true);
         assert_eq!(json.contains("mock_taskitem"), true);
         assert_eq!(json.contains("number_of_predictions"), true);
         assert_eq!(json.contains("prediction_id"), true);
         assert_eq!(json.contains("[[1,2],[3,4]]"), true);
+        Ok(())
     }
 
     #[test]
-    fn test_20000_deserialize() {
+    fn test_30000_read_solutions_json() {
         // Arrange
-        let json: String = read_testdata("arcathon_solution_format").expect("string");
+        let path: PathBuf = path_testdata("arcathon_solution_format").expect("ok");
 
         // Act
-        let tasks: Tasks = serde_json::from_str(&json).expect("tasks");
+        let tasks_instance: Tasks = Tasks::read_solutions_json(&path).expect("ok");
 
         // Assert
+        let tasks: Vec<TaskItem> = tasks_instance.task_vec.clone();
         assert_eq!(tasks.len(), 2);
         assert_eq!(tasks[0].task_name, "12997ef3");
         assert_eq!(tasks[1].task_name, "13713586");
@@ -125,14 +199,15 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_deserialize() {
+    fn test_30001_read_solutions_json() {
         // Arrange
-        let json: String = read_testdata("solution_notXORdinary").expect("string");
+        let path: PathBuf = path_testdata("solution_notXORdinary").expect("ok");
 
         // Act
-        let tasks: Tasks = serde_json::from_str(&json).expect("tasks");
+        let tasks_instance: Tasks = Tasks::read_solutions_json(&path).expect("ok");
 
         // Assert
+        let tasks: Vec<TaskItem> = tasks_instance.task_vec.clone();
         assert_eq!(tasks.len(), 2);
         assert_eq!(tasks[0].task_name, "3428a4f5");
         assert_eq!(tasks[1].task_name, "f2829549");

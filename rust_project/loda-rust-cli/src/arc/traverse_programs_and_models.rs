@@ -1058,23 +1058,6 @@ impl TraverseProgramsAndModels {
         result_program_item_vec
     }
 
-    fn read_solutions_json(&self) -> anyhow::Result<Tasks> {
-        let path: &Path = &self.arc_config.path_solution_teamid_json;
-        let solution_teamid_json_string: String = match fs::read_to_string(path) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("something went wrong reading the file: {:?} error: {:?}", path, error));
-            }
-        };
-        let tasks: Tasks = match serde_json::from_str(&solution_teamid_json_string) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("Could not parse archaton_solution_json file, path: {:?} error: {:?} json: {:?}", path, error, solution_teamid_json_string));
-            }
-        };
-        Ok(tasks)
-    }
-
     fn eval_single_task_with_all_existing_solutions_inner(&self, pattern: &String) -> anyhow::Result<()> {
         let verbose = false;
         let verify_test_output = true;
@@ -1631,17 +1614,17 @@ impl TraverseProgramsAndModels {
 
         let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
-        let initial_tasks: Tasks = match self.read_solutions_json() {
+        let initial_tasks: Tasks = match Tasks::read_solutions_json(&self.arc_config.path_solution_teamid_json) {
             Ok(value) => value,
             Err(error) => {
                 error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
-                vec!()
+                Tasks::empty()
             }
         };
-        println!("initial_tasks.len: {}", initial_tasks.len());
+        println!("initial_tasks.len: {}", initial_tasks.task_vec.len());
 
         let mut puzzle_names_to_ignore = HashSet::<String>::new();
-        for task in &initial_tasks {
+        for task in &initial_tasks.task_vec {
             puzzle_names_to_ignore.insert(task.task_name.clone());
         }
 
@@ -1693,7 +1676,7 @@ impl TraverseProgramsAndModels {
             println!("puzzles unsolved: {}", number_of_unsolved_puzzles);
         }
 
-        let current_tasks: Tasks = initial_tasks;
+        let current_tasks: Vec<TaskItem> = initial_tasks.task_vec.clone();
         save_solutions_json(
             &self.arc_config.path_solution_dir,
             &self.arc_config.path_solution_teamid_json,
@@ -2143,7 +2126,7 @@ struct BatchState {
     remove_model_items: Vec<Rc<RefCell<ModelItem>>>,
     discovered_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     unique_records: HashSet::<Record>,
-    current_tasks: Tasks,
+    current_tasks: Vec<TaskItem>,
     terminate_due_to_timeout: bool,
 }
 
@@ -2444,28 +2427,14 @@ impl Record {
     }
 }
 
-fn save_solutions_json(path_solution_dir: &Path, path_solution_teamid_json: &Path, tasks: &Tasks) {
-    if !path_solution_dir.exists() {
-            match fs::create_dir(path_solution_dir) {
-            Ok(_) => {},
-            Err(err) => {
-                panic!("Unable to create solution directory: {:?}, error: {:?}", path_solution_dir, err);
-            }
-        }
-    }
-    let json: String = match serde_json::to_string(&tasks) {
-        Ok(value) => value,
-        Err(error) => {
-            error!("unable to serialize tasks to json: {:?}", error);
-            return;
-        }
-    };
-    match fs::write(&path_solution_teamid_json, json) {
-        Ok(()) => {},
+fn save_solutions_json(path_solution_dir: &Path, path_solution_teamid_json: &Path, task_vec: &Vec<TaskItem>) {
+    let tasks = Tasks { task_vec: task_vec.clone() };
+    match tasks.save_solutions_json(path_solution_dir, path_solution_teamid_json) {
+        Ok(()) => {
+            debug!("updated solutions file: tasks.len(): {}", task_vec.len());
+        },
         Err(error) => {
             error!("unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error);
-            return;
         }
     }
-    debug!("updated solutions file: tasks.len(): {}", tasks.len());
 }
