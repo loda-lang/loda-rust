@@ -41,17 +41,17 @@ impl PredictionType {
 }
 
 #[derive(Clone, Debug)]
-pub struct PredictionItem {
+pub struct Prediction {
     pub output_id: u8,
     pub output: arc_json_model::Grid,
     pub prediction_type: PredictionType,
 }
 
-impl PredictionItem {
+impl Prediction {
     #[allow(dead_code)]
-    fn testitems_from_predictionitems(predictionitem_vec: &Vec<PredictionItem>) -> Vec<TestItem> {
+    fn testitems_from_predictionitems(predictions: &Vec<Prediction>) -> Vec<TestItem> {
         let mut max_output_id: u8 = 0;
-        for prediction in predictionitem_vec {
+        for prediction in predictions {
             if prediction.output_id > max_output_id {
                 max_output_id = prediction.output_id;
             }
@@ -60,8 +60,8 @@ impl PredictionItem {
         let mut testitem_vec = Vec::<TestItem>::new();
 
         for output_id in 0..=max_output_id {
-            let mut type_and_item_vec = Vec::<(PredictionType, PredictionItem)>::new();
-            for prediction in predictionitem_vec {
+            let mut type_and_item_vec = Vec::<(PredictionType, Prediction)>::new();
+            for prediction in predictions {
                 if prediction.output_id != output_id {
                     continue;
                 }
@@ -105,7 +105,7 @@ pub struct ArcathonSolutionCoordinator {
     path_solution_dir: PathBuf,
     path_solution_teamid_json: PathBuf,
 
-    taskname_to_prediction_vec: HashMap<String, Vec<PredictionItem>>,
+    taskname_to_prediction_vec: HashMap<String, Vec<Prediction>>,
 }
 
 impl ArcathonSolutionCoordinator {
@@ -118,7 +118,7 @@ impl ArcathonSolutionCoordinator {
     }
 
     #[allow(dead_code)]
-    pub fn append_predictions(&mut self, task_name: String, prediction_vec: Vec<PredictionItem>) {
+    pub fn append_predictions(&mut self, task_name: String, prediction_vec: Vec<Prediction>) {
         self.taskname_to_prediction_vec
             .entry(task_name)
             .or_insert(Vec::new())
@@ -126,11 +126,11 @@ impl ArcathonSolutionCoordinator {
     }
 
     #[allow(dead_code)]
-    pub fn save_solutions_json(&self) {
+    pub fn save_solutions_json(&self) -> anyhow::Result<()> {
         let mut task_vec = Vec::<TaskItem>::new();
         for (taskname, prediction_vec) in &self.taskname_to_prediction_vec {
 
-            let testitem_vec: Vec<TestItem> = PredictionItem::testitems_from_predictionitems(prediction_vec);
+            let testitem_vec: Vec<TestItem> = Prediction::testitems_from_predictionitems(prediction_vec);
             if testitem_vec.is_empty() {
                 continue;
             }
@@ -148,9 +148,10 @@ impl ArcathonSolutionCoordinator {
         match solution_json_file.save(&self.path_solution_dir, &self.path_solution_teamid_json) {
             Ok(()) => {},
             Err(error) => {
-                error!("Unable to save solutions file. path: {:?} error: {:?}", self.path_solution_teamid_json, error);
+                return Err(anyhow::anyhow!("Unable to save solutions file. path: {:?} error: {:?}", self.path_solution_teamid_json, error));
             }
         }
+        Ok(())
     }
 }
 
@@ -161,11 +162,11 @@ mod tests {
     #[test]
     fn test_10000_testitems_from_predictionitems() {
         // Arrange
-        let mut prediction_vec = Vec::<PredictionItem>::new();
+        let mut prediction_vec = Vec::<Prediction>::new();
 
         // output_id 5
         {
-            let prediction = PredictionItem {
+            let prediction = Prediction {
                 output_id: 5,
                 output: vec![vec![2]],
                 prediction_type: PredictionType::MutatedLODA,
@@ -173,7 +174,7 @@ mod tests {
             prediction_vec.push(prediction);
         }
         {
-            let prediction = PredictionItem {
+            let prediction = Prediction {
                 output_id: 5,
                 output: vec![vec![4]],
                 prediction_type: PredictionType::None, // This gets ignored, since it's the worst prediction.
@@ -181,7 +182,7 @@ mod tests {
             prediction_vec.push(prediction);
         }
         {
-            let prediction = PredictionItem {
+            let prediction = Prediction {
                 output_id: 5,
                 output: vec![vec![1]],
                 prediction_type: PredictionType::SolveSplit,
@@ -189,7 +190,7 @@ mod tests {
             prediction_vec.push(prediction);
         }
         {
-            let prediction = PredictionItem {
+            let prediction = Prediction {
                 output_id: 5,
                 output: vec![vec![3]],
                 prediction_type: PredictionType::SolveLogisticRegression,
@@ -199,7 +200,7 @@ mod tests {
 
         // output_id 9
         {
-            let prediction = PredictionItem {
+            let prediction = Prediction {
                 output_id: 9,
                 output: vec![vec![6]],
                 prediction_type: PredictionType::None,
@@ -207,7 +208,7 @@ mod tests {
             prediction_vec.push(prediction);
         }
         {
-            let prediction = PredictionItem {
+            let prediction = Prediction {
                 output_id: 9,
                 output: vec![vec![5]],
                 prediction_type: PredictionType::MutatedLODA,
@@ -216,7 +217,7 @@ mod tests {
         }
 
         // Act
-        let testitem_vec: Vec<TestItem> = PredictionItem::testitems_from_predictionitems(&prediction_vec);
+        let testitem_vec: Vec<TestItem> = Prediction::testitems_from_predictionitems(&prediction_vec);
 
         // Assert
         assert_eq!(testitem_vec.len(), 2);
