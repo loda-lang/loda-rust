@@ -122,8 +122,9 @@ impl ArcathonSolutionCoordinator {
             .extend(prediction_vec);
     }
 
+    /// Returns the number of bytes of the saved file.
     #[allow(dead_code)]
-    pub fn save_solutions_json(&self) -> anyhow::Result<()> {
+    pub fn save_solutions_json(&self) -> anyhow::Result<usize> {
         let mut task_vec = Vec::<TaskItem>::new();
         for (taskname, prediction_vec) in &self.taskname_to_prediction_vec {
 
@@ -142,20 +143,20 @@ impl ArcathonSolutionCoordinator {
         let solution_json_file = ArcathonSolutionJsonFile {
             task_vec,
         };
-        match solution_json_file.save(&self.path_solution_dir, &self.path_solution_teamid_json) {
-            Ok(()) => {},
+        let bytes: usize = match solution_json_file.save(&self.path_solution_dir, &self.path_solution_teamid_json) {
+            Ok(bytes) => bytes,
             Err(error) => {
                 return Err(anyhow::anyhow!("Unable to save solutions file. path: {:?} error: {:?}", self.path_solution_teamid_json, error));
             }
-        }
-        Ok(())
+        };
+        Ok(bytes)
     }
 
     #[allow(dead_code)]
     pub fn save_solutions_json_with_console_output(&self) {
         match self.save_solutions_json() {
-            Ok(()) => {
-                println!("Saved solutions file: {:?}", self.path_solution_teamid_json);
+            Ok(bytes) => {
+                println!("Saved solutions file: {:?} bytes: {}", self.path_solution_teamid_json, bytes);
             },
             Err(error) => {
                 error!("Unable to save solutions file. path: {:?} error: {:?}", self.path_solution_teamid_json, error);

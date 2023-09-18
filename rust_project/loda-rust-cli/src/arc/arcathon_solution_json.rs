@@ -58,7 +58,9 @@ impl ArcathonSolutionJsonFile {
     }
 
     /// Save the `archaton_solution_json` file.
-    pub fn save(&self, path_solution_dir: &Path, path_solution_teamid_json: &Path) -> anyhow::Result<()> {
+    /// 
+    /// Returns the file size in bytes.
+    pub fn save(&self, path_solution_dir: &Path, path_solution_teamid_json: &Path) -> anyhow::Result<usize> {
         if !path_solution_dir.exists() {
                 match fs::create_dir(path_solution_dir) {
                 Ok(_) => {},
@@ -73,13 +75,14 @@ impl ArcathonSolutionJsonFile {
                 return Err(anyhow::anyhow!("Unable to serialize task_vec to json: {:?}", error));
             }
         };
+        let bytes: usize = json.len();
         match fs::write(&path_solution_teamid_json, json) {
             Ok(()) => {},
             Err(error) => {
                 return Err(anyhow::anyhow!("Unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error));
             }
         }
-        Ok(())
+        Ok(bytes)
     }    
 }
 
@@ -165,9 +168,12 @@ mod tests {
         };
 
         // Act
-        tasks.save(&basedir, &path_solutions_json)?;
+        let returned_bytes: usize = tasks.save(&basedir, &path_solutions_json)?;
 
         // Assert
+        let filesize: u64 = path_solutions_json.metadata()?.len();
+        assert_eq!(returned_bytes as u64, filesize);
+        assert_eq!(returned_bytes, 659);
         let json: String = fs::read_to_string(&path_solutions_json)?;
         assert_eq!(json.starts_with("[{"), true);
         assert_eq!(json.ends_with("}]"), true);

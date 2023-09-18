@@ -2422,7 +2422,7 @@ impl Record {
 fn save_solutions_json(path_solution_dir: &Path, path_solution_teamid_json: &Path, task_vec: &Vec<TaskItem>) {
     let tasks = ArcathonSolutionJsonFile { task_vec: task_vec.clone() };
     match tasks.save(path_solution_dir, path_solution_teamid_json) {
-        Ok(()) => {
+        Ok(_bytes) => {
             debug!("updated solutions file: tasks.len(): {}", task_vec.len());
         },
         Err(error) => {
