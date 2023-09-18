@@ -14,8 +14,7 @@ pub enum PredictionType {
     None,
     SolveLogisticRegression,
     SolveSplit,
-    ExistingLODA,
-    MutatedLODA,
+    SolveGenetic,
 }
 
 impl PredictionType {
@@ -26,10 +25,8 @@ impl PredictionType {
             Self::SolveSplit => 0, 
 
             // The LODA programs that have been manually been coded are somewhat good and deals with many edge cases.
-            Self::ExistingLODA => 1, 
-
             // The mutated LODA programs, may not deal with edge cases, but they are still good, since all train+test pairs gets evaluated.
-            Self::MutatedLODA => 2, 
+            Self::SolveGenetic => 1, 
 
             // Logistic regression is rarely correct, so it's low priority.
             Self::SolveLogisticRegression => 9, 
@@ -181,7 +178,7 @@ mod tests {
             let prediction = Prediction {
                 output_id: 5,
                 output: vec![vec![2]],
-                prediction_type: PredictionType::MutatedLODA,
+                prediction_type: PredictionType::SolveGenetic,
             };
             prediction_vec.push(prediction);
         }
@@ -223,7 +220,7 @@ mod tests {
             let prediction = Prediction {
                 output_id: 9,
                 output: vec![vec![5]],
-                prediction_type: PredictionType::MutatedLODA,
+                prediction_type: PredictionType::SolveGenetic,
             };
             prediction_vec.push(prediction);
         }
