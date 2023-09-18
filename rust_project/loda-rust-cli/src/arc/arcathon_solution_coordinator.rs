@@ -1,4 +1,8 @@
 //! Decides what gets saved to the `archaton_solution_json` file.
+//! 
+//! Future experiments:
+//! Assign it a higher confidence score, when there are identical predictions from multple solvers.
+//! Eliminate duplicate predictions, when there are identical predictions from multple solvers.
 use super::{TestItem, TaskItem, arc_json_model, arcathon_solution_json};
 use super::ArcathonSolutionJsonFile;
 use std::collections::HashMap;
