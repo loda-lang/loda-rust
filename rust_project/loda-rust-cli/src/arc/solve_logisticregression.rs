@@ -35,7 +35,7 @@
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -260,7 +260,7 @@ impl SolveLogisticRegression {
         Ok(())
     }
 
-    pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
+    pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
         let mut accumulated_images = Vec::<Image>::new();
         let mut computed_images = Vec::<Image>::new();
         let number_of_iterations: usize = 5;
@@ -276,13 +276,12 @@ impl SolveLogisticRegression {
             HtmlLog::compare_images(accumulated_images);
         }
 
-        let testitem_vec: Vec::<arcathon_solution_json::TestItem> = testitems_from_computed_images(
+        let predictions: Vec::<arcathon_solution_coordinator::Prediction> = predictions_from_test_pairs(
             task, 
             &computed_images,
             verify_test_output,
         )?;
-
-        Ok(testitem_vec)
+        Ok(predictions)
     }
 
     fn object_id_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
@@ -3259,8 +3258,8 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
     Ok(computed_test_images_vec)
 }
 
-fn testitems_from_computed_images(task: &Task, computed_images: &Vec<Image>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
-    let mut testitem_vec = Vec::<arcathon_solution_json::TestItem>::new();
+fn predictions_from_test_pairs(task: &Task, computed_images: &Vec<Image>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
+    let mut predictions = Vec::<arcathon_solution_coordinator::Prediction>::new();
     let mut test_index: usize = 0;
     for pair in &task.pairs {
         if pair.pair_type != PairType::Test {
@@ -3273,20 +3272,12 @@ fn testitems_from_computed_images(task: &Task, computed_images: &Vec<Image>, ver
 
         {
             let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(computed_image);
-            let prediction = arcathon_solution_json::Prediction {
-                prediction_id: 0,
+            let prediction = arcathon_solution_coordinator::Prediction {
+                output_id: predictions.len().min(255) as u8,
                 output: grid,
+                prediction_type: arcathon_solution_coordinator::PredictionType::SolveLogisticRegression,
             };
-
-            let predictions: Vec<arcathon_solution_json::Prediction> = vec![prediction];
-
-            let output_id: u8 = testitem_vec.len().min(255) as u8;
-            let testitem = arcathon_solution_json::TestItem {
-                output_id,
-                number_of_predictions: predictions.len().min(255) as u8,
-                predictions: predictions,
-            };
-            testitem_vec.push(testitem);
+            predictions.push(prediction);
         }
 
         if WRITE_TO_HTMLLOG {
@@ -3321,8 +3312,8 @@ fn testitems_from_computed_images(task: &Task, computed_images: &Vec<Image>, ver
     // predicted and targets)
     // println!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc());
     // HtmlLog::text(format!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc()));
-    if testitem_vec.len() != task.count_test() {
-        return Err(anyhow::anyhow!("task: {} testitem_vec.len() != task.count_test()", task.id));
+    if predictions.len() != task.count_test() {
+        return Err(anyhow::anyhow!("task: {} predictions.len() != task.count_test()", task.id));
     }
-    Ok(testitem_vec)
+    Ok(predictions)
 }

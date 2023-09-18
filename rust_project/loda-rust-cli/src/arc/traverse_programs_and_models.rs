@@ -1791,7 +1791,7 @@ impl TraverseProgramsAndModels {
                 for model_item in &runner.plan.scheduled_model_item_vec {
                     let task: Task = model_item.borrow().task.clone();
                     
-                    let testitem_vec: Vec<TestItem> = match SolveLogisticRegression::process_task(&task, verify_test_output) {
+                    let prediction_vec: Vec<arcathon_solution_coordinator::Prediction> = match SolveLogisticRegression::process_task(&task, verify_test_output) {
                         Ok(value) => value,
                         Err(error) => {
                             if verbose_logistic_regression {
@@ -1808,22 +1808,14 @@ impl TraverseProgramsAndModels {
     
                     let model_id: ModelItemId = model_item.borrow().id.clone();    
                     let task_name: String = model_id.file_stem();
-                    let task_item = TaskItem {
-                        task_name: task_name,
-                        test_vec: testitem_vec,
-                    };
-                    // Future experiment: don't add if already exists
-                    state.current_tasks.push(task_item);        
+                    coordinator.append_predictions(task_name, prediction_vec);
                     pb.inc(1);
                 }
                 pb.finish_and_clear();
-                save_solutions_json(
-                    &self.arc_config.path_solution_dir,
-                    &self.arc_config.path_solution_teamid_json,
-                    &state.current_tasks
-                );
+                coordinator.save_solutions_json_with_console_output();
                 println!("{} - Executable elapsed: {}. Solved {} tasks.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()), count_tasks_solved);
     
+                // TODO: don't stop after saving solutions, instead continue to the other approaches.
                 println!("Done!");
                 return Ok(());
             }
