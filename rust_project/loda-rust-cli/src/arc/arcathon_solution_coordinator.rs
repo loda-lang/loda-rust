@@ -321,4 +321,45 @@ mod tests {
             assert_eq!(prediction_ids, vec![0, 1]);
         }
     }
+
+    #[test]
+    fn test_30000_same_output_across_multiple_loadsave_iterations() -> anyhow::Result<()> {
+        // Arrange
+        let original_file_path: PathBuf = path_testdata("arcathon_solution_format").expect("ok");
+
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_30000_same_output_across_multiple_loadsave_iterations");
+        fs::create_dir(&basedir)?;
+
+        let path_solutions_json1: PathBuf = basedir.join("solutions1.json");
+        let path_solutions_json2: PathBuf = basedir.join("solutions2.json");
+        
+        // Act
+        let mut coordinator1 = ArcathonSolutionCoordinator::new(
+            &basedir,
+            &path_solutions_json1,
+        );
+        {
+            let solution_json_file: ArcathonSolutionJsonFile = ArcathonSolutionJsonFile::load(&original_file_path).expect("ok");
+            coordinator1.import_predictions_from_solution_json_file(&solution_json_file);
+        }
+        coordinator1.save_solutions_json()?;
+
+        let mut coordinator2 = ArcathonSolutionCoordinator::new(
+            &basedir,
+            &path_solutions_json2,
+        );
+        {
+            let solution_json_file: ArcathonSolutionJsonFile = ArcathonSolutionJsonFile::load(&path_solutions_json1).expect("ok");
+            coordinator2.import_predictions_from_solution_json_file(&solution_json_file);
+        }
+        coordinator2.save_solutions_json()?;
+
+        // Assert
+        let content1: String = fs::read_to_string(&path_solutions_json1).expect("ok");
+        let content2: String = fs::read_to_string(&path_solutions_json2).expect("ok");
+        assert_eq!(content1, content2);
+        assert_eq!(content1.len(), 644);
+        Ok(())
+    }
 }
