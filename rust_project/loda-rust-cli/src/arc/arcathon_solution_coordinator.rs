@@ -70,7 +70,7 @@ impl Prediction {
             }
 
             // Move the best prediction to the front. And the worst prediction to the back.
-            type_and_item_vec.sort_unstable_by_key(|item| item.0.sort_weight());
+            type_and_item_vec.sort_by_key(|item| item.0.sort_weight());
 
             // Pick the N best predictions.
             type_and_item_vec.truncate(MAX_NUMBER_OF_PREDICTIONS as usize);
@@ -139,6 +139,9 @@ impl ArcathonSolutionCoordinator {
             };
             task_vec.push(task_item);
         }
+
+        // Sort by task_name, so the tasks don't appear in random order.
+        task_vec.sort_by_key(|task_item| task_item.task_name.clone());
 
         let solution_json_file = ArcathonSolutionJsonFile {
             task_vec,
