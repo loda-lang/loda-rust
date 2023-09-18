@@ -1,7 +1,7 @@
 use super::{arc_json_model, InspectPredicted};
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model;
-use super::{Image, ImageSize, ImageToNumber, NumberToImage, register_arc_functions, Prediction};
+use super::{Image, ImageSize, ImageToNumber, NumberToImage, register_arc_functions, arcathon_solution_coordinator};
 use super::{ImageRotate90, ImageSymmetry, Color};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
@@ -151,7 +151,7 @@ pub struct RunWithProgramResult {
     count_train_incorrect: usize,
     count_test_correct: usize,
     count_test_empty: usize,
-    predictions: Vec<Prediction>,
+    predictions: Vec<arcathon_solution_coordinator::Prediction>,
     all_train_pairs_are_correct: bool,
     all_test_pairs_are_correct: bool,
 }
@@ -178,7 +178,7 @@ impl RunWithProgramResult {
         self.count_test_empty
     }
 
-    pub fn predictions(&self) -> &Vec<Prediction> {
+    pub fn predictions(&self) -> &Vec<arcathon_solution_coordinator::Prediction> {
         &self.predictions
     }
 
@@ -1215,7 +1215,7 @@ impl RunWithProgram {
         //     pretty_print = true;
         // }
 
-        let mut predictions = Vec::<Prediction>::new();
+        let mut predictions = Vec::<arcathon_solution_coordinator::Prediction>::new();
 
 
         // Traverse the `Test` pairs
@@ -1266,9 +1266,10 @@ impl RunWithProgram {
             }
 
             let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&computed_image);
-            let prediction = Prediction {
-                prediction_id: index as u8,
+            let prediction = arcathon_solution_coordinator::Prediction {
+                output_id: index as u8,
                 output: grid,
+                prediction_type: arcathon_solution_coordinator::PredictionType::SolveGenetic,
             };
             predictions.push(prediction);
 

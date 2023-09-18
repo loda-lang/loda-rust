@@ -1,8 +1,8 @@
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
-use super::{Prediction, TestItem, TaskItem, ArcathonSolutionJsonFile};
+use super::{TaskItem, ArcathonSolutionJsonFile};
 use super::{ActionLabel, ImageHistogram, ImageSize, Histogram, ExportTasks, SolveSplit};
-use super::{SolveSplitFoundSolution, ArcathonSolutionCoordinator, PredictionType};
+use super::{SolveSplitFoundSolution, ArcathonSolutionCoordinator};
 use super::human_readable_utc_timestamp;
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::arc::arcathon_solution_coordinator;
@@ -1716,8 +1716,8 @@ impl TraverseProgramsAndModels {
             remove_model_items: vec!(),
             discovered_program_item_vec: vec!(),
             unique_records,
-            current_tasks,
             terminate_due_to_timeout: false,
+            count_tasks_solved_by_genetic_algorithm: 0,
         };
 
         let mut runner = BatchRunner {
@@ -1727,7 +1727,7 @@ impl TraverseProgramsAndModels {
 
         if try_existing_solutions {
             println!("{} - Run existing solutions without mutations", human_readable_utc_timestamp());
-            runner.run_one_batch(&mut state)?;
+            runner.run_one_batch(&mut state, &mut coordinator)?;
             self.transfer_discovered_programs(&mut state)?;
         }
 
@@ -1852,7 +1852,7 @@ impl TraverseProgramsAndModels {
                 );
     
                 // Evaluate all puzzles with all candidate programs
-                runner.run_one_batch(&mut state)?;
+                runner.run_one_batch(&mut state, &mut coordinator)?;
                 self.transfer_discovered_programs(&mut state)?;
                 
                 mutation_index += 1;
@@ -1929,6 +1929,7 @@ impl BatchPlan {
         &self, 
         config: &RunArcCompetitionConfig,
         state: &mut BatchState,
+        coordinator: &mut ArcathonSolutionCoordinator,
     ) -> anyhow::Result<()> {
         let verify_test_output = false;
         let verbose = false;
@@ -1983,7 +1984,7 @@ impl BatchPlan {
 
                 let elapsed: Duration = start_time.elapsed();
                 if elapsed.as_secs() >= max_duration_seconds {
-                    let total_number_of_solutions: usize = state.current_tasks.len();
+                    let total_number_of_solutions: usize = state.count_tasks_solved_by_genetic_algorithm;
                     let message = format!(
                         "{} - Status.  Total number of solutions: {}  Slowest program: {:?} {}", 
                         human_readable_utc_timestamp(), 
@@ -2075,6 +2076,7 @@ impl BatchPlan {
                     Rc::clone(model_item), 
                     Rc::clone(program_item), 
                     run_with_program_result, 
+                    coordinator,
                     &pb
                 );
 
@@ -2094,6 +2096,9 @@ impl BatchPlan {
             pb2.finish_and_clear();
         }
         pb.finish_and_clear();
+
+        // After every mutation batch - Save the accumulated solutions to disk.
+        coordinator.save_solutions_json_with_console_output();
 
         Ok(())
     }
@@ -2118,8 +2123,8 @@ struct BatchState {
     remove_model_items: Vec<Rc<RefCell<ModelItem>>>,
     discovered_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     unique_records: HashSet::<Record>,
-    current_tasks: Vec<TaskItem>,
     terminate_due_to_timeout: bool,
+    count_tasks_solved_by_genetic_algorithm: usize,
 }
 
 impl BatchState {
@@ -2129,6 +2134,7 @@ impl BatchState {
         model_item: Rc<RefCell<ModelItem>>, 
         program_item: Rc<RefCell<ProgramItem>>,
         run_with_program_result: RunWithProgramResult,
+        coordinator: &mut ArcathonSolutionCoordinator,
         progress_bar: &ProgressBar,
     ) -> anyhow::Result<()> {
         let model_id: ModelItemId = model_item.borrow().id.clone(); 
@@ -2178,23 +2184,11 @@ impl BatchState {
         Record::save_solutions_csv(&self.unique_records, &config.path_solutions_csv);
         
         // Update JSON file
-        let predictions: Vec<Prediction> = run_with_program_result.predictions().clone();
-        let test_item = TestItem { 
-            output_id: 0,
-            number_of_predictions: predictions.len() as u8,
-            predictions: predictions,
-        };
+        let predictions: Vec<arcathon_solution_coordinator::Prediction> = run_with_program_result.predictions().clone();
         let task_name: String = model_id.file_stem();
-        let task_item = TaskItem {
-            task_name: task_name,
-            test_vec: vec![test_item],
-        };
-        self.current_tasks.push(task_item);
-        save_solutions_json(
-            &config.path_solution_dir,
-            &config.path_solution_teamid_json,
-            &self.current_tasks
-        );
+        coordinator.append_predictions(task_name, predictions);
+        coordinator.save_solutions_json_with_console_output();
+        self.count_tasks_solved_by_genetic_algorithm += 1;
 
         // Append the puzzle to the solved puzzles
         self.remove_model_items.push(Rc::clone(&model_item));
@@ -2215,8 +2209,8 @@ struct BatchRunner {
 }
 
 impl BatchRunner {
-    fn run_one_batch(&mut self, state: &mut BatchState) -> anyhow::Result<()> {
-        self.plan.run_one_batch(&self.config, state)?;
+    fn run_one_batch(&mut self, state: &mut BatchState, coordinator: &mut ArcathonSolutionCoordinator) -> anyhow::Result<()> {
+        self.plan.run_one_batch(&self.config, state, coordinator)?;
         self.plan.reschedule(state)?;
         Ok(())
     }
