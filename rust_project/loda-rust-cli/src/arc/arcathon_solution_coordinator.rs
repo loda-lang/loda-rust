@@ -122,6 +122,27 @@ impl ArcathonSolutionCoordinator {
             .extend(prediction_vec);
     }
 
+    /// Populate with previous predictions, so it's possible to continue from where it left off.
+    /// 
+    /// The predictions are assigned `PredictionType::None`, so that they get the lowest priority.
+    #[allow(dead_code)]
+    pub fn import_predictions_from_solution_json_file(&mut self, solution_json_file: &ArcathonSolutionJsonFile) {
+        for task_item in &solution_json_file.task_vec {
+            let mut predictions_to_append = Vec::<Prediction>::new();
+            for test_item in &task_item.test_vec {
+                for prediction in &test_item.predictions {
+                    let prediction = Prediction {
+                        output_id: test_item.output_id,
+                        output: prediction.output.clone(),
+                        prediction_type: PredictionType::None,
+                    };
+                    predictions_to_append.push(prediction);
+                }
+            }
+            self.append_predictions(task_item.task_name.clone(), predictions_to_append);
+        }
+    }
+
     /// Returns the number of bytes of the saved file.
     #[allow(dead_code)]
     pub fn save_solutions_json(&self) -> anyhow::Result<usize> {
@@ -171,9 +192,44 @@ impl ArcathonSolutionCoordinator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arc::path_testdata;
+    use std::{path::PathBuf, fs};
 
     #[test]
-    fn test_10000_testitems_from_predictionitems() {
+    fn test_10000_import_predictions_from_solution_json_file() -> anyhow::Result<()> {
+        // Arrange
+        let path: PathBuf = path_testdata("arcathon_solution_format").expect("ok");
+        let solution_json_file: ArcathonSolutionJsonFile = ArcathonSolutionJsonFile::load(&path).expect("ok");
+
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_10000_import_predictions_from_solution_json_file");
+        fs::create_dir(&basedir)?;
+
+        let path_solutions_json: PathBuf = basedir.join("solutions.json");
+
+        let mut coordinator = ArcathonSolutionCoordinator::new(
+            &basedir,
+            &path_solutions_json,
+        );
+
+        // Act
+        coordinator.import_predictions_from_solution_json_file(&solution_json_file);
+
+        // Assert
+        assert_eq!(coordinator.taskname_to_prediction_vec.len(), 2);
+        {
+            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("12997ef3").expect("ok");
+            assert_eq!(predictions.len(), 6);
+        }
+        {
+            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("13713586").expect("ok");
+            assert_eq!(predictions.len(), 3);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_20000_testitems_from_predictionitems() {
         // Arrange
         let mut prediction_vec = Vec::<Prediction>::new();
 
