@@ -1615,17 +1615,17 @@ impl TraverseProgramsAndModels {
 
         let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
-        let initial_tasks: ArcathonSolutionJsonFile = match ArcathonSolutionJsonFile::load(&self.arc_config.path_solution_teamid_json) {
+        let solution_json_file: ArcathonSolutionJsonFile = match ArcathonSolutionJsonFile::load(&self.arc_config.path_solution_teamid_json) {
             Ok(value) => value,
             Err(error) => {
                 error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
                 ArcathonSolutionJsonFile::empty()
             }
         };
-        println!("initial_tasks.len: {}", initial_tasks.task_vec.len());
+        println!("solution_json_file.task_vec.len: {}", solution_json_file.task_vec.len());
 
         let mut puzzle_names_to_ignore = HashSet::<String>::new();
-        for task in &initial_tasks.task_vec {
+        for task in &solution_json_file.task_vec {
             puzzle_names_to_ignore.insert(task.task_name.clone());
         }
 
@@ -1681,13 +1681,7 @@ impl TraverseProgramsAndModels {
             &self.arc_config.path_solution_dir,
             &self.arc_config.path_solution_teamid_json,
         );
-
-        let current_tasks: Vec<TaskItem> = initial_tasks.task_vec.clone();
-        save_solutions_json(
-            &self.arc_config.path_solution_dir,
-            &self.arc_config.path_solution_teamid_json,
-            &current_tasks
-        );
+        coordinator.import_predictions_from_solution_json_file(&solution_json_file);
 
         let bloom_items_count = 1000000;
         let false_positive_rate = 0.01;
@@ -2404,18 +2398,6 @@ impl Record {
             Err(error) => {
                 error!("Unable to save csv file: {:?}", error);
             }
-        }
-    }
-}
-
-fn save_solutions_json(path_solution_dir: &Path, path_solution_teamid_json: &Path, task_vec: &Vec<TaskItem>) {
-    let tasks = ArcathonSolutionJsonFile { task_vec: task_vec.clone() };
-    match tasks.save(path_solution_dir, path_solution_teamid_json) {
-        Ok(_bytes) => {
-            debug!("updated solutions file: tasks.len(): {}", task_vec.len());
-        },
-        Err(error) => {
-            error!("unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error);
         }
     }
 }
