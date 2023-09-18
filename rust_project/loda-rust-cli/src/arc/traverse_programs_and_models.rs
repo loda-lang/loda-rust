@@ -1578,7 +1578,7 @@ impl TraverseProgramsAndModels {
         // This may be a solution to one of the hidden puzzles.
         // However it's slow, so it's disabled while developing, where we only want to explore mutations.
         // On the hidden ARC dataset, this solves 5 tasks.
-        let try_existing_solutions = false;
+        let try_existing_solutions = true;
 
         // Run logistic regression.
         // On the hidden ARC dataset, this solves 1 task.
@@ -1586,12 +1586,12 @@ impl TraverseProgramsAndModels {
 
         // Solve `splitview` like tasks.
         // On the hidden ARC dataset, this doesn't solve any tasks.
-        let try_solve_split = false;
+        let try_solve_split = true;
 
         // When processing the hidden ARC dataset, I suspect most of the solutions are found 
         // without doing any mutation of existing solutions.
         // On the hidden ARC dataset, this solves 1 task.
-        let try_mutate_existing_solutions = false;
+        let try_mutate_existing_solutions = true;
 
         let number_of_programs_to_generate: usize = 3;
 
@@ -1732,13 +1732,14 @@ impl TraverseProgramsAndModels {
         }
 
         if try_solve_split {
-            let number_of_tasks: u64 = runner.plan.scheduled_model_item_vec.len() as u64;
-            println!("{} - Run solve split with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
+            let solver_start_time: Instant = Instant::now();
+            let number_of_tasks: u64 = self.model_item_vec.len() as u64;
+            println!("{} - SolveSplit - start with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
             let pb = ProgressBar::new(number_of_tasks as u64);
             let verbose_solve_split = false;
             let verify_test_pairs = false;
             let mut count_tasks_solved: usize = 0;
-            for model_item in &runner.plan.scheduled_model_item_vec {
+            for model_item in &self.model_item_vec {
                 let task: Task = model_item.borrow().task.clone();
                 
                 let solve_split = SolveSplit::new(false);
@@ -1773,22 +1774,20 @@ impl TraverseProgramsAndModels {
             }
             pb.finish_and_clear();
             coordinator.save_solutions_json_with_console_output();
-            println!("{} - Executable elapsed: {}. Solved {} tasks.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()), count_tasks_solved);
-
-            println!("Done!");
-            return Ok(());
+            println!("{} - SolveSplit - complete - solved {} of {} tasks. Elapsed {}", human_readable_utc_timestamp(), count_tasks_solved, number_of_tasks, HumanDuration(solver_start_time.elapsed()));
         }
 
         if try_logistic_regression {
             #[cfg(feature = "linfa")]
             {
-                let number_of_tasks: u64 = runner.plan.scheduled_model_item_vec.len() as u64;
-                println!("{} - Run logistic regression with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
+                let solver_start_time: Instant = Instant::now();
+                let number_of_tasks: u64 = self.model_item_vec.len() as u64;
+                println!("{} - SolveLogisticRegression - start with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
                 let pb = ProgressBar::new(number_of_tasks as u64);
                 let verbose_logistic_regression = false;
                 let verify_test_output = false;
                 let mut count_tasks_solved: usize = 0;
-                for model_item in &runner.plan.scheduled_model_item_vec {
+                for model_item in &self.model_item_vec {
                     let task: Task = model_item.borrow().task.clone();
                     
                     let prediction_vec: Vec<arcathon_solution_coordinator::Prediction> = match SolveLogisticRegression::process_task(&task, verify_test_output) {
@@ -1813,11 +1812,7 @@ impl TraverseProgramsAndModels {
                 }
                 pb.finish_and_clear();
                 coordinator.save_solutions_json_with_console_output();
-                println!("{} - Executable elapsed: {}. Solved {} tasks.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()), count_tasks_solved);
-    
-                // TODO: don't stop after saving solutions, instead continue to the other approaches.
-                println!("Done!");
-                return Ok(());
+                println!("{} - SolveLogisticRegression - complete - solved {} of {} tasks. Elapsed {}", human_readable_utc_timestamp(), count_tasks_solved, number_of_tasks, HumanDuration(solver_start_time.elapsed()));
             }
 
             #[cfg(not(feature = "linfa"))]
