@@ -1574,19 +1574,19 @@ impl TraverseProgramsAndModels {
         let execute_start_time: Instant = Instant::now();
         let execute_time_limit: Duration = Duration::from_secs(ARC_COMPETITION_EXECUTE_DURATION_SECONDS);
 
-        // When participating in the contest, then we want first to try out the existing solutions.
-        // This may be a solution to one of the hidden puzzles.
-        // However it's slow, so it's disabled while developing, where we only want to explore mutations.
-        // On the hidden ARC dataset, this solves 5 tasks.
-        let try_existing_solutions = true;
+        // Solve `splitview` like tasks.
+        // On the hidden ARC dataset, this doesn't solve any tasks.
+        let try_solve_split = true;
 
         // Run logistic regression.
         // On the hidden ARC dataset, this solves 1 task.
         let try_logistic_regression = true;
 
-        // Solve `splitview` like tasks.
-        // On the hidden ARC dataset, this doesn't solve any tasks.
-        let try_solve_split = true;
+        // Try out the existing programs with the unsolved tasks.
+        // This may be a solution to one of the hidden puzzles.
+        // However it's slow, so it's disabled while developing, where we only want to explore mutations.
+        // On the hidden ARC dataset, this solves 5 tasks.
+        let try_existing_solutions = true;
 
         // When processing the hidden ARC dataset, I suspect most of the solutions are found 
         // without doing any mutation of existing solutions.
