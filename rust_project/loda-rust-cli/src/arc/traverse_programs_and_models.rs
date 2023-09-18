@@ -1,6 +1,6 @@
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
-use super::{TaskItem, ArcathonSolutionJsonFile};
+use super::ArcathonSolutionJsonFile;
 use super::{ActionLabel, ImageHistogram, ImageSize, Histogram, ExportTasks, SolveSplit};
 use super::{SolveSplitFoundSolution, ArcathonSolutionCoordinator};
 use super::human_readable_utc_timestamp;
@@ -1598,6 +1598,7 @@ impl TraverseProgramsAndModels {
         println!("{} - Start of program", human_readable_utc_timestamp());
         Self::print_system_info();
 
+        println!("path_solution_teamid_json: {:?}", self.arc_config.path_solution_teamid_json);
         println!("try_solve_split: {}", try_solve_split);
         println!("try_existing_solutions: {}", try_existing_solutions);
         println!("try_logistic_regression: {}", try_logistic_regression);
@@ -1607,8 +1608,8 @@ impl TraverseProgramsAndModels {
         println!("initial random seed: {}", ARC_COMPETITION_INITIAL_RANDOM_SEED);
         println!("ignore programs taking longer than millis: {}", ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS);
 
-        println!("initial number of solutions: {}", self.program_item_vec.len());
         println!("initial number of tasks: {}", self.model_item_vec.len());
+        println!("initial number of genetic solutions: {}", self.program_item_vec.len());
 
         self.dedup_program_item_vec();
         self.reload_analytics_dir()?;
@@ -1655,10 +1656,10 @@ impl TraverseProgramsAndModels {
 
         // println!("scheduled_model_item_vec.len(): {}", scheduled_model_item_vec.len());
 
-        // Summary of what puzzles are to be solved
+        // Summary of what tasks are to be solved
         {
-            let mut number_of_solved_puzzles: usize = 0;
-            let mut number_of_unsolved_puzzles: usize = 0;
+            let mut count_solved: usize = 0;
+            let mut count_unsolved: usize = 0;
             for model_item in &self.model_item_vec {
                 let mut is_same = false;
                 for model_item2 in &scheduled_model_item_vec {
@@ -1668,13 +1669,13 @@ impl TraverseProgramsAndModels {
                     }
                 }
                 if is_same {
-                    number_of_unsolved_puzzles += 1;
+                    count_unsolved += 1;
                 } else {
-                    number_of_solved_puzzles += 1;
+                    count_solved += 1;
                 }
             }
-            println!("puzzles solved: {}", number_of_solved_puzzles);
-            println!("puzzles unsolved: {}", number_of_unsolved_puzzles);
+            println!("Number of tasks already solved: {}", count_solved);
+            println!("Number of tasks unsolved: {}", count_unsolved);
         }
 
         let mut coordinator = ArcathonSolutionCoordinator::new(
@@ -1682,48 +1683,6 @@ impl TraverseProgramsAndModels {
             &self.arc_config.path_solution_teamid_json,
         );
         coordinator.import_predictions_from_solution_json_file(&solution_json_file);
-
-        let bloom_items_count = 1000000;
-        let false_positive_rate = 0.01;
-        let mut bloom = Bloom::<String>::new_for_fp_rate(bloom_items_count, false_positive_rate);
-
-        // Register the existing programs in the bloomfilter, so that these never gets suggested as a candidate solution
-        for program_item in &self.program_item_vec {
-            match program_item.borrow().bloom_key() {
-                Ok(bloom_key) => {
-                    bloom.set(&bloom_key);
-                },
-                Err(error) => {
-                    error!("unable to create bloom_key for program: {:?}", error);
-                }
-            }
-        }
-
-        let plan = BatchPlan {
-            execute_start_time,
-            execute_time_limit,
-            scheduled_model_item_vec,
-            scheduled_program_item_vec: self.program_item_vec.clone(),
-        };
-        
-        let mut state = BatchState {
-            remove_model_items: vec!(),
-            discovered_program_item_vec: vec!(),
-            unique_records,
-            terminate_due_to_timeout: false,
-            count_tasks_solved_by_genetic_algorithm: 0,
-        };
-
-        let mut runner = BatchRunner {
-            config: self.arc_config.clone(),
-            plan,
-        };
-
-        if try_existing_solutions {
-            println!("{} - Run existing solutions without mutations", human_readable_utc_timestamp());
-            runner.run_one_batch(&mut state, &mut coordinator)?;
-            self.transfer_discovered_programs(&mut state)?;
-        }
 
         if try_solve_split {
             let solver_start_time: Instant = Instant::now();
@@ -1813,6 +1772,48 @@ impl TraverseProgramsAndModels {
             {
                 error!("{} - Logistic regression is not enabled. Please enable the 'linfa' feature.", human_readable_utc_timestamp());
             }
+        }
+
+        let bloom_items_count = 1000000;
+        let false_positive_rate = 0.01;
+        let mut bloom = Bloom::<String>::new_for_fp_rate(bloom_items_count, false_positive_rate);
+
+        // Register the existing programs in the bloomfilter, so that these never gets suggested as a candidate solution
+        for program_item in &self.program_item_vec {
+            match program_item.borrow().bloom_key() {
+                Ok(bloom_key) => {
+                    bloom.set(&bloom_key);
+                },
+                Err(error) => {
+                    error!("unable to create bloom_key for program: {:?}", error);
+                }
+            }
+        }
+
+        let plan = BatchPlan {
+            execute_start_time,
+            execute_time_limit,
+            scheduled_model_item_vec,
+            scheduled_program_item_vec: self.program_item_vec.clone(),
+        };
+        
+        let mut state = BatchState {
+            remove_model_items: vec!(),
+            discovered_program_item_vec: vec!(),
+            unique_records,
+            terminate_due_to_timeout: false,
+            count_tasks_solved_by_genetic_algorithm: 0,
+        };
+
+        let mut runner = BatchRunner {
+            config: self.arc_config.clone(),
+            plan,
+        };
+
+        if try_existing_solutions {
+            println!("{} - Run existing solutions without mutations", human_readable_utc_timestamp());
+            runner.run_one_batch(&mut state, &mut coordinator)?;
+            self.transfer_discovered_programs(&mut state)?;
         }
 
         if try_mutate_existing_solutions {
