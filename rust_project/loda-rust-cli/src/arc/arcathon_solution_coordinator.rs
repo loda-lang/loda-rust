@@ -153,6 +153,18 @@ impl ArcathonSolutionCoordinator {
         }
         Ok(())
     }
+
+    #[allow(dead_code)]
+    pub fn save_solutions_json_with_console_output(&self) {
+        match self.save_solutions_json() {
+            Ok(()) => {
+                println!("Saved solutions file: {:?}", self.path_solution_teamid_json);
+            },
+            Err(error) => {
+                error!("Unable to save solutions file. path: {:?} error: {:?}", self.path_solution_teamid_json, error);
+            }
+        }
+    }
 }
 
 #[cfg(test)]

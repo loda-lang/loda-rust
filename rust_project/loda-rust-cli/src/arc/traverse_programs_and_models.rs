@@ -2,9 +2,10 @@ use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, ArcathonSolutionJsonFile};
 use super::{ActionLabel, ImageHistogram, ImageSize, Histogram, ExportTasks, SolveSplit};
+use super::{SolveSplitFoundSolution, ArcathonSolutionCoordinator, PredictionType};
 use super::human_readable_utc_timestamp;
 use crate::analytics::{AnalyticsDirectory, Analytics};
-use crate::arc::SolveSplitFoundSolution;
+use crate::arc::arcathon_solution_coordinator;
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
 use crate::common::find_asm_files_recursively;
@@ -1676,6 +1677,11 @@ impl TraverseProgramsAndModels {
             println!("puzzles unsolved: {}", number_of_unsolved_puzzles);
         }
 
+        let mut coordinator = ArcathonSolutionCoordinator::new(
+            &self.arc_config.path_solution_dir,
+            &self.arc_config.path_solution_teamid_json,
+        );
+
         let current_tasks: Vec<TaskItem> = initial_tasks.task_vec.clone();
         save_solutions_json(
             &self.arc_config.path_solution_dir,
@@ -1747,7 +1753,7 @@ impl TraverseProgramsAndModels {
                     }
                 };
 
-                let testitem_vec: Vec<TestItem> = match solution.testitems_from_test_pairs(&task) {
+                let prediction_vec: Vec<arcathon_solution_coordinator::Prediction> = match solution.predictions_from_test_pairs(&task) {
                     Ok(value) => value,
                     Err(error) => {
                         if verbose_solve_split {
@@ -1762,20 +1768,11 @@ impl TraverseProgramsAndModels {
 
                 let model_id: ModelItemId = model_item.borrow().id.clone();
                 let task_name: String = model_id.file_stem();
-                let task_item = TaskItem {
-                    task_name: task_name,
-                    test_vec: testitem_vec,
-                };
-                // Future experiment: don't add if already exists
-                state.current_tasks.push(task_item);        
+                coordinator.append_predictions(task_name, prediction_vec);
                 pb.inc(1);
             }
             pb.finish_and_clear();
-            save_solutions_json(
-                &self.arc_config.path_solution_dir,
-                &self.arc_config.path_solution_teamid_json,
-                &state.current_tasks
-            );
+            coordinator.save_solutions_json_with_console_output();
             println!("{} - Executable elapsed: {}. Solved {} tasks.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()), count_tasks_solved);
 
             println!("Done!");
