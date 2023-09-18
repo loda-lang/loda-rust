@@ -2050,6 +2050,9 @@ impl BatchPlan {
                     // Usually it's one or more of of the training pairs that doesn't match the expected output.
                     // This is not a solution. Proceed to the next candidate solution.
                     // pb.println(format!("Task {:?}, the training pairs is not correct. Ignoring.", model_item.borrow().id));
+                    //
+                    // Future experiment:
+                    // Allow for 1..2 training pairs to be incorrect, and still save the solution, with a weaker confidence.
                     continue;
                 }
 
