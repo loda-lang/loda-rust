@@ -120,6 +120,9 @@ impl ArcathonSolutionCoordinator {
 
     #[allow(dead_code)]
     pub fn append_predictions(&mut self, task_name: String, prediction_vec: Vec<Prediction>) {
+        if prediction_vec.is_empty() {
+            return;
+        }
         self.taskname_to_prediction_vec
             .entry(task_name)
             .or_insert(Vec::new())
@@ -364,6 +367,92 @@ mod tests {
         let content2: String = fs::read_to_string(&path_solutions_json2).expect("ok");
         assert_eq!(content1, content2);
         assert_eq!(content1.len(), 644);
+        Ok(())
+    }
+
+    #[test]
+    fn test_40000_append_predictions_for_one_task() -> anyhow::Result<()> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_40000_append_predictions_for_one_task");
+        fs::create_dir(&basedir)?;
+
+        let path_solutions_json: PathBuf = basedir.join("solutions.json");
+        
+        let mut coordinator = ArcathonSolutionCoordinator::new(
+            &basedir,
+            &path_solutions_json,
+        );
+
+        // Act
+        {
+            let prediction = Prediction {
+                output_id: 5,
+                output: vec![vec![2]],
+                prediction_type: PredictionType::SolveGenetic,
+            };
+            coordinator.append_predictions("mytask1".to_string(), vec![prediction]);
+        }
+        {
+            let prediction = Prediction {
+                output_id: 5,
+                output: vec![vec![3]],
+                prediction_type: PredictionType::SolveLogisticRegression,
+            };
+            coordinator.append_predictions("mytask1".to_string(), vec![prediction]);
+        }
+
+        // Assert
+        assert_eq!(coordinator.taskname_to_prediction_vec.len(), 1);
+        {
+            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("mytask1").expect("ok");
+            assert_eq!(predictions.len(), 2);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_40001_append_predictions_for_multiple_tasks() -> anyhow::Result<()> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_40001_append_predictions_for_multiple_tasks");
+        fs::create_dir(&basedir)?;
+
+        let path_solutions_json: PathBuf = basedir.join("solutions.json");
+        
+        let mut coordinator = ArcathonSolutionCoordinator::new(
+            &basedir,
+            &path_solutions_json,
+        );
+
+        // Act
+        {
+            let prediction = Prediction {
+                output_id: 5,
+                output: vec![vec![2]],
+                prediction_type: PredictionType::SolveGenetic,
+            };
+            coordinator.append_predictions("mytask1".to_string(), vec![prediction]);
+        }
+        {
+            let prediction = Prediction {
+                output_id: 5,
+                output: vec![vec![3]],
+                prediction_type: PredictionType::SolveLogisticRegression,
+            };
+            coordinator.append_predictions("mytask2".to_string(), vec![prediction]);
+        }
+
+        // Assert
+        assert_eq!(coordinator.taskname_to_prediction_vec.len(), 2);
+        {
+            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("mytask1").expect("ok");
+            assert_eq!(predictions.len(), 1);
+        }
+        {
+            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("mytask2").expect("ok");
+            assert_eq!(predictions.len(), 1);
+        }
         Ok(())
     }
 }
