@@ -478,7 +478,8 @@ impl SolveLogisticRegression {
                     for y in 0..size.height {
                         for x in 0..size.width {
                             let strategy_value: &u8 = &strategy_vec.choose_weighted(&mut rng, |item| item.1).unwrap().0;
-                            let noise_value: u8 = rng.gen_range(0..=255).max(255) as u8;
+                            let _noise_value: u8 = rng.gen_range(0..=255).max(255) as u8;
+                            let noise_value: u8 = 255;
 
                             let input_color: u8 = pair.input.image.get(x as i32, y as i32).unwrap_or(255);
                             let output_color: u8 = pair.output.image.get(x as i32, y as i32).unwrap_or(255);
