@@ -102,7 +102,7 @@ PROMPT> rake buildx-create
 
 ### Step 7 - Create the docker image
 
-This takes around 12 minutes to compile!
+This takes around 21 minutes to compile!
 
 ```
 PROMPT> rake buildx-build
