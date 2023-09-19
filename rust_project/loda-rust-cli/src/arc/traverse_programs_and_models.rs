@@ -1574,6 +1574,14 @@ impl TraverseProgramsAndModels {
         let execute_start_time: Instant = Instant::now();
         let execute_time_limit: Duration = Duration::from_secs(ARC_COMPETITION_EXECUTE_DURATION_SECONDS);
 
+        // When `false` it starts from scratch, and will attempt to solve all tasks.
+        // When processing the hidden dataset, then we want to start from scratch. We don't want to ignore any of the tasks. 
+        //
+        // When `true` it will resume from the last snapshot, and only attempt to solve the unsolved tasks.
+        // During development of the genetic algorithm, I'm only interested in solving the unsolved tasks, 
+        // and don't want to spend time on solving already solved tasks.
+        let resume_from_last_snapshot = false;
+
         // Solve `splitview` like tasks.
         // On the hidden ARC dataset, this doesn't solve any tasks.
         let try_solve_split = true;
@@ -1599,6 +1607,7 @@ impl TraverseProgramsAndModels {
         Self::print_system_info();
 
         println!("path_solution_teamid_json: {:?}", self.arc_config.path_solution_teamid_json);
+        println!("resume_from_last_snapshot: {}", resume_from_last_snapshot);
         println!("try_solve_split: {}", try_solve_split);
         println!("try_existing_solutions: {}", try_existing_solutions);
         println!("try_logistic_regression: {}", try_logistic_regression);
@@ -1626,14 +1635,18 @@ impl TraverseProgramsAndModels {
         println!("solution_json_file.task_vec.len: {}", solution_json_file.task_vec.len());
 
         let mut puzzle_names_to_ignore = HashSet::<String>::new();
-        for task in &solution_json_file.task_vec {
-            puzzle_names_to_ignore.insert(task.task_name.clone());
+        if resume_from_last_snapshot {
+            println!("Resume from last snapshot. solution_json_file.task_vec.len: {}", solution_json_file.task_vec.len());
+            for task in &solution_json_file.task_vec {
+                puzzle_names_to_ignore.insert(task.task_name.clone());
+            }
         }
 
         let mut unique_records = HashSet::<Record>::new();
 
-        let ignore_puzzles_with_a_solution: bool = self.arc_config.path_solutions_csv.is_file();
-        if ignore_puzzles_with_a_solution {
+        if resume_from_last_snapshot && self.arc_config.path_solutions_csv.is_file() {
+            println!("Resume from last snapshot. path_solutions_csv: {:?}", self.arc_config.path_solutions_csv);
+
             let record_vec = Record::load_record_vec(&self.arc_config.path_solutions_csv)?;
             debug!("solutions.csv: number of rows: {}", record_vec.len());
     
@@ -1647,14 +1660,15 @@ impl TraverseProgramsAndModels {
                 puzzle_names_to_ignore.insert(puzzle_filename);
             }
         }
-        debug!("puzzle_names_to_ignore: {:?}", puzzle_names_to_ignore);
 
-        scheduled_model_item_vec = ModelItem::remove_model_items_where_filestem_contains(
-            &scheduled_model_item_vec, 
-            &puzzle_names_to_ignore
-        );
-
-        // println!("scheduled_model_item_vec.len(): {}", scheduled_model_item_vec.len());
+        if resume_from_last_snapshot {
+            println!("Resume from last snapshot. puzzle_names_to_ignore: {:?}", puzzle_names_to_ignore);
+            scheduled_model_item_vec = ModelItem::remove_model_items_where_filestem_contains(
+                &scheduled_model_item_vec, 
+                &puzzle_names_to_ignore
+            );    
+            println!("Resume from last snapshot. scheduled_model_item_vec.len(): {}", scheduled_model_item_vec.len());
+        }
 
         // Summary of what tasks are to be solved
         {
