@@ -456,8 +456,8 @@ impl SolveLogisticRegression {
             let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
 
             let strategy_vec: Vec<(u8,usize)> = match process_task_iteration_index {
-                0 => vec![(0, 10), (1, 10), (2, 80)],
-                1 => vec![(0, 10), (1, 30), (2, 60)],
+                0 => vec![(0, 5), (1, 10), (2, 85)],
+                1 => vec![(0, 5), (1, 20), (2, 75)],
                 2 => vec![(0, 5), (1, 50), (2, 45)],
                 3 => vec![(0, 3), (1, 80), (2, 17)],
                 _ => vec![(0, 0), (1, 100), (2, 0)],
@@ -471,16 +471,20 @@ impl SolveLogisticRegression {
                         for x in 0..size.width {
                             let strategy_value: &u8 = &strategy_vec.choose_weighted(&mut rng, |item| item.1).unwrap().0;
                             let noise_value: u8 = rng.gen_range(2..=3).min(255) as u8;
+                            // let noise_value: u8 = rng.gen_range(2..=5).min(255) as u8;
+                            // let noise_value: u8 = 2;
 
                             let input_color: u8 = pair.input.image.get(x as i32, y as i32).unwrap_or(255);
                             let output_color: u8 = pair.output.image.get(x as i32, y as i32).unwrap_or(255);
 
                             let draw_color: u8 = if input_color == output_color { 1 } else { 0 };
+                            let draw_color_inverted: u8 = if input_color == output_color { 0 } else { 1 };
 
                             let set_color: u8;
                             match strategy_value {
                                 0 => {
                                     // set_color = input_color;
+                                    // set_color = draw_color_inverted;
                                     set_color = noise_value;
                                 },
                                 1 => {
@@ -2888,6 +2892,7 @@ impl SolveLogisticRegression {
                         if let Some(image) = earlier_prediction_image {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
                             record.serialize_onehot_discard_overflow(pixel, 10);
+                            // record.serialize_onehot_discard_overflow(pixel, 2);
                             // record.serialize_onehot(pixel, 10);
                             // record.serialize_bool_onehot(pixel == center);
                             // record.serialize_color_complex(pixel, obfuscated_color_offset);
