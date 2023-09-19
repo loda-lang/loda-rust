@@ -459,7 +459,8 @@ impl SolveLogisticRegression {
                 0 => vec![(0, 10), (1, 10), (2, 80)],
                 1 => vec![(0, 10), (1, 30), (2, 60)],
                 2 => vec![(0, 5), (1, 50), (2, 45)],
-                _ => vec![(0, 3), (1, 80), (2, 17)],
+                3 => vec![(0, 3), (1, 80), (2, 17)],
+                _ => vec![(0, 0), (1, 100), (2, 0)],
             };
 
             for pair in &task.pairs {
@@ -469,17 +470,22 @@ impl SolveLogisticRegression {
                     for y in 0..size.height {
                         for x in 0..size.width {
                             let strategy_value: &u8 = &strategy_vec.choose_weighted(&mut rng, |item| item.1).unwrap().0;
-                            let noise_value: u8 = rng.gen_range(0..=255).max(255) as u8;
+                            let noise_value: u8 = rng.gen_range(0..=1).min(255) as u8;
 
                             let input_color: u8 = pair.input.image.get(x as i32, y as i32).unwrap_or(255);
                             let output_color: u8 = pair.output.image.get(x as i32, y as i32).unwrap_or(255);
+
+                            let draw_color: u8 = if input_color == output_color { 1 } else { 0 };
+
                             let set_color: u8;
                             match strategy_value {
                                 0 => {
-                                    set_color = input_color;
+                                    // set_color = input_color;
+                                    set_color = noise_value;
                                 },
                                 1 => {
-                                    set_color = output_color;
+                                    // set_color = output_color;
+                                    set_color = draw_color;
                                 },
                                 _ => {
                                     set_color = noise_value;
@@ -2034,8 +2040,13 @@ impl SolveLogisticRegression {
 
                     let input_has_unambiguous_connectivity: bool = input_unambiguous_connectivity_histogram.get(center) > 0;
 
+                    let classification: u8 = if output_color == center {
+                        0
+                    } else {
+                        1
+                    };
                     let mut record = Record {
-                        classification: output_color,
+                        classification: classification,
                         is_test,
                         pair_id,
                         values: vec!(),
@@ -3246,17 +3257,21 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
         let width: u8 = original_input.width();
         let height: u8 = original_input.height();
 
-        let mut computed_image: Image = Image::color(width, height, 10);
+        // let mut computed_image: Image = Image::color(width, height, 10);
+        let mut computed_image: Image = pair.input.image.clone();
         for y in 0..height {
             for x in 0..width {
                 let xx: i32 = x as i32;
                 let yy: i32 = y as i32;
                 let address: usize = (y as usize) * (width as usize) + (x as usize);
-                let predicted_color: u8 = match pred.get(address) {
+                let predicted_value: u8 = match pred.get(address) {
                     Some(value) => (*value).min(u8::MAX as usize) as u8,
                     None => 255
                 };
-                _ = computed_image.set(xx, yy, predicted_color);
+                // if predicted_value > 0 {
+                //     _ = computed_image.set(xx, yy, 9);
+                // }
+                _ = computed_image.set(xx, yy, predicted_value);
             }
         }
         computed_test_images_vec.push(computed_image);
