@@ -1734,9 +1734,7 @@ impl TraverseProgramsAndModels {
                 count_tasks_solved += 1;
                 pb.println(format!("solved task: {}", task.id));
 
-                let model_id: ModelItemId = model_item.borrow().id.clone();
-                let task_name: String = model_id.file_stem();
-                coordinator.append_predictions(task_name, prediction_vec);
+                coordinator.append_predictions(task.id.clone(), prediction_vec);
                 pb.inc(1);
             }
             pb.finish_and_clear();
@@ -1772,9 +1770,7 @@ impl TraverseProgramsAndModels {
                         pb.println(format!("solved task: {}", task.id));
                     }
     
-                    let model_id: ModelItemId = model_item.borrow().id.clone();    
-                    let task_name: String = model_id.file_stem();
-                    coordinator.append_predictions(task_name, prediction_vec);
+                    coordinator.append_predictions(task.id.clone(), prediction_vec);
                     pb.inc(1);
                 }
                 pb.finish_and_clear();
