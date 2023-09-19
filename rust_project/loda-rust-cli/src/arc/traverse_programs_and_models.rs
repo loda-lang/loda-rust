@@ -1623,23 +1623,28 @@ impl TraverseProgramsAndModels {
         self.dedup_program_item_vec();
         self.reload_analytics_dir()?;
 
-        let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
-
-        let solution_json_file: ArcathonSolutionJsonFile = match ArcathonSolutionJsonFile::load(&self.arc_config.path_solution_teamid_json) {
-            Ok(value) => value,
-            Err(error) => {
-                error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
-                ArcathonSolutionJsonFile::empty()
-            }
-        };
-        println!("solution_json_file.task_vec.len: {}", solution_json_file.task_vec.len());
-
         let mut puzzle_names_to_ignore = HashSet::<String>::new();
+
+        let mut coordinator = ArcathonSolutionCoordinator::new(
+            &self.arc_config.path_solution_dir,
+            &self.arc_config.path_solution_teamid_json,
+        );
+
         if resume_from_last_snapshot {
+            let solution_json_file: ArcathonSolutionJsonFile = match ArcathonSolutionJsonFile::load(&self.arc_config.path_solution_teamid_json) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
+                    ArcathonSolutionJsonFile::empty()
+                }
+            };
             println!("Resume from last snapshot. solution_json_file.task_vec.len: {}", solution_json_file.task_vec.len());
+
             for task in &solution_json_file.task_vec {
                 puzzle_names_to_ignore.insert(task.task_name.clone());
             }
+
+            coordinator.import_predictions_from_solution_json_file(&solution_json_file);
         }
 
         let mut unique_records = HashSet::<Record>::new();
@@ -1660,6 +1665,8 @@ impl TraverseProgramsAndModels {
                 puzzle_names_to_ignore.insert(puzzle_filename);
             }
         }
+
+        let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
         if resume_from_last_snapshot {
             println!("Resume from last snapshot. puzzle_names_to_ignore: {:?}", puzzle_names_to_ignore);
@@ -1691,12 +1698,6 @@ impl TraverseProgramsAndModels {
             println!("Number of tasks already solved: {}", count_solved);
             println!("Number of tasks unsolved: {}", count_unsolved);
         }
-
-        let mut coordinator = ArcathonSolutionCoordinator::new(
-            &self.arc_config.path_solution_dir,
-            &self.arc_config.path_solution_teamid_json,
-        );
-        coordinator.import_predictions_from_solution_json_file(&solution_json_file);
 
         if try_solve_split {
             let solver_start_time: Instant = Instant::now();
