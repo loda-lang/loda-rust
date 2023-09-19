@@ -1,10 +1,11 @@
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
-use super::{Prediction, TestItem, TaskItem, Tasks};
+use super::ArcathonSolutionJsonFile;
 use super::{ActionLabel, ImageHistogram, ImageSize, Histogram, ExportTasks, SolveSplit};
+use super::{SolveSplitFoundSolution, ArcathonSolutionCoordinator};
 use super::human_readable_utc_timestamp;
 use crate::analytics::{AnalyticsDirectory, Analytics};
-use crate::arc::SolveSplitFoundSolution;
+use crate::arc::arcathon_solution_coordinator;
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
 use crate::common::find_asm_files_recursively;
@@ -1058,23 +1059,6 @@ impl TraverseProgramsAndModels {
         result_program_item_vec
     }
 
-    fn read_solutions_json(&self) -> anyhow::Result<Tasks> {
-        let path: &Path = &self.arc_config.path_solution_teamid_json;
-        let solution_teamid_json_string: String = match fs::read_to_string(path) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("something went wrong reading the file: {:?} error: {:?}", path, error));
-            }
-        };
-        let tasks: Tasks = match serde_json::from_str(&solution_teamid_json_string) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("Could not parse archaton_solution_json file, path: {:?} error: {:?} json: {:?}", path, error, solution_teamid_json_string));
-            }
-        };
-        Ok(tasks)
-    }
-
     fn eval_single_task_with_all_existing_solutions_inner(&self, pattern: &String) -> anyhow::Result<()> {
         let verbose = false;
         let verify_test_output = true;
@@ -1590,27 +1574,31 @@ impl TraverseProgramsAndModels {
         let execute_start_time: Instant = Instant::now();
         let execute_time_limit: Duration = Duration::from_secs(ARC_COMPETITION_EXECUTE_DURATION_SECONDS);
 
-        // When participating in the contest, then we want first to try out the existing solutions.
-        // This may be a solution to one of the hidden puzzles.
-        // However it's slow, so it's disabled while developing, where we only want to explore mutations.
-        let try_existing_solutions = false;
+        // Solve `splitview` like tasks.
+        // On the hidden ARC dataset, this doesn't solve any tasks.
+        let try_solve_split = true;
 
-        // The logistic regression has not solved any of the tasks in the hidden ARC dataset.
-        // so no point in having it enabled.
+        // Run logistic regression.
+        // On the hidden ARC dataset, this solves 1 task.
         let try_logistic_regression = true;
 
-        // Solve `splitview` like tasks.
-        let try_solve_split = false;
+        // Try out the existing programs with the unsolved tasks.
+        // This may be a solution to one of the hidden puzzles.
+        // However it's slow, so it's disabled while developing, where we only want to explore mutations.
+        // On the hidden ARC dataset, this solves 5 tasks.
+        let try_existing_solutions = true;
 
         // When processing the hidden ARC dataset, I suspect most of the solutions are found 
         // without doing any mutation of existing solutions.
-        let try_mutate_existing_solutions = false;
+        // On the hidden ARC dataset, this solves 1 task.
+        let try_mutate_existing_solutions = true;
 
         let number_of_programs_to_generate: usize = 3;
 
         println!("{} - Start of program", human_readable_utc_timestamp());
         Self::print_system_info();
 
+        println!("path_solution_teamid_json: {:?}", self.arc_config.path_solution_teamid_json);
         println!("try_solve_split: {}", try_solve_split);
         println!("try_existing_solutions: {}", try_existing_solutions);
         println!("try_logistic_regression: {}", try_logistic_regression);
@@ -1620,25 +1608,25 @@ impl TraverseProgramsAndModels {
         println!("initial random seed: {}", ARC_COMPETITION_INITIAL_RANDOM_SEED);
         println!("ignore programs taking longer than millis: {}", ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS);
 
-        println!("initial number of solutions: {}", self.program_item_vec.len());
         println!("initial number of tasks: {}", self.model_item_vec.len());
+        println!("initial number of genetic solutions: {}", self.program_item_vec.len());
 
         self.dedup_program_item_vec();
         self.reload_analytics_dir()?;
 
         let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
-        let initial_tasks: Tasks = match self.read_solutions_json() {
+        let solution_json_file: ArcathonSolutionJsonFile = match ArcathonSolutionJsonFile::load(&self.arc_config.path_solution_teamid_json) {
             Ok(value) => value,
             Err(error) => {
                 error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
-                vec!()
+                ArcathonSolutionJsonFile::empty()
             }
         };
-        println!("initial_tasks.len: {}", initial_tasks.len());
+        println!("solution_json_file.task_vec.len: {}", solution_json_file.task_vec.len());
 
         let mut puzzle_names_to_ignore = HashSet::<String>::new();
-        for task in &initial_tasks {
+        for task in &solution_json_file.task_vec {
             puzzle_names_to_ignore.insert(task.task_name.clone());
         }
 
@@ -1668,10 +1656,10 @@ impl TraverseProgramsAndModels {
 
         // println!("scheduled_model_item_vec.len(): {}", scheduled_model_item_vec.len());
 
-        // Summary of what puzzles are to be solved
+        // Summary of what tasks are to be solved
         {
-            let mut number_of_solved_puzzles: usize = 0;
-            let mut number_of_unsolved_puzzles: usize = 0;
+            let mut count_solved: usize = 0;
+            let mut count_unsolved: usize = 0;
             for model_item in &self.model_item_vec {
                 let mut is_same = false;
                 for model_item2 in &scheduled_model_item_vec {
@@ -1681,21 +1669,110 @@ impl TraverseProgramsAndModels {
                     }
                 }
                 if is_same {
-                    number_of_unsolved_puzzles += 1;
+                    count_unsolved += 1;
                 } else {
-                    number_of_solved_puzzles += 1;
+                    count_solved += 1;
                 }
             }
-            println!("puzzles solved: {}", number_of_solved_puzzles);
-            println!("puzzles unsolved: {}", number_of_unsolved_puzzles);
+            println!("Number of tasks already solved: {}", count_solved);
+            println!("Number of tasks unsolved: {}", count_unsolved);
         }
 
-        let current_tasks: Tasks = initial_tasks;
-        save_solutions_json(
+        let mut coordinator = ArcathonSolutionCoordinator::new(
             &self.arc_config.path_solution_dir,
             &self.arc_config.path_solution_teamid_json,
-            &current_tasks
         );
+        coordinator.import_predictions_from_solution_json_file(&solution_json_file);
+
+        if try_solve_split {
+            let solver_start_time: Instant = Instant::now();
+            let number_of_tasks: u64 = self.model_item_vec.len() as u64;
+            println!("{} - SolveSplit - start with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
+            let pb = ProgressBar::new(number_of_tasks as u64);
+            let verbose_solve_split = false;
+            let verify_test_pairs = false;
+            let mut count_tasks_solved: usize = 0;
+            for model_item in &self.model_item_vec {
+                let task: Task = model_item.borrow().task.clone();
+                
+                let solve_split = SolveSplit::new(false);
+                let solution: SolveSplitFoundSolution = match solve_split.solve_and_verify(&task, verify_test_pairs) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        if verbose_solve_split {
+                            pb.println(format!("task {} could not solve. {:?}", task.id, error));
+                        }
+                        pb.inc(1);
+                        continue;
+                    }
+                };
+
+                let prediction_vec: Vec<arcathon_solution_coordinator::Prediction> = match solution.predictions_from_test_pairs(&task) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        if verbose_solve_split {
+                            pb.println(format!("task {} could not solve. {:?}", task.id, error));
+                        }
+                        pb.inc(1);
+                        continue;
+                    }
+                };
+                count_tasks_solved += 1;
+                pb.println(format!("solved task: {}", task.id));
+
+                let model_id: ModelItemId = model_item.borrow().id.clone();
+                let task_name: String = model_id.file_stem();
+                coordinator.append_predictions(task_name, prediction_vec);
+                pb.inc(1);
+            }
+            pb.finish_and_clear();
+            coordinator.save_solutions_json_with_console_output();
+            println!("{} - SolveSplit - complete - solved {} of {} tasks. Elapsed {}", human_readable_utc_timestamp(), count_tasks_solved, number_of_tasks, HumanDuration(solver_start_time.elapsed()));
+        }
+
+        if try_logistic_regression {
+            #[cfg(feature = "linfa")]
+            {
+                let solver_start_time: Instant = Instant::now();
+                let number_of_tasks: u64 = self.model_item_vec.len() as u64;
+                println!("{} - SolveLogisticRegression - start with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
+                let pb = ProgressBar::new(number_of_tasks as u64);
+                let verbose_logistic_regression = false;
+                let verify_test_output = false;
+                let mut count_tasks_solved: usize = 0;
+                for model_item in &self.model_item_vec {
+                    let task: Task = model_item.borrow().task.clone();
+                    
+                    let prediction_vec: Vec<arcathon_solution_coordinator::Prediction> = match SolveLogisticRegression::process_task(&task, verify_test_output) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            if verbose_logistic_regression {
+                                println!("task: {} - could not make predictions. error: {:?}", task.id, error);
+                            }
+                            pb.inc(1);
+                            continue;
+                        }
+                    };
+                    count_tasks_solved += 1;
+                    if verbose_logistic_regression {
+                        pb.println(format!("solved task: {}", task.id));
+                    }
+    
+                    let model_id: ModelItemId = model_item.borrow().id.clone();    
+                    let task_name: String = model_id.file_stem();
+                    coordinator.append_predictions(task_name, prediction_vec);
+                    pb.inc(1);
+                }
+                pb.finish_and_clear();
+                coordinator.save_solutions_json_with_console_output();
+                println!("{} - SolveLogisticRegression - complete - solved {} of {} tasks. Elapsed {}", human_readable_utc_timestamp(), count_tasks_solved, number_of_tasks, HumanDuration(solver_start_time.elapsed()));
+            }
+
+            #[cfg(not(feature = "linfa"))]
+            {
+                error!("{} - Logistic regression is not enabled. Please enable the 'linfa' feature.", human_readable_utc_timestamp());
+            }
+        }
 
         let bloom_items_count = 1000000;
         let false_positive_rate = 0.01;
@@ -1724,8 +1801,8 @@ impl TraverseProgramsAndModels {
             remove_model_items: vec!(),
             discovered_program_item_vec: vec!(),
             unique_records,
-            current_tasks,
             terminate_due_to_timeout: false,
+            count_tasks_solved_by_genetic_algorithm: 0,
         };
 
         let mut runner = BatchRunner {
@@ -1735,120 +1812,8 @@ impl TraverseProgramsAndModels {
 
         if try_existing_solutions {
             println!("{} - Run existing solutions without mutations", human_readable_utc_timestamp());
-            runner.run_one_batch(&mut state)?;
+            runner.run_one_batch(&mut state, &mut coordinator)?;
             self.transfer_discovered_programs(&mut state)?;
-        }
-
-        if try_solve_split {
-            let number_of_tasks: u64 = runner.plan.scheduled_model_item_vec.len() as u64;
-            println!("{} - Run solve split with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
-            let pb = ProgressBar::new(number_of_tasks as u64);
-            let verbose_solve_split = false;
-            let verify_test_pairs = false;
-            let mut count_tasks_solved: usize = 0;
-            for model_item in &runner.plan.scheduled_model_item_vec {
-                let task: Task = model_item.borrow().task.clone();
-                
-                let solve_split = SolveSplit::new(false);
-                let solution: SolveSplitFoundSolution = match solve_split.solve_and_verify(&task, verify_test_pairs) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        if verbose_solve_split {
-                            pb.println(format!("task {} could not solve. {:?}", task.id, error));
-                        }
-                        pb.inc(1);
-                        continue;
-                    }
-                };
-
-                let testitem_vec: Vec<TestItem> = match solution.testitems_from_test_pairs(&task) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        if verbose_solve_split {
-                            pb.println(format!("task {} could not solve. {:?}", task.id, error));
-                        }
-                        pb.inc(1);
-                        continue;
-                    }
-                };
-                count_tasks_solved += 1;
-                pb.println(format!("solved task: {}", task.id));
-
-                let model_id: ModelItemId = model_item.borrow().id.clone();
-                let task_name: String = model_id.file_stem();
-                let task_item = TaskItem {
-                    task_name: task_name,
-                    test_vec: testitem_vec,
-                };
-                // Future experiment: don't add if already exists
-                state.current_tasks.push(task_item);        
-                pb.inc(1);
-            }
-            pb.finish_and_clear();
-            save_solutions_json(
-                &self.arc_config.path_solution_dir,
-                &self.arc_config.path_solution_teamid_json,
-                &state.current_tasks
-            );
-            println!("{} - Executable elapsed: {}. Solved {} tasks.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()), count_tasks_solved);
-
-            println!("Done!");
-            return Ok(());
-        }
-
-        if try_logistic_regression {
-            #[cfg(feature = "linfa")]
-            {
-                let number_of_tasks: u64 = runner.plan.scheduled_model_item_vec.len() as u64;
-                println!("{} - Run logistic regression with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
-                let pb = ProgressBar::new(number_of_tasks as u64);
-                let verbose_logistic_regression = false;
-                let verify_test_output = false;
-                let mut count_tasks_solved: usize = 0;
-                for model_item in &runner.plan.scheduled_model_item_vec {
-                    let task: Task = model_item.borrow().task.clone();
-                    
-                    let testitem_vec: Vec<TestItem> = match SolveLogisticRegression::process_task(&task, verify_test_output) {
-                        Ok(value) => value,
-                        Err(error) => {
-                            if verbose_logistic_regression {
-                                println!("task: {} - could not make predictions. error: {:?}", task.id, error);
-                            }
-                            pb.inc(1);
-                            continue;
-                        }
-                    };
-                    count_tasks_solved += 1;
-                    if verbose_logistic_regression {
-                        pb.println(format!("solved task: {}", task.id));
-                    }
-    
-                    let model_id: ModelItemId = model_item.borrow().id.clone();    
-                    let task_name: String = model_id.file_stem();
-                    let task_item = TaskItem {
-                        task_name: task_name,
-                        test_vec: testitem_vec,
-                    };
-                    // Future experiment: don't add if already exists
-                    state.current_tasks.push(task_item);        
-                    pb.inc(1);
-                }
-                pb.finish_and_clear();
-                save_solutions_json(
-                    &self.arc_config.path_solution_dir,
-                    &self.arc_config.path_solution_teamid_json,
-                    &state.current_tasks
-                );
-                println!("{} - Executable elapsed: {}. Solved {} tasks.", human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()), count_tasks_solved);
-    
-                println!("Done!");
-                return Ok(());
-            }
-
-            #[cfg(not(feature = "linfa"))]
-            {
-                error!("{} - Logistic regression is not enabled. Please enable the 'linfa' feature.", human_readable_utc_timestamp());
-            }
         }
 
         if try_mutate_existing_solutions {
@@ -1877,7 +1842,7 @@ impl TraverseProgramsAndModels {
                 );
     
                 // Evaluate all puzzles with all candidate programs
-                runner.run_one_batch(&mut state)?;
+                runner.run_one_batch(&mut state, &mut coordinator)?;
                 self.transfer_discovered_programs(&mut state)?;
                 
                 mutation_index += 1;
@@ -1954,6 +1919,7 @@ impl BatchPlan {
         &self, 
         config: &RunArcCompetitionConfig,
         state: &mut BatchState,
+        coordinator: &mut ArcathonSolutionCoordinator,
     ) -> anyhow::Result<()> {
         let verify_test_output = false;
         let verbose = false;
@@ -2008,7 +1974,7 @@ impl BatchPlan {
 
                 let elapsed: Duration = start_time.elapsed();
                 if elapsed.as_secs() >= max_duration_seconds {
-                    let total_number_of_solutions: usize = state.current_tasks.len();
+                    let total_number_of_solutions: usize = state.count_tasks_solved_by_genetic_algorithm;
                     let message = format!(
                         "{} - Status.  Total number of solutions: {}  Slowest program: {:?} {}", 
                         human_readable_utc_timestamp(), 
@@ -2075,6 +2041,9 @@ impl BatchPlan {
                     // Usually it's one or more of of the training pairs that doesn't match the expected output.
                     // This is not a solution. Proceed to the next candidate solution.
                     // pb.println(format!("Task {:?}, the training pairs is not correct. Ignoring.", model_item.borrow().id));
+                    //
+                    // Future experiment:
+                    // Allow for 1..2 training pairs to be incorrect, and still save the solution, with a weaker confidence.
                     continue;
                 }
 
@@ -2097,6 +2066,7 @@ impl BatchPlan {
                     Rc::clone(model_item), 
                     Rc::clone(program_item), 
                     run_with_program_result, 
+                    coordinator,
                     &pb
                 );
 
@@ -2116,6 +2086,9 @@ impl BatchPlan {
             pb2.finish_and_clear();
         }
         pb.finish_and_clear();
+
+        // After every mutation batch - Save the accumulated solutions to disk.
+        coordinator.save_solutions_json_with_console_output();
 
         Ok(())
     }
@@ -2140,8 +2113,8 @@ struct BatchState {
     remove_model_items: Vec<Rc<RefCell<ModelItem>>>,
     discovered_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     unique_records: HashSet::<Record>,
-    current_tasks: Tasks,
     terminate_due_to_timeout: bool,
+    count_tasks_solved_by_genetic_algorithm: usize,
 }
 
 impl BatchState {
@@ -2151,6 +2124,7 @@ impl BatchState {
         model_item: Rc<RefCell<ModelItem>>, 
         program_item: Rc<RefCell<ProgramItem>>,
         run_with_program_result: RunWithProgramResult,
+        coordinator: &mut ArcathonSolutionCoordinator,
         progress_bar: &ProgressBar,
     ) -> anyhow::Result<()> {
         let model_id: ModelItemId = model_item.borrow().id.clone(); 
@@ -2200,23 +2174,11 @@ impl BatchState {
         Record::save_solutions_csv(&self.unique_records, &config.path_solutions_csv);
         
         // Update JSON file
-        let predictions: Vec<Prediction> = run_with_program_result.predictions().clone();
-        let test_item = TestItem { 
-            output_id: 0,
-            number_of_predictions: predictions.len() as u8,
-            predictions: predictions,
-        };
+        let predictions: Vec<arcathon_solution_coordinator::Prediction> = run_with_program_result.predictions().clone();
         let task_name: String = model_id.file_stem();
-        let task_item = TaskItem {
-            task_name: task_name,
-            test_vec: vec![test_item],
-        };
-        self.current_tasks.push(task_item);
-        save_solutions_json(
-            &config.path_solution_dir,
-            &config.path_solution_teamid_json,
-            &self.current_tasks
-        );
+        coordinator.append_predictions(task_name, predictions);
+        coordinator.save_solutions_json_with_console_output();
+        self.count_tasks_solved_by_genetic_algorithm += 1;
 
         // Append the puzzle to the solved puzzles
         self.remove_model_items.push(Rc::clone(&model_item));
@@ -2237,8 +2199,8 @@ struct BatchRunner {
 }
 
 impl BatchRunner {
-    fn run_one_batch(&mut self, state: &mut BatchState) -> anyhow::Result<()> {
-        self.plan.run_one_batch(&self.config, state)?;
+    fn run_one_batch(&mut self, state: &mut BatchState, coordinator: &mut ArcathonSolutionCoordinator) -> anyhow::Result<()> {
+        self.plan.run_one_batch(&self.config, state, coordinator)?;
         self.plan.reschedule(state)?;
         Ok(())
     }
@@ -2439,30 +2401,4 @@ impl Record {
             }
         }
     }
-}
-
-fn save_solutions_json(path_solution_dir: &Path, path_solution_teamid_json: &Path, tasks: &Tasks) {
-    if !path_solution_dir.exists() {
-            match fs::create_dir(path_solution_dir) {
-            Ok(_) => {},
-            Err(err) => {
-                panic!("Unable to create solution directory: {:?}, error: {:?}", path_solution_dir, err);
-            }
-        }
-    }
-    let json: String = match serde_json::to_string(&tasks) {
-        Ok(value) => value,
-        Err(error) => {
-            error!("unable to serialize tasks to json: {:?}", error);
-            return;
-        }
-    };
-    match fs::write(&path_solution_teamid_json, json) {
-        Ok(()) => {},
-        Err(error) => {
-            error!("unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error);
-            return;
-        }
-    }
-    debug!("updated solutions file: tasks.len(): {}", tasks.len());
 }

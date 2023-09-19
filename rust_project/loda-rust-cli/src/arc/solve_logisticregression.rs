@@ -2,14 +2,14 @@
 //! 
 //! This solves 1 of the tasks from the hidden ARC dataset.
 //!
-//! This solves 56 of the 800 tasks in the public ARC dataset.
+//! This solves 57 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 1c0d0a4b, 21f83797, 2281f1f4, 23581191,
 //! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 4612dd53, 50cb2852,
 //! 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6f8cd79b, 776ffc46,
 //! 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b, a9f96cdd,
 //! aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784,
 //! c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, ded97339, e0fb7511,
-//! e9c9d9a1, ef135b50
+//! e7dd8335, e9c9d9a1, ef135b50
 //! 
 //! Known problem:
 //! Only does logistic regression on the first the `test` pairs.
@@ -35,7 +35,7 @@
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageOverlay, arcathon_solution_json, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -260,7 +260,7 @@ impl SolveLogisticRegression {
         Ok(())
     }
 
-    pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
+    pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
         let mut accumulated_images = Vec::<Image>::new();
         let mut computed_images = Vec::<Image>::new();
         let number_of_iterations: usize = 5;
@@ -276,13 +276,12 @@ impl SolveLogisticRegression {
             HtmlLog::compare_images(accumulated_images);
         }
 
-        let testitem_vec: Vec::<arcathon_solution_json::TestItem> = testitems_from_computed_images(
+        let predictions: Vec::<arcathon_solution_coordinator::Prediction> = predictions_from_test_pairs(
             task, 
             &computed_images,
             verify_test_output,
         )?;
-
-        Ok(testitem_vec)
+        Ok(predictions)
     }
 
     fn object_id_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
@@ -592,6 +591,7 @@ impl SolveLogisticRegression {
             let relative_position_images_connectivity8: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
             _ = relative_position_images_connectivity8;
 
+            let shape_type_count: u8 = ShapeType::len();
             let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, false)?;
             let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8, false)?;
             let shape_type45_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, true)?;
@@ -1264,15 +1264,17 @@ impl SolveLogisticRegression {
             let input_denoise_type1: Image = input.denoise_type1(most_popular_color.unwrap_or(255))?;
 
             let earlier_prediction_image: Option<&Image> = earlier_prediction_image_vec.get(pair_index);
-            let mut earlier_prediction_shapetype_image: Option<Image> = None;
-            let mut earlier_prediction_shapetype45_image: Option<Image> = None;
+            let mut earlier_prediction_shapetype_connectivity4: Option<Image> = None;
+            let mut earlier_prediction_shapetype45_connectivity4: Option<Image> = None;
+            // let mut earlier_prediction_shapetype_connectivity8: Option<Image> = None;
+            // let mut earlier_prediction_shapetype45_connectivity8: Option<Image> = None;
             let mut earlier_prediction_mass_connectivity4: Option<Image> = None;
             let mut earlier_prediction_mass_connectivity8: Option<Image> = None;
 
             if let Some(ep_image) = earlier_prediction_image {
                 let sco: SingleColorObject = SingleColorObject::find_objects(&ep_image)?;
                 {
-                    let connectivity = PixelConnectivity::Connectivity8;
+                    let connectivity = PixelConnectivity::Connectivity4;
                     let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, connectivity)?;
                     let mut shapetype_image: Image = ep_image.clone_zero();
                     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
@@ -1281,7 +1283,7 @@ impl SolveLogisticRegression {
                         let mode = MixMode::PickColor1WhenColor0IsZero { color };
                         shapetype_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype_image, mode)?;
                     }
-                    earlier_prediction_shapetype_image = Some(shapetype_image);
+                    earlier_prediction_shapetype_connectivity4 = Some(shapetype_image);
 
                     let mut shapetype45_image: Image = ep_image.clone_zero();
                     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
@@ -1290,8 +1292,30 @@ impl SolveLogisticRegression {
                         let mode = MixMode::PickColor1WhenColor0IsZero { color };
                         shapetype45_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype45_image, mode)?;
                     }
-                    earlier_prediction_shapetype45_image = Some(shapetype45_image);
+                    earlier_prediction_shapetype45_connectivity4 = Some(shapetype45_image);
                 }
+
+                // {
+                //     let connectivity = PixelConnectivity::Connectivity8;
+                //     let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, connectivity)?;
+                //     let mut shapetype_image: Image = ep_image.clone_zero();
+                //     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                //         let shape_type: ShapeType = color_and_shape.shape_identification.shape_type;
+                //         let color: u8 = Self::color_from_shape_type(shape_type);
+                //         let mode = MixMode::PickColor1WhenColor0IsZero { color };
+                //         shapetype_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype_image, mode)?;
+                //     }
+                //     earlier_prediction_shapetype_connectivity8 = Some(shapetype_image);
+
+                //     let mut shapetype45_image: Image = ep_image.clone_zero();
+                //     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                //         let shape_type: ShapeType = color_and_shape.shape_identification.shape_type45;
+                //         let color: u8 = Self::color_from_shape_type(shape_type);
+                //         let mode = MixMode::PickColor1WhenColor0IsZero { color };
+                //         shapetype45_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype45_image, mode)?;
+                //     }
+                //     earlier_prediction_shapetype45_connectivity8 = Some(shapetype45_image);
+                // }
 
                 let mut image_mass_connectivity4: Image = Image::zero(width, height);
                 let mut image_mass_connectivity8: Image = Image::zero(width, height);
@@ -2041,6 +2065,7 @@ impl SolveLogisticRegression {
                     record.serialize_ternary(half_vertical);
                     record.serialize_bool_onehot(input_is_noise_color);
                     record.serialize_bool_onehot(input_is_most_popular_color);
+                    // record.serialize_bool(input_is_removal_color == 1);
                     record.serialize_onehot_discard_overflow(x_mod2, 2);
                     record.serialize_onehot_discard_overflow(y_mod2, 2);
                     record.serialize_onehot_discard_overflow(x_reverse_mod2, 2);
@@ -2073,8 +2098,7 @@ impl SolveLogisticRegression {
                     // record.serialize_onehot_discard_overflow((x2_mod2 + y2_reverse_mod2) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x2_reverse_mod2 + y2_mod2) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x2_reverse_mod2 + y2_reverse_mod2) & 1, 2);
-                    record.serialize_bool(preserve_edge);
-                    record.serialize_bool(preserve_edge);
+                    record.serialize_bool_onehot(preserve_edge);
                     record.serialize_bool(full_row_and_column);
                     record.serialize_bool(full_row_xor_column);
                     record.serialize_bool(full_row_or_column);
@@ -2086,6 +2110,8 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(the_holecount_connectivity8);
                     record.serialize_onehot_discard_overflow(the_holecount_connectivity4, 2);
                     record.serialize_onehot_discard_overflow(the_holecount_connectivity8, 2);
+                    // record.serialize_onehot_discard_overflow(the_holecount_connectivity4.min(9), 10);
+                    // record.serialize_onehot_discard_overflow(the_holecount_connectivity8.min(9), 10);
                     record.serialize_bool(corners_center1);
                     record.serialize_bool(corners_center2);
                     record.serialize_bool(corners_center3);
@@ -2170,6 +2196,7 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 record.serialize_cluster_id(color, cluster_id);
+                                // record.serialize_cluster_id(color, 255 - cluster_id);
                                 // record.serialize_complex(cluster_id as u16, 41);
                             }
                         }
@@ -2182,6 +2209,7 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 record.serialize_complex(cluster_id as u16, 4);
+                                // record.serialize_onehot_discard_overflow(cluster_id, 4);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -2192,7 +2220,8 @@ impl SolveLogisticRegression {
                                     }
                                     None => 255
                                 };
-                                record.serialize_complex(cluster_id as u16, 3);
+                                // record.serialize_complex(cluster_id as u16, 3);
+                                record.serialize_onehot_discard_overflow(cluster_id, 3);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -2672,19 +2701,19 @@ impl SolveLogisticRegression {
 
                     {
                         let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
-                        record.serialize_onehot(pixel, 50);
+                        record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
                     {
                         let pixel: u8 = shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
-                        record.serialize_onehot(pixel, 56);
+                        record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
                     {
                         let pixel: u8 = shape_type45_image_connectivity4.get(xx, yy).unwrap_or(255);
-                        record.serialize_onehot(pixel, 56);
+                        record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
                     {
                         let pixel: u8 = shape_type45_image_connectivity8.get(xx, yy).unwrap_or(255);
-                        record.serialize_onehot(pixel, 56);
+                        record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
                     // for shape_transformation_image in &shape_transformation_images_connectivity4 {
                     //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
@@ -2802,15 +2831,25 @@ impl SolveLogisticRegression {
                         //     }        
                         // }
 
-                        if let Some(image) = &earlier_prediction_shapetype_image {
+                        if let Some(image) = &earlier_prediction_shapetype_connectivity4 {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
-                            record.serialize_onehot(pixel, 56);
+                            record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                         }
 
-                        if let Some(image) = &earlier_prediction_shapetype45_image {
+                        if let Some(image) = &earlier_prediction_shapetype45_connectivity4 {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
-                            record.serialize_onehot(pixel, 56);
+                            record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                         }
+
+                        // if let Some(image) = &earlier_prediction_shapetype_connectivity8 {
+                        //     let pixel: u8 = image.get(xx, yy).unwrap_or(0);
+                        //     record.serialize_onehot_discard_overflow(pixel, shape_type_count);
+                        // }
+
+                        // if let Some(image) = &earlier_prediction_shapetype45_connectivity8 {
+                        //     let pixel: u8 = image.get(xx, yy).unwrap_or(0);
+                        //     record.serialize_onehot_discard_overflow(pixel, shape_type_count);
+                        // }
 
                         // if let Some(image) = &earlier_prediction_mass_connectivity4 {
                         //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
@@ -3219,8 +3258,8 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
     Ok(computed_test_images_vec)
 }
 
-fn testitems_from_computed_images(task: &Task, computed_images: &Vec<Image>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_json::TestItem>> {
-    let mut testitem_vec = Vec::<arcathon_solution_json::TestItem>::new();
+fn predictions_from_test_pairs(task: &Task, computed_images: &Vec<Image>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
+    let mut predictions = Vec::<arcathon_solution_coordinator::Prediction>::new();
     let mut test_index: usize = 0;
     for pair in &task.pairs {
         if pair.pair_type != PairType::Test {
@@ -3233,20 +3272,12 @@ fn testitems_from_computed_images(task: &Task, computed_images: &Vec<Image>, ver
 
         {
             let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(computed_image);
-            let prediction = arcathon_solution_json::Prediction {
-                prediction_id: 0,
+            let prediction = arcathon_solution_coordinator::Prediction {
+                output_id: predictions.len().min(255) as u8,
                 output: grid,
+                prediction_type: arcathon_solution_coordinator::PredictionType::SolveLogisticRegression,
             };
-
-            let predictions: Vec<arcathon_solution_json::Prediction> = vec![prediction];
-
-            let output_id: u8 = testitem_vec.len().min(255) as u8;
-            let testitem = arcathon_solution_json::TestItem {
-                output_id,
-                number_of_predictions: predictions.len().min(255) as u8,
-                predictions: predictions,
-            };
-            testitem_vec.push(testitem);
+            predictions.push(prediction);
         }
 
         if WRITE_TO_HTMLLOG {
@@ -3281,8 +3312,8 @@ fn testitems_from_computed_images(task: &Task, computed_images: &Vec<Image>, ver
     // predicted and targets)
     // println!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc());
     // HtmlLog::text(format!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc()));
-    if testitem_vec.len() != task.count_test() {
-        return Err(anyhow::anyhow!("task: {} testitem_vec.len() != task.count_test()", task.id));
+    if predictions.len() != task.count_test() {
+        return Err(anyhow::anyhow!("task: {} predictions.len() != task.count_test()", task.id));
     }
-    Ok(testitem_vec)
+    Ok(predictions)
 }

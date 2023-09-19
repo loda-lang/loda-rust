@@ -35,7 +35,8 @@
 use super::arc_work_model::{Task, Input, PairType};
 use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram, ColorMap, ImageSize};
 use super::{Image, ImageMaskBoolean, Histogram, ImageReplaceColor, ImageSymmetry};
-use super::{arcathon_solution_json, arc_json_model};
+use super::arcathon_solution_coordinator;
+use super::arc_json_model;
 use super::arc_json_model::GridFromImage;
 use super::HtmlLog;
 use std::collections::HashMap;
@@ -904,38 +905,31 @@ impl SolveSplitFoundSolution {
         }
     }
 
-    pub fn testitems_from_test_pairs(&self, task: &Task) -> anyhow::Result<Vec<arcathon_solution_json::TestItem>> {
+    pub fn predictions_from_test_pairs(&self, task: &Task) -> anyhow::Result<Vec<arcathon_solution_coordinator::Prediction>> {
         if self.predicted_output_images.len() != task.pairs.len() {
             return Err(anyhow::anyhow!("task: {} self.predicted_output_images.len() != task.pairs.len()", task.id));
         }
-        let mut testitem_vec = Vec::<arcathon_solution_json::TestItem>::new();
+        let mut predictions = Vec::<arcathon_solution_coordinator::Prediction>::new();
         for (pair_index, pair) in task.pairs.iter().enumerate() {
             if pair.pair_type != PairType::Test {
                 continue;
             }
             let predicted_output_image: &Image = &self.predicted_output_images[pair_index];
 
+            let output_id: u8 = predictions.len().min(255) as u8;
             let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(predicted_output_image);
-            let prediction = arcathon_solution_json::Prediction {
-                prediction_id: 0,
-                output: grid,
-            };
-
-            let mut predictions: Vec<arcathon_solution_json::Prediction> = Vec::new();
-            predictions.push(prediction);
-
-            let output_id: u8 = testitem_vec.len().min(255) as u8;
-            let testitem = arcathon_solution_json::TestItem {
+            let prediction = arcathon_solution_coordinator::Prediction {
                 output_id,
-                number_of_predictions: predictions.len().min(255) as u8,
-                predictions: predictions,
+                output: grid,
+                prediction_type: arcathon_solution_coordinator::PredictionType::SolveSplit,
             };
-            testitem_vec.push(testitem);
+
+            predictions.push(prediction);
         }
-        if testitem_vec.len() != task.count_test() {
-            return Err(anyhow::anyhow!("task: {} testitem_vec.len() != task.count_test()", task.id));
+        if predictions.len() != task.count_test() {
+            return Err(anyhow::anyhow!("task: {} predictions.len() != task.count_test()", task.id));
         }
-        Ok(testitem_vec)
+        Ok(predictions)
     }
 
     /// Pretty print the predicted images to the HTML console.

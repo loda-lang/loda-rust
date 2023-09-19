@@ -11,6 +11,7 @@ mod arc_work_model_impl_object;
 mod arc_work_model_impl_output;
 mod arc_work_model_impl_pair;
 mod arc_work_model_impl_task;
+mod arcathon_solution_coordinator;
 mod arcathon_solution_json;
 mod auto_repair_symmetry;
 mod center_of_mass;
@@ -149,7 +150,8 @@ mod traverse_programs_and_models;
 
 pub use action_label_util::ActionLabelUtil;
 pub use arc_json_model_to_html::ModelToHTML;
-pub use arcathon_solution_json::{Prediction, TestItem, TaskItem, Tasks};
+pub use arcathon_solution_coordinator::{ArcathonSolutionCoordinator, PredictionType};
+pub use arcathon_solution_json::{Prediction, TestItem, TaskItem, ArcathonSolutionJsonFile};
 pub use auto_repair_symmetry::AutoRepairSymmetry;
 pub use center_of_mass::CenterOfMass;
 pub use color::Color;

@@ -1056,6 +1056,10 @@ impl ShapeType {
             Self::Unclassified => "unclassified",
         }
     }
+
+    pub fn len() -> u8 {
+        56
+    }
 }
 
 #[allow(dead_code)]
