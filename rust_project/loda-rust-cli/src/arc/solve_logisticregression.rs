@@ -34,7 +34,7 @@
 //! Future experiments:
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
-use super::arc_work_model::{Task, PairType};
+use super::arc_work_model::{Task, PairType, Pair};
 use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
@@ -261,27 +261,126 @@ impl SolveLogisticRegression {
     }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
-        let mut accumulated_images = Vec::<Image>::new();
-        let mut computed_images = Vec::<Image>::new();
-        let number_of_iterations: usize = 5;
-        for iteration_index in 0..number_of_iterations {
-            let records = Self::process_task_iteration(task, iteration_index, computed_images)?;
-            computed_images = perform_logistic_regression(task, &records)?;
+        if !task.is_output_size_same_as_input_size() {
+            // if WRITE_TO_HTMLLOG {
+            //     HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
+            // }
+            return Err(anyhow::anyhow!("skipping task: {} because output size is not the same as input size", task.id));
+        }
 
-            for image in &computed_images {
-                accumulated_images.push(image.clone());
+        let count_test: u8 = task.count_test().min(255) as u8;
+        if count_test < 1 {
+            return Err(anyhow::anyhow!("skipping task: {} because it has no test pairs", task.id));
+        }    
+
+        // if count_test < 2 {
+        //     // Future experiment:
+        //     // The ARC 1 dataset contains 800 tasks. Out of these there are 13 tasks with +2 test pairs AND where the output size is the same as the input size.
+        //     // Currently the logistic regression can only handle 1 test pair.
+        //     // Will be nice to process all the test pairs.
+        //     return Err(anyhow::anyhow!("skipping task: {} because it has 2 or more test pairs. count_test: {}", task.id, count_test));
+        // }
+
+        let mut computed_images = Vec::<Image>::new();
+        for test_index in 0..count_test {
+            // println!("task: {} before", task.id);
+            let computed_image: Image = match Self::process_task_with_one_test_pair(task, test_index) {
+                Ok(value) => value,
+                Err(error) => {
+                    println!("task: {} test_index: {} error: {:?}", task.id, test_index, error);
+                    return Err(error);
+                }
+            };
+            // println!("task: {} after", task.id);
+            computed_images.push(computed_image);
+        }
+        // println!("task: {} computed_images.len(): {}", task.id, computed_images.len());
+
+        let mut result_predictions = Vec::<arcathon_solution_coordinator::Prediction>::new();
+        for (test_index, computed_image) in computed_images.iter().enumerate() {
+            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(computed_image);
+            let prediction = arcathon_solution_coordinator::Prediction {
+                output_id: test_index.min(255) as u8,
+                output: grid,
+                prediction_type: arcathon_solution_coordinator::PredictionType::SolveLogisticRegression,
+            };
+            result_predictions.push(prediction);
+        }
+
+        if verify_test_output {
+            let mut count_correct: usize = 0;
+            let mut count_incorrect: usize = 0;
+            for (test_index, computed_image) in computed_images.iter().enumerate() {
+                let test_index_u8: u8 = test_index.min(255) as u8;
+                let found_pair: Option<&Pair> = task.pairs.iter().find(|pair| pair.test_index == Some(test_index_u8));
+                let pair: &Pair = match found_pair {
+                    Some(pair) => pair,
+                    None => return Err(anyhow::anyhow!("No pair found with test_index: {}", test_index)),
+                };
+                let expected_output: Image = pair.output.test_image.clone();
+                let is_correct: bool = computed_image == &expected_output;
+                if is_correct {
+                    count_correct += 1;
+                } else {
+                    count_incorrect += 1;
+                }
+
+                if WRITE_TO_HTMLLOG {
+                    if is_correct {
+                        if task.occur_in_solutions_csv {
+                            HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
+                        } else {
+                            HtmlLog::text(format!("{} - correct - no previous solution", task.id));
+                        }
+                        HtmlLog::image(computed_image);
+                    } else {
+                        HtmlLog::text(format!("{} - incorrect", task.id));
+                        let images: Vec<Image> = vec![
+                            pair.input.image.clone(),
+                            expected_output,
+                            computed_image.clone(),
+                        ];
+                        HtmlLog::compare_images(images);
+                    }
+                }
+            
+            }
+        
+            if count_correct == 0 {
+                return Err(anyhow::anyhow!("The predicted output doesn't match with the expected output"));
+            }
+            if count_incorrect > 0 {
+                println!("task: {} partial match. correct: {} incorrect: {}", task.id, count_correct, count_incorrect);
             }
         }
+    
+        if result_predictions.len() != (count_test as usize) {
+            return Err(anyhow::anyhow!("task: {} predictions.len() != task.count_test()", task.id));
+        }
+        Ok(result_predictions)
+    }
+
+    fn process_task_with_one_test_pair(task: &Task, test_index: u8) -> anyhow::Result<Image> {
+        let number_of_iterations: usize = 5;
+        let mut computed_images = Vec::<Image>::new();
+        let mut last_computed_image: Option<Image> = None;
+        for iteration_index in 0..number_of_iterations {
+            let records = Self::process_task_iteration(task, iteration_index, test_index, last_computed_image)?;
+            let computed_image: Image = perform_logistic_regression(task, test_index, &records)?;
+            last_computed_image = Some(computed_image.clone());
+            computed_images.push(computed_image);
+        }
         if WRITE_TO_HTMLLOG {
-            HtmlLog::compare_images(accumulated_images);
+            HtmlLog::compare_images(computed_images.clone());
         }
 
-        let predictions: Vec::<arcathon_solution_coordinator::Prediction> = predictions_from_test_pairs(
-            task, 
-            &computed_images,
-            verify_test_output,
-        )?;
-        Ok(predictions)
+        let computed_image: Image = match last_computed_image {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to get last computed image"));
+            }
+        };
+        Ok(computed_image)
     }
 
     fn object_id_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
@@ -437,30 +536,14 @@ impl SolveLogisticRegression {
         Ok(vec![image_shape_width, image_shape_height])
     }
 
-    fn process_task_iteration(task: &Task, process_task_iteration_index: usize, computed_images: Vec<Image>) -> anyhow::Result<Vec::<Record>> {
+    fn process_task_iteration(task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
-
-        if !task.is_output_size_same_as_input_size() {
-            if WRITE_TO_HTMLLOG {
-                HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
-            }
-            return Err(anyhow::anyhow!("skipping task: {} because output size is not the same as input size", task.id));
-        }
-
-        let count_test = task.count_test();
-        if count_test >= 2 {
-            // Future experiment:
-            // The ARC 1 dataset contains 800 tasks. Out of these there are 13 tasks with +2 test pairs AND where the output size is the same as the input size.
-            // Currently the logistic regression can only handle 1 test pair.
-            // Will be nice to process all the test pairs.
-            return Err(anyhow::anyhow!("skipping task: {} because it has 2 or more test pairs. count_test: {}", task.id, count_test));
-        }
 
         // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
 
         let mut earlier_prediction_image_vec = Vec::<Image>::new();
-        if !computed_images.is_empty() {
+        if let Some(computed_image) = computed_image {
             let random_seed: u64 = process_task_iteration_index as u64;
             let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
 
@@ -504,9 +587,7 @@ impl SolveLogisticRegression {
                 }
             }
 
-            for computed_image in &computed_images {
-                earlier_prediction_image_vec.push(computed_image.clone());
-            }
+            earlier_prediction_image_vec.push(computed_image.clone());
         }
 
         let mut input_histogram_intersection: [bool; 10] = [false; 10];
@@ -548,12 +629,9 @@ impl SolveLogisticRegression {
 
         let mut records = Vec::<Record>::new();
         for (pair_index, pair) in task.pairs.iter().enumerate() {
-            if let Some(test_index) = pair.test_index {
-                if test_index > 0 {
-                    // The logistic regression can only handle 1 test pair.
-                    // Encountering multiple test pairs, then ignore the remaining.
-                    continue;
-                }
+            if pair.test_index.is_some() && pair.test_index != Some(test_index) {
+                // ARC tasks with multiple test pairs, here we only process a single test pair.
+                continue;
             }
             let pair_id: u8 = pair_index.min(255) as u8;
             let pair_index_u8: u8 = pair_index.min(255) as u8;
@@ -3148,8 +3226,9 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
         values_min = values_min.min(value_count);
     }
     if values_max != values_min {
-        return Err(anyhow::anyhow!("values_max != values_min"));
+        return Err(anyhow::anyhow!("values_max != values_min. values_max: {} values_min: {}", values_max, values_min));
     }
+    // println!("values_max: {}", values_max);
     let columns: usize = values_max + 3;
 
     let array1: Array1<f64> = Array1::<f64>::from(data);
@@ -3185,7 +3264,7 @@ fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
     Ok(instance)
 }
 
-fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Result<Vec::<Image>> {
+fn perform_logistic_regression(task: &Task, test_index: u8, records: &Vec<Record>) -> anyhow::Result<Image> {
     // println!("task_id: {}", task.id);
 
     // Future experiment:
@@ -3235,95 +3314,30 @@ fn perform_logistic_regression(task: &Task, records: &Vec<Record>) -> anyhow::Re
     // print out the predicted output pixel values
     // println!("{:?}", pred);
 
-    let mut computed_test_images_vec = Vec::<Image>::new();
-    for pair in &task.pairs {
-        if pair.pair_type != PairType::Test {
-            continue;
-        }
+    let found_pair: Option<&Pair> = task.pairs.iter().find(|pair| pair.test_index == Some(test_index));
+    let pair: &Pair = match found_pair {
+        Some(pair) => pair,
+        None => return Err(anyhow::anyhow!("No pair found with test_index: {}", test_index)),
+    };
 
-        let original_input: Image = pair.input.image.clone();
+    let original_input: Image = pair.input.image.clone();
 
-        let width: u8 = original_input.width();
-        let height: u8 = original_input.height();
+    let width: u8 = original_input.width();
+    let height: u8 = original_input.height();
 
-        let mut computed_image: Image = Image::color(width, height, 10);
-        for y in 0..height {
-            for x in 0..width {
-                let xx: i32 = x as i32;
-                let yy: i32 = y as i32;
-                let address: usize = (y as usize) * (width as usize) + (x as usize);
-                let predicted_color: u8 = match pred.get(address) {
-                    Some(value) => (*value).min(u8::MAX as usize) as u8,
-                    None => 255
-                };
-                _ = computed_image.set(xx, yy, predicted_color);
-            }
-        }
-        computed_test_images_vec.push(computed_image);
-    }
-
-    if computed_test_images_vec.len() != task.count_test() {
-        return Err(anyhow::anyhow!("Expected same length of computed_test_images_vec and task.count_test()"));
-    }
-    Ok(computed_test_images_vec)
-}
-
-fn predictions_from_test_pairs(task: &Task, computed_images: &Vec<Image>, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
-    let mut predictions = Vec::<arcathon_solution_coordinator::Prediction>::new();
-    let mut test_index: usize = 0;
-    for pair in &task.pairs {
-        if pair.pair_type != PairType::Test {
-            continue;
-        }
-        let computed_image: &Image = &computed_images[test_index];
-        test_index += 1;
-
-        let original_input: Image = pair.input.image.clone();
-
-        {
-            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(computed_image);
-            let prediction = arcathon_solution_coordinator::Prediction {
-                output_id: predictions.len().min(255) as u8,
-                output: grid,
-                prediction_type: arcathon_solution_coordinator::PredictionType::SolveLogisticRegression,
+    let mut computed_image: Image = Image::color(width, height, 10);
+    for y in 0..height {
+        for x in 0..width {
+            let xx: i32 = x as i32;
+            let yy: i32 = y as i32;
+            let address: usize = (y as usize) * (width as usize) + (x as usize);
+            let predicted_color: u8 = match pred.get(address) {
+                Some(value) => (*value).min(u8::MAX as usize) as u8,
+                None => 255
             };
-            predictions.push(prediction);
-        }
-
-        if WRITE_TO_HTMLLOG {
-            let expected_output: Image = pair.output.test_image.clone();
-            if *computed_image == expected_output {
-                if task.occur_in_solutions_csv {
-                    HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
-                } else {
-                    HtmlLog::text(format!("{} - correct - no previous solution", task.id));
-                }
-                HtmlLog::image(computed_image);
-            } else {
-                HtmlLog::text(format!("{} - incorrect", task.id));
-                let images: Vec<Image> = vec![
-                    original_input,
-                    expected_output,
-                    computed_image.clone(),
-                ];
-                HtmlLog::compare_images(images);
-            }
-        }
-
-        if verify_test_output {
-            let expected_output: Image = pair.output.test_image.clone();
-            if *computed_image != expected_output {
-                return Err(anyhow::anyhow!("The predicted output doesn't match with the expected output"));
-            }
+            _ = computed_image.set(xx, yy, predicted_color);
         }
     }
 
-    // Calculate the accuracy and Matthew Correlation Coefficient (cross-correlation between
-    // predicted and targets)
-    // println!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc());
-    // HtmlLog::text(format!("accuracy {}, MCC {}", cm.accuracy(), cm.mcc()));
-    if predictions.len() != task.count_test() {
-        return Err(anyhow::anyhow!("task: {} predictions.len() != task.count_test()", task.id));
-    }
-    Ok(predictions)
+    Ok(computed_image)
 }
