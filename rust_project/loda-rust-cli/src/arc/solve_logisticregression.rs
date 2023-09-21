@@ -2,14 +2,14 @@
 //! 
 //! This solves 1 of the tasks from the hidden ARC dataset.
 //!
-//! This solves 60 of the 800 tasks in the public ARC dataset.
+//! This solves 61 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 1c0d0a4b, 21f83797, 2281f1f4, 23581191,
-//! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 4612dd53, 50cb2852,
-//! 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b,
-//! 776ffc46, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b,
-//! a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb,
-//! c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d,
-//! dc433765, ded97339, e0fb7511, e7dd8335, e9c9d9a1, ef135b50
+//! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53,
+//! 50cb2852, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e,
+//! 6f8cd79b, 776ffc46, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c,
+//! a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da,
+//! bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b,
+//! d5d6de2d, dc433765, ded97339, e0fb7511, e7dd8335, e9c9d9a1, ef135b50
 //! 
 //! This partially solves 3 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 25ff71a9, 794b24be, da2b0fe3
@@ -34,7 +34,7 @@
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -1347,6 +1347,19 @@ impl SolveLogisticRegression {
                 }
             }
 
+            let mut color_to_hole_type1 = HashMap::<u8, Image>::new();
+            for color in 0..=9 {
+                let input_padded: Image = input.padding_advanced(0, 0, 1, 1, 255)?;
+                let image: Image = input_padded.detect_hole_type1(color)?;
+                color_to_hole_type1.insert(color, image);
+            }
+
+            let mut color_to_repair = HashMap::<u8, Image>::new();
+            for color in 0..=9 {
+                let image: Image = input.repair_pattern_with_color(color)?;
+                color_to_repair.insert(color, image);
+            }
+
             let input_denoise_type1: Image = input.denoise_type1(most_popular_color.unwrap_or(255))?;
 
             let earlier_prediction_image: Option<&Image> = earlier_prediction_image_vec.get(pair_index);
@@ -1480,6 +1493,7 @@ impl SolveLogisticRegression {
                     let corners_center2: bool = corners_center == 2;
                     let corners_center3: bool = corners_center == 3;
                     let corners_center4: bool = corners_center == 4;
+                    // let corners_center5: bool = corners_center >= 3;
 
                     // let column_above_center: Image = match input.crop(Rectangle::new(x, 0, 1, y)) {
                     //     Ok(value) => value,
@@ -2202,6 +2216,7 @@ impl SolveLogisticRegression {
                     record.serialize_bool(corners_center2);
                     record.serialize_bool(corners_center3);
                     record.serialize_bool(corners_center4);
+                    // record.serialize_bool_onehot(corners_center5);
                     for i in 0..10 {
                         // let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
                         // record.serialize_u8(value);
@@ -2240,6 +2255,18 @@ impl SolveLogisticRegression {
                     }
                     record.serialize_bool_onehot(row_contains_noise_color);
                     record.serialize_bool_onehot(column_contains_noise_color);
+
+                    let mut color_hole_type1: u8 = 255;
+                    if let Some(image) = color_to_hole_type1.get(&center) {
+                        color_hole_type1 = image.get(xx, yy).unwrap_or(0);
+                    }
+                    record.serialize_color_complex(color_hole_type1, obfuscated_color_offset);
+
+                    let mut color_repair: u8 = 255;
+                    if let Some(image) = color_to_repair.get(&center) {
+                        color_repair = image.get(xx, yy).unwrap_or(0);
+                    }
+                    record.serialize_color_complex(color_repair, obfuscated_color_offset);
 
 
                     // color of the neighbour in all 8 directions
@@ -2748,7 +2775,56 @@ impl SolveLogisticRegression {
                     //     let image_id: u8 = Shape3x3::id_from_3x3image(&area3x3).unwrap_or(0);
                     //     record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
                     // }
-                    let center_shapeid: u8;
+                    // {
+                    //     let mut the_shapeid: u8 = 255;
+                    //     let mut transform_mask: u8 = 0;
+                    //     let mut local_area3x3: Image = area5x5.resize(3, 3)?;
+                    //     local_area3x3.set(0, 0, area5x5.get(1, 0).unwrap_or(255));
+                    //     local_area3x3.set(1, 0, area5x5.get(3, 0).unwrap_or(255));
+                    //     local_area3x3.set(2, 0, area5x5.get(0, 1).unwrap_or(255));
+                    //     local_area3x3.set(0, 1, area5x5.get(0, 3).unwrap_or(255));
+                    //     local_area3x3.set(2, 1, area5x5.get(4, 1).unwrap_or(255));
+                    //     local_area3x3.set(0, 2, area5x5.get(4, 3).unwrap_or(255));
+                    //     local_area3x3.set(1, 2, area5x5.get(1, 4).unwrap_or(255));
+                    //     local_area3x3.set(2, 2, area5x5.get(3, 4).unwrap_or(255));
+                    //     // let image_id: u8 = Shape3x3::id_from_3x3image(&local_area3x3).unwrap_or(0);
+                    //     // record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
+                    //     match Shape3x3::instance().shapeid_and_transformations(&local_area3x3) {
+                    //         Ok((shapeid, transformations)) => {
+                    //             the_shapeid = shapeid;
+                    //             if transformations.contains(&ShapeTransformation::Normal) {
+                    //                 transform_mask |= 1;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw90) {
+                    //                 transform_mask |= 2;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw180) {
+                    //                 transform_mask |= 4;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw270) {
+                    //                 transform_mask |= 8;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipX) {
+                    //                 transform_mask |= 16;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                    //                 transform_mask |= 32;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                    //                 transform_mask |= 64;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                    //                 transform_mask |= 128;
+                    //             }
+                    //         },
+                    //         Err(_) => {},
+                    //     }
+                    //     record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                    //     record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                    // }
+
+                    // let center_shapeid: u8;
+                    // let center_shapetransformations: u8;
                     {
                         let mut the_shapeid: u8 = 255;
                         let mut transform_mask: u8 = 0;
@@ -2782,68 +2858,77 @@ impl SolveLogisticRegression {
                             },
                             Err(_) => {},
                         }
-                        center_shapeid = the_shapeid;
+                        // center_shapeid = the_shapeid;
+                        // center_shapetransformations = transform_mask;
                         record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
                         record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
                     }
 
-                    let combos: [(i32, i32); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
-                    for combo in combos {
-                        let current_area3x3: Image = input.crop_outside(xx - 1 - combo.0, yy - 1 - combo.1, 3, 3, 255)?;
-                        let mut the_shapeid: u8 = 255;
-                        let mut transform_mask: u8 = 0;
-                        match Shape3x3::instance().shapeid_and_transformations(&current_area3x3) {
-                            Ok((shapeid, transformations)) => {
-                                the_shapeid = shapeid;
-                                if transformations.contains(&ShapeTransformation::Normal) {
-                                    transform_mask |= 1;
-                                }
-                                if transformations.contains(&ShapeTransformation::RotateCw90) {
-                                    transform_mask |= 2;
-                                }
-                                if transformations.contains(&ShapeTransformation::RotateCw180) {
-                                    transform_mask |= 4;
-                                }
-                                if transformations.contains(&ShapeTransformation::RotateCw270) {
-                                    transform_mask |= 8;
-                                }
-                                if transformations.contains(&ShapeTransformation::FlipX) {
-                                    transform_mask |= 16;
-                                }
-                                if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
-                                    transform_mask |= 32;
-                                }
-                                if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
-                                    transform_mask |= 64;
-                                }
-                                if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
-                                    transform_mask |= 128;
-                                }
-                            },
-                            Err(_) => {},
-                        }
-                        let same_color: bool = current_area3x3.get(1, 1).unwrap_or(255) == center;
+                    // let combos: [(i32, i32); 4] = [(xx - 1, 0), (xx - 1, (height as i32) - 3), (0, yy - 1), ((width as i32) - 3, yy - 1)];
+                    // let combos: [(i32, i32); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
+                    // let combos: [(i32, i32); 4] = [(-1, -1), (1, -1), (-1, 1), (1, 1)];
+                    // for combo in combos {
+                    //     let current_area3x3: Image = input.crop_outside(xx - 1 - combo.0, yy - 1 - combo.1, 3, 3, 255)?;
+                    //     // let current_area3x3: Image = input.crop_outside(combo.0, combo.1, 3, 3, 255)?;
+                    //     let mut the_shapeid: u8 = 255;
+                    //     let mut transform_mask: u8 = 0;
+                    //     match Shape3x3::instance().shapeid_and_transformations(&current_area3x3) {
+                    //         Ok((shapeid, transformations)) => {
+                    //             the_shapeid = shapeid;
+                    //             if transformations.contains(&ShapeTransformation::Normal) {
+                    //                 transform_mask |= 1;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw90) {
+                    //                 transform_mask |= 2;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw180) {
+                    //                 transform_mask |= 4;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw270) {
+                    //                 transform_mask |= 8;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipX) {
+                    //                 transform_mask |= 16;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                    //                 transform_mask |= 32;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                    //                 transform_mask |= 64;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                    //                 transform_mask |= 128;
+                    //             }
+                    //         },
+                    //         Err(_) => {},
+                    //     }
+                    //     let same_color: bool = current_area3x3.get(1, 1).unwrap_or(255) == center;
 
-                        if !same_color {
-                            the_shapeid = 255;
-                            transform_mask = 0;
-                        }
-                        record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
-                        record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
-
-                        let same_shape: bool = the_shapeid == center_shapeid;
-                        record.serialize_bool(same_shape);
+                    //     // if !same_color {
+                    //     //     the_shapeid = 255;
+                    //     //     transform_mask = 0;
+                    //     // }
+                    //     // record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                    //     // record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
 
 
-                        let same_color_and_same_shape: bool = same_color && same_shape;
-                        let different_color_and_same_shape: bool = (same_color == false) && same_shape;
-                        let different_color_and_different_shape: bool = (same_color == false) && (same_shape == false);
-                        let same_color_and_different_shape: bool = same_color && (same_shape == false);
-                        record.serialize_bool(same_color_and_same_shape);
-                        record.serialize_bool(different_color_and_same_shape);
-                        record.serialize_bool(different_color_and_different_shape);
-                        record.serialize_bool(same_color_and_different_shape);
-                    }
+
+                    //     let same_shape: bool = the_shapeid == center_shapeid;
+                    //     let same_transformations: bool = transform_mask == center_shapetransformations;
+                    //     let same_shape_and_transformations = same_shape && same_transformations;
+                    //     // record.serialize_bool(same_shape);
+                    //     record.serialize_bool(same_shape_and_transformations);
+
+
+                    //     let same_color_and_same_shape: bool = same_color && same_shape;
+                    //     let different_color_and_same_shape: bool = (same_color == false) && same_shape;
+                    //     let different_color_and_different_shape: bool = (same_color == false) && (same_shape == false);
+                    //     let same_color_and_different_shape: bool = same_color && (same_shape == false);
+                    //     // record.serialize_bool(same_color_and_same_shape);
+                    //     // record.serialize_bool(different_color_and_same_shape);
+                    //     // record.serialize_bool(different_color_and_different_shape);
+                    //     // record.serialize_bool(same_color_and_different_shape);
+                    // }
 
                     {
                         let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
