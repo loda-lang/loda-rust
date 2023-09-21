@@ -2748,6 +2748,7 @@ impl SolveLogisticRegression {
                     //     let image_id: u8 = Shape3x3::id_from_3x3image(&area3x3).unwrap_or(0);
                     //     record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
                     // }
+                    let center_shapeid: u8;
                     {
                         let mut the_shapeid: u8 = 255;
                         let mut transform_mask: u8 = 0;
@@ -2781,8 +2782,67 @@ impl SolveLogisticRegression {
                             },
                             Err(_) => {},
                         }
+                        center_shapeid = the_shapeid;
                         record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
                         record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                    }
+
+                    let combos: [(i32, i32); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
+                    for combo in combos {
+                        let current_area3x3: Image = input.crop_outside(xx - 1 - combo.0, yy - 1 - combo.1, 3, 3, 255)?;
+                        let mut the_shapeid: u8 = 255;
+                        let mut transform_mask: u8 = 0;
+                        match Shape3x3::instance().shapeid_and_transformations(&current_area3x3) {
+                            Ok((shapeid, transformations)) => {
+                                the_shapeid = shapeid;
+                                if transformations.contains(&ShapeTransformation::Normal) {
+                                    transform_mask |= 1;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw90) {
+                                    transform_mask |= 2;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw180) {
+                                    transform_mask |= 4;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw270) {
+                                    transform_mask |= 8;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipX) {
+                                    transform_mask |= 16;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                                    transform_mask |= 32;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                                    transform_mask |= 64;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                                    transform_mask |= 128;
+                                }
+                            },
+                            Err(_) => {},
+                        }
+                        let same_color: bool = current_area3x3.get(1, 1).unwrap_or(255) == center;
+
+                        if !same_color {
+                            the_shapeid = 255;
+                            transform_mask = 0;
+                        }
+                        record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                        record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+
+                        let same_shape: bool = the_shapeid == center_shapeid;
+                        record.serialize_bool(same_shape);
+
+
+                        let same_color_and_same_shape: bool = same_color && same_shape;
+                        let different_color_and_same_shape: bool = (same_color == false) && same_shape;
+                        let different_color_and_different_shape: bool = (same_color == false) && (same_shape == false);
+                        let same_color_and_different_shape: bool = same_color && (same_shape == false);
+                        record.serialize_bool(same_color_and_same_shape);
+                        record.serialize_bool(different_color_and_same_shape);
+                        record.serialize_bool(different_color_and_different_shape);
+                        record.serialize_bool(same_color_and_different_shape);
                     }
 
                     {
