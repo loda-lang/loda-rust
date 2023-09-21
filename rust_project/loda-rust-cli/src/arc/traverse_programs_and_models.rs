@@ -1574,6 +1574,14 @@ impl TraverseProgramsAndModels {
         let execute_start_time: Instant = Instant::now();
         let execute_time_limit: Duration = Duration::from_secs(ARC_COMPETITION_EXECUTE_DURATION_SECONDS);
 
+        // When `false` it starts from scratch, and will attempt to solve all tasks.
+        // When processing the hidden dataset, then we want to start from scratch. We don't want to ignore any of the tasks. 
+        //
+        // When `true` it will resume from the last snapshot, and only attempt to solve the unsolved tasks.
+        // During development of the genetic algorithm, I'm only interested in solving the unsolved tasks, 
+        // and don't want to spend time on solving already solved tasks.
+        let resume_from_last_snapshot = false;
+
         // Solve `splitview` like tasks.
         // On the hidden ARC dataset, this doesn't solve any tasks.
         let try_solve_split = true;
@@ -1599,6 +1607,7 @@ impl TraverseProgramsAndModels {
         Self::print_system_info();
 
         println!("path_solution_teamid_json: {:?}", self.arc_config.path_solution_teamid_json);
+        println!("resume_from_last_snapshot: {}", resume_from_last_snapshot);
         println!("try_solve_split: {}", try_solve_split);
         println!("try_existing_solutions: {}", try_existing_solutions);
         println!("try_logistic_regression: {}", try_logistic_regression);
@@ -1614,26 +1623,35 @@ impl TraverseProgramsAndModels {
         self.dedup_program_item_vec();
         self.reload_analytics_dir()?;
 
-        let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
-
-        let solution_json_file: ArcathonSolutionJsonFile = match ArcathonSolutionJsonFile::load(&self.arc_config.path_solution_teamid_json) {
-            Ok(value) => value,
-            Err(error) => {
-                error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
-                ArcathonSolutionJsonFile::empty()
-            }
-        };
-        println!("solution_json_file.task_vec.len: {}", solution_json_file.task_vec.len());
-
         let mut puzzle_names_to_ignore = HashSet::<String>::new();
-        for task in &solution_json_file.task_vec {
-            puzzle_names_to_ignore.insert(task.task_name.clone());
+
+        let mut coordinator = ArcathonSolutionCoordinator::new(
+            &self.arc_config.path_solution_dir,
+            &self.arc_config.path_solution_teamid_json,
+        );
+
+        if resume_from_last_snapshot {
+            let solution_json_file: ArcathonSolutionJsonFile = match ArcathonSolutionJsonFile::load(&self.arc_config.path_solution_teamid_json) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
+                    ArcathonSolutionJsonFile::empty()
+                }
+            };
+            println!("Resume from last snapshot. solution_json_file.task_vec.len: {}", solution_json_file.task_vec.len());
+
+            for task in &solution_json_file.task_vec {
+                puzzle_names_to_ignore.insert(task.task_name.clone());
+            }
+
+            coordinator.import_predictions_from_solution_json_file(&solution_json_file);
         }
 
         let mut unique_records = HashSet::<Record>::new();
 
-        let ignore_puzzles_with_a_solution: bool = self.arc_config.path_solutions_csv.is_file();
-        if ignore_puzzles_with_a_solution {
+        if resume_from_last_snapshot && self.arc_config.path_solutions_csv.is_file() {
+            println!("Resume from last snapshot. path_solutions_csv: {:?}", self.arc_config.path_solutions_csv);
+
             let record_vec = Record::load_record_vec(&self.arc_config.path_solutions_csv)?;
             debug!("solutions.csv: number of rows: {}", record_vec.len());
     
@@ -1647,14 +1665,17 @@ impl TraverseProgramsAndModels {
                 puzzle_names_to_ignore.insert(puzzle_filename);
             }
         }
-        debug!("puzzle_names_to_ignore: {:?}", puzzle_names_to_ignore);
 
-        scheduled_model_item_vec = ModelItem::remove_model_items_where_filestem_contains(
-            &scheduled_model_item_vec, 
-            &puzzle_names_to_ignore
-        );
+        let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
-        // println!("scheduled_model_item_vec.len(): {}", scheduled_model_item_vec.len());
+        if resume_from_last_snapshot {
+            println!("Resume from last snapshot. puzzle_names_to_ignore: {:?}", puzzle_names_to_ignore);
+            scheduled_model_item_vec = ModelItem::remove_model_items_where_filestem_contains(
+                &scheduled_model_item_vec, 
+                &puzzle_names_to_ignore
+            );    
+            println!("Resume from last snapshot. scheduled_model_item_vec.len(): {}", scheduled_model_item_vec.len());
+        }
 
         // Summary of what tasks are to be solved
         {
@@ -1677,12 +1698,6 @@ impl TraverseProgramsAndModels {
             println!("Number of tasks already solved: {}", count_solved);
             println!("Number of tasks unsolved: {}", count_unsolved);
         }
-
-        let mut coordinator = ArcathonSolutionCoordinator::new(
-            &self.arc_config.path_solution_dir,
-            &self.arc_config.path_solution_teamid_json,
-        );
-        coordinator.import_predictions_from_solution_json_file(&solution_json_file);
 
         if try_solve_split {
             let solver_start_time: Instant = Instant::now();
@@ -1720,9 +1735,7 @@ impl TraverseProgramsAndModels {
                 count_tasks_solved += 1;
                 pb.println(format!("solved task: {}", task.id));
 
-                let model_id: ModelItemId = model_item.borrow().id.clone();
-                let task_name: String = model_id.file_stem();
-                coordinator.append_predictions(task_name, prediction_vec);
+                coordinator.append_predictions(task.id.clone(), prediction_vec);
                 pb.inc(1);
             }
             pb.finish_and_clear();
@@ -1758,9 +1771,7 @@ impl TraverseProgramsAndModels {
                         pb.println(format!("solved task: {}", task.id));
                     }
     
-                    let model_id: ModelItemId = model_item.borrow().id.clone();    
-                    let task_name: String = model_id.file_stem();
-                    coordinator.append_predictions(task_name, prediction_vec);
+                    coordinator.append_predictions(task.id.clone(), prediction_vec);
                     pb.inc(1);
                 }
                 pb.finish_and_clear();
