@@ -1360,7 +1360,18 @@ impl SolveLogisticRegression {
                 color_to_repair.insert(color, image);
             }
 
+            // let mut color_to_denoise = HashMap::<u8, Image>::new();
+            // for color in 0..=9 {
+            //     let image: Image = input.denoise_type1(color)?;
+            //     color_to_denoise.insert(color, image);
+            // }
+
             let input_denoise_type1: Image = input.denoise_type1(most_popular_color.unwrap_or(255))?;
+
+            // let histogram_border: Histogram = input.histogram_border();
+            // let border_most_popular_color: Option<u8> = histogram_border.most_popular_color();
+            // let border_least_popular_color: Option<u8> = histogram_border.least_popular_color();
+            // let input_denoise_type1_border: Image = input.denoise_type1(border_color.unwrap_or(255))?;
 
             let earlier_prediction_image: Option<&Image> = earlier_prediction_image_vec.get(pair_index);
             let mut earlier_prediction_shapetype_connectivity4: Option<Image> = None;
@@ -1465,6 +1476,7 @@ impl SolveLogisticRegression {
                     _ = center_xy_reversed;
                     
                     let center_denoise_type1: u8 = input_denoise_type1.get(xx, yy).unwrap_or(255);
+                    // let center_denoise_type1_border: u8 = input_denoise_type1_border.get(xx, yy).unwrap_or(255);
 
                     let object_center: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
                     // let object_top: u8 = enumerated_objects.get(xx, yy - 1).unwrap_or(255);
@@ -2268,6 +2280,14 @@ impl SolveLogisticRegression {
                     }
                     record.serialize_color_complex(color_repair, obfuscated_color_offset);
 
+                    // for color in 0..=9u8 {
+                    //     let mut color_repair: u8 = 255;
+                    //     if let Some(image) = color_to_hole_type1.get(&color) {
+                    //         color_repair = image.get(xx, yy).unwrap_or(0);
+                    //     }
+                    //     record.serialize_color_complex(color_repair, obfuscated_color_offset);
+                    // }
+
 
                     // color of the neighbour in all 8 directions
                     let directions = [
@@ -2575,6 +2595,14 @@ impl SolveLogisticRegression {
                     }
 
                     record.serialize_color_complex(center_denoise_type1, obfuscated_color_offset);
+                    // record.serialize_color_complex(center_denoise_type1_border, obfuscated_color_offset);
+
+                    // let is_border_most_popular_color: bool = Some(center) == border_most_popular_color;
+                    // let is_border_least_popular_color: bool = Some(center) == border_least_popular_color;
+                    // record.serialize_bool_onehot(is_border_most_popular_color);
+                    // record.serialize_bool_onehot(is_border_least_popular_color);
+                    // let border_histogram_count: u32 = histogram_border.get(center);
+                    // record.serialize_bool_onehot(border_histogram_count > 0);
 
                     for color in 0..=9 {
                         let mut is_inside_bounding_box: bool = false;
