@@ -2892,6 +2892,49 @@ impl SolveLogisticRegression {
                         record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
                     }
 
+                    // {
+                    //     let mut the_shapeid: u8 = 255;
+                    //     let mut transform_mask: u8 = 0;
+                    //     let mut my_area3x3: Image = area3x3.clone();
+                    //     if let Some(color) = most_popular_color {
+                    //         my_area3x3 = my_area3x3.to_mask_where_color_is_different(color);
+                    //     }
+                    //     match Shape3x3::instance().shapeid_and_transformations(&my_area3x3) {
+                    //         Ok((shapeid, transformations)) => {
+                    //             the_shapeid = shapeid;
+                    //             if transformations.contains(&ShapeTransformation::Normal) {
+                    //                 transform_mask |= 1;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw90) {
+                    //                 transform_mask |= 2;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw180) {
+                    //                 transform_mask |= 4;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw270) {
+                    //                 transform_mask |= 8;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipX) {
+                    //                 transform_mask |= 16;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                    //                 transform_mask |= 32;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                    //                 transform_mask |= 64;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                    //                 transform_mask |= 128;
+                    //             }
+                    //         },
+                    //         Err(_) => {},
+                    //     }
+                    //     // center_shapeid = the_shapeid;
+                    //     // center_shapetransformations = transform_mask;
+                    //     record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                    //     record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                    // }
+
                     // let combos: [(i32, i32); 4] = [(xx - 1, 0), (xx - 1, (height as i32) - 3), (0, yy - 1), ((width as i32) - 3, yy - 1)];
                     // let combos: [(i32, i32); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
                     // let combos: [(i32, i32); 4] = [(-1, -1), (1, -1), (-1, 1), (1, 1)];
@@ -3149,6 +3192,7 @@ impl SolveLogisticRegression {
                             // {
                             //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            //     record.serialize_bool(Some(pixel) == most_popular_color);
                             // }
                             {
                                 let pixel: u8 = image.get(xx + 1, yy).unwrap_or(255);
