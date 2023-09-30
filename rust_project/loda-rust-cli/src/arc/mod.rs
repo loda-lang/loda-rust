@@ -25,6 +25,7 @@ mod convolution5x5_special;
 mod convolution_with_program;
 mod experiment_with_convolution;
 mod export_tasks;
+mod generate_dataset_for_texttransformer;
 mod generate_dataset_for_visitiontransformer;
 mod generate_pattern;
 mod grid;
