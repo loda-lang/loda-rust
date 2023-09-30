@@ -184,7 +184,7 @@ enum FilenameMode {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-pub struct GenerateTrainingImageFiles {
+struct GenerateDataset {
     save_dir: PathBuf,
     filename_mode: FilenameMode,
     classification_counters: [u32; 10],
@@ -192,7 +192,7 @@ pub struct GenerateTrainingImageFiles {
     accumulated_byte_count: u64,
 }
 
-impl GenerateTrainingImageFiles {
+impl GenerateDataset {
     #[allow(dead_code)]
     fn new(save_dir: &Path) -> Self {
         Self {
@@ -552,7 +552,7 @@ mod tests {
     fn save_as_file(name: &str) -> anyhow::Result<()> {
         let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(name)?;
         let task: Task = Task::try_from(&json_task)?;
-        GenerateTrainingImageFiles::export_task(&task)?;
+        GenerateDataset::export_task(&task)?;
         Ok(())
     }
 
