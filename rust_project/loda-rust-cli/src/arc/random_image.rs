@@ -3,9 +3,6 @@ use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
 use rand::seq::SliceRandom;
 
-// Ideas
-// Noise pixel within a range (0..=N)
-// Three colors with a noise temperature
 #[allow(dead_code)]
 pub struct RandomImage;
 
@@ -90,6 +87,23 @@ impl RandomImage {
         let mask: Image = Self::two_colors(rng, image.size(), 0, 1, temperature)?;
         let result_image: Image = mask.select_from_image_and_color(&image, color)?;
         Ok(result_image)
+    }
+
+    /// Random pixel values between `0..=max_color_value`.
+    #[allow(dead_code)]
+    pub fn uniform_colors(rng: &mut StdRng, size: ImageSize, max_color_value: u8) -> anyhow::Result<Image> {
+        if size.is_empty() {
+            return Err(anyhow::anyhow!("size is empty. Must be 1x1 or bigger."));
+        }
+        let range: Uniform<u8> = Uniform::from(0..=max_color_value);
+        let mut image: Image = Image::zero(size.width, size.height);
+        for y in 0..size.height {
+            for x in 0..size.width {
+                let value: u8 = range.sample(rng);
+                _ = image.set(x as i32, y as i32, value);
+            }
+        }
+        Ok(image)
     }
 }
 
@@ -182,6 +196,20 @@ mod tests {
         let input: Image = Image::color(4, 2, 9);
         let actual: Image = RandomImage::draw_dots(&mut StdRng::seed_from_u64(0), &input, 5, 75).expect("ok");
         let expected = Image::try_create(4, 2, vec![5, 5, 9, 5, 5, 5, 9, 5]).expect("ok");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40000_uniform_colors() {
+        let actual: Image = RandomImage::uniform_colors(&mut StdRng::seed_from_u64(0), ImageSize::new(3, 2), 3).expect("ok");
+        let expected = Image::try_create(3, 2, vec![3, 2, 2, 3, 3, 0]).expect("ok");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40001_uniform_colors() {
+        let actual: Image = RandomImage::uniform_colors(&mut StdRng::seed_from_u64(0), ImageSize::new(3, 3), 4).expect("ok");
+        let expected = Image::try_create(3, 3, vec![4, 3, 2, 3, 4, 0, 3, 2, 4]).expect("ok");
         assert_eq!(actual, expected);
     }
 }
