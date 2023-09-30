@@ -1,4 +1,7 @@
-use super::Image;
+use super::{Image, RandomImage, ImageSize, ImageSymmetry};
+use rand::{rngs::StdRng, SeedableRng};
+
+static MAX_VALID_PIXEL_VALUE: u8 = 35;
 
 struct GenerateDataset;
 
@@ -43,6 +46,21 @@ impl GenerateDataset {
         result += "'";
         Ok(result)
     }
+
+    fn example_flipy() -> anyhow::Result<()> {
+        let input_image: Image = RandomImage::uniform_colors(
+            &mut StdRng::seed_from_u64(0), 
+            ImageSize::new(10, 2), 
+            MAX_VALID_PIXEL_VALUE
+        )?;
+        let output_image: Image = input_image.flip_y()?;
+        let input: String = Self::image_to_text(&input_image)?;
+        let output: String = Self::image_to_text(&output_image)?;
+        let instruction: &str = "In context of SimonSolver. Apply flipy";
+        let prompt = format!(r#"{{"instruction":"{}","input":"{}","output":"{}"}}"#, instruction, input, output);
+        println!("{}", prompt);
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -83,5 +101,10 @@ mod tests {
         let input = Image::try_create(4, 1, vec![0, 9, 10, 35]).expect("ok");
         let actual: String = GenerateDataset::image_to_text(&input).expect("ok");
         assert_eq!(actual, "image='09az'");
+    }
+
+    // #[test]
+    fn test_20000_example_flipy() {
+        GenerateDataset::example_flipy().expect("ok");
     }
 }
