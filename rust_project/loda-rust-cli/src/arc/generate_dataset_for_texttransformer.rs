@@ -1,4 +1,4 @@
-use super::{ImageSize, Image};
+use super::{ImageSize, Image, ImageMask};
 use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
 use rand::seq::SliceRandom;
@@ -16,7 +16,7 @@ impl RandomImage {
     /// The pixel is drawn with `foreground` color.
     fn one_dot(rng: &mut StdRng, size: ImageSize, background: u8, foreground: u8) -> anyhow::Result<Image> {
         if size.is_empty() {
-            return Err(anyhow::anyhow!("size is empty"));
+            return Err(anyhow::anyhow!("size is empty. Must be 1x1 or bigger."));
         }
         let mut image: Image = Image::color(size.width, size.height, background);
         let count: usize = (size.width as usize) * (size.height as usize);
@@ -32,13 +32,15 @@ impl RandomImage {
     /// 
     /// When the temperature is 0, the image is filled with `color0`.
     /// 
+    /// When the temperature is 50, the image is half `color0` and half `color1`.
+    /// 
     /// When the temperature is 100, the image is filled with `color1`.
     fn two_colors(rng: &mut StdRng, size: ImageSize, color0: u8, color1: u8, temperature: u8) -> anyhow::Result<Image> {
         if temperature > 100 {
             return Err(anyhow::anyhow!("temperature is greater than 100"));
         }
         if size.is_empty() {
-            return Err(anyhow::anyhow!("size is empty"));
+            return Err(anyhow::anyhow!("size is empty. Must be 1x1 or bigger."));
         }
         if temperature == 0 {
             return Ok(Image::color(size.width, size.height, color0));
@@ -62,6 +64,28 @@ impl RandomImage {
             }
         }
         Ok(image)
+    }
+
+    /// Draw random dots on an existing image.
+    /// 
+    /// If the temperature is 0, the original image is returned unchanged.
+    /// 
+    /// If the temperature is 50, then half of the pixels of the original image has been overdrawn with the specified color.
+    /// 
+    /// If the temperature is 100, then all pixels have been replaced with the specified color, and no colors from the original image is preserved.
+    fn draw_dots(rng: &mut StdRng, image: &Image, color: u8, temperature: u8) -> anyhow::Result<Image> {
+        if temperature > 100 {
+            return Err(anyhow::anyhow!("temperature is greater than 100"));
+        }
+        if image.is_empty() {
+            return Err(anyhow::anyhow!("size is empty. Must be 1x1 or bigger."));
+        }
+        if temperature == 0 { 
+            return Ok(image.clone());
+        }
+        let mask: Image = Self::two_colors(rng, image.size(), 0, 1, temperature)?;
+        let result_image: Image = mask.select_from_image_and_color(&image, color)?;
+        return Ok(result_image);
     }
 }
 
@@ -138,6 +162,22 @@ mod tests {
     fn test_20006_two_colors() {
         let actual: Image = RandomImage::two_colors(&mut StdRng::seed_from_u64(0), ImageSize::new(3, 2), 4, 5, 75).expect("ok");
         let expected = Image::try_create(3, 2, vec![5, 5, 4, 5, 5, 5]).expect("ok");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_draw_dots() {
+        let input: Image = Image::color(4, 2, 9);
+        let actual: Image = RandomImage::draw_dots(&mut StdRng::seed_from_u64(0), &input, 5, 25).expect("ok");
+        let expected = Image::try_create(4, 2, vec![9, 5, 9, 9, 9, 5, 9, 5]).expect("ok");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30001_draw_dots() {
+        let input: Image = Image::color(4, 2, 9);
+        let actual: Image = RandomImage::draw_dots(&mut StdRng::seed_from_u64(0), &input, 5, 75).expect("ok");
+        let expected = Image::try_create(4, 2, vec![5, 5, 9, 5, 5, 5, 9, 5]).expect("ok");
         assert_eq!(actual, expected);
     }
 }
