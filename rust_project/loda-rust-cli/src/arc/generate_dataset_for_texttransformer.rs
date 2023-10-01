@@ -1,5 +1,6 @@
-use super::{Image, RandomImage, ImageSize, ImageSymmetry};
-use rand::{rngs::StdRng, SeedableRng};
+use super::{Image, RandomImage, ImageSize, ImageHistogram, ImageSort, ImageSortMode, ImageSymmetry, ImageStack, ImageOffset, ImageDenoise, ImageGravity};
+use super::HtmlLog;
+use rand::{rngs::StdRng, SeedableRng, Rng};
 
 static MAX_VALID_PIXEL_VALUE: u8 = 35;
 
@@ -47,18 +48,215 @@ impl GenerateDataset {
         Ok(result)
     }
 
-    fn example_flipy() -> anyhow::Result<()> {
-        let input_image: Image = RandomImage::uniform_colors(
-            &mut StdRng::seed_from_u64(0), 
-            ImageSize::new(10, 2), 
-            MAX_VALID_PIXEL_VALUE
-        )?;
+    fn simple_image(rng: &mut StdRng, size: ImageSize) -> anyhow::Result<Image> {
+        let mut permutation: u32 = rng.gen();
+        let image0: Image = match permutation % 2 {
+            0 => {
+                let max_color: u8 = rng.gen_range(3..=MAX_VALID_PIXEL_VALUE);
+                RandomImage::uniform_colors(
+                    rng,
+                    size, 
+                    max_color,
+                )?
+            },
+            _ => {
+                let color0: u8 = rng.gen_range(0..=9);
+                let mut color1: u8 = rng.gen_range(0..=9);
+                if color1 == color0 {
+                    color1 = (color1 + 1) % 10;
+                }                    
+                let temperature: u8 = rng.gen_range(25..=75);
+                RandomImage::two_colors(
+                    rng, 
+                    size, 
+                    color0,
+                    color1,
+                    temperature
+                )?
+            }
+        };
+        permutation /= 2;
+
+        let most_popular_color: Option<u8> = image0.histogram_all().most_popular_color_disallow_ambiguous();
+        let mut image1: Image = image0.clone();
+        match permutation % 12 {
+            0 => {
+                // do nothing, keep input image as it is.
+            },
+            1 => {
+                if let Some(color) = most_popular_color {
+                    image1 = image0.sort_by_mass(color, ImageSortMode::RowsAscending)?;
+                }
+            },
+            2 => {
+                if let Some(color) = most_popular_color {
+                    image1 = image0.sort_by_mass(color, ImageSortMode::RowsDescending)?;
+                }
+            },
+            3 => {
+                if let Some(color) = most_popular_color {
+                    image1 = image0.sort_by_mass(color, ImageSortMode::ColumnsAscending)?;
+                }
+            },
+            4 => {
+                if let Some(color) = most_popular_color {
+                    image1 = image0.sort_by_mass(color, ImageSortMode::ColumnsDescending)?;
+                }
+            },
+            5 => {
+                image1 = image0.sort_by_pixel_value(ImageSortMode::RowsAscending)?;
+            },
+            6 => {
+                image1 = image0.sort_by_pixel_value(ImageSortMode::RowsDescending)?;
+            },
+            7 => {
+                image1 = image0.sort_by_pixel_value(ImageSortMode::ColumnsAscending)?;
+            },
+            8 => {
+                image1 = image0.sort_by_pixel_value(ImageSortMode::ColumnsDescending)?;
+            },
+            9 => {
+                if let Some(color) = most_popular_color {
+                    image1 = image0.gravity(color, crate::arc::GravityDirection::Down)?;
+                }
+            },
+            10 => {
+                if let Some(color) = most_popular_color {
+                    image1 = image0.gravity(color, crate::arc::GravityDirection::Up)?;
+                }
+            },
+            11 => {
+                if let Some(color) = most_popular_color {
+                    image1 = image0.gravity(color, crate::arc::GravityDirection::Left)?;
+                }
+            },
+            _ => {
+                if let Some(color) = most_popular_color {
+                    image1 = image0.gravity(color, crate::arc::GravityDirection::Right)?;
+                }
+            },
+        }
+        Ok(image1)
+    }
+
+    fn medium_image(rng: &mut StdRng, size: ImageSize) -> anyhow::Result<Image> {
+        let permutation: u32 = rng.gen();
+        match permutation % 3 {
+            0 => {
+                // do nothing, use the simple image generator
+            },
+            1 => {
+                let factor: u16 = rng.gen_range(1..=9);
+                let width0: u8 = ((size.width as u16) * factor / 10).min(255) as u8;
+                let width1: u8 = size.width - width0;
+                if width0 > 0 && width1 > 0 {
+                    let image0: Image = Self::simple_image(rng, ImageSize::new(width0, size.height))?;
+                    let image1: Image = Self::simple_image(rng, ImageSize::new(width1, size.height))?;
+                    let image: Image = image0.hjoin(image1)?;
+                    return Ok(image);
+                }
+            },
+            _ => {
+                let factor: u16 = rng.gen_range(1..=9);
+                let height0: u8 = ((size.height as u16) * factor / 10).min(255) as u8;
+                let height1: u8 = size.height - height0;
+                if height0 > 0 && height1 > 0 {
+                    let image0: Image = Self::simple_image(rng, ImageSize::new(size.width, height0))?;
+                    let image1: Image = Self::simple_image(rng, ImageSize::new(size.width, height1))?;
+                    let image: Image = image0.vjoin(image1)?;
+                    return Ok(image);
+                }
+            },
+        };
+        let image: Image = Self::simple_image(rng, size)?;
+        Ok(image)
+    }
+
+    fn advanced_image(rng: &mut StdRng, size: ImageSize) -> anyhow::Result<Image> {
+        let image0: Image = Self::medium_image(rng, size)?;
+        let mut image1: Image = image0.clone();
+        let permutation: u32 = rng.gen();
+        match permutation % 5 {
+            0 => {
+                // do nothing
+            },
+            1 => {
+                // offset x
+                let x: i32 = rng.gen_range(-5..=5);
+                image1 = image0.offset_wrap(x, 0)?;
+            },
+            2 => {
+                // offset y
+                let y: i32 = rng.gen_range(-5..=5);
+                image1 = image0.offset_wrap(0, y)?;
+            },
+            3 => {
+                // repair a little
+                image1 = image0.denoise_type3(10)?;
+            },
+            _ => {
+                // repair a lot
+                image1 = image0.denoise_type3(40)?;
+            },
+        }
+        Ok(image1)
+    }
+
+    fn example_flipy(number_of_rows: u32) -> anyhow::Result<()> {
+        for i in 0..number_of_rows {
+            Self::example_flipy_iteration(i)?;
+        }
+        Ok(())
+    }
+
+    fn example_flipy_iteration(iteration: u32) -> anyhow::Result<()> {
+        let mut rng = StdRng::seed_from_u64(iteration as u64);
+
+        let mut permutation: u32 = rng.gen();
+
+        let width: u8 = ((permutation % 29) + 1) as u8;
+        permutation /= 29;
+
+        let height: u8 = ((permutation % 29) + 1) as u8;
+        permutation /= 29;
+
+        let image_size: ImageSize = ImageSize::new(width, height);
+
+        // let input_image: Image = Self::simple_image(&mut rng, image_size)?;
+        // let input_image: Image = Self::medium_image(&mut rng, image_size)?;
+        let input_image: Image = Self::advanced_image(&mut rng, image_size)?;
+
         let output_image: Image = input_image.flip_y()?;
         let input: String = Self::image_to_text(&input_image)?;
         let output: String = Self::image_to_text(&output_image)?;
-        let instruction: &str = "In context of SimonSolver. Apply flipy";
-        let prompt = format!(r#"{{"instruction":"{}","input":"{}","output":"{}"}}"#, instruction, input, output);
+
+        let instruction_prefix: &str = match permutation % 6 {
+            0 => "In context of SimonSolver. ",
+            1 => "Using SimonSolver context. ",
+            2 => "With the context SimonSolver. ",
+            3 => "With SimonSolver. ",
+            4 => "Use SimonSolver. ",
+            _ => "Context=SimonSolver. ",
+        };
+        permutation /= 6;
+
+        let instruction_name: &str = match permutation % 8 {
+            0 => "Invoke flipy.",
+            1 => "Run flip-y.",
+            2 => "Apply flip_y.",
+            3 => "Compute flipy and return the output image.",
+            4 => "Perform image-flipy with the image",
+            5 => "Flip y with image",
+            6 => "With the provided image, do a flip-y",
+            _ => "Give me image-flip-y of this image",
+        };
+        // permutation /= 8;
+
+        let instruction: String = format!("{}{}", instruction_prefix, instruction_name);
+        let prompt = format!(r#"{{"create":"flipy","instruction":"{}","input":"{}","output":"{}"}}"#, instruction, input, output);
         println!("{}", prompt);
+        HtmlLog::text(prompt);
+        HtmlLog::compare_images(vec![input_image, output_image]);
         Ok(())
     }
 }
@@ -105,6 +303,6 @@ mod tests {
 
     // #[test]
     fn test_20000_example_flipy() {
-        GenerateDataset::example_flipy().expect("ok");
+        GenerateDataset::example_flipy(20).expect("ok");
     }
 }
