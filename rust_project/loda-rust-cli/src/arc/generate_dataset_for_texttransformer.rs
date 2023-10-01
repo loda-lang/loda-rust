@@ -363,9 +363,17 @@ impl GenerateDataType {
     }
 }
 
-struct GenerateDataset;
+struct GenerateDataset {
+    dataset_items: Vec<String>,
+}
 
 impl GenerateDataset {
+    fn new() -> Self {
+        Self {
+            dataset_items: vec!()
+        }
+    }
+
     fn random_instruction_context(rng: &mut StdRng) -> &str {
         let texts = [
             "In context of SimonSolver.",
@@ -378,10 +386,21 @@ impl GenerateDataset {
         texts.choose(rng).unwrap()
     }
 
-    fn example_flipy(number_of_rows: u32) -> anyhow::Result<()> {
-        let print_to_htmllog: bool = true;
-        let generator_type = GenerateDataType::FlipY;
-        // let generator_type = GenerateDataType::Rotate90;
+    fn populate(&mut self, number_of_rows: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
+        let generator_types = [
+            GenerateDataType::FlipX,
+            GenerateDataType::FlipY,
+            GenerateDataType::Rotate90,
+            GenerateDataType::Rotate180,
+            GenerateDataType::Rotate270,
+        ];
+        for generator_type in &generator_types {
+            self.create_many_dataset_items(generator_type.clone(), number_of_rows, print_to_htmllog)?;
+        }
+        Ok(())
+    }
+
+    fn create_many_dataset_items(&mut self, generator_type: GenerateDataType, number_of_rows: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
         let mut dataset_items = Vec::<String>::new();
         for i in 0..number_of_rows {
             let dataset_item: String = match Self::create_dataset_item(i, generator_type.clone(), print_to_htmllog) {
@@ -391,10 +410,11 @@ impl GenerateDataset {
                     continue;
                 }
             };
-            println!("{}", dataset_item);
+            // println!("{}", dataset_item);
             dataset_items.push(dataset_item);
         }
-        println!("dataset.len = {}", dataset_items.len());
+        // println!("dataset.len = {}", dataset_items.len());
+        self.dataset_items.append(&mut dataset_items);
         Ok(())
     }
 
@@ -464,6 +484,7 @@ mod tests {
 
     // #[test]
     fn test_20000_example_flipy() {
-        GenerateDataset::example_flipy(20).expect("ok");
+        let mut generator = GenerateDataset::new();
+        generator.populate(10, true).expect("ok");
     }
 }
