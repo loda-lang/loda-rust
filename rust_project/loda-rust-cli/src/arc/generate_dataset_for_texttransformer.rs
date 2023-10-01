@@ -245,7 +245,7 @@ impl GenerateDataset {
     fn example_flipy_iteration(iteration: u32) -> anyhow::Result<()> {
         let mut rng = StdRng::seed_from_u64(iteration as u64);
 
-        let instruction_names = [
+        let instruction_descriptions = [
             "Invoke flipy.",
             "Run flip-y.",
             "Apply flip_y.",
@@ -256,7 +256,7 @@ impl GenerateDataset {
             "With the provided image, do a flip-y",
             "Give me image-flip-y of this image",
         ];
-        let instruction_name: &str = instruction_names.choose(&mut rng).unwrap();
+        let instruction_description: &str = instruction_descriptions.choose(&mut rng).unwrap();
 
         let image_size: ImageSize = Self::random_size(&mut rng);
         let input_image: Image = Self::advanced_image(&mut rng, image_size)?;
@@ -267,7 +267,7 @@ impl GenerateDataset {
 
         let instruction_prefix: &str = Self::random_instruction_context(&mut rng);
 
-        let instruction: String = format!("{}{}", instruction_prefix, instruction_name);
+        let instruction: String = format!("{} {}", instruction_prefix, instruction_description);
         let prompt = format!(r#"{{"create":"flipy","instruction":"{}","input":"{}","output":"{}"}}"#, instruction, input, output);
         println!("{}", prompt);
         HtmlLog::text(prompt);
