@@ -1,5 +1,6 @@
 use super::{Image, RandomImage, ImageSize, ImageHistogram, ImageSort, ImageSortMode, ImageSymmetry, ImageStack, ImageOffset, ImageDenoise, ImageGravity, ImageRepairTrigram, ImageRotate90};
 use super::HtmlLog;
+use std::io::Write;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
 
@@ -440,12 +441,20 @@ impl GenerateDataset {
         }
         Ok(dataset_item)
     }
+
+    fn save(&self, path: &std::path::Path) -> anyhow::Result<()> {
+        let s: String = self.dataset_items.join("\n");
+        let mut file = std::fs::File::create(path)?;
+        file.write_all(s.as_bytes())?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
+    use std::path::PathBuf;
 
     #[test]
     fn test_10000_to_09az() {
@@ -483,8 +492,10 @@ mod tests {
     }
 
     // #[test]
-    fn test_20000_example_flipy() {
+    fn test_20000_generate_dataset() {
+        let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/texttransformer_output.jsonl");
         let mut generator = GenerateDataset::new();
-        generator.populate(10, true).expect("ok");
+        generator.populate(100, true).expect("ok");
+        generator.save(&path).expect("ok");
     }
 }
