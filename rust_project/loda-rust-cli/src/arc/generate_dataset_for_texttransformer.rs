@@ -267,6 +267,16 @@ impl GenerateDataType {
         }
     }
 
+    fn random_seed(&self) -> u64 {
+        match self {
+            GenerateDataType::FlipX => 0,
+            GenerateDataType::FlipY => 10000,
+            GenerateDataType::Rotate90 => 20000,
+            GenerateDataType::Rotate180 => 30000,
+            GenerateDataType::Rotate270 => 40000,
+        }
+    }
+
     fn instruction_description(&self, rng: &mut StdRng) -> String {
         match self {
             GenerateDataType::FlipX => Self::instruction_description_flip_x(rng).to_string(),
@@ -369,21 +379,32 @@ impl GenerateDataset {
     }
 
     fn example_flipy(number_of_rows: u32) -> anyhow::Result<()> {
+        let print_to_htmllog: bool = true;
         let generator_type = GenerateDataType::FlipY;
         // let generator_type = GenerateDataType::Rotate90;
+        let mut dataset_items = Vec::<String>::new();
         for i in 0..number_of_rows {
-            Self::execute_iteration(i, generator_type.clone())?;
+            let dataset_item: String = match Self::create_dataset_item(i, generator_type.clone(), print_to_htmllog) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("create_dataset_item. Unable to execute iteration {}: {}", i, error);
+                    continue;
+                }
+            };
+            println!("{}", dataset_item);
+            dataset_items.push(dataset_item);
         }
+        println!("dataset.len = {}", dataset_items.len());
         Ok(())
     }
 
-    fn execute_iteration(iteration: u32, generator_type: GenerateDataType) -> anyhow::Result<()> {
-        let mut rng = StdRng::seed_from_u64(iteration as u64);
+    fn create_dataset_item(iteration: u32, generator_type: GenerateDataType, print_to_htmllog: bool) -> anyhow::Result<String> {
+        let seed: u64 = generator_type.random_seed() ^ (iteration as u64);
+        let mut rng = StdRng::seed_from_u64(seed);
+        let input_image: Image = GenerateRandomImage::create(&mut rng)?;
 
         let instruction_description: String = generator_type.instruction_description(&mut rng);
         let generator_label: &str = generator_type.generator_label();
-
-        let input_image: Image = GenerateRandomImage::create(&mut rng)?;
 
         let output_image: Image = generator_type.execute(&input_image)?;
         let input: String = input_image.to_09az()?;
@@ -392,11 +413,12 @@ impl GenerateDataset {
         let instruction_prefix: &str = Self::random_instruction_context(&mut rng);
 
         let instruction: String = format!("{} {}", instruction_prefix, instruction_description);
-        let prompt = format!(r#"{{"create":"{}","instruction":"{}","input":"{}","output":"{}"}}"#, generator_label, instruction, input, output);
-        println!("{}", prompt);
-        HtmlLog::text(prompt);
-        HtmlLog::compare_images(vec![input_image, output_image]);
-        Ok(())
+        let dataset_item = format!(r#"{{"create":"{}","instruction":"{}","input":"{}","output":"{}"}}"#, generator_label, instruction, input, output);
+        if print_to_htmllog {
+            HtmlLog::text(dataset_item.clone());
+            HtmlLog::compare_images(vec![input_image, output_image]);
+        }
+        Ok(dataset_item)
     }
 }
 
