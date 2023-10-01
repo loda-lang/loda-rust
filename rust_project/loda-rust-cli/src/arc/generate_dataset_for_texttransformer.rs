@@ -1,4 +1,4 @@
-use super::{Image, RandomImage, ImageSize, ImageHistogram, ImageSort, ImageSortMode, ImageSymmetry, ImageStack, ImageOffset, ImageDenoise, ImageGravity};
+use super::{Image, RandomImage, ImageSize, ImageHistogram, ImageSort, ImageSortMode, ImageSymmetry, ImageStack, ImageOffset, ImageDenoise, ImageGravity, ImageRepairTrigram};
 use super::HtmlLog;
 use rand::{rngs::StdRng, SeedableRng, Rng};
 
@@ -176,7 +176,7 @@ impl GenerateDataset {
         let image0: Image = Self::medium_image(rng, size)?;
         let mut image1: Image = image0.clone();
         let permutation: u32 = rng.gen();
-        match permutation % 5 {
+        match permutation % 6 {
             0 => {
                 // do nothing
             },
@@ -194,9 +194,20 @@ impl GenerateDataset {
                 // repair a little
                 image1 = image0.denoise_type3(10)?;
             },
-            _ => {
+            4 => {
                 // repair a lot
                 image1 = image0.denoise_type3(40)?;
+            },
+            _ => {
+                // repair a lot
+                if image0.width() >= 3 && image0.height() >= 3 {
+                    for _ in 0..0 {
+                        let most_popular_color: Option<u8> = image0.histogram_all().least_popular_color();
+                        if let Some(color) = most_popular_color {
+                            image1.repair_trigram_algorithm(color)?;
+                        }
+                    }
+                }
             },
         }
         Ok(image1)
