@@ -495,7 +495,7 @@ mod tests {
     fn test_20000_generate_dataset() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/texttransformer_output.jsonl");
         let mut generator = GenerateDataset::new();
-        generator.populate(100, true).expect("ok");
+        generator.populate(200, true).expect("ok");
         generator.save(&path).expect("ok");
     }
 }
