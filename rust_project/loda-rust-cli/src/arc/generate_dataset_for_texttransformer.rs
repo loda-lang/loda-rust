@@ -1,4 +1,4 @@
-use super::{Image, RandomImage, ImageSize, ImageHistogram, ImageSort, ImageSortMode, ImageSymmetry, ImageStack, ImageOffset, ImageDenoise, ImageGravity, ImageRepairTrigram};
+use super::{Image, RandomImage, ImageSize, ImageHistogram, ImageSort, ImageSortMode, ImageSymmetry, ImageStack, ImageOffset, ImageDenoise, ImageGravity, ImageRepairTrigram, ImageRotate90};
 use super::HtmlLog;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
@@ -229,10 +229,116 @@ impl GenerateRandomImage {
 enum GenerateDataType {
     FlipX,
     FlipY,
+    Rotate90,
+    Rotate180,
+    Rotate270,
 }
 
 impl GenerateDataType {
+    fn execute(&self, input: &Image) -> anyhow::Result<Image> {
+        match self {
+            GenerateDataType::FlipX => input.flip_x(),
+            GenerateDataType::FlipY => input.flip_y(),
+            GenerateDataType::Rotate90 => input.rotate_ccw(),
+            GenerateDataType::Rotate180 => input.rotate(2),
+            GenerateDataType::Rotate270 => input.rotate_cw(),
+        }
+    }
 
+    fn generator_label(&self) -> &str {
+        match self {
+            GenerateDataType::FlipX => "flipx",
+            GenerateDataType::FlipY => "flipy",
+            GenerateDataType::Rotate90 => "rotate90",
+            GenerateDataType::Rotate180 => "rotate180",
+            GenerateDataType::Rotate270 => "rotate270",
+        }
+    }
+
+    fn instruction_description(&self, rng: &mut StdRng) -> String {
+        match self {
+            GenerateDataType::FlipX => Self::instruction_description_flip_x(rng).to_string(),
+            GenerateDataType::FlipY => Self::instruction_description_flip_y(rng).to_string(),
+            GenerateDataType::Rotate90 => Self::instruction_description_rotate90(rng).to_string(),
+            GenerateDataType::Rotate180 => Self::instruction_description_rotate180(rng).to_string(),
+            GenerateDataType::Rotate270 => Self::instruction_description_rotate270(rng).to_string(),
+        }
+    }
+
+    fn instruction_description_flip_x(rng: &mut StdRng) -> &str {
+        let texts = [
+            "Invoke flipx.",
+            "Run flip-x.",
+            "Apply flip_x.",
+            "Compute flipx and return the output image.",
+            "Perform image-flipx with the image",
+            "Flip X with image",
+            "Flip x",
+            "With the provided image, do a flip-x",
+            "Give me image-flip-x of this image",
+        ];
+        texts.choose(rng).unwrap()
+    }
+
+    fn instruction_description_flip_y(rng: &mut StdRng) -> &str {
+        let texts = [
+            "Invoke flipy.",
+            "Run flip-y.",
+            "Apply flip_y.",
+            "Compute flipy and return the output image.",
+            "Perform image-flipy with the image",
+            "Flip Y with image",
+            "Flip y",
+            "With the provided image, do a flip-y",
+            "Give me image-flip-y of this image",
+        ];
+        texts.choose(rng).unwrap()
+    }
+
+    fn instruction_description_rotate90(rng: &mut StdRng) -> &str {
+        let texts = [
+            "Invoke rotate90.",
+            "Run rotate 90.",
+            "Apply rotate_90.",
+            "Compute Rotate90 and return the output image.",
+            "Perform image-rotate90 with the image",
+            "Rotate90 with image",
+            "Rotate 90 degrees",
+            "With the provided image, do a rotate 90",
+            "Give me image-rotate-90 of this image",
+        ];
+        texts.choose(rng).unwrap()
+    }
+
+    fn instruction_description_rotate180(rng: &mut StdRng) -> &str {
+        let texts = [
+            "Invoke rotate180.",
+            "Run rotate 180.",
+            "Apply rotate_180.",
+            "Compute Rotate180 and return the output image.",
+            "Perform image-rotate180 with the image",
+            "Rotate180 with image",
+            "Rotate 180 degrees",
+            "With the provided image, do a rotate 180",
+            "Give me image-rotate-180 of this image",
+        ];
+        texts.choose(rng).unwrap()
+    }
+
+    fn instruction_description_rotate270(rng: &mut StdRng) -> &str {
+        let texts = [
+            "Invoke rotate270.",
+            "Run rotate 270.",
+            "Apply rotate_270.",
+            "Compute Rotate270 and return the output image.",
+            "Perform image-rotate270 with the image",
+            "Rotate270 with image",
+            "Rotate 270 degrees",
+            "With the provided image, do a rotate 270",
+            "Give me image-rotate-270 of this image",
+        ];
+        texts.choose(rng).unwrap()
+    }
 }
 
 struct GenerateDataset;
@@ -257,39 +363,31 @@ impl GenerateDataset {
     }
 
     fn example_flipy(number_of_rows: u32) -> anyhow::Result<()> {
+        let generator_type = GenerateDataType::FlipY;
+        // let generator_type = GenerateDataType::Rotate90;
         for i in 0..number_of_rows {
-            Self::example_flipy_iteration(i)?;
+            Self::execute_iteration(i, generator_type.clone())?;
         }
         Ok(())
     }
 
-    fn example_flipy_iteration(iteration: u32) -> anyhow::Result<()> {
+    fn execute_iteration(iteration: u32, generator_type: GenerateDataType) -> anyhow::Result<()> {
         let mut rng = StdRng::seed_from_u64(iteration as u64);
 
-        let instruction_descriptions = [
-            "Invoke flipy.",
-            "Run flip-y.",
-            "Apply flip_y.",
-            "Compute flipy and return the output image.",
-            "Perform image-flipy with the image",
-            "Flip y with image",
-            "Flip y",
-            "With the provided image, do a flip-y",
-            "Give me image-flip-y of this image",
-        ];
-        let instruction_description: &str = instruction_descriptions.choose(&mut rng).unwrap();
+        let instruction_description: String = generator_type.instruction_description(&mut rng);
+        let generator_label: &str = generator_type.generator_label();
 
         let image_size: ImageSize = Self::random_size(&mut rng);
         let input_image: Image = GenerateRandomImage::advanced_image(&mut rng, image_size)?;
 
-        let output_image: Image = input_image.flip_y()?;
+        let output_image: Image = generator_type.execute(&input_image)?;
         let input: String = input_image.to_09az()?;
         let output: String = output_image.to_09az()?;
 
         let instruction_prefix: &str = Self::random_instruction_context(&mut rng);
 
         let instruction: String = format!("{} {}", instruction_prefix, instruction_description);
-        let prompt = format!(r#"{{"create":"flipy","instruction":"{}","input":"{}","output":"{}"}}"#, instruction, input, output);
+        let prompt = format!(r#"{{"create":"{}","instruction":"{}","input":"{}","output":"{}"}}"#, generator_label, instruction, input, output);
         println!("{}", prompt);
         HtmlLog::text(prompt);
         HtmlLog::compare_images(vec![input_image, output_image]);
