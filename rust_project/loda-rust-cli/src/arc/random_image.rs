@@ -1,4 +1,5 @@
 use super::{ImageSize, Image, ImageMask};
+use rand::Rng;
 use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
 use rand::seq::SliceRandom;
@@ -19,8 +20,7 @@ impl RandomImage {
         }
         let mut image: Image = Image::color(size.width, size.height, background);
         let count: usize = (size.width as usize) * (size.height as usize);
-        let range: Uniform<usize> = Uniform::from(0..count);
-        let value: usize = range.sample(rng);
+        let value: usize = rng.gen_range(0..count);
         let x: usize = value % (size.width as usize);
         let y: usize = value / (size.width as usize);
         _ = image.set(x as i32, y as i32, foreground);
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn test_10002_one_dot() {
         let actual: Image = RandomImage::one_dot(&mut StdRng::seed_from_u64(1), ImageSize::new(3, 2), 5, 9).expect("ok");
-        let expected = Image::try_create(3, 2, vec![5, 5, 5, 5, 5, 9]).expect("ok");
+        let expected = Image::try_create(3, 2, vec![5, 5, 5, 5, 9, 5]).expect("ok");
         assert_eq!(actual, expected);
     }
 
