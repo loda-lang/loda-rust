@@ -5,9 +5,7 @@ use rand::{rngs::StdRng, SeedableRng, Rng};
 
 static MAX_VALID_PIXEL_VALUE: u8 = 35;
 
-struct GenerateDataset;
-
-impl GenerateDataset {
+trait ImageTo09azRepresentation {
     /// Convert an Image to a text representation.
     /// 
     /// The text representation is a string with the `0-9a-z` format.
@@ -15,13 +13,17 @@ impl GenerateDataset {
     /// The values `0..=35` are converted to `0..=9` and `a..=z`.
     /// 
     /// An error is returned when encountering a value greater than `35`.
-    fn image_to_text(image: &Image) -> anyhow::Result<String> {
+    fn to_09az(&self) -> anyhow::Result<String>;
+}
+
+impl ImageTo09azRepresentation for Image {
+    fn to_09az(&self) -> anyhow::Result<String> {
         let max_value: u16 = 'z' as u16;
         let mut rows = Vec::<String>::new();
-        for y in 0..image.height() {
+        for y in 0..self.height() {
             let mut row = String::new();
-            for x in 0..image.width() {
-                let color: u8 = image.get(x as i32, y as i32).unwrap_or(255);
+            for x in 0..self.width() {
+                let color: u8 = self.get(x as i32, y as i32).unwrap_or(255);
                 if color < 10 {
                     // convert from 0-9 to 0-9
                     row.push_str(color.to_string().as_str());
@@ -48,7 +50,12 @@ impl GenerateDataset {
         result += "'";
         Ok(result)
     }
+}
 
+#[derive(Clone, Debug)]
+struct GenerateRandomImage;
+
+impl GenerateRandomImage {
     /// Generate a noisy image with the specified size.
     fn simple_image(rng: &mut StdRng, size: ImageSize) -> anyhow::Result<Image> {
         let mut permutation: u32 = rng.gen();
@@ -216,7 +223,21 @@ impl GenerateDataset {
         }
         Ok(image1)
     }
+}
 
+#[derive(Clone, Debug)]
+enum GenerateDataType {
+    FlipX,
+    FlipY,
+}
+
+impl GenerateDataType {
+
+}
+
+struct GenerateDataset;
+
+impl GenerateDataset {
     fn random_size(rng: &mut StdRng) -> ImageSize {
         let width: u8 = rng.gen_range(1..=30);
         let height: u8 = rng.gen_range(1..=30);
@@ -259,11 +280,11 @@ impl GenerateDataset {
         let instruction_description: &str = instruction_descriptions.choose(&mut rng).unwrap();
 
         let image_size: ImageSize = Self::random_size(&mut rng);
-        let input_image: Image = Self::advanced_image(&mut rng, image_size)?;
+        let input_image: Image = GenerateRandomImage::advanced_image(&mut rng, image_size)?;
 
         let output_image: Image = input_image.flip_y()?;
-        let input: String = Self::image_to_text(&input_image)?;
-        let output: String = Self::image_to_text(&output_image)?;
+        let input: String = input_image.to_09az()?;
+        let output: String = output_image.to_09az()?;
 
         let instruction_prefix: &str = Self::random_instruction_context(&mut rng);
 
@@ -282,37 +303,37 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_image_to_text() {
+    fn test_10000_to_09az() {
         let input: Image = Image::color(2, 2, 0);
-        let actual: String = GenerateDataset::image_to_text(&input).expect("ok");
+        let actual: String = input.to_09az().expect("ok");
         assert_eq!(actual, "image='00,00'");
     }
 
     #[test]
-    fn test_10001_image_to_text() {
+    fn test_10001_to_09az() {
         let input: Image = Image::color(1, 1, 9);
-        let actual: String = GenerateDataset::image_to_text(&input).expect("ok");
+        let actual: String = input.to_09az().expect("ok");
         assert_eq!(actual, "image='9'");
     }
 
     #[test]
-    fn test_10002_image_to_text() {
+    fn test_10002_to_09az() {
         let input: Image = Image::color(1, 1, 10);
-        let actual: String = GenerateDataset::image_to_text(&input).expect("ok");
+        let actual: String = input.to_09az().expect("ok");
         assert_eq!(actual, "image='a'");
     }
 
     #[test]
-    fn test_10003_image_to_text() {
+    fn test_10003_to_09az() {
         let input: Image = Image::color(1, 1, 35);
-        let actual: String = GenerateDataset::image_to_text(&input).expect("ok");
+        let actual: String = input.to_09az().expect("ok");
         assert_eq!(actual, "image='z'");
     }
 
     #[test]
-    fn test_10004_image_to_text() {
+    fn test_10004_to_09az() {
         let input = Image::try_create(4, 1, vec![0, 9, 10, 35]).expect("ok");
-        let actual: String = GenerateDataset::image_to_text(&input).expect("ok");
+        let actual: String = input.to_09az().expect("ok");
         assert_eq!(actual, "image='09az'");
     }
 
