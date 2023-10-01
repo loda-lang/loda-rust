@@ -223,6 +223,18 @@ impl GenerateRandomImage {
         }
         Ok(image1)
     }
+
+    fn random_size(rng: &mut StdRng) -> ImageSize {
+        let width: u8 = rng.gen_range(1..=30);
+        let height: u8 = rng.gen_range(1..=30);
+        ImageSize::new(width, height)
+    }
+
+    fn create(rng: &mut StdRng) -> anyhow::Result<Image> {
+        let image_size: ImageSize = Self::random_size(rng);
+        let image: Image = Self::advanced_image(rng, image_size)?;
+        Ok(image)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -344,12 +356,6 @@ impl GenerateDataType {
 struct GenerateDataset;
 
 impl GenerateDataset {
-    fn random_size(rng: &mut StdRng) -> ImageSize {
-        let width: u8 = rng.gen_range(1..=30);
-        let height: u8 = rng.gen_range(1..=30);
-        ImageSize::new(width, height)
-    }
-
     fn random_instruction_context(rng: &mut StdRng) -> &str {
         let texts = [
             "In context of SimonSolver.",
@@ -377,8 +383,7 @@ impl GenerateDataset {
         let instruction_description: String = generator_type.instruction_description(&mut rng);
         let generator_label: &str = generator_type.generator_label();
 
-        let image_size: ImageSize = Self::random_size(&mut rng);
-        let input_image: Image = GenerateRandomImage::advanced_image(&mut rng, image_size)?;
+        let input_image: Image = GenerateRandomImage::create(&mut rng)?;
 
         let output_image: Image = generator_type.execute(&input_image)?;
         let input: String = input_image.to_09az()?;
