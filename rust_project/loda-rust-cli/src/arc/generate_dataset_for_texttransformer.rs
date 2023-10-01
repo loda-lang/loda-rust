@@ -1,5 +1,6 @@
 use super::{Image, RandomImage, ImageSize, ImageHistogram, ImageSort, ImageSortMode, ImageSymmetry, ImageStack, ImageOffset, ImageDenoise, ImageGravity, ImageRepairTrigram};
 use super::HtmlLog;
+use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
 
 static MAX_VALID_PIXEL_VALUE: u8 = 35;
@@ -48,6 +49,7 @@ impl GenerateDataset {
         Ok(result)
     }
 
+    /// Generate a noisy image with the specified size.
     fn simple_image(rng: &mut StdRng, size: ImageSize) -> anyhow::Result<Image> {
         let mut permutation: u32 = rng.gen();
         let image0: Image = match permutation % 2 {
@@ -139,6 +141,7 @@ impl GenerateDataset {
         Ok(image1)
     }
 
+    /// Generate a composition of two simple noisy images, or return a simple noisy image.
     fn medium_image(rng: &mut StdRng, size: ImageSize) -> anyhow::Result<Image> {
         let permutation: u32 = rng.gen();
         match permutation % 3 {
@@ -172,6 +175,7 @@ impl GenerateDataset {
         Ok(image)
     }
 
+    /// Postprocessing of the medium noisy image.
     fn advanced_image(rng: &mut StdRng, size: ImageSize) -> anyhow::Result<Image> {
         let image0: Image = Self::medium_image(rng, size)?;
         let mut image1: Image = image0.clone();
@@ -213,6 +217,24 @@ impl GenerateDataset {
         Ok(image1)
     }
 
+    fn random_size(rng: &mut StdRng) -> ImageSize {
+        let width: u8 = rng.gen_range(1..=30);
+        let height: u8 = rng.gen_range(1..=30);
+        ImageSize::new(width, height)
+    }
+
+    fn random_instruction_context(rng: &mut StdRng) -> &str {
+        let texts = [
+            "In context of SimonSolver.",
+            "Using SimonSolver context.",
+            "With the context SimonSolver.",
+            "With SimonSolver.",
+            "Use SimonSolver.",
+            "Context=SimonSolver.",
+        ];
+        texts.choose(rng).unwrap()
+    }
+
     fn example_flipy(number_of_rows: u32) -> anyhow::Result<()> {
         for i in 0..number_of_rows {
             Self::example_flipy_iteration(i)?;
@@ -223,45 +245,27 @@ impl GenerateDataset {
     fn example_flipy_iteration(iteration: u32) -> anyhow::Result<()> {
         let mut rng = StdRng::seed_from_u64(iteration as u64);
 
-        let mut permutation: u32 = rng.gen();
+        let instruction_names = [
+            "Invoke flipy.",
+            "Run flip-y.",
+            "Apply flip_y.",
+            "Compute flipy and return the output image.",
+            "Perform image-flipy with the image",
+            "Flip y with image",
+            "Flip y",
+            "With the provided image, do a flip-y",
+            "Give me image-flip-y of this image",
+        ];
+        let instruction_name: &str = instruction_names.choose(&mut rng).unwrap();
 
-        let width: u8 = ((permutation % 29) + 1) as u8;
-        permutation /= 29;
-
-        let height: u8 = ((permutation % 29) + 1) as u8;
-        permutation /= 29;
-
-        let image_size: ImageSize = ImageSize::new(width, height);
-
-        // let input_image: Image = Self::simple_image(&mut rng, image_size)?;
-        // let input_image: Image = Self::medium_image(&mut rng, image_size)?;
+        let image_size: ImageSize = Self::random_size(&mut rng);
         let input_image: Image = Self::advanced_image(&mut rng, image_size)?;
 
         let output_image: Image = input_image.flip_y()?;
         let input: String = Self::image_to_text(&input_image)?;
         let output: String = Self::image_to_text(&output_image)?;
 
-        let instruction_prefix: &str = match permutation % 6 {
-            0 => "In context of SimonSolver. ",
-            1 => "Using SimonSolver context. ",
-            2 => "With the context SimonSolver. ",
-            3 => "With SimonSolver. ",
-            4 => "Use SimonSolver. ",
-            _ => "Context=SimonSolver. ",
-        };
-        permutation /= 6;
-
-        let instruction_name: &str = match permutation % 8 {
-            0 => "Invoke flipy.",
-            1 => "Run flip-y.",
-            2 => "Apply flip_y.",
-            3 => "Compute flipy and return the output image.",
-            4 => "Perform image-flipy with the image",
-            5 => "Flip y with image",
-            6 => "With the provided image, do a flip-y",
-            _ => "Give me image-flip-y of this image",
-        };
-        // permutation /= 8;
+        let instruction_prefix: &str = Self::random_instruction_context(&mut rng);
 
         let instruction: String = format!("{}{}", instruction_prefix, instruction_name);
         let prompt = format!(r#"{{"create":"flipy","instruction":"{}","input":"{}","output":"{}"}}"#, instruction, input, output);
