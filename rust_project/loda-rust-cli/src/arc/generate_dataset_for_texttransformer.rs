@@ -4,8 +4,6 @@ use std::io::Write;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
 
-static REPR09AZ_MAX_VALID_PIXEL_VALUE: u8 = 35;
-
 trait ImageTo09azRepresentation {
     /// Convert an Image to a text representation.
     /// 
@@ -92,7 +90,8 @@ impl GenerateRandomImage {
         let mut permutation: u32 = rng.gen();
         let image0: Image = match permutation % 2 {
             0 => {
-                let max_color: u8 = rng.gen_range(3..=REPR09AZ_MAX_VALID_PIXEL_VALUE);
+                // let max_color: u8 = rng.gen_range(3..=35); // 35 = REPR09AZ_MAX_VALID_PIXEL_VALUE
+                let max_color: u8 = rng.gen_range(3..=9);
                 RandomImage::uniform_colors(
                     rng,
                     size, 
@@ -255,14 +254,21 @@ impl GenerateRandomImage {
         Ok(image1)
     }
 
-    fn random_size(rng: &mut StdRng) -> ImageSize {
+    fn random_size_big(rng: &mut StdRng) -> ImageSize {
         let width: u8 = rng.gen_range(1..=30);
         let height: u8 = rng.gen_range(1..=30);
         ImageSize::new(width, height)
     }
 
+    fn random_size_small(rng: &mut StdRng) -> ImageSize {
+        let width: u8 = rng.gen_range(1..=10);
+        let height: u8 = rng.gen_range(1..=10);
+        ImageSize::new(width, height)
+    }
+
     fn create(rng: &mut StdRng) -> anyhow::Result<Image> {
-        let image_size: ImageSize = Self::random_size(rng);
+        // let image_size: ImageSize = Self::random_size_big(rng);
+        let image_size: ImageSize = Self::random_size_small(rng);
         let image: Image = Self::advanced_image(rng, image_size)?;
         Ok(image)
     }
@@ -458,8 +464,12 @@ impl GenerateDataset {
         let generator_label: &str = generator_type.generator_label();
 
         let output_image: Image = generator_type.execute(&input_image)?;
-        let input: String = input_image.to_09az()?;
-        let output: String = output_image.to_09az()?;
+        // let input: String = input_image.to_09az()?;
+        // let output: String = output_image.to_09az()?;
+        let input_compactjson: String = input_image.to_compactjson()?;
+        let input: String = format!("image={}", input_compactjson);
+        let output_compactjson: String = output_image.to_compactjson()?;
+        let output: String = format!("image={}", output_compactjson);
 
         let instruction_prefix: &str = Self::random_instruction_context(&mut rng);
 
