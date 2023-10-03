@@ -4,7 +4,7 @@ use std::io::Write;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
 
-static MAX_VALID_PIXEL_VALUE: u8 = 35;
+static REPR09AZ_MAX_VALID_PIXEL_VALUE: u8 = 35;
 
 trait ImageTo09azRepresentation {
     /// Convert an Image to a text representation.
@@ -53,6 +53,36 @@ impl ImageTo09azRepresentation for Image {
     }
 }
 
+trait ImageToCompactJsonRepresentation {
+    /// Convert an Image to a text representation similar to JSON without spaces.
+    /// 
+    /// Example of a 3x2 image: `[[1,2,3],[4,5,6]]`
+    /// 
+    /// Example of an empty image with size=0x0: `[[]]`
+    /// 
+    /// Example of a 1x1 image: `[[9]]`
+    fn to_compactjson(&self) -> anyhow::Result<String>;
+}
+
+impl ImageToCompactJsonRepresentation for Image {
+    fn to_compactjson(&self) -> anyhow::Result<String> {
+        let mut rows = Vec::<String>::new();
+        for y in 0..self.height() {
+            let mut pixels = Vec::<String>::new();
+            for x in 0..self.width() {
+                let color: u8 = self.get(x as i32, y as i32).unwrap_or(255);
+                pixels.push(color.to_string());
+            }
+            rows.push(pixels.join(","));
+        }
+        let mut result = String::new();
+        result += "[[";
+        result += &rows.join("],[");
+        result += "]]";
+        Ok(result)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct GenerateRandomImage;
 
@@ -62,7 +92,7 @@ impl GenerateRandomImage {
         let mut permutation: u32 = rng.gen();
         let image0: Image = match permutation % 2 {
             0 => {
-                let max_color: u8 = rng.gen_range(3..=MAX_VALID_PIXEL_VALUE);
+                let max_color: u8 = rng.gen_range(3..=REPR09AZ_MAX_VALID_PIXEL_VALUE);
                 RandomImage::uniform_colors(
                     rng,
                     size, 
@@ -489,6 +519,34 @@ mod tests {
         let input = Image::try_create(4, 1, vec![0, 9, 10, 35]).expect("ok");
         let actual: String = input.to_09az().expect("ok");
         assert_eq!(actual, "image='09az'");
+    }
+
+    #[test]
+    fn test_20000_to_compactjson() {
+        let input: Image = Image::color(2, 2, 0);
+        let actual: String = input.to_compactjson().expect("ok");
+        assert_eq!(actual, "[[0,0],[0,0]]");
+    }
+
+    #[test]
+    fn test_20001_to_compactjson() {
+        let input: Image = Image::color(1, 1, 9);
+        let actual: String = input.to_compactjson().expect("ok");
+        assert_eq!(actual, "[[9]]");
+    }
+
+    #[test]
+    fn test_20002_to_compactjson() {
+        let input: Image = Image::empty();
+        let actual: String = input.to_compactjson().expect("ok");
+        assert_eq!(actual, "[[]]");
+    }
+
+    #[test]
+    fn test_20003_to_compactjson() {
+        let input = Image::try_create(5, 1, vec![0, 9, 10, 35, 255]).expect("ok");
+        let actual: String = input.to_compactjson().expect("ok");
+        assert_eq!(actual, "[[0,9,10,35,255]]");
     }
 
     // #[test]
