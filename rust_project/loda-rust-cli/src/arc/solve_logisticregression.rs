@@ -533,6 +533,16 @@ impl SolveLogisticRegression {
         // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
 
+        // let mut histogram_preserve = Histogram::new();
+        // task.action_label_set_intersection.iter().for_each(|label| {
+        //     match label {
+        //         ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
+        //             histogram_preserve.increment(*color);
+        //         },
+        //         _ => {}
+        //     }
+        // });
+
         let mut earlier_prediction_image_vec = Vec::<Image>::new();
         if let Some(computed_image) = computed_image {
             let random_seed: u64 = process_task_iteration_index as u64;
@@ -557,6 +567,7 @@ impl SolveLogisticRegression {
 
                             let input_color: u8 = pair.input.image.get(x as i32, y as i32).unwrap_or(255);
                             let output_color: u8 = pair.output.image.get(x as i32, y as i32).unwrap_or(255);
+
                             let set_color: u8;
                             match strategy_value {
                                 0 => {
@@ -569,6 +580,11 @@ impl SolveLogisticRegression {
                                     set_color = noise_value;
                                 }
                             }
+
+                            // if histogram_preserve.get(input_color) > 0 {
+                            //     set_color = input_color;
+                            //     set_color = 255;
+                            // }
 
                             _ = semi_useful_output_image.set(x as i32, y as i32, set_color);
                         }
@@ -1502,6 +1518,8 @@ impl SolveLogisticRegression {
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
 
+                    // let preserve_center_color: bool = histogram_preserve.get(center) > 0;
+
                     // let nonbackground_area3x3: Image = non_background_mask.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
 
                     let image_top: u8 = input.get(xx, 0).unwrap_or(255);
@@ -2197,6 +2215,12 @@ impl SolveLogisticRegression {
                             record.serialize_color_complex(color, obfuscated_color_offset);
                         }
                     }
+
+                    // record.serialize_bool_onehot(preserve_center_color);
+                    // {
+                    //     let color: u8 = if preserve_center_color { center } else { 255 };
+                    //     record.serialize_onehot(color, 11);
+                    // }
 
                     record.serialize_color_complex(center_x_reversed, obfuscated_color_offset);
                     record.serialize_color_complex(center_y_reversed, obfuscated_color_offset);
