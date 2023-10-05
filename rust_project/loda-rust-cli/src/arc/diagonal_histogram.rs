@@ -1,5 +1,6 @@
 use super::{Image, ImageHistogram, Histogram, ImageSkew, ImageSize, ImageSymmetry};
 
+#[allow(dead_code)]
 pub struct DiagonalHistogram {
     reverse_x: bool,
     image_size: ImageSize,
@@ -8,12 +9,14 @@ pub struct DiagonalHistogram {
 
 impl DiagonalHistogram {
     /// The `diagonal A` is going from `top-left` to `bottom-right`
+    #[allow(dead_code)]
     pub fn diagonal_a(image: &Image) -> anyhow::Result<DiagonalHistogram> {
         let flipped: Image = image.flip_x()?;
         Self::create(&flipped, true, image.size())
     }
 
     /// The `diagonal B` is going from `top-right` to `bottom-left`
+    #[allow(dead_code)]
     pub fn diagonal_b(image: &Image) -> anyhow::Result<DiagonalHistogram> {
         Self::create(image, false, image.size())
     }
@@ -35,6 +38,7 @@ impl DiagonalHistogram {
         })
     }
 
+    #[allow(dead_code)]
     pub fn get(&self, x: i32, y: i32) -> Option<&Histogram> {
         let x: i32 = if self.reverse_x {
             (self.image_size.width as i32) - 1 - x

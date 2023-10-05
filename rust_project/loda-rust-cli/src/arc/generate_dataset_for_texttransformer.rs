@@ -4,6 +4,7 @@ use std::io::Write;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
 
+#[allow(dead_code)]
 trait ImageTo09azRepresentation {
     /// Convert an Image to a text representation.
     /// 
@@ -51,6 +52,7 @@ impl ImageTo09azRepresentation for Image {
     }
 }
 
+#[allow(dead_code)]
 trait ImageToCompactJsonRepresentation {
     /// Convert an Image to a text representation similar to JSON without spaces.
     /// 
@@ -81,6 +83,7 @@ impl ImageToCompactJsonRepresentation for Image {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 struct GenerateRandomImage;
 
@@ -254,6 +257,7 @@ impl GenerateRandomImage {
         Ok(image1)
     }
 
+    #[allow(dead_code)]
     fn random_size_big(rng: &mut StdRng) -> ImageSize {
         let width: u8 = rng.gen_range(1..=30);
         let height: u8 = rng.gen_range(1..=30);
@@ -274,6 +278,7 @@ impl GenerateRandomImage {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 enum GenerateDataType {
     FlipX,
@@ -400,17 +405,20 @@ impl GenerateDataType {
     }
 }
 
+#[allow(dead_code)]
 struct GenerateDataset {
     dataset_items: Vec<String>,
 }
 
 impl GenerateDataset {
+    #[allow(dead_code)]
     fn new() -> Self {
         Self {
             dataset_items: vec!()
         }
     }
 
+    #[allow(dead_code)]
     fn random_instruction_context(rng: &mut StdRng) -> &str {
         let texts = [
             "In context of SimonSolver.",
@@ -423,6 +431,7 @@ impl GenerateDataset {
         texts.choose(rng).unwrap()
     }
 
+    #[allow(dead_code)]
     fn populate(&mut self, number_of_rows: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
         let generator_types = [
             GenerateDataType::FlipX,
@@ -437,6 +446,7 @@ impl GenerateDataset {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn create_many_dataset_items(&mut self, generator_type: GenerateDataType, number_of_rows: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
         let mut dataset_items = Vec::<String>::new();
         for i in 0..number_of_rows {
@@ -455,6 +465,7 @@ impl GenerateDataset {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn create_dataset_item(iteration: u32, generator_type: GenerateDataType, print_to_htmllog: bool) -> anyhow::Result<String> {
         let seed: u64 = generator_type.random_seed() ^ (iteration as u64);
         let mut rng = StdRng::seed_from_u64(seed);
@@ -482,6 +493,7 @@ impl GenerateDataset {
         Ok(dataset_item)
     }
 
+    #[allow(dead_code)]
     fn save(&self, path: &std::path::Path) -> anyhow::Result<()> {
         let s: String = self.dataset_items.join("\n");
         let mut file = std::fs::File::create(path)?;
@@ -559,6 +571,7 @@ mod tests {
         assert_eq!(actual, "[[0,9,10,35,255]]");
     }
 
+    #[allow(dead_code)]
     // #[test]
     fn test_20000_generate_dataset() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/texttransformer_output.jsonl");
