@@ -33,7 +33,7 @@
 //! Future experiments:
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
-use super::arc_work_model::{Task, PairType, Pair};
+use super::arc_work_model::{Task, PairType, Pair, self};
 use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
@@ -543,6 +543,23 @@ impl SolveLogisticRegression {
         //     }
         // });
 
+        // let mut all_pairs_has_predicted_palette = true;
+        // for pair in &task.pairs {
+        //     let mut found = false;
+        //     for label in &pair.prediction_set {
+        //         match label {
+        //             arc_work_model::Prediction::OutputPalette { histogram: _ } => {
+        //                 found = true;
+        //             },
+        //             _ => {}
+        //         }
+        //     }
+        //     if !found {
+        //         all_pairs_has_predicted_palette = false;
+        //         break;
+        //     }
+        // }
+
         let mut earlier_prediction_image_vec = Vec::<Image>::new();
         if let Some(computed_image) = computed_image {
             let random_seed: u64 = process_task_iteration_index as u64;
@@ -670,6 +687,18 @@ impl SolveLogisticRegression {
             let background: Image = Image::color(width, height, 10);
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
             let output: Image = background.overlay_with_position(&original_output, 0, 0)?;
+
+            // let mut histogram_predicted_palette = Histogram::new();
+            // if all_pairs_has_predicted_palette {
+            //     for label in &pair.prediction_set {
+            //         match label {
+            //             arc_work_model::Prediction::OutputPalette { histogram } => {
+            //                 histogram_predicted_palette.add_histogram(histogram);
+            //             },
+            //             _ => {}
+            //         }
+            //     }
+            // }
 
             let mut enumerated_objects: Image = Image::zero(width, height);
             if let Some(image) = &pair.input.enumerated_objects {
@@ -2220,6 +2249,11 @@ impl SolveLogisticRegression {
                     // {
                     //     let color: u8 = if preserve_center_color { center } else { 255 };
                     //     record.serialize_onehot(color, 11);
+                    // }
+
+                    // for color in 0..9u8 {
+                    //     let maybe_color_is_present: bool = histogram_predicted_palette.get(color) > 0;
+                    //     record.serialize_bool_onehot(maybe_color_is_present);
                     // }
 
                     record.serialize_color_complex(center_x_reversed, obfuscated_color_offset);
