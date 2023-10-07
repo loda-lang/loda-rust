@@ -3896,6 +3896,7 @@ impl SolveLogisticRegression {
                             //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             //     record.serialize_onehot_discard_overflow(pixel, 10);
                             //     record.serialize_bool(Some(pixel) == most_popular_color);
+                            //     record.serialize_bool_onehot(pixel == center);
                             // }
                             {
                                 let pixel: u8 = image.get(xx + 1, yy).unwrap_or(255);
@@ -3938,6 +3939,8 @@ impl SolveLogisticRegression {
                     //         count_plus1 = count.min(255) as u8;
                     //         contains_center_color_plus1 = hist.get(center) > 0;
                     //     }
+                    //     record.serialize_onehot(count_minus1, 4);
+                    //     record.serialize_onehot(count_plus1, 4);
                     //     record.serialize_u8(count_minus1);
                     //     record.serialize_u8(count_zero);
                     //     record.serialize_u8(count_plus1);
@@ -3967,6 +3970,8 @@ impl SolveLogisticRegression {
                     //         count_plus1 = count.min(255) as u8;
                     //         contains_center_color_plus1 = hist.get(center) > 0;
                     //     }
+                    //     record.serialize_onehot(count_minus1, 4);
+                    //     record.serialize_onehot(count_plus1, 4);
                     //     record.serialize_u8(count_minus1);
                     //     record.serialize_u8(count_zero);
                     //     record.serialize_u8(count_plus1);
