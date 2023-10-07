@@ -937,6 +937,26 @@ impl SolveLogisticRegression {
                 }
             }
 
+            // let mut color_grow_mask4 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // for ((color, connectivity), image) in &color_grow_mask3 {
+            //     match image.mask_grow(*connectivity) {
+            //         Ok(image) => {
+            //             color_grow_mask4.insert((*color, *connectivity), image);
+            //         },
+            //         Err(_) => {},
+            //     }
+            // }
+
+            // let mut color_grow_mask5 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // for ((color, connectivity), image) in &color_grow_mask4 {
+            //     match image.mask_grow(*connectivity) {
+            //         Ok(image) => {
+            //             color_grow_mask5.insert((*color, *connectivity), image);
+            //         },
+            //         Err(_) => {},
+            //     }
+            // }
+
 
             let mut small_medium_big = HashMap::<(u8, PixelConnectivity), Image>::new();
             for ((color, connectivity), image) in &enumerated_clusters {
@@ -2979,6 +2999,28 @@ impl SolveLogisticRegression {
                                 record.serialize_bool(mask_value > 0);
                             }
                         }
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let mask_value: u8 = match color_grow_mask4.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(255)
+                        //             }
+                        //             None => 255
+                        //         };
+                        //         record.serialize_bool(mask_value > 0);
+                        //     }
+                        // }
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let mask_value: u8 = match color_grow_mask5.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(255)
+                        //             }
+                        //             None => 255
+                        //         };
+                        //         record.serialize_bool(mask_value > 0);
+                        //     }
+                        // }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 #[allow(unused_variables)]
