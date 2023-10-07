@@ -2,17 +2,17 @@
 //! 
 //! This solves 1 of the tasks from the hidden ARC dataset.
 //!
-//! This solves 64 of the 800 tasks in the public ARC dataset.
+//! This solves 66 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 178fcbfb, 1c0d0a4b, 21f83797, 2281f1f4, 23581191,
-//! 253bf280, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 4612dd53, 50cb2852,
-//! 543a7ed5, 54d9e175, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b,
-//! 810b9b61, 84f2aca1, 868de0fa, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b, a9f96cdd,
-//! aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, bdad9b1f, c0f76784,
-//! c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339,
-//! e0fb7511, e7dd8335, e9c9d9a1, ef135b50, 
+//! 253bf280, 25d8a9c8, 25ff71a9, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921,
+//! 4612dd53, 543a7ed5, 54d9e175, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e,
+//! 6f8cd79b, 810b9b61, 84f2aca1, 868de0fa, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b,
+//! a9f96cdd, aa4ec2a5, ae3edfdc, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb,
+//! bdad9b1f, c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d,
+//! dc433765, ded97339, e0fb7511, e7dd8335, e9c9d9a1, ef135b50, 
 //! 
-//! This partially solves 3 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
-//! 25ff71a9, 794b24be, da2b0fe3
+//! This partially solves 2 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
+//! 794b24be, da2b0fe3
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
@@ -900,6 +900,23 @@ impl SolveLogisticRegression {
                     Err(_) => {},
                 }
             }
+
+            let mut color_grow_mask1 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in &connectivity_vec {
+                    for color in 0..=9 {
+                        let mask: Image = input.to_mask_where_color_is(color);
+                        match mask.mask_grow(*connectivity) {
+                            Ok(image) => {
+                                color_grow_mask1.insert((color, *connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
 
             let mut small_medium_big = HashMap::<(u8, PixelConnectivity), Image>::new();
             for ((color, connectivity), image) in &enumerated_clusters {
@@ -2901,6 +2918,17 @@ impl SolveLogisticRegression {
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 let mask_value: u8 = match enumerated_clusters_grow_mask3.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let mask_value: u8 = match color_grow_mask1.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
                                     }
