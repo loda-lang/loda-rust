@@ -3031,7 +3031,11 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 3);
                                 record.serialize_onehot(distance, 4);
+                                // record.serialize_onehot(distance, 5);
+                                // record.serialize_onehot(distance, 6);
                                 // record.serialize_onehot(distance, 8);
                             }
                         }
@@ -3045,7 +3049,11 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 3);
                                 record.serialize_onehot(distance, 4);
+                                // record.serialize_onehot(distance, 5);
+                                // record.serialize_onehot(distance, 6);
                                 // record.serialize_onehot(distance, 8);
                             }
                         }
