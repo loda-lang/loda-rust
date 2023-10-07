@@ -3097,6 +3097,9 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                // record.serialize_bool(distance == 0);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 4);
                                 // record.serialize_split_zeros_ones(distance, 5);
                                 // record.serialize_split_zeros_ones(distance, 8);
                                 // record.serialize_onehot(distance, 20);
