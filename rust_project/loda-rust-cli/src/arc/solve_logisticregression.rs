@@ -3242,6 +3242,11 @@ impl SolveLogisticRegression {
                             // let count: u16 = h.number_of_counters_greater_than_zero();
                             // record.serialize_f64((count+1) as f64);
                             // record.serialize_bool(count < 2);
+                            // {
+                                // let mass: u8 = h.get(center).min(255) as u8;
+                                // record.serialize_onehot(mass, 6);
+                                // record.serialize_bool(mass > 0);
+                            // }
                         }
                     }
 
