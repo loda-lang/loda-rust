@@ -2685,6 +2685,7 @@ impl SolveLogisticRegression {
                         // if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
                         //     count = histogram.number_of_counters_greater_than_zero().min(255) as u8;
                         // }
+                        // record.serialize_f64(1.0 / (count as f64 + 1.0));
                         // record.serialize_onehot(count + 1, 4);
                         // record.serialize_onehot(count, 20);
                         // record.serialize_u8(count);
@@ -2696,6 +2697,7 @@ impl SolveLogisticRegression {
                         // if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
                         //     count = histogram.number_of_counters_greater_than_zero().min(255) as u8;
                         // }
+                        // record.serialize_f64(1.0 / (count as f64 + 1.0));
                         // record.serialize_onehot(count + 1, 4);
                         // record.serialize_onehot(count, 20);
                         // record.serialize_u8(count);
@@ -2719,6 +2721,48 @@ impl SolveLogisticRegression {
                     //         record.serialize_onehot(mass, 4);
                     //         // record.serialize_u8(mass);
                     //     }
+                    // }
+                    // {
+                    //     // let mut mass: u8 = 0;
+                    //     let mut is_most_popular: bool = false;
+                    //     let mut is_least_popular: bool = false;
+                    //     if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                    //         // mass = histogram.get(center).min(255) as u8;
+                    //         if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
+                    //             if color == center {
+                    //                 is_most_popular = true;
+                    //             }
+                    //         }
+                    //         if let Some(color) = histogram.least_popular_color_disallow_ambiguous() {
+                    //             if color == center {
+                    //                 is_least_popular = true;
+                    //             }
+                    //         }
+                    //     }
+                    //     // record.serialize_onehot(mass, 4);
+                    //     record.serialize_bool_onehot(is_most_popular);
+                    //     record.serialize_bool_onehot(is_least_popular);
+                    // }
+                    // {
+                    //     // let mut mass: u8 = 0;
+                    //     let mut is_most_popular: bool = false;
+                    //     let mut is_least_popular: bool = false;
+                    //     if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                    //         // mass = histogram.get(center).min(255) as u8;
+                    //         if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
+                    //             if color == center {
+                    //                 is_most_popular = true;
+                    //             }
+                    //         }
+                    //         if let Some(color) = histogram.least_popular_color_disallow_ambiguous() {
+                    //             if color == center {
+                    //                 is_least_popular = true;
+                    //             }
+                    //         }
+                    //     }
+                    //     // record.serialize_onehot(mass, 4);
+                    //     record.serialize_bool_onehot(is_most_popular);
+                    //     record.serialize_bool_onehot(is_least_popular);
                     // }
 
                     let mut color_hole_type1: u8 = 255;
