@@ -3280,6 +3280,7 @@ impl SolveLogisticRegression {
                             let pixel: u8 = linespan_image.get(xx, yy).unwrap_or(255);
                             record.serialize_u8(pixel);
                             // record.serialize_onehot(pixel, 4);
+                            // record.serialize_onehot(pixel, 10);
                             // record.serialize_onehot_discard_overflow(pixel, 2);
                         }
                     }
