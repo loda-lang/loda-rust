@@ -32,6 +32,7 @@
 //! 
 //! Future experiments:
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
+//! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
 use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern};
@@ -2500,6 +2501,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -2518,6 +2520,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -2536,6 +2539,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -2554,6 +2558,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
