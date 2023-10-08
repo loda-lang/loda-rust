@@ -1,4 +1,4 @@
-use super::{Image, PixelConnectivity, convolution3x3};
+use super::{Image, convolution3x3};
 
 #[allow(dead_code)]
 fn conv3x3_count_nonzero_neighbours_connectivity8(image: &Image) -> anyhow::Result<u8> {
@@ -160,7 +160,49 @@ fn conv3x3_count_nonzero_neighbours_connectivity8(image: &Image) -> anyhow::Resu
         }
     }
 
-    Ok(10)
+    if count4 == 3 && count_diagonal == 1 {
+        if solid_corner_top_left || solid_corner_top_right || solid_corner_bottom_left || solid_corner_bottom_right {
+            // Stetched L shape, this is not a corner
+            // 1, 1, 0
+            // 1, 1, 1
+            // 0, 0, 0
+            return Ok(0);
+        }
+    }
+
+    if count4 == 2 && count_diagonal == 2 {
+        if solid_corner_top_left || solid_corner_top_right || solid_corner_bottom_left || solid_corner_bottom_right {
+            if empty_top || empty_bottom || empty_left || empty_right {
+                // Stetched L shape, this is a corner
+                // 0, 0, 0
+                // 1, 1, 0
+                // 1, 1, 1
+                return Ok(4);
+            }
+        }
+    }
+
+    if count4 == 2 && count_diagonal == 1 {
+        if empty_top || empty_bottom || empty_left || empty_right {
+            // Tetris shape, this is a corner
+            // 0, 0, 0
+            // 1, 1, 0
+            // 0, 1, 1
+            return Ok(3);
+        }
+    }
+
+    if count4 == 1 && count_diagonal == 2 {
+        if empty_top || empty_bottom || empty_left || empty_right {
+            // Tetris shape, this is a corner
+            // 0, 0, 0
+            // 0, 1, 0
+            // 1, 1, 1
+            return Ok(3);
+        }
+    }
+
+    Ok(0)
 }
 
 
@@ -169,8 +211,8 @@ mod tests {
     use super::*;
     use crate::arc::{ImageTryCreate, ImagePadding};
 
-    // #[test]
-    fn test_10000_exterior_corners() {
+    #[test]
+    fn test_10000_detect_corners() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1, 1, 0, 1, 0, 1,
@@ -188,12 +230,72 @@ mod tests {
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
-            1, 0, 0, 3, 3, 0, 2, 0, 2,
+            1, 0, 0, 4, 3, 0, 2, 0, 2,
             0, 0, 0, 0, 0, 0, 0, 6, 0,
-            0, 3, 0, 0, 0, 0, 2, 0, 2,
+            0, 4, 0, 0, 0, 0, 2, 0, 2,
             0, 0, 0, 7, 0, 0, 0, 0, 0,
-            0, 3, 3, 0, 0, 0, 0, 0, 0,
+            0, 3, 4, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 1, 0, 0, 0, 0,
+        ];
+        let expected = Image::create_raw(9, 6, expected_pixels);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10001_detect_corners() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 1, 1, 0, 0, 0,
+            0, 1, 0, 0, 0, 1, 1, 0, 0,
+            0, 0, 1, 0, 0, 0, 1, 1, 0,
+            1, 0, 0, 1, 0, 0, 0, 1, 1,
+            1, 1, 0, 0, 1, 0, 0, 0, 1,
+            1, 1, 1, 0, 0, 1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(9, 6, pixels).expect("image");
+
+        // Act
+        let actual1: Image = input.padding_with_color(1, 0).expect("image");
+        let actual: Image = convolution3x3(&actual1, conv3x3_count_nonzero_neighbours_connectivity8).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 2, 3, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            2, 0, 0, 0, 0, 0, 0, 0, 3,
+            0, 0, 0, 0, 0, 0, 0, 0, 2,
+            3, 0, 2, 0, 0, 1, 0, 0, 0,
+        ];
+        let expected = Image::create_raw(9, 6, expected_pixels);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10002_detect_corners() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0, 0, 0, 0, 1, 0, 0,
+            1, 1, 1, 0, 0, 0, 1, 0, 0,
+            0, 1, 0, 0, 1, 1, 1, 1, 1,
+            0, 0, 0, 0, 1, 1, 1, 1, 1,
+            1, 1, 0, 0, 0, 0, 1, 0, 0,
+            1, 1, 0, 0, 0, 0, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(9, 6, pixels).expect("image");
+
+        // Act
+        let actual1: Image = input.padding_with_color(1, 0).expect("image");
+        let actual: Image = convolution3x3(&actual1, conv3x3_count_nonzero_neighbours_connectivity8).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 3, 0, 0, 0, 0, 1, 0, 0,
+            3, 0, 3, 0, 0, 0, 0, 0, 0,
+            0, 3, 0, 0, 3, 0, 0, 0, 3,
+            0, 0, 0, 0, 3, 0, 0, 0, 3,
+            3, 3, 0, 0, 0, 0, 0, 0, 0,
+            3, 3, 0, 0, 0, 0, 1, 0, 0,
         ];
         let expected = Image::create_raw(9, 6, expected_pixels);
         assert_eq!(actual, expected);
