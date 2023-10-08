@@ -1663,6 +1663,8 @@ impl SolveLogisticRegression {
 
                 // let area_top_histogram_columns: Vec<Histogram> = area_top.histogram_columns();
                 // let area_bottom_histogram_columns: Vec<Histogram> = area_bottom.histogram_columns();
+                // let area_top_histogram: Histogram = area_top.histogram_all();
+                // let area_bottom_histogram: Histogram = area_bottom.histogram_all();
 
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -1702,7 +1704,33 @@ impl SolveLogisticRegression {
                     // }
                     // let area_left_histogram_rows: Vec<Histogram> = area_left.histogram_rows();
                     // let area_right_histogram_rows: Vec<Histogram> = area_right.histogram_rows();
-            
+                    // let area_left_histogram: Histogram = area_left.histogram_all();
+                    // let area_right_histogram: Histogram = area_right.histogram_all();
+
+                    // for color in 0..=9u8 {
+                    //     record.serialize_bool_onehot(area_top_histogram.get(color) > 0);
+                    //     record.serialize_bool_onehot(area_bottom_histogram.get(color) > 0);
+                    //     record.serialize_bool_onehot(area_left_histogram.get(color) > 0);
+                    //     record.serialize_bool_onehot(area_right_histogram.get(color) > 0);
+                    // }
+                    // {
+                    //     record.serialize_bool_onehot(area_top_histogram.get(center) > 0);
+                    //     record.serialize_bool_onehot(area_bottom_histogram.get(center) > 0);
+                    //     record.serialize_bool_onehot(area_left_histogram.get(center) > 0);
+                    //     record.serialize_bool_onehot(area_right_histogram.get(center) > 0);
+                    // }
+                    // {
+                    //     let histograms = [&area_top_histogram, &area_bottom_histogram, &area_left_histogram, &area_right_histogram];
+                    //     for histogram in histograms {
+                    //         let color: u8 = histogram.most_popular_color_disallow_ambiguous().unwrap_or(255);
+                    //         record.serialize_bool_onehot(center == color);
+                    //     }
+                    //     for histogram in histograms {
+                    //         let color: u8 = histogram.least_popular_color_disallow_ambiguous().unwrap_or(255);
+                    //         record.serialize_bool_onehot(center == color);
+                    //     }
+                    // }
+                
                     // let preserve_center_color: bool = histogram_preserve.get(center) > 0;
 
                     // let nonbackground_area3x3: Image = non_background_mask.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
