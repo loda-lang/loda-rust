@@ -1,7 +1,35 @@
-use super::{Image, convolution3x3};
+use super::{Image, convolution3x3, ImagePadding, ImageMaskCount};
 
 #[allow(dead_code)]
-fn conv3x3_count_nonzero_neighbours_connectivity8(image: &Image) -> anyhow::Result<u8> {
+pub trait ImageExteriorCorners {
+    /// Input is a mask with 0 and 1 values.
+    /// 
+    /// Returns a a heatmap of where the corners may be located.
+    /// When the value is `0`, it's not a corner.
+    /// 
+    /// The corner values are in the range `1..=7`, depending on how many solid pixels surround the center pixel.
+    #[allow(dead_code)]
+    fn mask_exterior_corners(&self) -> anyhow::Result<Image>;
+}
+
+impl ImageExteriorCorners for Image {
+    fn mask_exterior_corners(&self) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        if self.mask_count_nonzero() == 0 {
+            return Ok(self.clone_zero());
+        }
+        let input_padded: Image = self.padding_with_color(1, 0)?;
+        let result_image: Image = convolution3x3(&input_padded, conv3x3_callback)?;
+        Ok(result_image)
+    }
+} 
+
+/// Returns `0` if it's not a corner.
+/// 
+/// Returns the number of pixels in the 3x3 area, that makes up the corner.
+fn conv3x3_callback(image: &Image) -> anyhow::Result<u8> {
     if image.get(1, 1).unwrap_or(0) == 0 {
         return Ok(0);
     }
@@ -94,6 +122,9 @@ fn conv3x3_count_nonzero_neighbours_connectivity8(image: &Image) -> anyhow::Resu
 
     if count4 == 3 && count_diagonal == 4 {
         // Inside a dent into a solid block. This is a corner.
+        // 1, 0, 1
+        // 1, 1, 1
+        // 1, 1, 1
         return Ok(7);
     }
 
@@ -209,10 +240,10 @@ fn conv3x3_count_nonzero_neighbours_connectivity8(image: &Image) -> anyhow::Resu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::{ImageTryCreate, ImagePadding};
+    use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_detect_corners() {
+    fn test_10000_exterior_corners() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 1, 1, 0, 1, 0, 1,
@@ -225,8 +256,7 @@ mod tests {
         let input: Image = Image::try_create(9, 6, pixels).expect("image");
 
         // Act
-        let actual1: Image = input.padding_with_color(1, 0).expect("image");
-        let actual: Image = convolution3x3(&actual1, conv3x3_count_nonzero_neighbours_connectivity8).expect("image");
+        let actual: Image = input.mask_exterior_corners().expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -242,7 +272,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_detect_corners() {
+    fn test_10001_exterior_corners() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 0, 1, 1, 0, 0, 0,
@@ -255,8 +285,7 @@ mod tests {
         let input: Image = Image::try_create(9, 6, pixels).expect("image");
 
         // Act
-        let actual1: Image = input.padding_with_color(1, 0).expect("image");
-        let actual: Image = convolution3x3(&actual1, conv3x3_count_nonzero_neighbours_connectivity8).expect("image");
+        let actual: Image = input.mask_exterior_corners().expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -272,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_detect_corners() {
+    fn test_10002_exterior_corners() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 0, 0, 0, 0, 1, 0, 0,
@@ -285,8 +314,7 @@ mod tests {
         let input: Image = Image::try_create(9, 6, pixels).expect("image");
 
         // Act
-        let actual1: Image = input.padding_with_color(1, 0).expect("image");
-        let actual: Image = convolution3x3(&actual1, conv3x3_count_nonzero_neighbours_connectivity8).expect("image");
+        let actual: Image = input.mask_exterior_corners().expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -298,6 +326,19 @@ mod tests {
             3, 3, 0, 0, 0, 0, 1, 0, 0,
         ];
         let expected = Image::create_raw(9, 6, expected_pixels);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10003_exterior_corners_empty_input() {
+        // Arrange
+        let input: Image = Image::zero(5, 5);
+
+        // Act
+        let actual: Image = input.mask_exterior_corners().expect("image");
+
+        // Assert
+        let expected = Image::zero(5, 5);
         assert_eq!(actual, expected);
     }
 }
