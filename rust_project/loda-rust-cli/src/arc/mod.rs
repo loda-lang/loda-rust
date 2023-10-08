@@ -99,6 +99,7 @@ mod image_to_number;
 mod image_trim;
 mod image_try_create;
 mod image_unicode_formatting;
+mod interior_exterior;
 mod inspect_predicted;
 mod index_for_pixel;
 mod inspect_task;
