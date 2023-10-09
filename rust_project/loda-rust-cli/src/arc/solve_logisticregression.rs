@@ -2555,6 +2555,11 @@ impl SolveLogisticRegression {
                     record.serialize_bool_onehot(input_is_most_popular_color);
                     // record.serialize_bool(input_is_removal_color == 1);
 
+                    // for color in 0..=9u8 {
+                    //     record.serialize_bool_onehot(task.removal_histogram_intersection.get(color) > 0);
+                    // }
+                    // record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
+
                     // record.serialize_u8(x + 2);
                     // record.serialize_u8(y + 2);
                     // record.serialize_u8(x_reverse + 2);
@@ -2598,6 +2603,7 @@ impl SolveLogisticRegression {
                     // record.serialize_onehot_discard_overflow(y4_mod2, 2);
                     // record.serialize_onehot_discard_overflow(x4_reverse_mod2, 2);
                     // record.serialize_onehot_discard_overflow(y4_reverse_mod2, 2);
+                    // record.serialize_onehot_discard_overflow((x ^ y) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x_mod2 + y_mod2) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x_mod2 + y_reverse_mod2) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x_reverse_mod2 + y_mod2) & 1, 2);
