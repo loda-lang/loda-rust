@@ -2404,7 +2404,10 @@ impl SolveLogisticRegression {
                         //     noise_color_in_outline2_connectivity8 = mask.get(xx, yy).unwrap_or(0);
                         // }
                     }
-
+                    record.serialize_color_complex(noise_color_in_outline1_connectivity4, obfuscated_color_offset);
+                    record.serialize_color_complex(noise_color_in_outline1_connectivity8, obfuscated_color_offset);
+                    // record.serialize_u8(noise_color_in_outline2_connectivity4); // worsens the prediction
+                    // record.serialize_u8(noise_color_in_outline2_connectivity8); // worsens the prediction
 
                     // let mut the_horizontal_symmetry_connectivity4: u8 = 0;
                     // if let Some(mask) = horizontal_symmetry_connectivity4.get(&center) {
@@ -2652,10 +2655,6 @@ impl SolveLogisticRegression {
                     record.serialize_u8(v5);
                     record.serialize_u8(v6);
                     record.serialize_u8(v7);
-                    record.serialize_color_complex(noise_color_in_outline1_connectivity4, obfuscated_color_offset);
-                    record.serialize_color_complex(noise_color_in_outline1_connectivity8, obfuscated_color_offset);
-                    // record.serialize_u8(noise_color_in_outline2_connectivity4); // worsens the prediction
-                    // record.serialize_u8(noise_color_in_outline2_connectivity8); // worsens the prediction
 
                     let mut row_contains_noise_color: bool = false;
                     let mut column_contains_noise_color: bool = false;
