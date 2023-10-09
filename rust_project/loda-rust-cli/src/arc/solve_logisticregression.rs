@@ -1,15 +1,15 @@
 //! Performs logistic regression of each input pixel with the corresponding classification for the output pixel.
 //! 
-//! This solves 1 of the tasks from the hidden ARC dataset.
+//! This solves 2 of the tasks from the hidden ARC dataset.
 //!
-//! This solves 61 of the 800 tasks in the public ARC dataset.
-//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 25d8a9c8,
-//! 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53, 50cb2852, 543a7ed5,
-//! 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b, 776ffc46, 810b9b61,
-//! 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e,
-//! aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a,
-//! d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e7dd8335, e9c9d9a1,
-//! ef135b50
+//! This solves 62 of the 800 tasks in the public ARC dataset.
+//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 0d3d703e, 178fcbfb, 1c0d0a4b, 21f83797, 2281f1f4, 
+//! 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53, 
+//! 50cb2852, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b, 
+//! 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, 
+//! ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, 
+//! ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e7dd8335, 
+//! e9c9d9a1, ef135b50, 
 //! 
 //! This partially solves 3 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 25ff71a9, 794b24be, da2b0fe3
@@ -533,6 +533,33 @@ impl SolveLogisticRegression {
         // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
 
+        // let mut histogram_preserve = Histogram::new();
+        // task.action_label_set_intersection.iter().for_each(|label| {
+        //     match label {
+        //         ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
+        //             histogram_preserve.increment(*color);
+        //         },
+        //         _ => {}
+        //     }
+        // });
+
+        // let mut all_pairs_has_predicted_palette = true;
+        // for pair in &task.pairs {
+        //     let mut found = false;
+        //     for label in &pair.prediction_set {
+        //         match label {
+        //             arc_work_model::Prediction::OutputPalette { histogram: _ } => {
+        //                 found = true;
+        //             },
+        //             _ => {}
+        //         }
+        //     }
+        //     if !found {
+        //         all_pairs_has_predicted_palette = false;
+        //         break;
+        //     }
+        // }
+
         let mut earlier_prediction_image_vec = Vec::<Image>::new();
         if let Some(computed_image) = computed_image {
             let random_seed: u64 = process_task_iteration_index as u64;
@@ -557,6 +584,7 @@ impl SolveLogisticRegression {
 
                             let input_color: u8 = pair.input.image.get(x as i32, y as i32).unwrap_or(255);
                             let output_color: u8 = pair.output.image.get(x as i32, y as i32).unwrap_or(255);
+
                             let set_color: u8;
                             match strategy_value {
                                 0 => {
@@ -569,6 +597,11 @@ impl SolveLogisticRegression {
                                     set_color = noise_value;
                                 }
                             }
+
+                            // if histogram_preserve.get(input_color) > 0 {
+                            //     set_color = input_color;
+                            //     set_color = 255;
+                            // }
 
                             _ = semi_useful_output_image.set(x as i32, y as i32, set_color);
                         }
@@ -655,6 +688,18 @@ impl SolveLogisticRegression {
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
             let output: Image = background.overlay_with_position(&original_output, 0, 0)?;
 
+            // let mut histogram_predicted_palette = Histogram::new();
+            // if all_pairs_has_predicted_palette {
+            //     for label in &pair.prediction_set {
+            //         match label {
+            //             arc_work_model::Prediction::OutputPalette { histogram } => {
+            //                 histogram_predicted_palette.add_histogram(histogram);
+            //             },
+            //             _ => {}
+            //         }
+            //     }
+            // }
+
             let mut enumerated_objects: Image = Image::zero(width, height);
             if let Some(image) = &pair.input.enumerated_objects {
                 enumerated_objects = enumerated_objects.overlay_with_position(image, 0, 0)?;
@@ -698,7 +743,44 @@ impl SolveLogisticRegression {
 
             let noise_color: Option<u8> = pair.input.single_pixel_noise_color;
             let most_popular_color: Option<u8> = pair.input.most_popular_intersection_color;
+            // let most_popular_color: Option<u8> = task.input_output_most_popular_color_unambiguous();
             // let removal_color: Option<u8> = pair.input.removal_color;
+
+            // let mut non_background_mask: Image = input.clone_zero();
+            // let mut non_background_shape_type_image_connectivity4: Image = input.clone_zero();
+            // let mut non_background_shape_type_image_connectivity8: Image = input.clone_zero();
+            // if let Some(color) = most_popular_color {
+            //     // if let Some(color) = noise_color {
+            //     // non_background_mask = input.to_mask_where_color_is_different(color);
+            //     // non_background_mask = input.to_mask_where_color_is(color);
+            //     non_background_mask = input.to_mask_where_color_is_different(color);
+                
+            //     // let sco: SingleColorObject = SingleColorObject::find_objects(&non_background_mask)?;
+            //     // {
+            //     //     let connectivity = PixelConnectivity::Connectivity4;
+            //     //     let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, connectivity)?;
+            //     //     let mut shapetype_image: Image = input.clone_zero();
+            //     //     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+            //     //         let shape_type: ShapeType = color_and_shape.shape_identification.shape_type;
+            //     //         let color: u8 = Self::color_from_shape_type(shape_type);
+            //     //         let mode = MixMode::PickColor1WhenColor0IsZero { color };
+            //     //         shapetype_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype_image, mode)?;
+            //     //     }
+            //     //     non_background_shape_type_image_connectivity4 = shapetype_image;
+            //     // }
+            //     // {
+            //     //     let connectivity = PixelConnectivity::Connectivity8;
+            //     //     let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, connectivity)?;
+            //     //     let mut shapetype_image: Image = input.clone_zero();
+            //     //     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+            //     //         let shape_type: ShapeType = color_and_shape.shape_identification.shape_type;
+            //     //         let color: u8 = Self::color_from_shape_type(shape_type);
+            //     //         let mode = MixMode::PickColor1WhenColor0IsZero { color };
+            //     //         shapetype_image = color_and_shape.shape_identification.mask_uncropped.mix(&shapetype_image, mode)?;
+            //     //     }
+            //     //     non_background_shape_type_image_connectivity8 = shapetype_image;
+            //     // }
+            // }
 
             let mut image_mass_connectivity4: Image = Image::zero(width, height);
             let mut image_mass_connectivity8: Image = Image::zero(width, height);
@@ -710,6 +792,9 @@ impl SolveLogisticRegression {
                     image_mass_connectivity8 = image_mass_connectivity8.overlay_with_position(&image, 0, 0)?;
                 }
             }
+
+            // let histogram_diagonal_a: DiagonalHistogram = DiagonalHistogram::diagonal_a(&input)?;
+            // let histogram_diagonal_b: DiagonalHistogram = DiagonalHistogram::diagonal_b(&input)?;
 
             let histogram_columns: Vec<Histogram> = input.histogram_columns();
             let histogram_rows: Vec<Histogram> = input.histogram_rows();
@@ -1454,16 +1539,70 @@ impl SolveLogisticRegression {
             let number_of_shape3x3ids: u8 = Shape3x3::instance().number_of_shapes();
 
             for y in 0..height {
+                let yy: i32 = y as i32;
+                let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
+
+                // let area_top: Image = if y > 2 {
+                //     input.top_rows(y - 1)?
+                // } else {
+                //     Image::empty()
+                // };
+
+                // let area_bottom: Image = if y_reverse > 2 {
+                //     input.bottom_rows(y_reverse - 1)?
+                // } else {
+                //     Image::empty()
+                // };
+
+                // let mut area_top = Image::empty();
+                // let mut area_bottom = Image::empty();
+                // if let Some(image) = earlier_prediction_image {
+                //     if y > 2 {
+                //         area_top = image.top_rows(y - 1)?;
+                //     };
+                //     if y_reverse > 2 {
+                //         area_bottom = image.bottom_rows(y_reverse - 1)?;
+                //     }
+                // }
+
+                // let area_top_histogram_columns: Vec<Histogram> = area_top.histogram_columns();
+                // let area_bottom_histogram_columns: Vec<Histogram> = area_bottom.histogram_columns();
+
                 for x in 0..width {
                     let xx: i32 = x as i32;
-                    let yy: i32 = y as i32;
                     let x_reverse: u8 = ((width as i32) - 1 - xx).max(0) as u8;
-                    let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
+
+                    // let area_left: Image = if x > 2 {
+                    //     input.left_columns(x - 1)?
+                    // } else {
+                    //     Image::empty()
+                    // };
+                    // let area_right: Image = if x_reverse > 2 {
+                    //     input.right_columns(x_reverse - 1)?
+                    // } else {
+                    //     Image::empty()
+                    // };
+                    // let mut area_left = Image::empty();
+                    // let mut area_right = Image::empty();
+                    // if let Some(image) = earlier_prediction_image {
+                    //     if x > 2 {
+                    //         area_left = image.left_columns(x - 1)?;
+                    //     };
+                    //     if x_reverse > 2 {
+                    //         area_right = image.right_columns(x_reverse - 1)?;
+                    //     }
+                    // }
+                    // let area_left_histogram_rows: Vec<Histogram> = area_left.histogram_rows();
+                    // let area_right_histogram_rows: Vec<Histogram> = area_right.histogram_rows();
+            
+                    // let preserve_center_color: bool = histogram_preserve.get(center) > 0;
+
+                    // let nonbackground_area3x3: Image = non_background_mask.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
 
                     let image_top: u8 = input.get(xx, 0).unwrap_or(255);
                     let image_bottom: u8 = input.get(xx, original_input.height() as i32 - 1).unwrap_or(255);
@@ -1940,6 +2079,7 @@ impl SolveLogisticRegression {
                     //         }
                     //     }
                     // }
+
                     let mut is_full_column: bool = false;
                     let mut is_full_row: bool = false;
                     if let Some(histogram) = &histogram_columns.get(x as usize) {
@@ -2159,6 +2299,17 @@ impl SolveLogisticRegression {
                         }
                     }
 
+                    // record.serialize_bool_onehot(preserve_center_color);
+                    // {
+                    //     let color: u8 = if preserve_center_color { center } else { 255 };
+                    //     record.serialize_onehot(color, 11);
+                    // }
+
+                    // for color in 0..9u8 {
+                    //     let maybe_color_is_present: bool = histogram_predicted_palette.get(color) > 0;
+                    //     record.serialize_bool_onehot(maybe_color_is_present);
+                    // }
+
                     record.serialize_color_complex(center_x_reversed, obfuscated_color_offset);
                     record.serialize_color_complex(center_y_reversed, obfuscated_color_offset);
                     // record.serialize_color_complex(center_xy_reversed, obfuscated_color_offset);
@@ -2267,6 +2418,267 @@ impl SolveLogisticRegression {
                     }
                     record.serialize_bool_onehot(row_contains_noise_color);
                     record.serialize_bool_onehot(column_contains_noise_color);
+
+                    // {
+                    //     let mut is_full = false;    
+                    //     if let Some(histogram) = &area_top_histogram_columns.get(x as usize) {
+                    //         let count: u16 = histogram.number_of_counters_greater_than_zero();
+                    //         is_full = count == 1;
+                    //     }
+                    //     record.serialize_bool_onehot(is_full);
+                    // }
+                    // {
+                    //     let mut is_full = false;    
+                    //     if let Some(histogram) = &area_bottom_histogram_columns.get(x as usize) {
+                    //         let count: u16 = histogram.number_of_counters_greater_than_zero();
+                    //         is_full = count == 1;
+                    //     }
+                    //     record.serialize_bool_onehot(is_full);
+                    // }
+                    // {
+                    //     let mut is_full = false;    
+                    //     if let Some(histogram) = &area_left_histogram_rows.get(y as usize) {
+                    //         let count: u16 = histogram.number_of_counters_greater_than_zero();
+                    //         is_full = count == 1;
+                    //     }
+                    //     record.serialize_bool_onehot(is_full);
+                    // }
+                    // {
+                    //     let mut is_full = false;    
+                    //     if let Some(histogram) = &area_right_histogram_rows.get(y as usize) {
+                    //         let count: u16 = histogram.number_of_counters_greater_than_zero();
+                    //         is_full = count == 1;
+                    //     }
+                    //     record.serialize_bool_onehot(is_full);
+                    // }
+
+                    // {
+                    //     let histogram: Histogram;
+                    //     if let Some(h) = area_top_histogram_columns.get(x as usize) {
+                    //         histogram = h.clone();
+                    //     } else {
+                    //         histogram = Histogram::new();
+                    //     }
+                    //     for color in 0..9u8 {
+                    //         let mass: u32 = histogram.get(color);
+                    //         record.serialize_bool(mass == 1);
+                    //         record.serialize_bool(mass == 2);
+                    //         record.serialize_bool(mass > 2);
+                    //         // record.serialize_bool(mass > 0);
+                    //         // record.serialize_u8(mass.min(255) as u8);
+                    //         // record.serialize_onehot(mass.min(11) as u8, 10);
+                    //     }
+                    //     // record.serialize_onehot(histogram.number_of_counters_greater_than_zero().min(11) as u8, 10);
+                    // }
+                    // {
+                    //     let histogram: Histogram;
+                    //     if let Some(h) = area_bottom_histogram_columns.get(x as usize) {
+                    //         histogram = h.clone();
+                    //     } else {
+                    //         histogram = Histogram::new();
+                    //     }
+                    //     for color in 0..9u8 {
+                    //         let mass: u32 = histogram.get(color);
+                    //         record.serialize_bool(mass == 1);
+                    //         record.serialize_bool(mass == 2);
+                    //         record.serialize_bool(mass > 2);
+                    //         // record.serialize_bool(mass > 0);
+                    //         // record.serialize_u8(mass.min(255) as u8);
+                    //         // record.serialize_onehot(mass.min(11) as u8, 10);
+                    //     }
+                    //     // record.serialize_onehot(histogram.number_of_counters_greater_than_zero().min(11) as u8, 10);
+                    // }
+                    // {
+                    //     let histogram: Histogram;
+                    //     if let Some(h) = area_left_histogram_rows.get(y as usize) {
+                    //         histogram = h.clone();
+                    //     } else {
+                    //         histogram = Histogram::new();
+                    //     }
+                    //     for color in 0..9u8 {
+                    //         let mass: u32 = histogram.get(color);
+                    //         record.serialize_bool(mass == 1);
+                    //         record.serialize_bool(mass == 2);
+                    //         record.serialize_bool(mass > 2);
+                    //         // record.serialize_bool(mass > 0);
+                    //         // record.serialize_u8(mass.min(255) as u8);
+                    //         // record.serialize_onehot(mass.min(11) as u8, 10);
+                    //     }
+                    //     // record.serialize_onehot(histogram.number_of_counters_greater_than_zero().min(11) as u8, 10);
+                    // }
+                    // {
+                    //     let histogram: Histogram;
+                    //     if let Some(h) = area_right_histogram_rows.get(y as usize) {
+                    //         histogram = h.clone();
+                    //     } else {
+                    //         histogram = Histogram::new();
+                    //     }
+                    //     for color in 0..9u8 {
+                    //         let mass: u32 = histogram.get(color);
+                    //         record.serialize_bool(mass == 1);
+                    //         record.serialize_bool(mass == 2);
+                    //         record.serialize_bool(mass > 2);
+                    //         // record.serialize_bool(mass > 0);
+                    //         // record.serialize_u8(mass.min(255) as u8);
+                    //         // record.serialize_onehot(mass.min(11) as u8, 10);
+                    //     }
+                    //     // record.serialize_onehot(histogram.number_of_counters_greater_than_zero().min(11) as u8, 10);
+                    // }
+
+
+
+                    {
+                        // let count: u16 = histogram_columns[x as usize].number_of_counters_greater_than_zero();
+                        // record.serialize_bool_onehot(count > 0);
+                        // record.serialize_f64(count as f64);
+                        // record.serialize(histogram_columns.num, count)
+                        for color in 0..=9u8 {
+                            record.serialize_bool(histogram_columns[x as usize].get(color) > 0);
+                        }
+
+                        // for color in 0..=9u8 {
+                        //     let x_minus1: i32 = (x as i32) - 2;
+                        //     let mut value: bool = false;
+                        //     if x_minus1 >= 0 {
+                        //         value = histogram_columns[x_minus1 as usize].get(color) > 0;
+                        //     }
+                        //     record.serialize_bool(value);
+                        // }
+                        // for color in 0..=9u8 {
+                        //     let x_minus1: i32 = (x as i32) - 1;
+                        //     let mut value: bool = false;
+                        //     if x_minus1 >= 0 {
+                        //         value = histogram_columns[x_minus1 as usize].get(color) > 0;
+                        //     }
+                        //     record.serialize_bool(value);
+                        // }
+
+                        // for color in 0..=9u8 {
+                        //     let x_plus1: u16 = (x as u16) + 1;
+                        //     let mut value: bool = false;
+                        //     if x_plus1 < (width as u16) {
+                        //         value = histogram_columns[x_plus1 as usize].get(color) > 0;
+                        //     }
+                        //     record.serialize_bool(value);
+                        // }
+                        // for color in 0..=9u8 {
+                        //     let x_plus1: u16 = (x as u16) + 2;
+                        //     let mut value: bool = false;
+                        //     if x_plus1 < (width as u16) {
+                        //         value = histogram_columns[x_plus1 as usize].get(color) > 0;
+                        //     }
+                        //     record.serialize_bool(value);
+                        // }
+                    }
+
+                    {
+                        // let count: u16 = histogram_rows[y as usize].number_of_counters_greater_than_zero();
+                        // record.serialize_bool_onehot(count > 0);
+                        // record.serialize_f64(count as f64);
+                        // record.serialize(histogram_columns.num, count)
+                        for color in 0..=9u8 {
+                            record.serialize_bool(histogram_rows[y as usize].get(color) > 0);
+                        }
+
+                        // for color in 0..=9u8 {
+                        //     let y_minus1: i32 = (y as i32) - 2;
+                        //     let mut value: bool = false;
+                        //     if y_minus1 >= 0 {
+                        //         value = histogram_rows[y_minus1 as usize].get(color) > 0;
+                        //     }
+                        //     record.serialize_bool(value);
+                        // }
+                        // for color in 0..=9u8 {
+                        //     let y_minus1: i32 = (y as i32) - 1;
+                        //     let mut value: bool = false;
+                        //     if y_minus1 >= 0 {
+                        //         value = histogram_rows[y_minus1 as usize].get(color) > 0;
+                        //     }
+                        //     record.serialize_bool(value);
+                        // }
+
+                        // for color in 0..=9u8 {
+                        //     let y_plus1: u16 = (y as u16) + 1;
+                        //     let mut value: bool = false;
+                        //     if y_plus1 < (height as u16) {
+                        //         value = histogram_rows[y_plus1 as usize].get(color) > 0;
+                        //     }
+                        //     record.serialize_bool(value);
+                        // }
+                        // for color in 0..=9u8 {
+                        //     let y_plus1: u16 = (y as u16) + 2;
+                        //     let mut value: bool = false;
+                        //     if y_plus1 < (height as u16) {
+                        //         value = histogram_rows[y_plus1 as usize].get(color) > 0;
+                        //     }
+                        //     record.serialize_bool(value);
+                        // }
+                    }
+
+                    // {
+                    //     for color in 0..=9u8 {
+                    //         let mut found = false;
+                    //         if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                    //             if histogram.get(color) > 0 {
+                    //                 found = true;
+                    //             }
+                    //         }
+                    //         record.serialize_bool_onehot(found);
+                    //     }
+                    // }
+
+                    // {
+                    //     for color in 0..=9u8 {
+                    //         let mut found = false;
+                    //         if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                    //             if histogram.get(color) > 0 {
+                    //                 found = true;
+                    //             }
+                    //         }
+                    //         record.serialize_bool_onehot(found);
+                    //     }
+                    // }
+
+                    {
+                        // let mut count: u8 = 0;
+                        // if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                        //     count = histogram.number_of_counters_greater_than_zero().min(255) as u8;
+                        // }
+                        // record.serialize_onehot(count + 1, 4);
+                        // record.serialize_onehot(count, 20);
+                        // record.serialize_u8(count);
+                        // record.serialize_bool_onehot(count > 1);
+                    }
+
+                    {
+                        // let mut count: u8 = 0;
+                        // if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                        //     count = histogram.number_of_counters_greater_than_zero().min(255) as u8;
+                        // }
+                        // record.serialize_onehot(count + 1, 4);
+                        // record.serialize_onehot(count, 20);
+                        // record.serialize_u8(count);
+                        // record.serialize_bool_onehot(count > 1);
+                    }
+                    
+                    // {
+                    //     for color in 0..=9u8 {
+                    //         let mut mass : u8 = 0;
+                    //         if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                    //             mass = histogram.get(color).min(255) as u8;
+                    //         }
+                    //         record.serialize_onehot(mass, 4);
+                    //         // record.serialize_u8(mass);
+                    //     }
+                    //     for color in 0..=9u8 {
+                    //         let mut mass : u8 = 0;
+                    //         if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                    //             mass = histogram.get(color).min(255) as u8;
+                    //         }
+                    //         record.serialize_onehot(mass, 4);
+                    //         // record.serialize_u8(mass);
+                    //     }
+                    // }
 
                     let mut color_hole_type1: u8 = 255;
                     if let Some(image) = color_to_hole_type1.get(&center) {
@@ -2892,6 +3304,88 @@ impl SolveLogisticRegression {
                         record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
                     }
 
+                    // {
+                    //     let mut the_shapeid: u8 = 255;
+                    //     let mut transform_mask: u8 = 0;
+                    //     match Shape3x3::instance().shapeid_and_transformations(&nonbackground_area3x3) {
+                    //         Ok((shapeid, transformations)) => {
+                    //             the_shapeid = shapeid;
+                    //             if transformations.contains(&ShapeTransformation::Normal) {
+                    //                 transform_mask |= 1;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw90) {
+                    //                 transform_mask |= 2;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw180) {
+                    //                 transform_mask |= 4;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw270) {
+                    //                 transform_mask |= 8;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipX) {
+                    //                 transform_mask |= 16;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                    //                 transform_mask |= 32;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                    //                 transform_mask |= 64;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                    //                 transform_mask |= 128;
+                    //             }
+                    //         },
+                    //         Err(_) => {},
+                    //     }
+                    //     // center_shapeid = the_shapeid;
+                    //     // center_shapetransformations = transform_mask;
+                    //     record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                    //     record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                    // }
+
+                    // {
+                    //     let mut the_shapeid: u8 = 255;
+                    //     let mut transform_mask: u8 = 0;
+                    //     let mut my_area3x3: Image = area3x3.clone();
+                    //     if let Some(color) = most_popular_color {
+                    //         my_area3x3 = my_area3x3.to_mask_where_color_is_different(color);
+                    //     }
+                    //     match Shape3x3::instance().shapeid_and_transformations(&my_area3x3) {
+                    //         Ok((shapeid, transformations)) => {
+                    //             the_shapeid = shapeid;
+                    //             if transformations.contains(&ShapeTransformation::Normal) {
+                    //                 transform_mask |= 1;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw90) {
+                    //                 transform_mask |= 2;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw180) {
+                    //                 transform_mask |= 4;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::RotateCw270) {
+                    //                 transform_mask |= 8;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipX) {
+                    //                 transform_mask |= 16;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                    //                 transform_mask |= 32;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                    //                 transform_mask |= 64;
+                    //             }
+                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                    //                 transform_mask |= 128;
+                    //             }
+                    //         },
+                    //         Err(_) => {},
+                    //     }
+                    //     // center_shapeid = the_shapeid;
+                    //     // center_shapetransformations = transform_mask;
+                    //     record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                    //     record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                    // }
+
                     // let combos: [(i32, i32); 4] = [(xx - 1, 0), (xx - 1, (height as i32) - 3), (0, yy - 1), ((width as i32) - 3, yy - 1)];
                     // let combos: [(i32, i32); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
                     // let combos: [(i32, i32); 4] = [(-1, -1), (1, -1), (-1, 1), (1, 1)];
@@ -2958,6 +3452,14 @@ impl SolveLogisticRegression {
                     //     // record.serialize_bool(same_color_and_different_shape);
                     // }
 
+                    // {
+                    //     let pixel: u8 = non_background_shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_onehot_discard_overflow(pixel, shape_type_count);
+                    // }
+                    // {
+                    //     let pixel: u8 = non_background_shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_onehot_discard_overflow(pixel, shape_type_count);
+                    // }
                     {
                         let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
                         record.serialize_onehot_discard_overflow(pixel, shape_type_count);
@@ -3149,6 +3651,7 @@ impl SolveLogisticRegression {
                             // {
                             //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             //     record.serialize_onehot_discard_overflow(pixel, 10);
+                            //     record.serialize_bool(Some(pixel) == most_popular_color);
                             // }
                             {
                                 let pixel: u8 = image.get(xx + 1, yy).unwrap_or(255);

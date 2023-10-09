@@ -1,6 +1,6 @@
 # ARC is Abstraction and Reasoning Corpus
 
-LODA-RUST solves 6 out of 100 hidden tasks in ARC. A human have no problems in solving these tasks.
+LODA-RUST solves 8 out of 100 hidden tasks in ARC. A human have no problems in solving these tasks.
 
 As of 2023 ARC is unsolved.
 

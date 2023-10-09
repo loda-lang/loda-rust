@@ -78,7 +78,7 @@ impl ImageHistogram for Image {
             }
             rows.push(h);
         }
-        return rows;
+        rows
     }
 
     fn histogram_columns(&self) -> Vec<Histogram> {
@@ -93,7 +93,7 @@ impl ImageHistogram for Image {
             }
             columns.push(h);
         }
-        return columns;
+        columns
     }
 }
 
