@@ -1647,7 +1647,6 @@ impl SolveLogisticRegression {
                 // } else {
                 //     Image::empty()
                 // };
-
                 // let area_bottom: Image = if y_reverse > 2 {
                 //     input.bottom_rows(y_reverse - 1)?
                 // } else {
@@ -1706,11 +1705,52 @@ impl SolveLogisticRegression {
                     //         area_right = image.right_columns(x_reverse - 1)?;
                     //     }
                     // }
+
+                    // let mut area_topleft = Image::empty();
+                    // let mut area_topright = Image::empty();
+                    // let mut area_bottomleft = Image::empty();
+                    // let mut area_bottomright = Image::empty();
+                    // {
+                    //     if x > 2 {
+                    //         area_topleft = area_top.left_columns(x - 1)?;
+                    //         area_bottomleft = area_bottom.left_columns(x - 1)?;
+                    //     };
+                    //     if x_reverse > 2 {
+                    //         area_topright = area_top.right_columns(x_reverse - 1)?;
+                    //         area_bottomright = area_bottom.right_columns(x_reverse - 1)?;
+                    //     }
+                    // }
+                    // let area_topleft_histogram: Histogram = area_topleft.histogram_all();
+                    // let area_topright_histogram: Histogram = area_topright.histogram_all();
+                    // let area_bottomleft_histogram: Histogram = area_bottomleft.histogram_all();
+                    // let area_bottomright_histogram: Histogram = area_bottomright.histogram_all();
+
+                    // {
+                    //     let histograms = [&area_topleft_histogram, &area_topright_histogram, &area_bottomleft_histogram, &area_bottomright_histogram];
+                    //     for histogram in histograms {
+                    //         let count: u8 = histogram.number_of_counters_greater_than_zero().min(10) as u8;
+                    //         record.serialize_onehot(count, 10);
+                    //         // record.serialize_bool_onehot(histogram.get(center) > 0);
+                    //     }
+                    // }
+
                     // let area_left_histogram_rows: Vec<Histogram> = area_left.histogram_rows();
                     // let area_right_histogram_rows: Vec<Histogram> = area_right.histogram_rows();
                     // let area_left_histogram: Histogram = area_left.histogram_all();
                     // let area_right_histogram: Histogram = area_right.histogram_all();
 
+                    // for color in 0..=9u8 {
+                    //     record.serialize_bool_onehot(area_topleft_histogram.get(color) > 0);
+                    //     record.serialize_bool_onehot(area_topright_histogram.get(color) > 0);
+                    //     record.serialize_bool_onehot(area_bottomleft_histogram.get(color) > 0);
+                    //     record.serialize_bool_onehot(area_bottomright_histogram.get(color) > 0);
+                    // }
+                    // {
+                    //     record.serialize_bool_onehot(area_topleft_histogram.get(center) > 0);
+                    //     record.serialize_bool_onehot(area_topright_histogram.get(center) > 0);
+                    //     record.serialize_bool_onehot(area_bottomleft_histogram.get(center) > 0);
+                    //     record.serialize_bool_onehot(area_bottomright_histogram.get(center) > 0);
+                    // }
                     // for color in 0..=9u8 {
                     //     record.serialize_bool_onehot(area_top_histogram.get(color) > 0);
                     //     record.serialize_bool_onehot(area_bottom_histogram.get(color) > 0);
@@ -1735,6 +1775,25 @@ impl SolveLogisticRegression {
                     //     }
                     // }
                 
+                    // {
+                    //     let diagonalhistogram_topleft: DiagonalHistogram = DiagonalHistogram::diagonal_a(&area_topleft)?;
+                    //     let diagonalhistogram_topright: DiagonalHistogram = DiagonalHistogram::diagonal_b(&area_topright)?;
+                    //     let diagonalhistogram_bottomleft: DiagonalHistogram = DiagonalHistogram::diagonal_b(&area_bottomleft)?;
+                    //     let diagonalhistogram_bottomright: DiagonalHistogram = DiagonalHistogram::diagonal_a(&area_bottomright)?;
+                    //     let diagonalhistograms = [&diagonalhistogram_topleft, &diagonalhistogram_topright, &diagonalhistogram_bottomleft, &diagonalhistogram_bottomright];
+                    //     for diagonalhistogram in diagonalhistograms {
+                    //         for color in 0..=9u8 {
+                    //             let mut found = false;
+                    //             if let Some(histogram) = diagonalhistogram.get(x as i32, y as i32) {
+                    //                 if histogram.get(color) > 0 {
+                    //                     found = true;
+                    //                 }
+                    //             }
+                    //             record.serialize_bool_onehot(found);
+                    //         }
+                    //     }
+                    // }
+
                     // let preserve_center_color: bool = histogram_preserve.get(center) > 0;
 
                     // let nonbackground_area3x3: Image = non_background_mask.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
@@ -2815,9 +2874,6 @@ impl SolveLogisticRegression {
                     //         }
                     //         record.serialize_bool_onehot(found);
                     //     }
-                    // }
-
-                    // {
                     //     for color in 0..=9u8 {
                     //         let mut found = false;
                     //         if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
@@ -2826,6 +2882,25 @@ impl SolveLogisticRegression {
                     //             }
                     //         }
                     //         record.serialize_bool_onehot(found);
+                    //     }
+                    // }
+
+                    // {
+                    //     for color in 0..=9u8 {
+                    //         let mut count: u32 = 0;
+                    //         if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                    //             count = histogram.get(color);
+                    //         }
+                    //         let limit: u32 = if color == center { 1 } else { 0 };
+                    //         record.serialize_bool_onehot(count > limit);
+                    //     }
+                    //     for color in 0..=9u8 {
+                    //         let mut count: u32 = 0;
+                    //         if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                    //             count = histogram.get(color);
+                    //         }
+                    //         let limit: u32 = if color == center { 1 } else { 0 };
+                    //         record.serialize_bool_onehot(count > limit);
                     //     }
                     // }
 
