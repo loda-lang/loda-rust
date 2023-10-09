@@ -2947,6 +2947,36 @@ impl SolveLogisticRegression {
                     //     }
                     // }
                     // {
+                    //     {
+                    //         let mut is_min = false;
+                    //         let mut is_max = false;
+                    //         let mut count: u16 = 0;
+                    //         if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                    //             count = histogram.number_of_counters_greater_than_zero();
+                    //             is_min = count == histogram_diagonal_a.min_number_of_unique_colors();
+                    //             is_max = count == histogram_diagonal_a.max_number_of_unique_colors();
+                    //         }
+                    //         record.serialize_onehot(count.min(255) as u8, 10);
+                    //         record.serialize_bool_onehot(is_max);
+                    //         record.serialize_bool_onehot(is_min);
+                    //         record.serialize_bool_onehot(is_max == false && is_min == false);
+                    //     }
+                    //     {
+                    //         let mut is_min = false;
+                    //         let mut is_max = false;
+                    //         let mut count: u16 = 0;
+                    //         if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                    //             count = histogram.number_of_counters_greater_than_zero();
+                    //             is_min = count == histogram_diagonal_b.min_number_of_unique_colors();
+                    //             is_max = count == histogram_diagonal_b.max_number_of_unique_colors();
+                    //         }
+                    //         record.serialize_onehot(count.min(255) as u8, 10);
+                    //         record.serialize_bool_onehot(is_max);
+                    //         record.serialize_bool_onehot(is_min);
+                    //         record.serialize_bool_onehot(is_max == false && is_min == false);
+                    //     }
+                    // }
+                    // {
                     //     // let mut mass: u8 = 0;
                     //     let mut is_most_popular: bool = false;
                     //     let mut is_least_popular: bool = false;
