@@ -1,18 +1,22 @@
 //! Performs logistic regression of each input pixel with the corresponding classification for the output pixel.
 //! 
-//! This solves 2 of the tasks from the hidden ARC dataset.
-//!
-//! This solves 62 of the 800 tasks in the public ARC dataset.
-//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 0d3d703e, 178fcbfb, 1c0d0a4b, 21f83797, 2281f1f4, 
-//! 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53, 
-//! 50cb2852, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b, 
-//! 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, 
-//! ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, 
-//! ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e7dd8335, 
-//! e9c9d9a1, ef135b50, 
+//! This solves 2 of the tasks from the hidden ARC dataset, when using 
+//! commit 2023-Oct-09:
+//! https://github.com/loda-lang/loda-rust/commit/430f3d4b1182a40058230e54564b8e6c482e1509
 //! 
-//! This partially solves 3 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
-//! 25ff71a9, 794b24be, da2b0fe3
+//! However currently this approach solves 1 of the tasks from the hidden ARC dataset.
+//!
+//! This solves 69 of the 800 tasks in the public ARC dataset.
+//! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280,
+//! 25d8a9c8, 25ff71a9, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53,
+//! 543a7ed5, 54d9e175, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b,
+//! 776ffc46, 810b9b61, 84f2aca1, 868de0fa, 913fb3ed, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c,
+//! a934301b, a9f96cdd, aa4ec2a5, ae3edfdc, ae58858e, aedd82e4, af902bf9, b1948b0a, b2862040, b60334d2,
+//! b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b,
+//! d5d6de2d, dc433765, ded97339, e0fb7511, e7dd8335, e9c9d9a1, ef135b50, f0df5ff0, f45f5ca7, 
+//! 
+//! This partially solves 2 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
+//! 794b24be, da2b0fe3
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
@@ -32,6 +36,7 @@
 //! 
 //! Future experiments:
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
+//! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
 use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern};
@@ -258,6 +263,22 @@ impl SolveLogisticRegression {
         println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
         Ok(())
     }
+
+    /// Converts an unsigned binary number to reflected binary Gray code.
+    // fn binary_to_grey(value: u8) -> u8 {
+    //     value ^ (value >> 1)
+    // }
+
+    /// Converts a reflected binary Gray code number to a binary number.
+    // fn grey_to_binary(value: u8) -> u8 {
+    //     let mut result: u8 = value;
+    //     let mut mask: u8 = value;
+    //     for _ in 1..8 {
+    //         mask >>= 1;
+    //         result ^= mask;
+    //     }
+    //     result
+    // }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
         if !task.is_output_size_same_as_input_size() {
@@ -873,6 +894,85 @@ impl SolveLogisticRegression {
                     Err(_) => {},
                 }
             }
+
+            let mut enumerated_clusters_grow_mask3 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &enumerated_clusters_grow_mask2 {
+                match image.mask_grow(*connectivity) {
+                    Ok(image) => {
+                        enumerated_clusters_grow_mask3.insert((*color, *connectivity), image);
+                    },
+                    Err(_) => {},
+                }
+            }
+
+            // let mut exterior_of_clusters = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // for ((color, connectivity), mask) in &enumerated_clusters_grow_mask1 {
+            // // for ((color, connectivity), mask) in &enumerated_clusters {
+            // // for ((color, connectivity), mask) in &enumerated_clusters_filled_holes_mask {
+            //     match mask.mask_exterior_corners() {
+            //         Ok(image) => {
+            //             exterior_of_clusters.insert((*color, *connectivity), image);
+            //         },
+            //         Err(_) => {},
+            //     }
+            // }
+
+            let mut color_grow_mask1 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in &connectivity_vec {
+                    for color in 0..=9 {
+                        let mask: Image = input.to_mask_where_color_is(color);
+                        match mask.mask_grow(*connectivity) {
+                            Ok(image) => {
+                                color_grow_mask1.insert((color, *connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
+            let mut color_grow_mask2 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &color_grow_mask1 {
+                match image.mask_grow(*connectivity) {
+                    Ok(image) => {
+                        color_grow_mask2.insert((*color, *connectivity), image);
+                    },
+                    Err(_) => {},
+                }
+            }
+
+            let mut color_grow_mask3 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            for ((color, connectivity), image) in &color_grow_mask2 {
+                match image.mask_grow(*connectivity) {
+                    Ok(image) => {
+                        color_grow_mask3.insert((*color, *connectivity), image);
+                    },
+                    Err(_) => {},
+                }
+            }
+
+            // let mut color_grow_mask4 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // for ((color, connectivity), image) in &color_grow_mask3 {
+            //     match image.mask_grow(*connectivity) {
+            //         Ok(image) => {
+            //             color_grow_mask4.insert((*color, *connectivity), image);
+            //         },
+            //         Err(_) => {},
+            //     }
+            // }
+
+            // let mut color_grow_mask5 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // for ((color, connectivity), image) in &color_grow_mask4 {
+            //     match image.mask_grow(*connectivity) {
+            //         Ok(image) => {
+            //             color_grow_mask5.insert((*color, *connectivity), image);
+            //         },
+            //         Err(_) => {},
+            //     }
+            // }
+
 
             let mut small_medium_big = HashMap::<(u8, PixelConnectivity), Image>::new();
             for ((color, connectivity), image) in &enumerated_clusters {
@@ -1567,11 +1667,20 @@ impl SolveLogisticRegression {
 
                 // let area_top_histogram_columns: Vec<Histogram> = area_top.histogram_columns();
                 // let area_bottom_histogram_columns: Vec<Histogram> = area_bottom.histogram_columns();
+                // let area_top_histogram: Histogram = area_top.histogram_all();
+                // let area_bottom_histogram: Histogram = area_bottom.histogram_all();
 
                 for x in 0..width {
                     let xx: i32 = x as i32;
                     let x_reverse: u8 = ((width as i32) - 1 - xx).max(0) as u8;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
+
+                    let mut record = Record {
+                        classification: output_color,
+                        is_test,
+                        pair_id,
+                        values: vec!(),
+                    };
 
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
@@ -1599,7 +1708,33 @@ impl SolveLogisticRegression {
                     // }
                     // let area_left_histogram_rows: Vec<Histogram> = area_left.histogram_rows();
                     // let area_right_histogram_rows: Vec<Histogram> = area_right.histogram_rows();
-            
+                    // let area_left_histogram: Histogram = area_left.histogram_all();
+                    // let area_right_histogram: Histogram = area_right.histogram_all();
+
+                    // for color in 0..=9u8 {
+                    //     record.serialize_bool_onehot(area_top_histogram.get(color) > 0);
+                    //     record.serialize_bool_onehot(area_bottom_histogram.get(color) > 0);
+                    //     record.serialize_bool_onehot(area_left_histogram.get(color) > 0);
+                    //     record.serialize_bool_onehot(area_right_histogram.get(color) > 0);
+                    // }
+                    // {
+                    //     record.serialize_bool_onehot(area_top_histogram.get(center) > 0);
+                    //     record.serialize_bool_onehot(area_bottom_histogram.get(center) > 0);
+                    //     record.serialize_bool_onehot(area_left_histogram.get(center) > 0);
+                    //     record.serialize_bool_onehot(area_right_histogram.get(center) > 0);
+                    // }
+                    // {
+                    //     let histograms = [&area_top_histogram, &area_bottom_histogram, &area_left_histogram, &area_right_histogram];
+                    //     for histogram in histograms {
+                    //         let color: u8 = histogram.most_popular_color_disallow_ambiguous().unwrap_or(255);
+                    //         record.serialize_bool_onehot(center == color);
+                    //     }
+                    //     for histogram in histograms {
+                    //         let color: u8 = histogram.least_popular_color_disallow_ambiguous().unwrap_or(255);
+                    //         record.serialize_bool_onehot(center == color);
+                    //     }
+                    // }
+                
                     // let preserve_center_color: bool = histogram_preserve.get(center) > 0;
 
                     // let nonbackground_area3x3: Image = non_background_mask.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
@@ -1690,11 +1825,11 @@ impl SolveLogisticRegression {
 
 
 
-                    let max_distance: u8 = 3;
-                    let distance_top: u8 = y.min(max_distance) + 1;
-                    let distance_bottom: u8 = y_reverse.min(max_distance) + 1;
-                    let distance_left: u8 = x.min(max_distance) + 1;
-                    let distance_right: u8 = x_reverse.min(max_distance) + 1;
+                    // let max_distance: u8 = 3;
+                    // let distance_top: u8 = y.min(max_distance) + 1;
+                    // let distance_bottom: u8 = y_reverse.min(max_distance) + 1;
+                    // let distance_left: u8 = x.min(max_distance) + 1;
+                    // let distance_right: u8 = x_reverse.min(max_distance) + 1;
 
                     let input_is_noise_color: bool = noise_color == Some(center);
                     // let input_is_removal_color: u8 = if removal_color == Some(center) { 1 } else { 0 };
@@ -2286,18 +2421,45 @@ impl SolveLogisticRegression {
 
                     let input_has_unambiguous_connectivity: bool = input_unambiguous_connectivity_histogram.get(center) > 0;
 
-                    let mut record = Record {
-                        classification: output_color,
-                        is_test,
-                        pair_id,
-                        values: vec!(),
-                    };
                     for area_y in 0..area5x5.height() {
                         for area_x in 0..area5x5.width() {
                             let color: u8 = area5x5.get(area_x as i32, area_y as i32).unwrap_or(255);
                             record.serialize_color_complex(color, obfuscated_color_offset);
                         }
                     }
+
+                    // {
+                    //     record.serialize_color_complex(neighbour_up, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_down, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_left, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_right, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_upleft, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_upright, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_downleft, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_downright, obfuscated_color_offset);
+                    // }
+
+                    // {
+                    //     record.serialize_bool_onehot(neighbour_up == center);
+                    //     record.serialize_bool_onehot(neighbour_down == center);
+                    //     record.serialize_bool_onehot(neighbour_left == center);
+                    //     record.serialize_bool_onehot(neighbour_right == center);
+                    //     record.serialize_bool_onehot(neighbour_up == neighbour_down);
+                    //     record.serialize_bool_onehot(neighbour_left == neighbour_right);
+                    //     record.serialize_bool_onehot(neighbour_upleft == neighbour_downright);
+                    //     record.serialize_bool_onehot(neighbour_upright == neighbour_downleft);
+                    // }
+
+                    // {
+                    //     record.serialize_onehot_discard_overflow(neighbour_up, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_down, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_left, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_right, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_upleft, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_upright, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_downleft, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_downright, shape_type_count);
+                    // }
 
                     // record.serialize_bool_onehot(preserve_center_color);
                     // {
@@ -2315,20 +2477,44 @@ impl SolveLogisticRegression {
                     // record.serialize_color_complex(center_xy_reversed, obfuscated_color_offset);
                     record.serialize_color_complex(mass_connectivity4, obfuscated_color_offset);
                     record.serialize_color_complex(mass_connectivity8, obfuscated_color_offset);
+                    // record.serialize_onehot(mass_connectivity4, 4);
+                    // record.serialize_onehot(mass_connectivity8, 4);
+                    // record.serialize_f64(1.0 / ((mass_connectivity4 as f64) + 1.0));
+                    // record.serialize_f64(1.0 / ((mass_connectivity8 as f64) + 1.0));
                     // record.serialize_u8(mass_connectivity4);
                     // record.serialize_u8(mass_connectivity8);
                     // record.serialize_onehot_discard_overflow(mass_connectivity4, 40);
                     // record.serialize_onehot_discard_overflow(mass_connectivity8, 40);
                     record.serialize_ternary(input_orientation);
-                    record.serialize_u8(distance_top);
-                    record.serialize_u8(distance_bottom);
-                    record.serialize_u8(distance_left);
-                    record.serialize_u8(distance_right);
+                    // record.serialize_u8(distance_top);
+                    // record.serialize_u8(distance_bottom);
+                    // record.serialize_u8(distance_left);
+                    // record.serialize_u8(distance_right);
                     record.serialize_ternary(half_horizontal);
                     record.serialize_ternary(half_vertical);
                     record.serialize_bool_onehot(input_is_noise_color);
                     record.serialize_bool_onehot(input_is_most_popular_color);
                     // record.serialize_bool(input_is_removal_color == 1);
+
+                    // record.serialize_u8(x + 2);
+                    // record.serialize_u8(y + 2);
+                    // record.serialize_u8(x_reverse + 2);
+                    // record.serialize_u8(y_reverse + 2);
+                    // record.serialize_onehot_discard_overflow(x, 30);
+                    // record.serialize_onehot_discard_overflow(y, 30);
+                    // record.serialize_onehot_discard_overflow(x_reverse, 30);
+                    // record.serialize_onehot_discard_overflow(y_reverse, 30);
+
+                    // record.serialize_bitmask_as_onehot(Self::binary_to_grey(x) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::binary_to_grey(y) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::binary_to_grey(x_reverse) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::binary_to_grey(y_reverse) as u16, 8);
+
+                    // record.serialize_bitmask_as_onehot(Self::grey_to_binary(x) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::grey_to_binary(y) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::grey_to_binary(x_reverse) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::grey_to_binary(y_reverse) as u16, 8);
+
                     record.serialize_onehot_discard_overflow(x_mod2, 2);
                     record.serialize_onehot_discard_overflow(y_mod2, 2);
                     record.serialize_onehot_discard_overflow(x_reverse_mod2, 2);
@@ -2464,6 +2650,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -2482,6 +2669,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -2500,6 +2688,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -2518,6 +2707,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -2644,6 +2834,7 @@ impl SolveLogisticRegression {
                         // if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
                         //     count = histogram.number_of_counters_greater_than_zero().min(255) as u8;
                         // }
+                        // record.serialize_f64(1.0 / (count as f64 + 1.0));
                         // record.serialize_onehot(count + 1, 4);
                         // record.serialize_onehot(count, 20);
                         // record.serialize_u8(count);
@@ -2655,6 +2846,7 @@ impl SolveLogisticRegression {
                         // if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
                         //     count = histogram.number_of_counters_greater_than_zero().min(255) as u8;
                         // }
+                        // record.serialize_f64(1.0 / (count as f64 + 1.0));
                         // record.serialize_onehot(count + 1, 4);
                         // record.serialize_onehot(count, 20);
                         // record.serialize_u8(count);
@@ -2679,6 +2871,48 @@ impl SolveLogisticRegression {
                     //         // record.serialize_u8(mass);
                     //     }
                     // }
+                    // {
+                    //     // let mut mass: u8 = 0;
+                    //     let mut is_most_popular: bool = false;
+                    //     let mut is_least_popular: bool = false;
+                    //     if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                    //         // mass = histogram.get(center).min(255) as u8;
+                    //         if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
+                    //             if color == center {
+                    //                 is_most_popular = true;
+                    //             }
+                    //         }
+                    //         if let Some(color) = histogram.least_popular_color_disallow_ambiguous() {
+                    //             if color == center {
+                    //                 is_least_popular = true;
+                    //             }
+                    //         }
+                    //     }
+                    //     // record.serialize_onehot(mass, 4);
+                    //     record.serialize_bool_onehot(is_most_popular);
+                    //     record.serialize_bool_onehot(is_least_popular);
+                    // }
+                    // {
+                    //     // let mut mass: u8 = 0;
+                    //     let mut is_most_popular: bool = false;
+                    //     let mut is_least_popular: bool = false;
+                    //     if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                    //         // mass = histogram.get(center).min(255) as u8;
+                    //         if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
+                    //             if color == center {
+                    //                 is_most_popular = true;
+                    //             }
+                    //         }
+                    //         if let Some(color) = histogram.least_popular_color_disallow_ambiguous() {
+                    //             if color == center {
+                    //                 is_least_popular = true;
+                    //             }
+                    //         }
+                    //     }
+                    //     // record.serialize_onehot(mass, 4);
+                    //     record.serialize_bool_onehot(is_most_popular);
+                    //     record.serialize_bool_onehot(is_least_popular);
+                    // }
 
                     let mut color_hole_type1: u8 = 255;
                     if let Some(image) = color_to_hole_type1.get(&center) {
@@ -2691,6 +2925,7 @@ impl SolveLogisticRegression {
                         color_repair = image.get(xx, yy).unwrap_or(0);
                     }
                     record.serialize_color_complex(color_repair, obfuscated_color_offset);
+                    // record.serialize_onehot(color_repair, 10);
 
                     // for color in 0..=9u8 {
                     //     let mut color_repair: u8 = 255;
@@ -2780,6 +3015,18 @@ impl SolveLogisticRegression {
                                 record.serialize_bool(mask_value > 0);
                             }
                         }
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let corner_value: u8 = match exterior_of_clusters.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(255)
+                        //             }
+                        //             None => 255
+                        //         };
+                        //         record.serialize_bool_onehot(corner_value > 0);
+                        //         // record.serialize_onehot_discard_overflow(corner_value, 7);
+                        //     }
+                        // }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 let mask_value: u8 = match enumerated_clusters_grow_mask1.get(&(color, *connectivity)) {
@@ -2804,6 +3051,72 @@ impl SolveLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
+                                let mask_value: u8 = match enumerated_clusters_grow_mask3.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let mask_value: u8 = match color_grow_mask1.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let mask_value: u8 = match color_grow_mask2.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let mask_value: u8 = match color_grow_mask3.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(255)
+                                    }
+                                    None => 255
+                                };
+                                record.serialize_bool(mask_value > 0);
+                            }
+                        }
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let mask_value: u8 = match color_grow_mask4.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(255)
+                        //             }
+                        //             None => 255
+                        //         };
+                        //         record.serialize_bool(mask_value > 0);
+                        //     }
+                        // }
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let mask_value: u8 = match color_grow_mask5.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(255)
+                        //             }
+                        //             None => 255
+                        //         };
+                        //         record.serialize_bool(mask_value > 0);
+                        //     }
+                        // }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
                                 #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance1.get(&(color, *connectivity)) {
                                     Some(value) => {
@@ -2812,6 +3125,12 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 3);
+                                record.serialize_onehot(distance, 4);
+                                // record.serialize_onehot(distance, 5);
+                                // record.serialize_onehot(distance, 6);
+                                // record.serialize_onehot(distance, 8);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -2824,6 +3143,12 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 3);
+                                record.serialize_onehot(distance, 4);
+                                // record.serialize_onehot(distance, 5);
+                                // record.serialize_onehot(distance, 6);
+                                // record.serialize_onehot(distance, 8);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -2837,6 +3162,9 @@ impl SolveLogisticRegression {
                                 };
                                 // record.serialize_u8(distance);
                                 record.serialize_bool(distance == 0);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 4);
+                                // record.serialize_onehot(distance, 6);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -2849,7 +3177,9 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                record.serialize_bool(distance == 0);
                                 // record.serialize_onehot(distance, 20);
+                                // record.serialize_onehot(distance, 4);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -2861,6 +3191,9 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                // record.serialize_bool(distance == 0);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 4);
                                 // record.serialize_split_zeros_ones(distance, 5);
                                 // record.serialize_split_zeros_ones(distance, 8);
                                 // record.serialize_onehot(distance, 20);
@@ -3003,6 +3336,11 @@ impl SolveLogisticRegression {
                             // let count: u16 = h.number_of_counters_greater_than_zero();
                             // record.serialize_f64((count+1) as f64);
                             // record.serialize_bool(count < 2);
+                            // {
+                                // let mass: u8 = h.get(center).min(255) as u8;
+                                // record.serialize_onehot(mass, 6);
+                                // record.serialize_bool(mass > 0);
+                            // }
                         }
                     }
 
@@ -3036,6 +3374,7 @@ impl SolveLogisticRegression {
                             let pixel: u8 = linespan_image.get(xx, yy).unwrap_or(255);
                             record.serialize_u8(pixel);
                             // record.serialize_onehot(pixel, 4);
+                            // record.serialize_onehot(pixel, 10);
                             // record.serialize_onehot_discard_overflow(pixel, 2);
                         }
                     }
@@ -3652,6 +3991,7 @@ impl SolveLogisticRegression {
                             //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             //     record.serialize_onehot_discard_overflow(pixel, 10);
                             //     record.serialize_bool(Some(pixel) == most_popular_color);
+                            //     record.serialize_bool_onehot(pixel == center);
                             // }
                             {
                                 let pixel: u8 = image.get(xx + 1, yy).unwrap_or(255);
@@ -3694,6 +4034,8 @@ impl SolveLogisticRegression {
                     //         count_plus1 = count.min(255) as u8;
                     //         contains_center_color_plus1 = hist.get(center) > 0;
                     //     }
+                    //     record.serialize_onehot(count_minus1, 4);
+                    //     record.serialize_onehot(count_plus1, 4);
                     //     record.serialize_u8(count_minus1);
                     //     record.serialize_u8(count_zero);
                     //     record.serialize_u8(count_plus1);
@@ -3723,6 +4065,8 @@ impl SolveLogisticRegression {
                     //         count_plus1 = count.min(255) as u8;
                     //         contains_center_color_plus1 = hist.get(center) > 0;
                     //     }
+                    //     record.serialize_onehot(count_minus1, 4);
+                    //     record.serialize_onehot(count_plus1, 4);
                     //     record.serialize_u8(count_minus1);
                     //     record.serialize_u8(count_zero);
                     //     record.serialize_u8(count_plus1);
