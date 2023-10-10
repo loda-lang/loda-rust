@@ -3181,26 +3181,24 @@ impl SolveLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
-                                let cluster_id: u8 = match small_medium_big.get(&(color, *connectivity)) {
-                                    Some(value) => {
-                                        value.get(xx, yy).unwrap_or(255)
+                                let small_medium_big_id: u8 = match small_medium_big.get(&(color, *connectivity)) {
+                                    Some(image) => {
+                                        image.get(xx, yy).unwrap_or(255)
                                     }
                                     None => 255
                                 };
-                                record.serialize_complex(cluster_id as u16, 4);
-                                // record.serialize_onehot_discard_overflow(cluster_id, 4);
+                                record.serialize_onehot_discard_overflow(small_medium_big_id, 4);
                             }
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
-                                let cluster_id: u8 = match sort2_small_big.get(&(color, *connectivity)) {
-                                    Some(value) => {
-                                        value.get(xx, yy).unwrap_or(255)
+                                let sort2_small_big_id: u8 = match sort2_small_big.get(&(color, *connectivity)) {
+                                    Some(image) => {
+                                        image.get(xx, yy).unwrap_or(255)
                                     }
                                     None => 255
                                 };
-                                // record.serialize_complex(cluster_id as u16, 3);
-                                record.serialize_onehot_discard_overflow(cluster_id, 3);
+                                record.serialize_onehot_discard_overflow(sort2_small_big_id, 3);
                             }
                         }
                         for connectivity in &connectivity_vec {
