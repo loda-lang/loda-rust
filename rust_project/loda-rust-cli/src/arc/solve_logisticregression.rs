@@ -6,14 +6,14 @@
 //! 
 //! However currently this approach solves 1 of the tasks from the hidden ARC dataset.
 //!
-//! This solves 69 of the 800 tasks in the public ARC dataset.
+//! This solves 70 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280,
 //! 25d8a9c8, 25ff71a9, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53,
 //! 543a7ed5, 54d9e175, 5b526a93, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e,
 //! 6f8cd79b, 776ffc46, 810b9b61, 84f2aca1, 868de0fa, 913fb3ed, 95990924, a5313dff, a61f2674, a699fb00,
 //! a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, af902bf9, b1948b0a, b2862040, b60334d2,
-//! b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b,
-//! d5d6de2d, dc433765, ded97339, e0fb7511, e7dd8335, e9c9d9a1, ef135b50, f0df5ff0, f45f5ca7, 
+//! b6afb2da, ba26e723, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5,
+//! d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e7dd8335, e9c9d9a1, ef135b50, f0df5ff0, f45f5ca7,
 //! 
 //! This partially solves 2 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 794b24be, da2b0fe3
@@ -568,6 +568,7 @@ impl SolveLogisticRegression {
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         let enable_mod2: bool = process_task_iteration_index % 2 == 0;
+        let enable_mod3: bool = process_task_iteration_index == 3;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -2712,10 +2713,12 @@ impl SolveLogisticRegression {
                         record.serialize_onehot_discard_overflow(x_reverse_mod2, 2);
                         record.serialize_onehot_discard_overflow(y_reverse_mod2, 2);
                     }
-                    // record.serialize_onehot_discard_overflow(x_mod3, 3);
-                    // record.serialize_onehot_discard_overflow(y_mod3, 3);
-                    // record.serialize_onehot_discard_overflow(x_reverse_mod3, 3);
-                    // record.serialize_onehot_discard_overflow(y_reverse_mod3, 3);
+                    if enable_mod3 {
+                        record.serialize_onehot_discard_overflow(x_mod3, 3);
+                        record.serialize_onehot_discard_overflow(y_mod3, 3);
+                        record.serialize_onehot_discard_overflow(x_reverse_mod3, 3);
+                        record.serialize_onehot_discard_overflow(y_reverse_mod3, 3);
+                    }
                     // record.serialize_onehot_discard_overflow(x_mod4, 4);
                     // record.serialize_onehot_discard_overflow(y_mod4, 4);
                     // record.serialize_onehot_discard_overflow(x_reverse_mod4, 4);
