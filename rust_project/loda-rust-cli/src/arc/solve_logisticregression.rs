@@ -39,7 +39,7 @@
 //! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -553,6 +553,11 @@ impl SolveLogisticRegression {
 
         // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
+
+        let enable_center_indicator_a: bool = false;
+        let enable_center_indicator_x: bool = false;
+        let enable_center_indicator_y: bool = false;
+        let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1638,8 +1643,15 @@ impl SolveLogisticRegression {
 
             let number_of_shape3x3ids: u8 = Shape3x3::instance().number_of_shapes();
 
-            // let center_indicator_x: Image = input.center_indicator_x()?;
-            // let center_indicator_y: Image = input.center_indicator_y()?;
+            let center_indicator_x: Image;
+            let center_indicator_y: Image;
+            if enable_center_indicator {
+                center_indicator_x = input.center_indicator_x()?;
+                center_indicator_y = input.center_indicator_y()?;
+            } else {
+                center_indicator_x = input.clone_zero();
+                center_indicator_y = input.clone_zero();
+            }
 
             for y in 0..height {
                 let yy: i32 = y as i32;
@@ -1797,21 +1809,27 @@ impl SolveLogisticRegression {
                     //     }
                     // }
 
-                    {
-                        // let center_indicator_x_value: u8 = center_indicator_x.get(xx, yy).unwrap_or(0);
-                        // let center_indicator_y_value: u8 = center_indicator_y.get(xx, yy).unwrap_or(0);
-                        // record.serialize_bool_onehot(center_indicator_x_value == 1);
-                        // record.serialize_bool_onehot(center_indicator_y_value == 1);
-                        // record.serialize_bool_onehot(center_indicator_x_value > 0);
-                        // record.serialize_bool_onehot(center_indicator_y_value > 0);
-                        // record.serialize_onehot(center_indicator_x_value, 5);
-                        // record.serialize_onehot(center_indicator_y_value, 5);
-                        // record.serialize_bool(center_indicator_x_value == 0 || center_indicator_x_value == 2);
-                        // record.serialize_bool_onehot(center_indicator_x_value == 1);
-                        // record.serialize_bool(center_indicator_x_value == 3 || center_indicator_x_value == 4);
-                        // record.serialize_bool(center_indicator_y_value == 0 || center_indicator_y_value == 2);
-                        // record.serialize_bool_onehot(center_indicator_y_value == 1);
-                        // record.serialize_bool(center_indicator_y_value == 3 || center_indicator_y_value == 4);
+                    if enable_center_indicator {
+                        let center_indicator_x_value: u8 = center_indicator_x.get(xx, yy).unwrap_or(0);
+                        let center_indicator_y_value: u8 = center_indicator_y.get(xx, yy).unwrap_or(0);
+                        if enable_center_indicator_a {
+                            record.serialize_bool_onehot(center_indicator_x_value == 1);
+                            record.serialize_bool_onehot(center_indicator_y_value == 1);
+                            // record.serialize_bool_onehot(center_indicator_x_value >= 1 && center_indicator_x_value <= 3);
+                            // record.serialize_bool_onehot(center_indicator_y_value >= 1 && center_indicator_y_value <= 3);
+                            // record.serialize_onehot(center_indicator_x_value, 5);
+                            // record.serialize_onehot(center_indicator_y_value, 5);
+                        }
+                        if enable_center_indicator_x {
+                            record.serialize_bool(center_indicator_x_value == 0 || center_indicator_x_value == 2);
+                            record.serialize_bool_onehot(center_indicator_x_value == 1);
+                            record.serialize_bool(center_indicator_x_value == 3 || center_indicator_x_value == 4);
+                        }
+                        if enable_center_indicator_y {
+                            record.serialize_bool(center_indicator_y_value == 0 || center_indicator_y_value == 2);
+                            record.serialize_bool_onehot(center_indicator_y_value == 1);
+                            record.serialize_bool(center_indicator_y_value == 3 || center_indicator_y_value == 4);
+                        }
                     }
 
                     // let preserve_center_color: bool = histogram_preserve.get(center) > 0;
