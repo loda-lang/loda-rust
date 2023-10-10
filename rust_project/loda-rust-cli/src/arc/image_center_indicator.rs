@@ -1,6 +1,7 @@
 use super::{Image, ImageRotate90};
 use num_integer::Integer;
 
+#[allow(dead_code)]
 pub trait ImageCenterIndicator {
     /// Draw indicators for where the centers are in the image.
     /// 
