@@ -2386,6 +2386,8 @@ impl SolveLogisticRegression {
                         the_holecount_connectivity8 = holecount_image.get(xx, yy).unwrap_or(0);
                     }
 
+                    // let mut is_noise_color_in_outline1_connectivity4: bool = false;
+                    // let mut is_noise_color_in_outline1_connectivity8: bool = false;
                     let mut noise_color_in_outline1_connectivity4: u8 = 255;
                     let mut noise_color_in_outline1_connectivity8: u8 = 255;
                     // let mut noise_color_in_outline2_connectivity4: u8 = 0;
@@ -2393,9 +2395,11 @@ impl SolveLogisticRegression {
                     if let Some(color) = noise_color {
                         if let Some(mask) = outline1_connectivity4.get(&color) {
                             noise_color_in_outline1_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                            // is_noise_color_in_outline1_connectivity4 = mask.get(xx, yy).unwrap_or(0) > 0;
                         }
                         if let Some(mask) = outline1_connectivity8.get(&color) {
                             noise_color_in_outline1_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                            // is_noise_color_in_outline1_connectivity8 = mask.get(xx, yy).unwrap_or(0) > 0;
                         }
                         // if let Some(mask) = outline2_connectivity4.get(&color) {
                         //     noise_color_in_outline2_connectivity4 = mask.get(xx, yy).unwrap_or(0);
@@ -2404,6 +2408,8 @@ impl SolveLogisticRegression {
                         //     noise_color_in_outline2_connectivity8 = mask.get(xx, yy).unwrap_or(0);
                         // }
                     }
+                    // record.serialize_bool(is_noise_color_in_outline1_connectivity4);
+                    // record.serialize_bool(is_noise_color_in_outline1_connectivity8);
                     record.serialize_color_complex(noise_color_in_outline1_connectivity4, obfuscated_color_offset);
                     record.serialize_color_complex(noise_color_in_outline1_connectivity8, obfuscated_color_offset);
                     // record.serialize_u8(noise_color_in_outline2_connectivity4); // worsens the prediction
