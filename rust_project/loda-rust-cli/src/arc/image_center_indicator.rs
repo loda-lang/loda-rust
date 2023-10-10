@@ -6,24 +6,28 @@ pub trait ImageCenterIndicator {
     /// 
     /// The indicators are drawn in the horizontal direction.
     /// 
-    /// The value `0` is for the background.
+    /// The value `0` is for the area before the center pixels.
     /// 
     /// The value `1` is for the center pixel. When the line segment is an odd number of pixels, there is only 1 center pixel.
     /// 
     /// The value `2` and `3` is for the center pixels. When the line segment is an even number of pixels, there are 2 center pixels.
     /// Value `2` is for the left-most pixel. Value `3` is for the right-most pixel.
+    ///
+    /// The value `4` is for the area after the center pixels.
     fn center_indicator_x(&self) -> anyhow::Result<Image>;
 
     /// Draw indicators for where the centers are in the image.
     /// 
     /// The indicators are drawn in the vertical direction.
     /// 
-    /// The value `0` is for the background.
+    /// The value `0` is for the area before the center pixels.
     /// 
     /// The value `1` is for the center pixel. When the line segment is an odd number of pixels, there is only 1 center pixel.
     /// 
     /// The value `2` and `3` is for the center pixels. When the line segment is an even number of pixels, there are 2 center pixels.
     /// Value `2` is for the top-most pixel. Value `3` is for the bottom-most pixel.
+    ///
+    /// The value `4` is for the area after the center pixels.
     fn center_indicator_y(&self) -> anyhow::Result<Image>;
 }
 
@@ -41,7 +45,10 @@ impl ImageCenterIndicator for Image {
 }
 
 fn draw_center_indicator_x(input: &Image) -> anyhow::Result<Image> {
-    let mut result_image: Image = input.clone_zero();
+    if input.is_empty() {
+        return Ok(Image::empty());
+    }
+    let mut result_image: Image = input.clone_color(4);
 
     for y in 0..input.height() {
         // Measure how many times the same color gets repeated
@@ -67,19 +74,28 @@ fn draw_center_indicator_x(input: &Image) -> anyhow::Result<Image> {
         // Draw center indicators
         let mut x: u8 = 0;
         for length in length_vec {
+            let center_x: u8;
             if length.is_odd() {
                 // Odd number of pixels, so there is only 1 center pixel.
                 // Set a pixel at half length
                 let set_x0: u8 = x + length / 2;
                 _ = result_image.set(set_x0 as i32, y as i32, 1);
+                center_x = set_x0;
             } else {
                 // Even number of pixels. There is not a single center pixel. Instead there are 2 pixels adjacent to the center.
-                // Set 2 pixels around the center pixel
+                // Set both pixels around the center pixel
                 let set_x0: u8 = x + (length - 1) / 2;
                 let set_x1: u8 = set_x0 + 1;
                 _ = result_image.set(set_x0 as i32, y as i32, 2);
                 _ = result_image.set(set_x1 as i32, y as i32, 3);
+                center_x = set_x0;
             }
+
+            // Fill the area before the center pixels
+            for xx in x..center_x {
+                _ = result_image.set(xx as i32, y as i32, 0);
+            }
+
             x += length;
         }
     }
@@ -110,13 +126,13 @@ mod tests {
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
-            0, 0, 2, 3, 0, 0,
-            1, 0, 0, 1, 0, 0,
-            2, 3, 0, 2, 3, 0,
-            0, 1, 0, 0, 1, 0,
-            0, 2, 3, 0, 2, 3,
-            0, 0, 1, 0, 0, 1,
-            0, 0, 2, 3, 0, 0,
+            0, 0, 2, 3, 4, 4,
+            1, 0, 0, 1, 4, 4,
+            2, 3, 0, 2, 3, 4,
+            0, 1, 4, 0, 1, 4,
+            0, 2, 3, 4, 2, 3,
+            0, 0, 1, 4, 4, 1,
+            0, 0, 2, 3, 4, 4,
         ];
         let expected: Image = Image::try_create(6, 7, expected_pixels).expect("image");
         assert_eq!(actual, expected);
@@ -143,11 +159,11 @@ mod tests {
         let expected_pixels: Vec<u8> = vec![
             1, 2, 0, 0, 0, 0,
             0, 3, 1, 2, 0, 0,
-            0, 0, 0, 3, 1, 2,
-            2, 0, 0, 0, 0, 3,
-            3, 1, 2, 0, 0, 0,
-            0, 0, 3, 1, 2, 0,
-            0, 0, 0, 0, 3, 1,
+            0, 0, 4, 3, 1, 2,
+            2, 0, 0, 4, 4, 3,
+            3, 1, 2, 0, 4, 4,
+            4, 4, 3, 1, 2, 4,
+            4, 4, 4, 4, 3, 1,
         ];
         let expected: Image = Image::try_create(6, 7, expected_pixels).expect("image");
         assert_eq!(actual, expected);
