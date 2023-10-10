@@ -570,6 +570,9 @@ impl SolveLogisticRegression {
         let enable_mod2: bool = process_task_iteration_index % 2 == 0;
         let enable_mod3: bool = process_task_iteration_index == 3;
 
+        let enable_hole_type1: bool = process_task_iteration_index == 0;
+        let enable_color_repair: bool = process_task_iteration_index == 0;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -3164,19 +3167,22 @@ impl SolveLogisticRegression {
                     }
 
 
-
-                    let mut color_hole_type1: u8 = 255;
-                    if let Some(image) = color_to_hole_type1.get(&center) {
-                        color_hole_type1 = image.get(xx, yy).unwrap_or(0);
+                    if enable_hole_type1 {
+                        let mut color_hole_type1: u8 = 255;
+                        if let Some(image) = color_to_hole_type1.get(&center) {
+                            color_hole_type1 = image.get(xx, yy).unwrap_or(0);
+                        }
+                        record.serialize_color_complex(color_hole_type1, obfuscated_color_offset);
                     }
-                    record.serialize_color_complex(color_hole_type1, obfuscated_color_offset);
 
-                    let mut color_repair: u8 = 255;
-                    if let Some(image) = color_to_repair.get(&center) {
-                        color_repair = image.get(xx, yy).unwrap_or(0);
+                    if enable_color_repair {
+                        let mut color_repair: u8 = 255;
+                        if let Some(image) = color_to_repair.get(&center) {
+                            color_repair = image.get(xx, yy).unwrap_or(0);
+                        }
+                        record.serialize_color_complex(color_repair, obfuscated_color_offset);
+                        // record.serialize_onehot(color_repair, 10);
                     }
-                    record.serialize_color_complex(color_repair, obfuscated_color_offset);
-                    // record.serialize_onehot(color_repair, 10);
 
                     // for color in 0..=9u8 {
                     //     let mut color_repair: u8 = 255;
