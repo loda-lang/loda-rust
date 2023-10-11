@@ -600,6 +600,26 @@ impl SolveLogisticRegression {
         //     }
         // }
 
+        // Generate a random image when there is no computed image.
+        // let computed_image2: Image;
+        // if let Some(computed_image) = computed_image {
+        //     computed_image2 = computed_image;
+        // } else {
+        //     let mut size: ImageSize = ImageSize::empty();
+        //     for pair in &task.pairs {
+        //         if pair.pair_type == PairType::Test {
+        //             if pair.test_index == Some(test_index) {
+        //                 size = pair.input.image.size();
+        //                 break;
+        //             }
+        //         }
+        //     }
+        //     let random_seed: u64 = process_task_iteration_index as u64;
+        //     let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
+        //     let image: Image = RandomImage::uniform_colors(&mut rng, size, 9)?;
+        //     computed_image2 = image;
+        // }
+
         let mut earlier_prediction_image_vec = Vec::<Image>::new();
         if let Some(computed_image) = computed_image {
             let random_seed: u64 = process_task_iteration_index as u64;
@@ -4311,6 +4331,7 @@ impl SolveLogisticRegression {
                         //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
                         //     record.serialize_color_complex(mass, obfuscated_color_offset);
                         //     record.serialize_u8(mass);
+                        //     record.serialize_onehot_discard_overflow(mass, 5);
                         //     record.serialize_onehot_discard_overflow(mass, 40);
                         // }
 
@@ -4318,6 +4339,7 @@ impl SolveLogisticRegression {
                         //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
                         //     record.serialize_color_complex(mass, obfuscated_color_offset);
                         //     record.serialize_u8(mass);
+                        //     record.serialize_onehot_discard_overflow(mass, 5);
                         //     record.serialize_onehot_discard_overflow(mass, 40);
                         // }
 
