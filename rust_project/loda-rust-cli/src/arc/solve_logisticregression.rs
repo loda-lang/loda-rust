@@ -3618,6 +3618,81 @@ impl SolveLogisticRegression {
                         // record.serialize_bool_onehot(is_inside_bounding_box)
                     }
 
+                    {
+                        // for color in 0..=9 {
+                        //     let mut is_above: bool = false;
+                        //     let mut is_below: bool = false;
+                        //     let mut is_left: bool = false;
+                        //     let mut is_right: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             is_above = rectangle.is_above(xx, yy);
+                        //             is_below = rectangle.is_below(xx, yy);
+                        //             is_left = rectangle.is_left(xx, yy);
+                        //             is_right = rectangle.is_right(xx, yy);
+                        //         }
+                        //     }
+                        //     record.serialize_bool_onehot(is_above);
+                        //     record.serialize_bool_onehot(is_below);
+                        //     record.serialize_bool_onehot(is_left);
+                        //     record.serialize_bool_onehot(is_right);
+                        // }
+                    }
+
+                    {
+                        // for color in 0..=9 {
+                        //     let mut is_above: bool = false;
+                        //     let mut is_below: bool = false;
+                        //     let mut is_left: bool = false;
+                        //     let mut is_right: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             is_above = yy < rectangle.min_y();
+                        //             is_below = yy > rectangle.max_y();
+                        //             is_left = xx < rectangle.min_x();
+                        //             is_right = xx > rectangle.max_x();
+                        //         }
+                        //     }
+                        //     record.serialize_bool_onehot(is_above);
+                        //     record.serialize_bool_onehot(is_below);
+                        //     record.serialize_bool_onehot(is_left);
+                        //     record.serialize_bool_onehot(is_right);
+                        // }
+                        // for color in 0..=9 {
+                        //     let mut is_x_between_inclusive: bool = false;
+                        //     let mut is_y_between_inclusive: bool = false;
+                        //     let mut is_x_between_exclusive: bool = false;
+                        //     let mut is_y_between_exclusive: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             // is_x_between_inclusive = xx >= rectangle.min_x() && xx <= rectangle.max_x();
+                        //             // is_y_between_inclusive = yy >= rectangle.min_y() && yy <= rectangle.max_y();
+                        //             // is_x_between_exclusive = xx > rectangle.min_x() && xx < rectangle.max_x();
+                        //             // is_y_between_exclusive = yy > rectangle.min_y() && yy < rectangle.max_y();
+                        //             is_x_between_inclusive = xx <= rectangle.min_x() || xx >= rectangle.max_x();
+                        //             is_y_between_inclusive = yy <= rectangle.min_y() || yy >= rectangle.max_y();
+                        //             is_x_between_exclusive = xx < rectangle.min_x() || xx > rectangle.max_x();
+                        //             is_y_between_exclusive = yy < rectangle.min_y() || yy > rectangle.max_y();
+                        //         }
+                        //     }
+                        //     record.serialize_bool(is_x_between_inclusive);
+                        //     record.serialize_bool(is_y_between_inclusive);
+                        //     record.serialize_bool(is_x_between_exclusive);
+                        //     record.serialize_bool(is_y_between_exclusive);
+                        // }
+                        // for color in 0..=9 {
+                        //     let mut is_x_edge: bool = false;
+                        //     let mut is_y_edge: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             is_x_edge = xx == rectangle.min_x() || xx == rectangle.max_x();
+                        //             is_y_edge = yy == rectangle.min_y() || yy == rectangle.max_y();
+                        //         }
+                        //     }
+                        //     record.serialize_bool_onehot(is_x_edge && is_y_edge);
+                        // }
+                    }
+
                     // for linespan_image in &linespan_images {
                         // let pixel: u8 = linespan_image.get(xx, yy).unwrap_or(255);
                         // let is_line: bool = pixel > 0;
