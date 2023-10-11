@@ -1893,11 +1893,10 @@ impl SolveLogisticRegression {
                     // let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
 
                     let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
-                    let corners_center1: bool = corners_center == 1;
-                    let corners_center2: bool = corners_center == 2;
-                    let corners_center3: bool = corners_center == 3;
-                    let corners_center4: bool = corners_center == 4;
-                    // let corners_center5: bool = corners_center >= 3;
+                    record.serialize_bool(corners_center == 1);
+                    record.serialize_bool(corners_center == 2);
+                    record.serialize_bool(corners_center == 3);
+                    record.serialize_bool(corners_center == 4);
 
                     // let column_above_center: Image = match input.crop(Rectangle::new(x, 0, 1, y)) {
                     //     Ok(value) => value,
@@ -2761,11 +2760,6 @@ impl SolveLogisticRegression {
                     record.serialize_onehot_discard_overflow(the_holecount_connectivity8, 2);
                     // record.serialize_onehot_discard_overflow(the_holecount_connectivity4.min(9), 10);
                     // record.serialize_onehot_discard_overflow(the_holecount_connectivity8.min(9), 10);
-                    record.serialize_bool(corners_center1);
-                    record.serialize_bool(corners_center2);
-                    record.serialize_bool(corners_center3);
-                    record.serialize_bool(corners_center4);
-                    // record.serialize_bool_onehot(corners_center5);
                     for i in 0..10 {
                         // let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
                         // record.serialize_u8(value);
