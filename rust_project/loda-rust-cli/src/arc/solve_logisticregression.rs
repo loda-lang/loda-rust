@@ -58,7 +58,7 @@ use ndarray::prelude::*;
 use rayon::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-static WRITE_TO_HTMLLOG: bool = false;
+static WRITE_TO_HTMLLOG: bool = true;
 
 #[derive(Clone, Debug, Serialize)]
 struct Record {
@@ -2762,6 +2762,8 @@ impl SolveLogisticRegression {
                     record.serialize_bool(full_row_and_column);
                     record.serialize_bool(full_row_xor_column);
                     record.serialize_bool(full_row_or_column);
+                    // record.serialize_bool(is_full_row);
+                    // record.serialize_bool(is_full_column);
                     record.serialize_bool(one_or_more_holes_connectivity4);
                     record.serialize_bool(one_or_more_holes_connectivity8);
                     record.serialize_color_complex(the_holecount_connectivity4, obfuscated_color_offset);
@@ -2772,11 +2774,20 @@ impl SolveLogisticRegression {
                     record.serialize_onehot_discard_overflow(the_holecount_connectivity8, 2);
                     // record.serialize_onehot_discard_overflow(the_holecount_connectivity4.min(9), 10);
                     // record.serialize_onehot_discard_overflow(the_holecount_connectivity8.min(9), 10);
-                    for i in 0..10 {
+                    // for i in 0..10 {
                         // let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
                         // record.serialize_u8(value);
-                        let value2: u8 = if no_change_to_color[i] { i as u8 } else { 255 };
-                        record.serialize_color_complex(value2, obfuscated_color_offset);
+                        // let value2: u8 = if no_change_to_color[i] { i as u8 } else { 255 };
+                        // record.serialize_color_complex(value2, obfuscated_color_offset);
+                    // }
+                    {
+                        // record.serialize_bool(no_change_to_color[(center % 10) as usize]);
+
+                        let mut value: bool = false;
+                        if let Some(color) = noise_color {
+                            value = no_change_to_color[(color % 10) as usize];
+                        }
+                        record.serialize_bool(value);
                     }
                     for i in 0..10 {
                         // let value: u8 = if input_histogram_intersection[i] { 1 } else { 0 };
