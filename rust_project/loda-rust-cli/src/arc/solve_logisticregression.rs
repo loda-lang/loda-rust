@@ -4349,43 +4349,30 @@ impl SolveLogisticRegression {
                             // record.serialize_bool_onehot(pixel == center);
                             // record.serialize_color_complex(pixel, obfuscated_color_offset);
 
-                            {
-                                let pixel: u8 = image.get(xx - 1, yy - 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx, yy - 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx + 1, yy - 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx - 1, yy).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
                             // {
                             //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             //     record.serialize_onehot_discard_overflow(pixel, 10);
                             //     record.serialize_bool(Some(pixel) == most_popular_color);
                             //     record.serialize_bool_onehot(pixel == center);
                             // }
-                            {
-                                let pixel: u8 = image.get(xx + 1, yy).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx - 1, yy + 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx, yy + 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx + 1, yy + 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
+
+                            // for j in 0..5 {
+                            //     for i in 0..5 {
+                            //         if j == 2 && i == 2 {
+                            //             continue;
+                            //         }
+                            //         let pixel: u8 = image.get(xx - 2 + i, yy - 2 + j).unwrap_or(255);
+                            //         record.serialize_onehot_discard_overflow(pixel, 10);
+                            //     }
+                            // }
+                            for j in 0..3 {
+                                for i in 0..3 {
+                                    if j == 1 && i == 1 {
+                                        continue;
+                                    }
+                                    let pixel: u8 = image.get(xx - 1 + i, yy - 1 + j).unwrap_or(255);
+                                    record.serialize_onehot_discard_overflow(pixel, 10);
+                                }
                             }
                         }
                     }
