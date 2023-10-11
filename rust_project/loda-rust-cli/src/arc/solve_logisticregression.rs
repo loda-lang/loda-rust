@@ -1877,9 +1877,14 @@ impl SolveLogisticRegression {
                     // let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
                     // let enumerated_object: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
 
-                    let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
-                    let grid_center: u8 = if grid_mask_center > 0 { grid_color } else { 255 };
-                    let is_grid: bool = grid_mask_center > 0;
+                    {
+                        let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
+                        let grid_center: u8 = if grid_mask_center > 0 { grid_color } else { 255 };
+                        let is_grid: bool = grid_mask_center > 0;
+                        record.serialize_bool_onehot(is_grid);
+                        record.serialize_color_complex(grid_center, obfuscated_color_offset);
+                        record.serialize_color_complex(grid_color, obfuscated_color_offset);
+                    }
 
                     // let repair_center: u8 = repair_mask.get(xx, yy).unwrap_or(255);
 
@@ -1891,6 +1896,13 @@ impl SolveLogisticRegression {
                     // let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
                     // let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
                     // let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
+
+                    // {
+                    //     record.serialize_bool_onehot(neighbour_up == center);
+                    //     record.serialize_bool_onehot(neighbour_down == center);
+                    //     record.serialize_bool_onehot(neighbour_left == center);
+                    //     record.serialize_bool_onehot(neighbour_right == center);
+                    // }
 
                     let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
                     record.serialize_bool(corners_center == 1);
@@ -4532,9 +4544,6 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(corner_top_right);
                     // record.serialize_u8(corner_bottom_left);
                     // record.serialize_u8(corner_bottom_right);
-                    record.serialize_bool_onehot(is_grid);
-                    record.serialize_color_complex(grid_center, obfuscated_color_offset);
-                    record.serialize_color_complex(grid_color, obfuscated_color_offset);
                     // record.serialize_bool(inside_bounding_box);
                     // record.serialize_complex(object_center, 20);
 
