@@ -113,12 +113,12 @@ impl Record {
     }
 
     #[allow(dead_code)]
-    fn serialize_cluster_id(&mut self, color: u8, cluster_id: u8) {
+    fn serialize_cluster_id(&mut self, color: u8, cluster_id: u8, offset: f64) {
         let mut value: u16 = u16::MAX;
         if cluster_id < 41 && color < 10 {
             value = (cluster_id as u16) * 10 + (color as u16);
         }
-        self.serialize_complex(value, 410);
+        self.serialize_complex_scaled(value, 410, offset, 1.0);
     }
 
     /// Set the counter to 1 that are equal to the value.
@@ -551,8 +551,8 @@ impl SolveLogisticRegression {
     fn process_task_iteration(task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
 
-        // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
+        let obfuscated_cluster_offset: f64 = 0.2;
 
         let enable_histogram_diagonal_a: bool = false;
         let enable_histogram_diagonal_b: bool = false;
@@ -3232,7 +3232,7 @@ impl SolveLogisticRegression {
                                     }
                                     None => 255
                                 };
-                                record.serialize_cluster_id(color, cluster_id);
+                                record.serialize_cluster_id(color, cluster_id, obfuscated_cluster_offset);
                                 // record.serialize_cluster_id(color, 255 - cluster_id);
                                 // record.serialize_complex(cluster_id as u16, 41);
                             }
