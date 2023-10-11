@@ -4236,6 +4236,15 @@ impl SolveLogisticRegression {
                         record.serialize_onehot(pixel, 30);
                     }
 
+                    // if let Some(image) = earlier_prediction_image {
+                    //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
+                    //     let mut value: bool = false;
+                    //     if pixel < 10 {
+                    //         value = no_change_to_color[pixel as usize];
+                    //     }
+                    //     record.serialize_bool_onehot(value);
+                    // }
+
                     {
 
                         // if let Some(image) = &earlier_prediction_image {
