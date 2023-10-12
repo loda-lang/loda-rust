@@ -638,7 +638,7 @@ impl SolveLogisticRegression {
                     let mut semi_useful_output_image = pair.output.image.clone_zero();
                     for y in 0..size.height {
                         for x in 0..size.width {
-                            let strategy_value: &u8 = &strategy_vec.choose_weighted(&mut rng, |item| item.1).unwrap().0;
+                            let strategy_value: u8 = strategy_vec.choose_weighted(&mut rng, |item| item.1).unwrap().0;
                             let _noise_value: u8 = rng.gen_range(0..=255).max(255) as u8;
                             let noise_value: u8 = 255;
 
@@ -1581,6 +1581,7 @@ impl SolveLogisticRegression {
             let mut color_to_hole_type1 = HashMap::<u8, Image>::new();
             for color in 0..=9 {
                 let input_padded: Image = input.padding_advanced(0, 0, 1, 1, 255)?;
+                // 2x2 convolution, possible displacing x and y by 1 pixel.
                 let image: Image = input_padded.detect_hole_type1(color)?;
                 color_to_hole_type1.insert(color, image);
             }
