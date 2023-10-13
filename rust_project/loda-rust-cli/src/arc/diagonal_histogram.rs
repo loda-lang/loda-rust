@@ -39,6 +39,30 @@ impl DiagonalHistogram {
     }
 
     #[allow(dead_code)]
+    pub fn max_number_of_unique_colors(&self) -> u16 {
+        let mut found_value: u16 = 0;
+        for histogram in &self.histogram_vec {
+            let count: u16 = histogram.number_of_counters_greater_than_zero();
+            if count > found_value {
+                found_value = count;
+            }
+        }
+        found_value
+    }
+
+    #[allow(dead_code)]
+    pub fn min_number_of_unique_colors(&self) -> u16 {
+        let mut found_value: u16 = u16::MAX;
+        for histogram in &self.histogram_vec {
+            let count: u16 = histogram.number_of_counters_greater_than_zero();
+            if found_value > count {
+                found_value = count;
+            }
+        }
+        found_value
+    }
+
+    #[allow(dead_code)]
     pub fn get(&self, x: i32, y: i32) -> Option<&Histogram> {
         let x: i32 = if self.reverse_x {
             (self.image_size.width as i32) - 1 - x
