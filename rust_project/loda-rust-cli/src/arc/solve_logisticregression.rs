@@ -39,7 +39,7 @@
 //! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -281,6 +281,19 @@ impl SolveLogisticRegression {
     // }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
+        let task_for_processing: Task;
+        if !task.is_output_size_same_as_input_size() {
+            let task2: Task = CreateTaskWithSameSize::create(task)?;
+            task_for_processing = task2;
+            return Err(anyhow::anyhow!("skipping task: {} not implemented", task.id));
+        } else {
+            task_for_processing = task.clone();
+        }
+
+        Self::process_task_inner(&task_for_processing, verify_test_output)
+    }
+
+    pub fn process_task_inner(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
         if !task.is_output_size_same_as_input_size() {
             // if WRITE_TO_HTMLLOG {
             //     HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));

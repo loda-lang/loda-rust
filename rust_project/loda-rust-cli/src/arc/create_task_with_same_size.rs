@@ -1,8 +1,7 @@
-use anyhow::Context;
-
-use super::{Image, ImageOverlay};
+use super::{Histogram, Image, ImageOverlay};
 use super::arc_work_model::{Task, PairType};
 use super::arc_json_model::{self, GridFromImage};
+use anyhow::Context;
 
 pub struct CreateTaskWithSameSize;
 
@@ -15,6 +14,11 @@ impl CreateTaskWithSameSize {
         if task.is_output_size_same_as_input_size() {
             return Err(anyhow::anyhow!("Cannot process task: {} because it's input and output size is already the same", task.id));
         }
+
+        // find an unused color, that ideally none of the images use, alternatively use the least popular color
+        let mut histogram: Histogram = task.input_histogram_union.clone();
+        histogram.add_histogram(&task.output_histogram_union);
+        let padding_color: u8 = histogram.unused_color().unwrap_or(255).min(9);
 
         let mut train_pair_vec = Vec::<arc_json_model::TaskPair>::new();
         let mut test_pair_vec = Vec::<arc_json_model::TaskPair>::new();
@@ -34,8 +38,6 @@ impl CreateTaskWithSameSize {
             let width: u8 = input.width().max(output.width());
             let height: u8 = input.height().max(output.height());
 
-            // find an unused color, that none of the images use
-            let padding_color: u8 = 9;
             let empty_image = Image::color(width, height, padding_color);
             let input2: Image = empty_image.overlay_with_position(&input, 0, 0)?;
             let output2: Image = empty_image.overlay_with_position(&output, 0, 0)?;
