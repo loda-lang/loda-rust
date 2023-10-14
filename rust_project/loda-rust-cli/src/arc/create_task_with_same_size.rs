@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageOverlay};
+use super::{Image, ImageOverlay};
 use super::arc_work_model::{Task, PairType};
 use super::arc_json_model::{self, GridFromImage};
 use anyhow::Context;
@@ -16,9 +16,10 @@ impl CreateTaskWithSameSize {
         }
 
         // find an unused color, that ideally none of the images use, alternatively use the least popular color
-        let mut histogram: Histogram = task.input_histogram_union.clone();
-        histogram.add_histogram(&task.output_histogram_union);
-        let padding_color: u8 = histogram.unused_color().unwrap_or(255).min(9);
+        // let mut histogram: Histogram = task.input_histogram_union.clone();
+        // histogram.add_histogram(&task.output_histogram_union);
+        // let padding_color: u8 = histogram.unused_color().unwrap_or(255).min(9);
+        let padding_color: u8 = 10;
 
         let mut train_pair_vec = Vec::<arc_json_model::TaskPair>::new();
         let mut test_pair_vec = Vec::<arc_json_model::TaskPair>::new();
