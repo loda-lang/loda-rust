@@ -76,6 +76,10 @@ pub struct TaskPair {
 }
 
 impl TaskPair {
+    pub fn new(input: Grid, output: Grid) -> TaskPair {
+        TaskPair { input, output }
+    }
+
     pub fn input(&self) -> &Grid {
         &self.input
     }
@@ -151,6 +155,11 @@ pub struct Task {
 }
 
 impl Task {
+    #[allow(dead_code)]
+    pub fn new(id: TaskId, train: Vec<TaskPair>, test: Vec<TaskPair>) -> Task {
+        Task { id, train, test }
+    }
+
     #[allow(dead_code)]
     pub fn id(&self) -> &TaskId {
         &self.id
