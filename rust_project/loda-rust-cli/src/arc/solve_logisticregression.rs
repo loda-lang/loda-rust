@@ -288,8 +288,8 @@ impl SolveLogisticRegression {
         if !task.is_output_size_same_as_input_size() {
             let task2: Task = CreateTaskWithSameSize::create(task)?;
             task_for_processing = task2;
-            return Err(anyhow::anyhow!("skipping task: {} not implemented", task.id));
         } else {
+            return Err(anyhow::anyhow!("skipping task: {} not implemented", task.id));
             task_for_processing = task.clone();
         }
 
@@ -578,9 +578,9 @@ impl SolveLogisticRegression {
         let enable_histogram_diagonal_f: bool = false;
         let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
 
-        let enable_center_indicator_a: bool = false;
-        let enable_center_indicator_x: bool = false;
-        let enable_center_indicator_y: bool = false;
+        let enable_center_indicator_a: bool = true;
+        let enable_center_indicator_x: bool = true;
+        let enable_center_indicator_y: bool = true;
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         let enable_mod2: bool = process_task_iteration_index % 2 == 0;
@@ -2739,6 +2739,14 @@ impl SolveLogisticRegression {
                     // }
                     // record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
 
+                    {
+                        let fx: f64 = ((xx as f64) + 0.5) / (width.max(1) as f64);
+                        record.serialize_f64(fx);
+                        let fy: f64 = ((yy as f64) + 0.5) / (height.max(1) as f64);
+                        record.serialize_f64(fy);
+                    }
+                    record.serialize_u8(x);
+                    record.serialize_u8(y);
                     // record.serialize_u8(x + 2);
                     // record.serialize_u8(y + 2);
                     // record.serialize_u8(x_reverse + 2);
