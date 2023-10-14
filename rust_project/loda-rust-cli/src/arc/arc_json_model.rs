@@ -3,7 +3,7 @@ use super::read_testdata;
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
 pub type Grid = Vec<Vec<u8>>;
@@ -69,7 +69,7 @@ impl GridFromImage for Grid {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct TaskPair {
     input: Grid,
     output: Grid,
@@ -136,8 +136,8 @@ impl fmt::Display for TaskId {
     }
 }
 
-#[derive(Clone, Deserialize, Debug)]
-struct DeserializeTask {
+#[derive(Clone, Deserialize, Debug, Serialize)]
+struct JsonTask {
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
 }
@@ -200,17 +200,22 @@ impl Task {
         Ok(image_pairs)
     }
 
+    pub fn from_json(task_id: TaskId, json: &str) -> anyhow::Result<Task> {
+        let json_task: JsonTask = serde_json::from_str(&json)?;
+        let task = Task {
+            id: task_id,
+            train: json_task.train,
+            test: json_task.test,
+        };
+        Ok(task)
+    }
+    
     #[allow(dead_code)]
     pub fn load_testdata(name: &str) -> anyhow::Result<Task> {
         let custom_identifier = format!("{}", name);
         let json: String = read_testdata(name)?;
-        let deserialize_task: DeserializeTask = serde_json::from_str(&json)?;
-        let task = Task {
-            id: TaskId::Custom { identifier: custom_identifier },
-            train: deserialize_task.train,
-            test: deserialize_task.test,
-        };
-        Ok(task)
+        let task_id = TaskId::Custom { identifier: custom_identifier };
+        Self::from_json(task_id, &json)
     }
     
     pub fn load_with_json_file(json_file: &Path) -> anyhow::Result<Task> {
@@ -220,13 +225,8 @@ impl Task {
                 return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, json_file));
             }
         };
-        let deserialize_task: DeserializeTask = serde_json::from_str(&json)?;
-        let task = Task {
-            id: TaskId::Path { path: PathBuf::from(json_file) },
-            train: deserialize_task.train,
-            test: deserialize_task.test,
-        };
-        Ok(task)
+        let task_id = TaskId::Path { path: PathBuf::from(json_file) };
+        Self::from_json(task_id, &json)
     }
 }
 
@@ -307,5 +307,28 @@ mod tests {
         assert_eq!(task.train.len(), 2);
         assert_eq!(task.test.len(), 1);
         assert_eq!(task.id.identifier(), "hello");
+    }
+
+    #[test]
+    fn test_50000_convert_task_to_json_string() {
+        let task: Task = Task::load_testdata("6150a2bd").expect("ok");
+        assert_eq!(task.train.len(), 2);
+        assert_eq!(task.test.len(), 1);
+        assert_eq!(task.id.identifier(), "6150a2bd");
+
+        let json_task = JsonTask {
+            train: task.train,
+            test: task.test,
+        };
+
+        // Act
+        let json: String = serde_json::to_string(&json_task).expect("string");
+        
+        // Assert
+        let task_id = TaskId::Custom { identifier: "mock".to_string() };
+        let task2: Task = Task::from_json(task_id, &json).expect("task");
+        assert_eq!(task2.train.len(), 2);
+        assert_eq!(task2.test.len(), 1);
+        assert_eq!(task2.id.identifier(), "mock");
     }
 }
