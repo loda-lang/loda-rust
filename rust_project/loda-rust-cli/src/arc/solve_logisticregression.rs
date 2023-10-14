@@ -1712,6 +1712,54 @@ impl SolveLogisticRegression {
                 center_indicator_y = input.clone_zero();
             }
 
+            let mut total_clustercount_connectivity4: usize = 0;
+            let mut total_clustercount_connectivity8: usize = 0;
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                total_clustercount_connectivity4 += sco.rectangle_vec.len();
+                total_clustercount_connectivity8 += sco.rectangle_vec.len();
+                for object in &sco.sparse_vec {
+                    if let Some(container) = &object.container4 {
+                        total_clustercount_connectivity4 += container.cluster_vec.len();
+                    }
+                    if let Some(container) = &object.container8 {
+                        total_clustercount_connectivity8 += container.cluster_vec.len();
+                    }
+                }
+            }
+
+            let mut color_clustercount_connectivity4 = HashMap::<u8, u8>::new();
+            let mut color_clustercount_connectivity8 = HashMap::<u8, u8>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                for color in 0..COUNT_COLORS_PLUS1 {
+                    let mut count4: usize = 0;
+                    let mut count8: usize = 0;
+                    for rect in &sco.rectangle_vec {
+                        if rect.color == color {
+                            count4 += 1;
+                            count8 += 1;
+                        }
+                    }
+                    for object in &sco.sparse_vec {
+                        if object.color != color {
+                            continue;
+                        }
+                        if let Some(container) = &object.container4 {
+                            count4 += container.cluster_vec.len();
+                        }
+                        if let Some(container) = &object.container8 {
+                            count8 += container.cluster_vec.len();
+                        }
+                    }
+
+                    let count4_u8: u8 = count4.min(255) as u8;
+                    color_clustercount_connectivity4.insert(color, count4_u8);
+
+                    let count8_u8: u8 = count8.min(255) as u8;
+                    color_clustercount_connectivity8.insert(color, count8_u8);
+                }
+            }
+
+
             for y in 0..height {
                 let yy: i32 = y as i32;
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
@@ -1754,6 +1802,20 @@ impl SolveLogisticRegression {
                         pair_id,
                         values: vec!(),
                     };
+
+                    record.serialize_u8(total_clustercount_connectivity4.min(255) as u8);
+                    record.serialize_u8(total_clustercount_connectivity8.min(255) as u8);
+
+
+                    for color in 0..COUNT_COLORS_PLUS1 {
+                        let count: u8 = *color_clustercount_connectivity4.get(&color).unwrap_or(&0);
+                        record.serialize_u8(count);
+                    }
+                    for color in 0..COUNT_COLORS_PLUS1 {
+                        let count: u8 = *color_clustercount_connectivity8.get(&color).unwrap_or(&0);
+                        record.serialize_u8(count);
+                    }
+
 
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
