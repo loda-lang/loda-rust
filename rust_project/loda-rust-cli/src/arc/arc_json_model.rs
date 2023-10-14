@@ -236,20 +236,19 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_10000_json_to_grid() -> anyhow::Result<()> {
+    fn test_10000_json_to_grid() {
         let json_string = "[[1,2,3],[4,5,6]]";
-        let grid: Grid = serde_json::from_str(&json_string)?;
+        let grid: Grid = serde_json::from_str(&json_string).expect("grid");
         assert_eq!(grid.len(), 2);
         assert_eq!(grid[0], vec![1,2,3]);
         assert_eq!(grid[1], vec![4,5,6]);
-        Ok(())
     }
 
     #[test]
-    fn test_20000_grid_to_image() -> anyhow::Result<()> {
+    fn test_20000_grid_to_image() {
         // Arrange
         let json_string = "[[1,2,3],[4,5,6]]";
-        let grid: Grid = serde_json::from_str(&json_string)?;
+        let grid: Grid = serde_json::from_str(&json_string).expect("grid");
 
         // Act
         let bm: Image = grid.to_image().expect("image");
@@ -263,11 +262,10 @@ mod tests {
         assert_eq!(bm.get(0, 1), Some(4));
         assert_eq!(bm.get(1, 1), Some(5));
         assert_eq!(bm.get(2, 1), Some(6));
-        Ok(())
     }
 
     #[test]
-    fn test_30000_grid_from_image() -> anyhow::Result<()> {
+    fn test_30000_grid_from_image() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2, 3,
@@ -282,35 +280,32 @@ mod tests {
         assert_eq!(grid.len(), 2);
         assert_eq!(grid[0], vec![1,2,3]);
         assert_eq!(grid[1], vec![4,5,6]);
-        Ok(())
     }
 
     #[test]
-    fn test_40000_task_loda_testdata() -> anyhow::Result<()> {
-        let task: Task = Task::load_testdata("6150a2bd")?;
+    fn test_40000_task_load_testdata() {
+        let task: Task = Task::load_testdata("6150a2bd").expect("task");
         assert_eq!(task.train.len(), 2);
         assert_eq!(task.test.len(), 1);
         assert_eq!(task.id.identifier(), "6150a2bd");
-        Ok(())
     }
 
     #[test]
-    fn test_40001_task_load_with_json_file() -> anyhow::Result<()> {
+    fn test_40001_task_load_with_json_file() {
         // Arrange
-        let json: String = read_testdata("4258a5f9")?;
-        let tempdir = tempfile::tempdir().unwrap();
+        let json: String = read_testdata("4258a5f9").expect("task");
+        let tempdir = tempfile::tempdir().expect("ok");
         let basedir = PathBuf::from(&tempdir.path()).join("test_40000_model_load");
-        fs::create_dir(&basedir)?;
+        fs::create_dir(&basedir).expect("ok");
         let path: PathBuf = basedir.join("hello.json");
-        fs::write(&path, &json)?;
+        fs::write(&path, &json).expect("ok");
 
         // Act
-        let task: Task = Task::load_with_json_file(&path)?;
+        let task: Task = Task::load_with_json_file(&path).expect("task");
 
         // Assert
         assert_eq!(task.train.len(), 2);
         assert_eq!(task.test.len(), 1);
         assert_eq!(task.id.identifier(), "hello");
-        Ok(())
     }
 }
