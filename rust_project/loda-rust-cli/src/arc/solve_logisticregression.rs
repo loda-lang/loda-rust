@@ -2812,6 +2812,10 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(y);
                     record.serialize_u8(x + 2);
                     record.serialize_u8(y + 2);
+
+                    // record.serialize_f64(((y as usize) * (width as usize) + (x as usize)) as f64);
+                    // record.serialize_f64(((y as usize) + (y as usize) + (width as usize) + (height as usize)) as f64);
+                    // record.serialize_f64(((y as usize) * (y as usize) * (width as usize) * (height as usize)) as f64);
                     // record.serialize_u8(x_reverse + 2);
                     // record.serialize_u8(y_reverse + 2);
                     // record.serialize_onehot_discard_overflow(x, 30);
