@@ -2808,10 +2808,14 @@ impl SolveLogisticRegression {
                         let fy: f64 = ((yy as f64) + 0.5) / (height.max(1) as f64);
                         record.serialize_f64(fy);
                     }
-                    // record.serialize_u8(x);
-                    // record.serialize_u8(y);
-                    record.serialize_u8(x + 2);
-                    record.serialize_u8(y + 2);
+                    record.serialize_u8(x);
+                    record.serialize_u8(y);
+                    // record.serialize_u8(x + 2);
+                    // record.serialize_u8(y + 2);
+                    // record.serialize_u8(255 - x);
+                    // record.serialize_u8(255 - y);
+                    // record.serialize_f64(((x + 2) as f64) * ((x + 2) as f64));
+                    // record.serialize_f64(((y + 2) as f64) * ((y + 2) as f64));
 
                     // record.serialize_f64(((y as usize) * (width as usize) + (x as usize)) as f64);
                     // record.serialize_f64(((y as usize) + (y as usize) + (width as usize) + (height as usize)) as f64);
