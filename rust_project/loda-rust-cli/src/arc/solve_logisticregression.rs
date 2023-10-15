@@ -638,12 +638,15 @@ impl SolveLogisticRegression {
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * one_eleventh + 0.2) % 1.0;
         let obfuscated_cluster_offset: f64 = 0.2;
 
-        // Only emit the half_horizontal/half_vertical parameter when the input size != output size.
-        // When input_size == output_size then the only one half_horizontal/half_vertical parameter is sufficient.
-        let enable_half_context_output_size: bool = match context.mode {
+        // When input_size == output_size then the parameters only needs to be serialized once.
+        // When the input size != output, then serialize parameters for input and similar parameters for output.
+        let has_different_size_for_input_output = match context.mode {
             ProcessTaskMode::InputOutputSameSize => false,
             ProcessTaskMode::InputOutputDifferentSize => true,
         };
+        
+        let enable_half_context_output_size: bool = has_different_size_for_input_output;
+        let enable_normalized_coordinates_context_output_size: bool = has_different_size_for_input_output;
 
         let enable_histogram_diagonal_a: bool = false;
         let enable_histogram_diagonal_b: bool = false;
@@ -2915,6 +2918,12 @@ impl SolveLogisticRegression {
                         let fx: f64 = ((xx as f64) + 0.5) / (context_input_size.width.max(1) as f64);
                         record.serialize_f64(fx);
                         let fy: f64 = ((yy as f64) + 0.5) / (context_input_size.height.max(1) as f64);
+                        record.serialize_f64(fy);
+                    }
+                    if enable_normalized_coordinates_context_output_size {
+                        let fx: f64 = ((xx as f64) + 0.5) / (context_output_size.width.max(1) as f64);
+                        record.serialize_f64(fx);
+                        let fy: f64 = ((yy as f64) + 0.5) / (context_output_size.height.max(1) as f64);
                         record.serialize_f64(fy);
                     }
                     record.serialize_u8(x);
