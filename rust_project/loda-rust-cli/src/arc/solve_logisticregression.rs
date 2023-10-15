@@ -645,6 +645,8 @@ impl SolveLogisticRegression {
             ProcessTaskMode::InputOutputDifferentSize => true,
         };
         
+        let enable_total_clustercount: bool = has_different_size_for_input_output;
+        let enable_color_clustercount: bool = has_different_size_for_input_output;
         let enable_half_context_output_size: bool = has_different_size_for_input_output;
         let enable_normalized_coordinates_context_input_size: bool = has_different_size_for_input_output;
         let enable_normalized_coordinates_context_output_size: bool = has_different_size_for_input_output;
@@ -1898,17 +1900,20 @@ impl SolveLogisticRegression {
                         values: vec!(),
                     };
 
-                    record.serialize_u8(total_clustercount_connectivity4.min(255) as u8);
-                    record.serialize_u8(total_clustercount_connectivity8.min(255) as u8);
-
-
-                    for color in 0..COUNT_COLORS_PLUS1 {
-                        let count: u8 = *color_clustercount_connectivity4.get(&color).unwrap_or(&0);
-                        record.serialize_u8(count);
+                    if enable_total_clustercount {
+                        record.serialize_u8(total_clustercount_connectivity4.min(255) as u8);
+                        record.serialize_u8(total_clustercount_connectivity8.min(255) as u8);
                     }
-                    for color in 0..COUNT_COLORS_PLUS1 {
-                        let count: u8 = *color_clustercount_connectivity8.get(&color).unwrap_or(&0);
-                        record.serialize_u8(count);
+
+                    if enable_color_clustercount {
+                        for color in 0..COUNT_COLORS_PLUS1 {
+                            let count: u8 = *color_clustercount_connectivity4.get(&color).unwrap_or(&0);
+                            record.serialize_u8(count);
+                        }
+                        for color in 0..COUNT_COLORS_PLUS1 {
+                            let count: u8 = *color_clustercount_connectivity8.get(&color).unwrap_or(&0);
+                            record.serialize_u8(count);
+                        }
                     }
 
 
