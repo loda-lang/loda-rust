@@ -639,7 +639,7 @@ impl SolveLogisticRegression {
         let obfuscated_cluster_offset: f64 = 0.2;
 
         // When input_size == output_size then the parameters only needs to be serialized once.
-        // When the input size != output, then serialize parameters for input and similar parameters for output.
+        // When the input_size != output_size, then serialize parameters for input and serialize parameters for output.
         let has_different_size_for_input_output = match context.mode {
             ProcessTaskMode::InputOutputSameSize => false,
             ProcessTaskMode::InputOutputDifferentSize => true,
@@ -647,6 +647,7 @@ impl SolveLogisticRegression {
         
         let enable_half_context_output_size: bool = has_different_size_for_input_output;
         let enable_normalized_coordinates_context_output_size: bool = has_different_size_for_input_output;
+        let enable_output_orientation: bool = has_different_size_for_input_output;
 
         let enable_histogram_diagonal_a: bool = false;
         let enable_histogram_diagonal_b: bool = false;
@@ -1772,12 +1773,21 @@ impl SolveLogisticRegression {
             _ = earlier_prediction_mass_connectivity8;
 
             let input_orientation: i8;
-            if width > height {
+            if context_input_size.width > context_input_size.height {
                 input_orientation = 1;
-            } else if width < height {
+            } else if context_input_size.width < context_input_size.height {
                 input_orientation = -1;
             } else {
                 input_orientation = 0;
+            }
+
+            let output_orientation: i8;
+            if context_output_size.width > context_output_size.height {
+                output_orientation = 1;
+            } else if context_output_size.width < context_output_size.height {
+                output_orientation = -1;
+            } else {
+                output_orientation = 0;
             }
 
             let number_of_shape3x3ids: u8 = Shape3x3::instance().number_of_shapes();
@@ -2044,9 +2054,9 @@ impl SolveLogisticRegression {
                     let image_left: u8 = input.get(0, yy).unwrap_or(255);
                     let image_right: u8 = input.get(context_input_size.width as i32 - 1, yy).unwrap_or(255);
 
-                    let center_x_reversed: u8 = input.get(x_reverse as i32, yy).unwrap_or(255);
-                    let center_y_reversed: u8 = input.get(xx, y_reverse as i32).unwrap_or(255);
-                    let center_xy_reversed: u8 = input.get(x_reverse as i32, y_reverse as i32).unwrap_or(255);
+                    let center_x_reversed: u8 = input.get(context_input_x_reverse as i32, yy).unwrap_or(255);
+                    let center_y_reversed: u8 = input.get(xx, context_input_y_reverse as i32).unwrap_or(255);
+                    let center_xy_reversed: u8 = input.get(context_input_x_reverse as i32, context_input_y_reverse as i32).unwrap_or(255);
                     _ = center_xy_reversed;
                     
                     let center_denoise_type1: u8 = input_denoise_type1.get(xx, yy).unwrap_or(255);
@@ -2901,6 +2911,9 @@ impl SolveLogisticRegression {
                     // record.serialize_onehot_discard_overflow(mass_connectivity4, 40);
                     // record.serialize_onehot_discard_overflow(mass_connectivity8, 40);
                     record.serialize_ternary(input_orientation);
+                    if enable_output_orientation {
+                        record.serialize_ternary(output_orientation);
+                    }
                     // record.serialize_u8(distance_top);
                     // record.serialize_u8(distance_bottom);
                     // record.serialize_u8(distance_left);
