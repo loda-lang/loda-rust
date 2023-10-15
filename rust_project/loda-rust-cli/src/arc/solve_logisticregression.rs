@@ -218,13 +218,36 @@ impl Record {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
+enum ProcessTaskMode {
+    InputOutputSameSize,
+    InputOutputDifferentSize,
+}
+
+#[derive(Clone, Debug)]
 pub struct ProcessTaskContext {
+    mode: ProcessTaskMode,
     input_size_vec: Vec<ImageSize>,
     output_size_vec: Vec<ImageSize>,
 }
 
 impl ProcessTaskContext {
+    pub fn new(task: &Task) -> Self {
+        let mode: ProcessTaskMode = if task.is_output_size_same_as_input_size() { 
+            ProcessTaskMode::InputOutputSameSize 
+        } else { 
+            ProcessTaskMode::InputOutputDifferentSize 
+        };
+        let mut instance = Self {
+            mode,
+            input_size_vec: Vec::<ImageSize>::new(),
+            output_size_vec: Vec::<ImageSize>::new(),
+        };
+        instance.populate_input_size_vec(task);
+        instance.populate_output_size_vec(task);
+        instance
+    }
+
     fn populate_input_size_vec(&mut self, task: &Task) {
         self.input_size_vec.clear();
         for pair in &task.pairs {
@@ -319,9 +342,7 @@ impl SolveLogisticRegression {
     // }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
-        let mut context = ProcessTaskContext::default();
-        context.populate_input_size_vec(task);
-        context.populate_output_size_vec(task);
+        let context = ProcessTaskContext::new(task);
 
         let task_for_processing: Task;
         if !task.is_output_size_same_as_input_size() {
@@ -616,6 +637,13 @@ impl SolveLogisticRegression {
         let one_eleventh: f64 = 1.0 / 11.0;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * one_eleventh + 0.2) % 1.0;
         let obfuscated_cluster_offset: f64 = 0.2;
+
+        // Only emit the half_horizontal/half_vertical parameter when the input size != output size.
+        // When input_size == output_size then the only one half_horizontal/half_vertical parameter is sufficient.
+        let enable_half_context_output_size: bool = match context.mode {
+            ProcessTaskMode::InputOutputSameSize => false,
+            ProcessTaskMode::InputOutputDifferentSize => true,
+        };
 
         let enable_histogram_diagonal_a: bool = false;
         let enable_histogram_diagonal_b: bool = false;
@@ -2778,7 +2806,7 @@ impl SolveLogisticRegression {
                         record.serialize_ternary(half_horizontal);
                         record.serialize_ternary(half_vertical);
                     }
-                    {
+                    if enable_half_context_output_size {
                         let half_horizontal: i8;
                         if xx * 2 == context_output_size.width as i32 { 
                             half_horizontal = 0;
