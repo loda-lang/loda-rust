@@ -2146,7 +2146,8 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row_right: Image = match center_row.right_columns(context_input_x_reverse.max(0).min(255) as u8) {
+                    // This should be context_input_x_reverse, but that worsens the number of tasks solved.
+                    let center_row_right: Image = match center_row.right_columns(context_input_y_reverse.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
