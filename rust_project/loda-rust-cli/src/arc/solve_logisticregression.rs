@@ -646,8 +646,11 @@ impl SolveLogisticRegression {
         };
         
         let enable_half_context_output_size: bool = has_different_size_for_input_output;
+        let enable_normalized_coordinates_context_input_size: bool = has_different_size_for_input_output;
         let enable_normalized_coordinates_context_output_size: bool = has_different_size_for_input_output;
         let enable_output_orientation: bool = has_different_size_for_input_output;
+        let enable_coordinates_xy: bool = has_different_size_for_input_output;
+        let enable_is_outside: bool = has_different_size_for_input_output;
 
         let enable_histogram_diagonal_a: bool = false;
         let enable_histogram_diagonal_b: bool = false;
@@ -2927,7 +2930,7 @@ impl SolveLogisticRegression {
                     // }
                     // record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
 
-                    {
+                    if enable_normalized_coordinates_context_input_size {
                         let fx: f64 = ((xx as f64) + 0.5) / (context_input_size.width.max(1) as f64);
                         record.serialize_f64(fx);
                         let fy: f64 = ((yy as f64) + 0.5) / (context_input_size.height.max(1) as f64);
@@ -2939,8 +2942,11 @@ impl SolveLogisticRegression {
                         let fy: f64 = ((yy as f64) + 0.5) / (context_output_size.height.max(1) as f64);
                         record.serialize_f64(fy);
                     }
-                    record.serialize_u8(x);
-                    record.serialize_u8(y);
+
+                    if enable_coordinates_xy {
+                        record.serialize_u8(x);
+                        record.serialize_u8(y);
+                    }
                     // record.serialize_u8(x + 2);
                     // record.serialize_u8(y + 2);
                     // record.serialize_u8(255 - x);
@@ -2954,14 +2960,15 @@ impl SolveLogisticRegression {
                     // record.serialize_f64(context_input_x_reverse as f64);
                     // record.serialize_f64(context_input_y_reverse as f64);
 
-                    {
-                        let is_outside: bool = x >= context_input_size.width || y >= context_input_size.height;
-                        record.serialize_bool_onehot(is_outside);
-                    }
-
-                    {
-                        let is_outside: bool = x >= context_output_size.width || y >= context_output_size.height;
-                        record.serialize_bool_onehot(is_outside);
+                    if enable_is_outside {
+                        {
+                            let is_outside: bool = x >= context_input_size.width || y >= context_input_size.height;
+                            record.serialize_bool_onehot(is_outside);
+                        }
+                        {
+                            let is_outside: bool = x >= context_output_size.width || y >= context_output_size.height;
+                            record.serialize_bool_onehot(is_outside);
+                        }
                     }
                     // record.serialize_bool_onehot(x >= context_input_size.width);
                     // record.serialize_bool_onehot(y >= context_input_size.height);
