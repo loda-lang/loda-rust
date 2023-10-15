@@ -352,7 +352,6 @@ impl SolveLogisticRegression {
         let task_for_processing: Task;
         let prediction_type: arcathon_solution_coordinator::PredictionType;
         if task.is_output_size_same_as_input_size() {
-            return Err(anyhow::anyhow!("skipping task: {} not implemented", task.id));
             task_for_processing = task.clone();
             prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionSameSize;
         } else {
