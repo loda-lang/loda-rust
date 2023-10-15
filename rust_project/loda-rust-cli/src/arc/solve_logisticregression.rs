@@ -2077,11 +2077,11 @@ impl SolveLogisticRegression {
                     //     Ok(value) => value,
                     //     Err(_) => Image::empty()
                     // };
-                    let center_column: Image = match input.crop(Rectangle::new(x, 0, 1, height)) {
+                    let center_column: Image = match input.crop(Rectangle::new(x, 0, 1, context_input_size.height)) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row: Image = match input.crop(Rectangle::new(0, y, width, 1)) {
+                    let center_row: Image = match input.crop(Rectangle::new(0, y, context_input_size.width, 1)) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -2089,7 +2089,7 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_column_bottom: Image = match center_column.bottom_rows(y_reverse) {
+                    let center_column_bottom: Image = match center_column.bottom_rows(context_input_y_reverse.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -2097,7 +2097,7 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row_right: Image = match center_row.right_columns(y_reverse) {
+                    let center_row_right: Image = match center_row.right_columns(context_input_x_reverse.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
