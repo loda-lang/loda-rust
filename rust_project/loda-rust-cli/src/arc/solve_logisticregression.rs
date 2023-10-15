@@ -2755,20 +2755,20 @@ impl SolveLogisticRegression {
                     _ = inside_bounding_box;
 
                     let half_horizontal: i8;
-                    if xx * 2 == width as i32 { 
+                    if xx * 2 == context_input_size.width as i32 { 
                         half_horizontal = 0;
                     } else {
-                        if xx * 2 < width as i32 { 
+                        if xx * 2 < context_input_size.width as i32 { 
                             half_horizontal = -1;
                         } else { 
                             half_horizontal = 1;
                         };
                     }
                     let half_vertical: i8;
-                    if yy * 2 == height as i32 { 
+                    if yy * 2 == context_input_size.height as i32 { 
                         half_vertical = 0;
                     } else {
-                        if yy * 2 < height as i32 { 
+                        if yy * 2 < context_input_size.height as i32 { 
                             half_vertical = -1;
                         } else { 
                             half_vertical = 1;
@@ -2858,9 +2858,9 @@ impl SolveLogisticRegression {
                     // record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
 
                     {
-                        let fx: f64 = ((xx as f64) + 0.5) / (width.max(1) as f64);
+                        let fx: f64 = ((xx as f64) + 0.5) / (context_input_size.width.max(1) as f64);
                         record.serialize_f64(fx);
-                        let fy: f64 = ((yy as f64) + 0.5) / (height.max(1) as f64);
+                        let fy: f64 = ((yy as f64) + 0.5) / (context_input_size.height.max(1) as f64);
                         record.serialize_f64(fy);
                     }
                     record.serialize_u8(x);
