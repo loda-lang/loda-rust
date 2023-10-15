@@ -16,7 +16,15 @@ static MAX_NUMBER_OF_PREDICTIONS: u8 = 3;
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum PredictionType {
     None,
-    SolveLogisticRegression,
+
+    /// Logistic regression is rarely correct, so it's low priority.
+    /// It's best at tasks where `input_size == output_size`.
+    SolveLogisticRegressionSameSize,
+
+    /// Logistic regression is rarely correct, so it's low priority.
+    /// It's worst at tasks where `input_size != output_size`.
+    SolveLogisticRegressionDifferentSize,
+
     SolveSplit,
     SolveGenetic,
 }
@@ -33,7 +41,12 @@ impl PredictionType {
             Self::SolveGenetic => 1, 
 
             // Logistic regression is rarely correct, so it's low priority.
-            Self::SolveLogisticRegression => 9, 
+            // It's best at tasks where `input_size == output_size`.
+            Self::SolveLogisticRegressionSameSize => 8, 
+            
+            // Logistic regression is rarely correct, so it's low priority.
+            // It's worst at tasks where `input_size != output_size`.
+            Self::SolveLogisticRegressionDifferentSize => 9, 
 
             // When loaded from a file, without info about what type it is, then it's unclear what priority to assign, so assign the lowest priority.
             Self::None => 10, 
@@ -269,7 +282,7 @@ mod tests {
             let prediction = Prediction {
                 output_id: 5,
                 output: vec![vec![3]],
-                prediction_type: PredictionType::SolveLogisticRegression,
+                prediction_type: PredictionType::SolveLogisticRegressionSameSize,
             };
             prediction_vec.push(prediction);
         }
@@ -397,7 +410,7 @@ mod tests {
             let prediction = Prediction {
                 output_id: 5,
                 output: vec![vec![3]],
-                prediction_type: PredictionType::SolveLogisticRegression,
+                prediction_type: PredictionType::SolveLogisticRegressionSameSize,
             };
             coordinator.append_predictions("mytask1".to_string(), vec![prediction]);
         }
@@ -438,7 +451,7 @@ mod tests {
             let prediction = Prediction {
                 output_id: 5,
                 output: vec![vec![3]],
-                prediction_type: PredictionType::SolveLogisticRegression,
+                prediction_type: PredictionType::SolveLogisticRegressionSameSize,
             };
             coordinator.append_predictions("mytask2".to_string(), vec![prediction]);
         }

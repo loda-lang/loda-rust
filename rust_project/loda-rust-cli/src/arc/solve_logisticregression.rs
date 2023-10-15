@@ -390,7 +390,7 @@ impl SolveLogisticRegression {
             let prediction = arcathon_solution_coordinator::Prediction {
                 output_id: test_index.min(255) as u8,
                 output: grid,
-                prediction_type: arcathon_solution_coordinator::PredictionType::SolveLogisticRegression,
+                prediction_type: arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionSameSize,
             };
             result_predictions.push(prediction);
         }
