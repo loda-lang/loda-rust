@@ -218,6 +218,64 @@ impl Record {
     }
 }
 
+#[derive(Clone, Debug)]
+enum ProcessTaskMode {
+    InputOutputSameSize,
+    InputOutputDifferentSize,
+}
+
+#[derive(Clone, Debug)]
+pub struct ProcessTaskContext {
+    mode: ProcessTaskMode,
+    input_size_vec: Vec<ImageSize>,
+    output_size_vec: Vec<ImageSize>,
+}
+
+impl ProcessTaskContext {
+    pub fn new(task: &Task) -> Self {
+        let mode: ProcessTaskMode = if task.is_output_size_same_as_input_size() { 
+            ProcessTaskMode::InputOutputSameSize 
+        } else { 
+            ProcessTaskMode::InputOutputDifferentSize 
+        };
+        let mut instance = Self {
+            mode,
+            input_size_vec: Vec::<ImageSize>::new(),
+            output_size_vec: Vec::<ImageSize>::new(),
+        };
+        instance.populate_input_size_vec(task);
+        instance.populate_output_size_vec(task);
+        instance
+    }
+
+    fn populate_input_size_vec(&mut self, task: &Task) {
+        self.input_size_vec.clear();
+        for pair in &task.pairs {
+            let size: ImageSize = pair.input.image.size();
+            self.input_size_vec.push(size);
+        }
+    }
+
+    fn populate_output_size_vec(&mut self, task: &Task) {
+        self.output_size_vec.clear();
+        for pair in &task.pairs {
+            match pair.pair_type {
+                PairType::Train => {
+                    let size: ImageSize = pair.output.image.size();
+                    self.output_size_vec.push(size);
+                },
+                PairType::Test => {
+                    let mut the_size: ImageSize = pair.output.test_image.size();
+                    if let Some(size) = pair.predicted_output_size() {
+                        the_size = size;
+                    }
+                    self.output_size_vec.push(the_size);
+                }
+            }
+        }
+    }
+}
+
 pub struct SolveLogisticRegression {
     #[allow(dead_code)]
     tasks: Vec<Task>,
@@ -284,19 +342,21 @@ impl SolveLogisticRegression {
     // }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
+        let context = ProcessTaskContext::new(task);
+
         let task_for_processing: Task;
         if !task.is_output_size_same_as_input_size() {
             let task2: Task = CreateTaskWithSameSize::create(task)?;
             task_for_processing = task2;
-            return Err(anyhow::anyhow!("skipping task: {} not implemented", task.id));
         } else {
+            return Err(anyhow::anyhow!("skipping task: {} not implemented", task.id));
             task_for_processing = task.clone();
         }
 
-        Self::process_task_inner(&task_for_processing, verify_test_output)
+        Self::process_task_inner(&context, &task_for_processing, verify_test_output)
     }
 
-    pub fn process_task_inner(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
+    pub fn process_task_inner(context: &ProcessTaskContext, task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
         if !task.is_output_size_same_as_input_size() {
             // if WRITE_TO_HTMLLOG {
             //     HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
@@ -312,7 +372,7 @@ impl SolveLogisticRegression {
         let mut computed_images = Vec::<Image>::new();
         for test_index in 0..count_test {
             // println!("task: {} test_index: {} before", task.id, test_index);
-            let computed_image: Image = match Self::process_task_with_one_test_pair(task, test_index) {
+            let computed_image: Image = match Self::process_task_with_one_test_pair(context, task, test_index) {
                 Ok(value) => value,
                 Err(error) => {
                     // println!("task: {} test_index: {} error: {:?}", task.id, test_index, error);
@@ -388,12 +448,12 @@ impl SolveLogisticRegression {
         Ok(result_predictions)
     }
 
-    fn process_task_with_one_test_pair(task: &Task, test_index: u8) -> anyhow::Result<Image> {
+    fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Image> {
         let number_of_iterations: usize = 5;
         let mut computed_images = Vec::<Image>::new();
         let mut last_computed_image: Option<Image> = None;
         for iteration_index in 0..number_of_iterations {
-            let records = Self::process_task_iteration(task, iteration_index, test_index, last_computed_image)?;
+            let records = Self::process_task_iteration(context, task, iteration_index, test_index, last_computed_image)?;
             let computed_image: Image = perform_logistic_regression(task, test_index, &records)?;
             last_computed_image = Some(computed_image.clone());
             computed_images.push(computed_image);
@@ -564,12 +624,35 @@ impl SolveLogisticRegression {
         Ok(vec![image_shape_width, image_shape_height])
     }
 
-    fn process_task_iteration(task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
+    fn process_task_iteration(context: &ProcessTaskContext, task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
+
+        if context.input_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.input_size_vec.len() != task.pairs.len()"));
+        }
+        if context.output_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
+        }
 
         let one_eleventh: f64 = 1.0 / 11.0;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * one_eleventh + 0.2) % 1.0;
         let obfuscated_cluster_offset: f64 = 0.2;
+
+        // When input_size == output_size then the parameters only needs to be serialized once.
+        // When the input_size != output_size, then serialize parameters for input and serialize parameters for output.
+        let has_different_size_for_input_output = match context.mode {
+            ProcessTaskMode::InputOutputSameSize => false,
+            ProcessTaskMode::InputOutputDifferentSize => true,
+        };
+        
+        let enable_total_clustercount: bool = has_different_size_for_input_output;
+        let enable_color_clustercount: bool = has_different_size_for_input_output;
+        let enable_half_context_output_size: bool = has_different_size_for_input_output;
+        let enable_normalized_coordinates_context_input_size: bool = has_different_size_for_input_output;
+        let enable_normalized_coordinates_context_output_size: bool = has_different_size_for_input_output;
+        let enable_output_orientation: bool = has_different_size_for_input_output;
+        let enable_coordinates_xy: bool = has_different_size_for_input_output;
+        let enable_is_outside: bool = has_different_size_for_input_output;
 
         let enable_histogram_diagonal_a: bool = false;
         let enable_histogram_diagonal_b: bool = false;
@@ -579,9 +662,9 @@ impl SolveLogisticRegression {
         let enable_histogram_diagonal_f: bool = false;
         let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
 
-        let enable_center_indicator_a: bool = false;
-        let enable_center_indicator_x: bool = false;
-        let enable_center_indicator_y: bool = false;
+        let enable_center_indicator_a: bool = has_different_size_for_input_output;
+        let enable_center_indicator_x: bool = has_different_size_for_input_output;
+        let enable_center_indicator_y: bool = has_different_size_for_input_output;
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         let enable_mod2: bool = process_task_iteration_index % 2 == 0;
@@ -760,6 +843,9 @@ impl SolveLogisticRegression {
 
             let width: u8 = original_input.width().max(original_output.width()).min(253);
             let height: u8 = original_input.height().max(original_output.height()).min(253);
+
+            let context_input_size: ImageSize = context.input_size_vec[pair_index];
+            let context_output_size: ImageSize = context.output_size_vec[pair_index];
 
             let background: Image = Image::color(width, height, 10);
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
@@ -1692,12 +1778,21 @@ impl SolveLogisticRegression {
             _ = earlier_prediction_mass_connectivity8;
 
             let input_orientation: i8;
-            if width > height {
+            if context_input_size.width > context_input_size.height {
                 input_orientation = 1;
-            } else if width < height {
+            } else if context_input_size.width < context_input_size.height {
                 input_orientation = -1;
             } else {
                 input_orientation = 0;
+            }
+
+            let output_orientation: i8;
+            if context_output_size.width > context_output_size.height {
+                output_orientation = 1;
+            } else if context_output_size.width < context_output_size.height {
+                output_orientation = -1;
+            } else {
+                output_orientation = 0;
             }
 
             let number_of_shape3x3ids: u8 = Shape3x3::instance().number_of_shapes();
@@ -1712,9 +1807,58 @@ impl SolveLogisticRegression {
                 center_indicator_y = input.clone_zero();
             }
 
+            let mut total_clustercount_connectivity4: usize = 0;
+            let mut total_clustercount_connectivity8: usize = 0;
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                total_clustercount_connectivity4 += sco.rectangle_vec.len();
+                total_clustercount_connectivity8 += sco.rectangle_vec.len();
+                for object in &sco.sparse_vec {
+                    if let Some(container) = &object.container4 {
+                        total_clustercount_connectivity4 += container.cluster_vec.len();
+                    }
+                    if let Some(container) = &object.container8 {
+                        total_clustercount_connectivity8 += container.cluster_vec.len();
+                    }
+                }
+            }
+
+            let mut color_clustercount_connectivity4 = HashMap::<u8, u8>::new();
+            let mut color_clustercount_connectivity8 = HashMap::<u8, u8>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                for color in 0..COUNT_COLORS_PLUS1 {
+                    let mut count4: usize = 0;
+                    let mut count8: usize = 0;
+                    for rect in &sco.rectangle_vec {
+                        if rect.color == color {
+                            count4 += 1;
+                            count8 += 1;
+                        }
+                    }
+                    for object in &sco.sparse_vec {
+                        if object.color != color {
+                            continue;
+                        }
+                        if let Some(container) = &object.container4 {
+                            count4 += container.cluster_vec.len();
+                        }
+                        if let Some(container) = &object.container8 {
+                            count8 += container.cluster_vec.len();
+                        }
+                    }
+
+                    let count4_u8: u8 = count4.min(255) as u8;
+                    color_clustercount_connectivity4.insert(color, count4_u8);
+
+                    let count8_u8: u8 = count8.min(255) as u8;
+                    color_clustercount_connectivity8.insert(color, count8_u8);
+                }
+            }
+
+
             for y in 0..height {
                 let yy: i32 = y as i32;
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
+                let context_input_y_reverse: i32 = (context_input_size.height as i32) - 1 - yy;
 
                 // let area_top: Image = if y > 2 {
                 //     input.top_rows(y - 1)?
@@ -1746,6 +1890,7 @@ impl SolveLogisticRegression {
                 for x in 0..width {
                     let xx: i32 = x as i32;
                     let x_reverse: u8 = ((width as i32) - 1 - xx).max(0) as u8;
+                    let context_input_x_reverse: i32 = (context_input_size.width as i32) - 1 - xx;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
                     let mut record = Record {
@@ -1754,6 +1899,23 @@ impl SolveLogisticRegression {
                         pair_id,
                         values: vec!(),
                     };
+
+                    if enable_total_clustercount {
+                        record.serialize_u8(total_clustercount_connectivity4.min(255) as u8);
+                        record.serialize_u8(total_clustercount_connectivity8.min(255) as u8);
+                    }
+
+                    if enable_color_clustercount {
+                        for color in 0..COUNT_COLORS_PLUS1 {
+                            let count: u8 = *color_clustercount_connectivity4.get(&color).unwrap_or(&0);
+                            record.serialize_u8(count);
+                        }
+                        for color in 0..COUNT_COLORS_PLUS1 {
+                            let count: u8 = *color_clustercount_connectivity8.get(&color).unwrap_or(&0);
+                            record.serialize_u8(count);
+                        }
+                    }
+
 
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
@@ -1896,13 +2058,13 @@ impl SolveLogisticRegression {
                     // let nonbackground_area3x3: Image = non_background_mask.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
 
                     let image_top: u8 = input.get(xx, 0).unwrap_or(255);
-                    let image_bottom: u8 = input.get(xx, original_input.height() as i32 - 1).unwrap_or(255);
+                    let image_bottom: u8 = input.get(xx, context_input_size.height as i32 - 1).unwrap_or(255);
                     let image_left: u8 = input.get(0, yy).unwrap_or(255);
-                    let image_right: u8 = input.get(original_input.width() as i32 - 1, yy).unwrap_or(255);
+                    let image_right: u8 = input.get(context_input_size.width as i32 - 1, yy).unwrap_or(255);
 
-                    let center_x_reversed: u8 = input.get(x_reverse as i32, yy).unwrap_or(255);
-                    let center_y_reversed: u8 = input.get(xx, y_reverse as i32).unwrap_or(255);
-                    let center_xy_reversed: u8 = input.get(x_reverse as i32, y_reverse as i32).unwrap_or(255);
+                    let center_x_reversed: u8 = input.get(context_input_x_reverse as i32, yy).unwrap_or(255);
+                    let center_y_reversed: u8 = input.get(xx, context_input_y_reverse as i32).unwrap_or(255);
+                    let center_xy_reversed: u8 = input.get(context_input_x_reverse as i32, context_input_y_reverse as i32).unwrap_or(255);
                     _ = center_xy_reversed;
                     
                     let center_denoise_type1: u8 = input_denoise_type1.get(xx, yy).unwrap_or(255);
@@ -1964,11 +2126,11 @@ impl SolveLogisticRegression {
                     //     Ok(value) => value,
                     //     Err(_) => Image::empty()
                     // };
-                    let center_column: Image = match input.crop(Rectangle::new(x, 0, 1, height)) {
+                    let center_column: Image = match input.crop(Rectangle::new(x, 0, 1, context_input_size.height)) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row: Image = match input.crop(Rectangle::new(0, y, width, 1)) {
+                    let center_row: Image = match input.crop(Rectangle::new(0, y, context_input_size.width, 1)) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -1976,7 +2138,7 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_column_bottom: Image = match center_column.bottom_rows(y_reverse) {
+                    let center_column_bottom: Image = match center_column.bottom_rows(context_input_y_reverse.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -1984,7 +2146,7 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row_right: Image = match center_row.right_columns(y_reverse) {
+                    let center_row_right: Image = match center_row.right_columns(context_input_x_reverse.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -2015,13 +2177,17 @@ impl SolveLogisticRegression {
                 
                     let x_mod2: u8 = x % 2;
                     let y_mod2: u8 = y % 2;
-                    let x_reverse_mod2: u8 = x_reverse % 2;
-                    let y_reverse_mod2: u8 = y_reverse % 2;
+                    // let x_reverse_mod2: u8 = x_reverse % 2;
+                    // let y_reverse_mod2: u8 = y_reverse % 2;
+                    let x_reverse_mod2: u8 = ((context_input_x_reverse % 2) % 2) as u8;
+                    let y_reverse_mod2: u8 = ((context_input_y_reverse % 2) % 2) as u8;
 
                     let x_mod3: u8 = x % 3;
                     let y_mod3: u8 = y % 3;
-                    let x_reverse_mod3: u8 = x_reverse % 3;
-                    let y_reverse_mod3: u8 = y_reverse % 3;
+                    // let x_reverse_mod3: u8 = x_reverse % 3;
+                    // let y_reverse_mod3: u8 = y_reverse % 3;
+                    let x_reverse_mod3: u8 = ((context_input_x_reverse % 3) % 3) as u8;
+                    let y_reverse_mod3: u8 = ((context_input_y_reverse % 3) % 3) as u8;
                     _ = x_mod3;
                     _ = y_mod3;
                     _ = x_reverse_mod3;
@@ -2637,25 +2803,53 @@ impl SolveLogisticRegression {
                     }
                     _ = inside_bounding_box;
 
-                    let half_horizontal: i8;
-                    if xx * 2 == width as i32 { 
-                        half_horizontal = 0;
-                    } else {
-                        if xx * 2 < width as i32 { 
-                            half_horizontal = -1;
-                        } else { 
-                            half_horizontal = 1;
-                        };
+                    {
+                        let half_horizontal: i8;
+                        if xx * 2 == context_input_size.width as i32 { 
+                            half_horizontal = 0;
+                        } else {
+                            if xx * 2 < context_input_size.width as i32 { 
+                                half_horizontal = -1;
+                            } else { 
+                                half_horizontal = 1;
+                            };
+                        }
+                        let half_vertical: i8;
+                        if yy * 2 == context_input_size.height as i32 { 
+                            half_vertical = 0;
+                        } else {
+                            if yy * 2 < context_input_size.height as i32 { 
+                                half_vertical = -1;
+                            } else { 
+                                half_vertical = 1;
+                            };
+                        }
+                        record.serialize_ternary(half_horizontal);
+                        record.serialize_ternary(half_vertical);
                     }
-                    let half_vertical: i8;
-                    if yy * 2 == height as i32 { 
-                        half_vertical = 0;
-                    } else {
-                        if yy * 2 < height as i32 { 
-                            half_vertical = -1;
-                        } else { 
-                            half_vertical = 1;
-                        };
+                    if enable_half_context_output_size {
+                        let half_horizontal: i8;
+                        if xx * 2 == context_output_size.width as i32 { 
+                            half_horizontal = 0;
+                        } else {
+                            if xx * 2 < context_output_size.width as i32 { 
+                                half_horizontal = -1;
+                            } else { 
+                                half_horizontal = 1;
+                            };
+                        }
+                        let half_vertical: i8;
+                        if yy * 2 == context_output_size.height as i32 { 
+                            half_vertical = 0;
+                        } else {
+                            if yy * 2 < context_output_size.height as i32 { 
+                                half_vertical = -1;
+                            } else { 
+                                half_vertical = 1;
+                            };
+                        }
+                        record.serialize_ternary(half_horizontal);
+                        record.serialize_ternary(half_vertical);
                     }
 
                     let input_has_unambiguous_connectivity: bool = input_unambiguous_connectivity_histogram.get(center) > 0;
@@ -2725,12 +2919,13 @@ impl SolveLogisticRegression {
                     // record.serialize_onehot_discard_overflow(mass_connectivity4, 40);
                     // record.serialize_onehot_discard_overflow(mass_connectivity8, 40);
                     record.serialize_ternary(input_orientation);
+                    if enable_output_orientation {
+                        record.serialize_ternary(output_orientation);
+                    }
                     // record.serialize_u8(distance_top);
                     // record.serialize_u8(distance_bottom);
                     // record.serialize_u8(distance_left);
                     // record.serialize_u8(distance_right);
-                    record.serialize_ternary(half_horizontal);
-                    record.serialize_ternary(half_vertical);
                     record.serialize_bool_onehot(input_is_noise_color);
                     record.serialize_bool_onehot(input_is_most_popular_color);
                     // record.serialize_bool(input_is_removal_color == 1);
@@ -2740,8 +2935,51 @@ impl SolveLogisticRegression {
                     // }
                     // record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
 
+                    if enable_normalized_coordinates_context_input_size {
+                        let fx: f64 = ((xx as f64) + 0.5) / (context_input_size.width.max(1) as f64);
+                        record.serialize_f64(fx);
+                        let fy: f64 = ((yy as f64) + 0.5) / (context_input_size.height.max(1) as f64);
+                        record.serialize_f64(fy);
+                    }
+                    if enable_normalized_coordinates_context_output_size {
+                        let fx: f64 = ((xx as f64) + 0.5) / (context_output_size.width.max(1) as f64);
+                        record.serialize_f64(fx);
+                        let fy: f64 = ((yy as f64) + 0.5) / (context_output_size.height.max(1) as f64);
+                        record.serialize_f64(fy);
+                    }
+
+                    if enable_coordinates_xy {
+                        record.serialize_u8(x);
+                        record.serialize_u8(y);
+                    }
                     // record.serialize_u8(x + 2);
                     // record.serialize_u8(y + 2);
+                    // record.serialize_u8(255 - x);
+                    // record.serialize_u8(255 - y);
+                    // record.serialize_f64(((x + 2) as f64) * ((x + 2) as f64));
+                    // record.serialize_f64(((y + 2) as f64) * ((y + 2) as f64));
+
+                    // record.serialize_f64(((y as usize) * (width as usize) + (x as usize)) as f64);
+                    // record.serialize_f64(((y as usize) + (y as usize) + (width as usize) + (height as usize)) as f64);
+                    // record.serialize_f64(((y as usize) * (y as usize) * (width as usize) * (height as usize)) as f64);
+                    // record.serialize_f64(context_input_x_reverse as f64);
+                    // record.serialize_f64(context_input_y_reverse as f64);
+
+                    if enable_is_outside {
+                        {
+                            let is_outside: bool = x >= context_input_size.width || y >= context_input_size.height;
+                            record.serialize_bool_onehot(is_outside);
+                        }
+                        {
+                            let is_outside: bool = x >= context_output_size.width || y >= context_output_size.height;
+                            record.serialize_bool_onehot(is_outside);
+                        }
+                    }
+                    // record.serialize_bool_onehot(x >= context_input_size.width);
+                    // record.serialize_bool_onehot(y >= context_input_size.height);
+
+                    // record.serialize_u8(x_reverse);
+                    // record.serialize_u8(y_reverse);
                     // record.serialize_u8(x_reverse + 2);
                     // record.serialize_u8(y_reverse + 2);
                     // record.serialize_onehot_discard_overflow(x, 30);
