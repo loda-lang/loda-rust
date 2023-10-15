@@ -39,7 +39,7 @@
 //! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize, ImageReplaceColor};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -342,37 +342,29 @@ impl SolveLogisticRegression {
     // }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
-        let context = ProcessTaskContext::new(task);
-
-        let task_for_processing: Task;
-        if !task.is_output_size_same_as_input_size() {
-            let task2: Task = CreateTaskWithSameSize::create(task)?;
-            task_for_processing = task2;
-        } else {
-            return Err(anyhow::anyhow!("skipping task: {} not implemented", task.id));
-            task_for_processing = task.clone();
-        }
-
-        Self::process_task_inner(&context, &task_for_processing, verify_test_output)
-    }
-
-    pub fn process_task_inner(context: &ProcessTaskContext, task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
-        if !task.is_output_size_same_as_input_size() {
-            // if WRITE_TO_HTMLLOG {
-            //     HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
-            // }
-            return Err(anyhow::anyhow!("skipping task: {} because output size is not the same as input size", task.id));
-        }
-
         let count_test: u8 = task.count_test().min(255) as u8;
         if count_test < 1 {
             return Err(anyhow::anyhow!("skipping task: {} because it has no test pairs", task.id));
         }    
 
+        let context = ProcessTaskContext::new(task);
+
+        let task_for_processing: Task;
+        let prediction_type: arcathon_solution_coordinator::PredictionType;
+        if task.is_output_size_same_as_input_size() {
+            return Err(anyhow::anyhow!("skipping task: {} not implemented", task.id));
+            task_for_processing = task.clone();
+            prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionSameSize;
+        } else {
+            let task2: Task = CreateTaskWithSameSize::create(task)?;
+            task_for_processing = task2;
+            prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionDifferentSize;
+        }
+
         let mut computed_images = Vec::<Image>::new();
         for test_index in 0..count_test {
             // println!("task: {} test_index: {} before", task.id, test_index);
-            let computed_image: Image = match Self::process_task_with_one_test_pair(context, task, test_index) {
+            let computed_image: Image = match Self::process_task_with_one_test_pair(&context, &task_for_processing, test_index) {
                 Ok(value) => value,
                 Err(error) => {
                     // println!("task: {} test_index: {} error: {:?}", task.id, test_index, error);
@@ -390,7 +382,7 @@ impl SolveLogisticRegression {
             let prediction = arcathon_solution_coordinator::Prediction {
                 output_id: test_index.min(255) as u8,
                 output: grid,
-                prediction_type: arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionSameSize,
+                prediction_type,
             };
             result_predictions.push(prediction);
         }
@@ -449,6 +441,31 @@ impl SolveLogisticRegression {
     }
 
     fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Image> {
+        if context.input_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
+        }
+        if context.output_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
+        }
+
+        // Obtain `pair_index` from `test_index`.
+        let mut found_pair_index: Option<u8> = None;
+        for pair in &task.pairs {
+            if pair.test_index == Some(test_index) {
+                found_pair_index = Some(pair.pair_index);
+                break;
+            }
+        }
+        let pair_index: u8 = match found_pair_index {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to find pair with test_index: {}", test_index));
+            }
+        };
+
+        // Obtain the size of the output image
+        let crop_output_size: ImageSize = context.output_size_vec[pair_index as usize];
+
         let number_of_iterations: usize = 5;
         let mut computed_images = Vec::<Image>::new();
         let mut last_computed_image: Option<Image> = None;
@@ -468,7 +485,17 @@ impl SolveLogisticRegression {
                 return Err(anyhow::anyhow!("Unable to get last computed image"));
             }
         };
-        Ok(computed_image)
+
+        // Get rid of the `outside` area.
+        let mut cropped_image: Image = computed_image.crop_outside(0, 0, crop_output_size.width, crop_output_size.height, 255)?;
+
+        // Eliminate illegal colors.
+        let most_popular_output_color: u8 = 0;
+        for color in 10..=255 {
+            cropped_image = cropped_image.replace_color(color, most_popular_output_color)?;
+        }
+
+        Ok(cropped_image)
     }
 
     fn object_id_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
