@@ -218,6 +218,21 @@ impl Record {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct ProcessTaskContext {
+    input_size_vec: Vec<ImageSize>,
+}
+
+impl ProcessTaskContext {
+    fn populate_input_size_vec(&mut self, task: &Task) {
+        self.input_size_vec.clear();
+        for pair in &task.pairs {
+            let size: ImageSize = pair.input.image.size();
+            self.input_size_vec.push(size);
+        }
+    }
+}
+
 pub struct SolveLogisticRegression {
     #[allow(dead_code)]
     tasks: Vec<Task>,
@@ -284,6 +299,9 @@ impl SolveLogisticRegression {
     // }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
+        let mut context = ProcessTaskContext::default();
+        context.populate_input_size_vec(task);
+
         let task_for_processing: Task;
         if !task.is_output_size_same_as_input_size() {
             let task2: Task = CreateTaskWithSameSize::create(task)?;
@@ -293,10 +311,10 @@ impl SolveLogisticRegression {
             task_for_processing = task.clone();
         }
 
-        Self::process_task_inner(&task_for_processing, verify_test_output)
+        Self::process_task_inner(&context, &task_for_processing, verify_test_output)
     }
 
-    pub fn process_task_inner(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
+    pub fn process_task_inner(context: &ProcessTaskContext, task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
         if !task.is_output_size_same_as_input_size() {
             // if WRITE_TO_HTMLLOG {
             //     HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
@@ -312,7 +330,7 @@ impl SolveLogisticRegression {
         let mut computed_images = Vec::<Image>::new();
         for test_index in 0..count_test {
             // println!("task: {} test_index: {} before", task.id, test_index);
-            let computed_image: Image = match Self::process_task_with_one_test_pair(task, test_index) {
+            let computed_image: Image = match Self::process_task_with_one_test_pair(context, task, test_index) {
                 Ok(value) => value,
                 Err(error) => {
                     // println!("task: {} test_index: {} error: {:?}", task.id, test_index, error);
@@ -388,12 +406,12 @@ impl SolveLogisticRegression {
         Ok(result_predictions)
     }
 
-    fn process_task_with_one_test_pair(task: &Task, test_index: u8) -> anyhow::Result<Image> {
+    fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Image> {
         let number_of_iterations: usize = 5;
         let mut computed_images = Vec::<Image>::new();
         let mut last_computed_image: Option<Image> = None;
         for iteration_index in 0..number_of_iterations {
-            let records = Self::process_task_iteration(task, iteration_index, test_index, last_computed_image)?;
+            let records = Self::process_task_iteration(context, task, iteration_index, test_index, last_computed_image)?;
             let computed_image: Image = perform_logistic_regression(task, test_index, &records)?;
             last_computed_image = Some(computed_image.clone());
             computed_images.push(computed_image);
@@ -564,8 +582,12 @@ impl SolveLogisticRegression {
         Ok(vec![image_shape_width, image_shape_height])
     }
 
-    fn process_task_iteration(task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
+    fn process_task_iteration(context: &ProcessTaskContext, task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
+
+        if context.input_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.input_size_vec.len() != task.pairs.len()"));
+        }
 
         let one_eleventh: f64 = 1.0 / 11.0;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * one_eleventh + 0.2) % 1.0;
@@ -760,6 +782,8 @@ impl SolveLogisticRegression {
 
             let width: u8 = original_input.width().max(original_output.width()).min(253);
             let height: u8 = original_input.height().max(original_output.height()).min(253);
+
+            let context_input_size: ImageSize = context.input_size_vec[pair_index];
 
             let background: Image = Image::color(width, height, 10);
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
@@ -1763,6 +1787,7 @@ impl SolveLogisticRegression {
             for y in 0..height {
                 let yy: i32 = y as i32;
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
+                let context_input_y_reverse: i32 = (context_input_size.height as i32) - 1 - yy;
 
                 // let area_top: Image = if y > 2 {
                 //     input.top_rows(y - 1)?
@@ -1794,6 +1819,7 @@ impl SolveLogisticRegression {
                 for x in 0..width {
                     let xx: i32 = x as i32;
                     let x_reverse: u8 = ((width as i32) - 1 - xx).max(0) as u8;
+                    let context_input_x_reverse: i32 = (context_input_size.width as i32) - 1 - xx;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
                     let mut record = Record {
@@ -2820,6 +2846,18 @@ impl SolveLogisticRegression {
                     // record.serialize_f64(((y as usize) * (width as usize) + (x as usize)) as f64);
                     // record.serialize_f64(((y as usize) + (y as usize) + (width as usize) + (height as usize)) as f64);
                     // record.serialize_f64(((y as usize) * (y as usize) * (width as usize) * (height as usize)) as f64);
+                    // record.serialize_f64(context_input_x_reverse as f64);
+                    // record.serialize_f64(context_input_y_reverse as f64);
+
+                    {
+                        let is_outside: bool = x >= context_input_size.width || y >= context_input_size.height;
+                        record.serialize_bool_onehot(is_outside);
+                    }
+                    // record.serialize_bool_onehot(x >= context_input_size.width);
+                    // record.serialize_bool_onehot(y >= context_input_size.height);
+
+                    // record.serialize_u8(x_reverse);
+                    // record.serialize_u8(y_reverse);
                     // record.serialize_u8(x_reverse + 2);
                     // record.serialize_u8(y_reverse + 2);
                     // record.serialize_onehot_discard_overflow(x, 30);
