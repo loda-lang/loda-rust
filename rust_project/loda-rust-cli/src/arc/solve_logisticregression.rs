@@ -567,7 +567,8 @@ impl SolveLogisticRegression {
     fn process_task_iteration(task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
 
-        let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
+        let one_eleventh: f64 = 1.0 / 11.0;
+        let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * one_eleventh + 0.2) % 1.0;
         let obfuscated_cluster_offset: f64 = 0.2;
 
         let enable_histogram_diagonal_a: bool = false;
