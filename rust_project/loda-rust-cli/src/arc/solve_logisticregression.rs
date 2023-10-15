@@ -221,6 +221,7 @@ impl Record {
 #[derive(Clone, Debug, Default)]
 pub struct ProcessTaskContext {
     input_size_vec: Vec<ImageSize>,
+    output_size_vec: Vec<ImageSize>,
 }
 
 impl ProcessTaskContext {
@@ -229,6 +230,25 @@ impl ProcessTaskContext {
         for pair in &task.pairs {
             let size: ImageSize = pair.input.image.size();
             self.input_size_vec.push(size);
+        }
+    }
+
+    fn populate_output_size_vec(&mut self, task: &Task) {
+        self.output_size_vec.clear();
+        for pair in &task.pairs {
+            match pair.pair_type {
+                PairType::Train => {
+                    let size: ImageSize = pair.output.image.size();
+                    self.output_size_vec.push(size);
+                },
+                PairType::Test => {
+                    let mut the_size: ImageSize = pair.output.test_image.size();
+                    if let Some(size) = pair.predicted_output_size() {
+                        the_size = size;
+                    }
+                    self.output_size_vec.push(the_size);
+                }
+            }
         }
     }
 }
@@ -301,6 +321,7 @@ impl SolveLogisticRegression {
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
         let mut context = ProcessTaskContext::default();
         context.populate_input_size_vec(task);
+        context.populate_output_size_vec(task);
 
         let task_for_processing: Task;
         if !task.is_output_size_same_as_input_size() {
@@ -588,6 +609,9 @@ impl SolveLogisticRegression {
         if context.input_size_vec.len() != task.pairs.len() {
             return Err(anyhow::anyhow!("context.input_size_vec.len() != task.pairs.len()"));
         }
+        if context.output_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
+        }
 
         let one_eleventh: f64 = 1.0 / 11.0;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * one_eleventh + 0.2) % 1.0;
@@ -784,6 +808,7 @@ impl SolveLogisticRegression {
             let height: u8 = original_input.height().max(original_output.height()).min(253);
 
             let context_input_size: ImageSize = context.input_size_vec[pair_index];
+            let context_output_size: ImageSize = context.output_size_vec[pair_index];
 
             let background: Image = Image::color(width, height, 10);
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
@@ -2851,6 +2876,11 @@ impl SolveLogisticRegression {
 
                     {
                         let is_outside: bool = x >= context_input_size.width || y >= context_input_size.height;
+                        record.serialize_bool_onehot(is_outside);
+                    }
+
+                    {
+                        let is_outside: bool = x >= context_output_size.width || y >= context_output_size.height;
                         record.serialize_bool_onehot(is_outside);
                     }
                     // record.serialize_bool_onehot(x >= context_input_size.width);
