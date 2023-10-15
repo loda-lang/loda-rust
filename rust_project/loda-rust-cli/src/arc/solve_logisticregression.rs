@@ -2128,13 +2128,17 @@ impl SolveLogisticRegression {
                 
                     let x_mod2: u8 = x % 2;
                     let y_mod2: u8 = y % 2;
-                    let x_reverse_mod2: u8 = x_reverse % 2;
-                    let y_reverse_mod2: u8 = y_reverse % 2;
+                    // let x_reverse_mod2: u8 = x_reverse % 2;
+                    // let y_reverse_mod2: u8 = y_reverse % 2;
+                    let x_reverse_mod2: u8 = ((context_input_x_reverse % 2) % 2) as u8;
+                    let y_reverse_mod2: u8 = ((context_input_y_reverse % 2) % 2) as u8;
 
                     let x_mod3: u8 = x % 3;
                     let y_mod3: u8 = y % 3;
-                    let x_reverse_mod3: u8 = x_reverse % 3;
-                    let y_reverse_mod3: u8 = y_reverse % 3;
+                    // let x_reverse_mod3: u8 = x_reverse % 3;
+                    // let y_reverse_mod3: u8 = y_reverse % 3;
+                    let x_reverse_mod3: u8 = ((context_input_x_reverse % 3) % 3) as u8;
+                    let y_reverse_mod3: u8 = ((context_input_y_reverse % 3) % 3) as u8;
                     _ = x_mod3;
                     _ = y_mod3;
                     _ = x_reverse_mod3;
