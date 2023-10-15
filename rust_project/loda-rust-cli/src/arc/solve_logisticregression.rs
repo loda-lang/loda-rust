@@ -2754,25 +2754,53 @@ impl SolveLogisticRegression {
                     }
                     _ = inside_bounding_box;
 
-                    let half_horizontal: i8;
-                    if xx * 2 == context_input_size.width as i32 { 
-                        half_horizontal = 0;
-                    } else {
-                        if xx * 2 < context_input_size.width as i32 { 
-                            half_horizontal = -1;
-                        } else { 
-                            half_horizontal = 1;
-                        };
+                    {
+                        let half_horizontal: i8;
+                        if xx * 2 == context_input_size.width as i32 { 
+                            half_horizontal = 0;
+                        } else {
+                            if xx * 2 < context_input_size.width as i32 { 
+                                half_horizontal = -1;
+                            } else { 
+                                half_horizontal = 1;
+                            };
+                        }
+                        let half_vertical: i8;
+                        if yy * 2 == context_input_size.height as i32 { 
+                            half_vertical = 0;
+                        } else {
+                            if yy * 2 < context_input_size.height as i32 { 
+                                half_vertical = -1;
+                            } else { 
+                                half_vertical = 1;
+                            };
+                        }
+                        record.serialize_ternary(half_horizontal);
+                        record.serialize_ternary(half_vertical);
                     }
-                    let half_vertical: i8;
-                    if yy * 2 == context_input_size.height as i32 { 
-                        half_vertical = 0;
-                    } else {
-                        if yy * 2 < context_input_size.height as i32 { 
-                            half_vertical = -1;
-                        } else { 
-                            half_vertical = 1;
-                        };
+                    {
+                        let half_horizontal: i8;
+                        if xx * 2 == context_output_size.width as i32 { 
+                            half_horizontal = 0;
+                        } else {
+                            if xx * 2 < context_output_size.width as i32 { 
+                                half_horizontal = -1;
+                            } else { 
+                                half_horizontal = 1;
+                            };
+                        }
+                        let half_vertical: i8;
+                        if yy * 2 == context_output_size.height as i32 { 
+                            half_vertical = 0;
+                        } else {
+                            if yy * 2 < context_output_size.height as i32 { 
+                                half_vertical = -1;
+                            } else { 
+                                half_vertical = 1;
+                            };
+                        }
+                        record.serialize_ternary(half_horizontal);
+                        record.serialize_ternary(half_vertical);
                     }
 
                     let input_has_unambiguous_connectivity: bool = input_unambiguous_connectivity_histogram.get(center) > 0;
@@ -2846,8 +2874,6 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(distance_bottom);
                     // record.serialize_u8(distance_left);
                     // record.serialize_u8(distance_right);
-                    record.serialize_ternary(half_horizontal);
-                    record.serialize_ternary(half_vertical);
                     record.serialize_bool_onehot(input_is_noise_color);
                     record.serialize_bool_onehot(input_is_most_popular_color);
                     // record.serialize_bool(input_is_removal_color == 1);
