@@ -2009,9 +2009,9 @@ impl SolveLogisticRegression {
                     // let nonbackground_area3x3: Image = non_background_mask.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
 
                     let image_top: u8 = input.get(xx, 0).unwrap_or(255);
-                    let image_bottom: u8 = input.get(xx, original_input.height() as i32 - 1).unwrap_or(255);
+                    let image_bottom: u8 = input.get(xx, context_input_size.height as i32 - 1).unwrap_or(255);
                     let image_left: u8 = input.get(0, yy).unwrap_or(255);
-                    let image_right: u8 = input.get(original_input.width() as i32 - 1, yy).unwrap_or(255);
+                    let image_right: u8 = input.get(context_input_size.width as i32 - 1, yy).unwrap_or(255);
 
                     let center_x_reversed: u8 = input.get(x_reverse as i32, yy).unwrap_or(255);
                     let center_y_reversed: u8 = input.get(xx, y_reverse as i32).unwrap_or(255);
