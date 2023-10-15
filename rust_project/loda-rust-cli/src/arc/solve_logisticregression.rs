@@ -662,9 +662,9 @@ impl SolveLogisticRegression {
         let enable_histogram_diagonal_f: bool = false;
         let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
 
-        let enable_center_indicator_a: bool = true;
-        let enable_center_indicator_x: bool = true;
-        let enable_center_indicator_y: bool = true;
+        let enable_center_indicator_a: bool = has_different_size_for_input_output;
+        let enable_center_indicator_x: bool = has_different_size_for_input_output;
+        let enable_center_indicator_y: bool = has_different_size_for_input_output;
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         let enable_mod2: bool = process_task_iteration_index % 2 == 0;
