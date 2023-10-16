@@ -1880,6 +1880,14 @@ impl SolveLogisticRegression {
                 }
             }
 
+            // let random_image: Image;
+            // {
+            //     let random_seed: u64 = 0;
+            //     let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
+            //     let image: Image = RandomImage::two_colors(&mut rng, ImageSize { width: 30, height: 30 }, 0, 1, 33)?;
+            //     let image: Image = RandomImage::uniform_colors(&mut rng, ImageSize { width: 30, height: 30 }, 9)?;
+            //     random_image = image.crop_outside(0, 0, width, height, 255)?;
+            // }
 
             for y in 0..height {
                 let yy: i32 = y as i32;
@@ -1925,6 +1933,14 @@ impl SolveLogisticRegression {
                         pair_id,
                         values: vec!(),
                     };
+
+                    // {
+                    //     let random_color: u8 = random_image.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_bool(random_color == 0);
+                    //     record.serialize_bool_onehot(random_color == 0);
+                    //     record.serialize_onehot(random_color, 10);
+                    //     record.serialize_u8(random_color);
+                    // }
 
                     if enable_total_clustercount {
                         record.serialize_u8(total_clustercount_connectivity4.min(255) as u8);
