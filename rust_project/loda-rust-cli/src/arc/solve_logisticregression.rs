@@ -2303,7 +2303,138 @@ impl SolveLogisticRegression {
                         Err(_) => Image::empty()
                     };
                     
+                    // {
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_column_top.trigram_y() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_column_bottom.trigram_y() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_row_left.trigram_x() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_row_right.trigram_x() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    // }
 
+                    {
+                        // {
+                        //     let trigrams_vec: [Vec<RecordTrigram>; 4] = [
+                        //         center_column_top.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //         center_column_bottom.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //         center_row_left.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //         center_row_right.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //     ];
+                        //     for trigrams in &trigrams_vec {
+                        //         let mut count: u8 = 0;
+                        //         for trigram in trigrams {
+                        //             if trigram.word0 != center && trigram.word1 == center && trigram.word2 != center {
+                        //                 count += 1;
+                        //             }
+                        //         }
+                        //         record.serialize_u8(count);
+                        //     }
+                        // }
+                        // {
+                        //     let trigrams_vec: [Vec<RecordTrigram>; 2] = [
+                        //         center_row_left.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //         center_row_right.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //     ];
+                        //     let word0: u8 = area3x3.get(0, 1).unwrap_or(255);
+                        //     let word1: u8 = center;
+                        //     let word2: u8 = area3x3.get(2, 1).unwrap_or(255);
+                        //     for trigrams in &trigrams_vec {
+                        //         let mut count: u8 = 0;
+                        //         for trigram in trigrams {
+                        //             if trigram.word0 == word0 && trigram.word1 == word1 && trigram.word2 == word2 {
+                        //                 count += trigram.count.min(255) as u8;
+                        //             }
+                        //         }
+                        //         // record.serialize_u8(count);
+                        //         record.serialize_onehot(count, 4);
+                        //     }
+                        // }
+                        // {
+                        //     let trigrams_vec: [Vec<RecordTrigram>; 2] = [
+                        //         center_column_top.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //         center_column_bottom.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //     ];
+                        //     let word0: u8 = area3x3.get(1, 0).unwrap_or(255);
+                        //     let word1: u8 = center;
+                        //     let word2: u8 = area3x3.get(1, 2).unwrap_or(255);
+                        //     for trigrams in &trigrams_vec {
+                        //         let mut count: u8 = 0;
+                        //         for trigram in trigrams {
+                        //             if trigram.word0 == word0 && trigram.word1 == word1 && trigram.word2 == word2 {
+                        //                 count += trigram.count.min(255) as u8;
+                        //             }
+                        //         }
+                        //         // record.serialize_u8(count);
+                        //         record.serialize_onehot(count, 4);
+                        //     }
+                        // }
+                    }
 
 
                     // let max_distance: u8 = 3;
