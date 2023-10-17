@@ -5249,6 +5249,8 @@ fn perform_logistic_regression(task: &Task, test_index: u8, records: &Vec<Record
     // println!("task_id: {}", task.id);
 
     // Future experiment:
+    // provide `weight` to logistic regression, depending on how important each parameter is.
+    //
     // Deal with ARC tasks that have 2 or more `test` pairs.
     // If there are multiple `test` pairs, then the `test` pairs should be split into multiple `valid` pairs.
     // Currently assumes that there is only 1 `test` pair. So the `pred.get(address)` behaves the same for all the `test` pairs.
