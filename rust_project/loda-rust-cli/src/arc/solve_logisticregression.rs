@@ -6,14 +6,15 @@
 //! 
 //! However currently this approach solves none of the tasks from the hidden ARC dataset.
 //!
-//! This solves 70 of the 800 tasks in the public ARC dataset.
+//! This solves 71 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280,
-//! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 45737921, 4612dd53, 5289ad53, 543a7ed5,
-//! 54d9e175, 5b526a93, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b,
-//! 776ffc46, 810b9b61, 84f2aca1, 868de0fa, 913fb3ed, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c,
-//! a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, af902bf9, b0c4d837, b1948b0a, b2862040, b60334d2,
-//! b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d364b489, d37a1ef5, d406998b, d5d6de2d,
-//! dc433765, ded97339, e0fb7511, e133d23d, e7dd8335, e872b94a, e9c9d9a1, ef135b50, f0df5ff0, f45f5ca7,
+//! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53, 5289ad53,
+//! 543a7ed5, 54d9e175, 5b526a93, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e,
+//! 6f8cd79b, 776ffc46, 810b9b61, 84f2aca1, 868de0fa, 913fb3ed, 95990924, a5313dff, a61f2674, a699fb00,
+//! a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, af902bf9, b0c4d837, b1948b0a, b2862040,
+//! b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d364b489, d37a1ef5, d406998b,
+//! d5d6de2d, dc433765, ded97339, e0fb7511, e133d23d, e7dd8335, e872b94a, e9c9d9a1, ef135b50, f0df5ff0,
+//! f45f5ca7, 
 //! 
 //! This partially solves 6 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 239be575, 27a28665, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3
@@ -39,7 +40,7 @@
 //! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize, ImageReplaceColor};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize, ImageReplaceColor, GravityDirection, ImageGravity};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -1946,6 +1947,12 @@ impl SolveLogisticRegression {
             //     }
             // }
 
+            let gravity_background_color: u8 = most_popular_color.unwrap_or(0);
+            let gravity_up: Image = input.gravity(gravity_background_color, GravityDirection::Up).unwrap_or_else(|_| Image::empty());
+            let gravity_down: Image = input.gravity(gravity_background_color, GravityDirection::Down).unwrap_or_else(|_| Image::empty());
+            let gravity_left: Image = input.gravity(gravity_background_color, GravityDirection::Left).unwrap_or_else(|_| Image::empty());
+            let gravity_right: Image = input.gravity(gravity_background_color, GravityDirection::Right).unwrap_or_else(|_| Image::empty());
+
             for y in 0..height {
                 let yy: i32 = y as i32;
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
@@ -2019,6 +2026,14 @@ impl SolveLogisticRegression {
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
+
+                    {
+                        let images = [&gravity_up, &gravity_down, &gravity_left, &gravity_right];
+                        for image in images {
+                            let pixel: u8 = image.get(xx, yy).unwrap_or(255);
+                            record.serialize_color_complex(pixel, obfuscated_color_offset);
+                        }
+                    }
 
                     // {
                     //     let histogram: Histogram = area3x3.histogram_all();
