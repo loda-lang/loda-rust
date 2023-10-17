@@ -3,7 +3,7 @@ use super::read_testdata;
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
 pub type Grid = Vec<Vec<u8>>;
@@ -69,13 +69,17 @@ impl GridFromImage for Grid {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct TaskPair {
     input: Grid,
     output: Grid,
 }
 
 impl TaskPair {
+    pub fn new(input: Grid, output: Grid) -> TaskPair {
+        TaskPair { input, output }
+    }
+
     pub fn input(&self) -> &Grid {
         &self.input
     }
@@ -136,8 +140,8 @@ impl fmt::Display for TaskId {
     }
 }
 
-#[derive(Clone, Deserialize, Debug)]
-struct DeserializeTask {
+#[derive(Clone, Deserialize, Debug, Serialize)]
+struct JsonTask {
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
 }
@@ -151,6 +155,11 @@ pub struct Task {
 }
 
 impl Task {
+    #[allow(dead_code)]
+    pub fn new(id: TaskId, train: Vec<TaskPair>, test: Vec<TaskPair>) -> Task {
+        Task { id, train, test }
+    }
+
     #[allow(dead_code)]
     pub fn id(&self) -> &TaskId {
         &self.id
@@ -200,17 +209,22 @@ impl Task {
         Ok(image_pairs)
     }
 
+    pub fn from_json(task_id: TaskId, json: &str) -> anyhow::Result<Task> {
+        let json_task: JsonTask = serde_json::from_str(&json)?;
+        let task = Task {
+            id: task_id,
+            train: json_task.train,
+            test: json_task.test,
+        };
+        Ok(task)
+    }
+    
     #[allow(dead_code)]
     pub fn load_testdata(name: &str) -> anyhow::Result<Task> {
         let custom_identifier = format!("{}", name);
         let json: String = read_testdata(name)?;
-        let deserialize_task: DeserializeTask = serde_json::from_str(&json)?;
-        let task = Task {
-            id: TaskId::Custom { identifier: custom_identifier },
-            train: deserialize_task.train,
-            test: deserialize_task.test,
-        };
-        Ok(task)
+        let task_id = TaskId::Custom { identifier: custom_identifier };
+        Self::from_json(task_id, &json)
     }
     
     pub fn load_with_json_file(json_file: &Path) -> anyhow::Result<Task> {
@@ -220,13 +234,8 @@ impl Task {
                 return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, json_file));
             }
         };
-        let deserialize_task: DeserializeTask = serde_json::from_str(&json)?;
-        let task = Task {
-            id: TaskId::Path { path: PathBuf::from(json_file) },
-            train: deserialize_task.train,
-            test: deserialize_task.test,
-        };
-        Ok(task)
+        let task_id = TaskId::Path { path: PathBuf::from(json_file) };
+        Self::from_json(task_id, &json)
     }
 }
 
@@ -236,20 +245,19 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_10000_json_to_grid() -> anyhow::Result<()> {
+    fn test_10000_json_to_grid() {
         let json_string = "[[1,2,3],[4,5,6]]";
-        let grid: Grid = serde_json::from_str(&json_string)?;
+        let grid: Grid = serde_json::from_str(&json_string).expect("grid");
         assert_eq!(grid.len(), 2);
         assert_eq!(grid[0], vec![1,2,3]);
         assert_eq!(grid[1], vec![4,5,6]);
-        Ok(())
     }
 
     #[test]
-    fn test_20000_grid_to_image() -> anyhow::Result<()> {
+    fn test_20000_grid_to_image() {
         // Arrange
         let json_string = "[[1,2,3],[4,5,6]]";
-        let grid: Grid = serde_json::from_str(&json_string)?;
+        let grid: Grid = serde_json::from_str(&json_string).expect("grid");
 
         // Act
         let bm: Image = grid.to_image().expect("image");
@@ -263,11 +271,10 @@ mod tests {
         assert_eq!(bm.get(0, 1), Some(4));
         assert_eq!(bm.get(1, 1), Some(5));
         assert_eq!(bm.get(2, 1), Some(6));
-        Ok(())
     }
 
     #[test]
-    fn test_30000_grid_from_image() -> anyhow::Result<()> {
+    fn test_30000_grid_from_image() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2, 3,
@@ -282,35 +289,55 @@ mod tests {
         assert_eq!(grid.len(), 2);
         assert_eq!(grid[0], vec![1,2,3]);
         assert_eq!(grid[1], vec![4,5,6]);
-        Ok(())
     }
 
     #[test]
-    fn test_40000_task_loda_testdata() -> anyhow::Result<()> {
-        let task: Task = Task::load_testdata("6150a2bd")?;
+    fn test_40000_task_load_testdata() {
+        let task: Task = Task::load_testdata("6150a2bd").expect("task");
         assert_eq!(task.train.len(), 2);
         assert_eq!(task.test.len(), 1);
         assert_eq!(task.id.identifier(), "6150a2bd");
-        Ok(())
     }
 
     #[test]
-    fn test_40001_task_load_with_json_file() -> anyhow::Result<()> {
+    fn test_40001_task_load_with_json_file() {
         // Arrange
-        let json: String = read_testdata("4258a5f9")?;
-        let tempdir = tempfile::tempdir().unwrap();
+        let json: String = read_testdata("4258a5f9").expect("task");
+        let tempdir = tempfile::tempdir().expect("ok");
         let basedir = PathBuf::from(&tempdir.path()).join("test_40000_model_load");
-        fs::create_dir(&basedir)?;
+        fs::create_dir(&basedir).expect("ok");
         let path: PathBuf = basedir.join("hello.json");
-        fs::write(&path, &json)?;
+        fs::write(&path, &json).expect("ok");
 
         // Act
-        let task: Task = Task::load_with_json_file(&path)?;
+        let task: Task = Task::load_with_json_file(&path).expect("task");
 
         // Assert
         assert_eq!(task.train.len(), 2);
         assert_eq!(task.test.len(), 1);
         assert_eq!(task.id.identifier(), "hello");
-        Ok(())
+    }
+
+    #[test]
+    fn test_50000_convert_task_to_json_string() {
+        let task: Task = Task::load_testdata("6150a2bd").expect("ok");
+        assert_eq!(task.train.len(), 2);
+        assert_eq!(task.test.len(), 1);
+        assert_eq!(task.id.identifier(), "6150a2bd");
+
+        let json_task = JsonTask {
+            train: task.train,
+            test: task.test,
+        };
+
+        // Act
+        let json: String = serde_json::to_string(&json_task).expect("string");
+        
+        // Assert
+        let task_id = TaskId::Custom { identifier: "mock".to_string() };
+        let task2: Task = Task::from_json(task_id, &json).expect("task");
+        assert_eq!(task2.train.len(), 2);
+        assert_eq!(task2.test.len(), 1);
+        assert_eq!(task2.id.identifier(), "mock");
     }
 }

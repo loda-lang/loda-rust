@@ -8,15 +8,15 @@
 //!
 //! This solves 70 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280,
-//! 25d8a9c8, 25ff71a9, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53,
-//! 543a7ed5, 54d9e175, 5b526a93, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e,
-//! 6f8cd79b, 776ffc46, 810b9b61, 84f2aca1, 868de0fa, 913fb3ed, 95990924, a5313dff, a61f2674, a699fb00,
-//! a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, af902bf9, b1948b0a, b2862040, b60334d2,
-//! b6afb2da, ba26e723, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5,
-//! d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e7dd8335, e9c9d9a1, ef135b50, f0df5ff0, f45f5ca7,
+//! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 45737921, 4612dd53, 5289ad53, 543a7ed5,
+//! 54d9e175, 5b526a93, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b,
+//! 776ffc46, 810b9b61, 84f2aca1, 868de0fa, 913fb3ed, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c,
+//! a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, af902bf9, b0c4d837, b1948b0a, b2862040, b60334d2,
+//! b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d364b489, d37a1ef5, d406998b, d5d6de2d,
+//! dc433765, ded97339, e0fb7511, e133d23d, e7dd8335, e872b94a, e9c9d9a1, ef135b50, f0df5ff0, f45f5ca7,
 //! 
-//! This partially solves 2 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
-//! 794b24be, da2b0fe3
+//! This partially solves 6 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
+//! 239be575, 27a28665, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
@@ -39,7 +39,7 @@
 //! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize, ImageReplaceColor};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -59,6 +59,9 @@ use rayon::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 static WRITE_TO_HTMLLOG: bool = false;
+
+/// The colors 0..9 with an extra `color 10` for the `outside` canvas area.
+const COUNT_COLORS_PLUS1: u8 = 11;
 
 #[derive(Clone, Debug, Serialize)]
 struct Record {
@@ -109,16 +112,16 @@ impl Record {
     }
 
     fn serialize_color_complex(&mut self, color: u8, offset: f64) {
-        self.serialize_complex_scaled(color as u16, 10, offset, 1.0)
+        self.serialize_complex_scaled(color as u16, COUNT_COLORS_PLUS1 as u16, offset, 1.0)
     }
 
     #[allow(dead_code)]
-    fn serialize_cluster_id(&mut self, color: u8, cluster_id: u8) {
+    fn serialize_cluster_id(&mut self, color: u8, cluster_id: u8, offset: f64) {
         let mut value: u16 = u16::MAX;
         if cluster_id < 41 && color < 10 {
             value = (cluster_id as u16) * 10 + (color as u16);
         }
-        self.serialize_complex(value, 410);
+        self.serialize_complex_scaled(value, 410, offset, 1.0);
     }
 
     /// Set the counter to 1 that are equal to the value.
@@ -215,6 +218,64 @@ impl Record {
     }
 }
 
+#[derive(Clone, Debug)]
+enum ProcessTaskMode {
+    InputOutputSameSize,
+    InputOutputDifferentSize,
+}
+
+#[derive(Clone, Debug)]
+pub struct ProcessTaskContext {
+    mode: ProcessTaskMode,
+    input_size_vec: Vec<ImageSize>,
+    output_size_vec: Vec<ImageSize>,
+}
+
+impl ProcessTaskContext {
+    pub fn new(task: &Task) -> Self {
+        let mode: ProcessTaskMode = if task.is_output_size_same_as_input_size() { 
+            ProcessTaskMode::InputOutputSameSize 
+        } else { 
+            ProcessTaskMode::InputOutputDifferentSize 
+        };
+        let mut instance = Self {
+            mode,
+            input_size_vec: Vec::<ImageSize>::new(),
+            output_size_vec: Vec::<ImageSize>::new(),
+        };
+        instance.populate_input_size_vec(task);
+        instance.populate_output_size_vec(task);
+        instance
+    }
+
+    fn populate_input_size_vec(&mut self, task: &Task) {
+        self.input_size_vec.clear();
+        for pair in &task.pairs {
+            let size: ImageSize = pair.input.image.size();
+            self.input_size_vec.push(size);
+        }
+    }
+
+    fn populate_output_size_vec(&mut self, task: &Task) {
+        self.output_size_vec.clear();
+        for pair in &task.pairs {
+            match pair.pair_type {
+                PairType::Train => {
+                    let size: ImageSize = pair.output.image.size();
+                    self.output_size_vec.push(size);
+                },
+                PairType::Test => {
+                    let mut the_size: ImageSize = pair.output.test_image.size();
+                    if let Some(size) = pair.predicted_output_size() {
+                        the_size = size;
+                    }
+                    self.output_size_vec.push(the_size);
+                }
+            }
+        }
+    }
+}
+
 pub struct SolveLogisticRegression {
     #[allow(dead_code)]
     tasks: Vec<Task>,
@@ -281,22 +342,28 @@ impl SolveLogisticRegression {
     // }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
-        if !task.is_output_size_same_as_input_size() {
-            // if WRITE_TO_HTMLLOG {
-            //     HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
-            // }
-            return Err(anyhow::anyhow!("skipping task: {} because output size is not the same as input size", task.id));
-        }
-
         let count_test: u8 = task.count_test().min(255) as u8;
         if count_test < 1 {
             return Err(anyhow::anyhow!("skipping task: {} because it has no test pairs", task.id));
         }    
 
+        let context = ProcessTaskContext::new(task);
+
+        let task_for_processing: Task;
+        let prediction_type: arcathon_solution_coordinator::PredictionType;
+        if task.is_output_size_same_as_input_size() {
+            task_for_processing = task.clone();
+            prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionSameSize;
+        } else {
+            let task2: Task = CreateTaskWithSameSize::create(task)?;
+            task_for_processing = task2;
+            prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionDifferentSize;
+        }
+
         let mut computed_images = Vec::<Image>::new();
         for test_index in 0..count_test {
             // println!("task: {} test_index: {} before", task.id, test_index);
-            let computed_image: Image = match Self::process_task_with_one_test_pair(task, test_index) {
+            let computed_image: Image = match Self::process_task_with_one_test_pair(&context, &task_for_processing, test_index) {
                 Ok(value) => value,
                 Err(error) => {
                     // println!("task: {} test_index: {} error: {:?}", task.id, test_index, error);
@@ -314,7 +381,7 @@ impl SolveLogisticRegression {
             let prediction = arcathon_solution_coordinator::Prediction {
                 output_id: test_index.min(255) as u8,
                 output: grid,
-                prediction_type: arcathon_solution_coordinator::PredictionType::SolveLogisticRegression,
+                prediction_type,
             };
             result_predictions.push(prediction);
         }
@@ -372,12 +439,37 @@ impl SolveLogisticRegression {
         Ok(result_predictions)
     }
 
-    fn process_task_with_one_test_pair(task: &Task, test_index: u8) -> anyhow::Result<Image> {
+    fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Image> {
+        if context.input_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
+        }
+        if context.output_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
+        }
+
+        // Obtain `pair_index` from `test_index`.
+        let mut found_pair_index: Option<u8> = None;
+        for pair in &task.pairs {
+            if pair.test_index == Some(test_index) {
+                found_pair_index = Some(pair.pair_index);
+                break;
+            }
+        }
+        let pair_index: u8 = match found_pair_index {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to find pair with test_index: {}", test_index));
+            }
+        };
+
+        // Obtain the size of the output image
+        let crop_output_size: ImageSize = context.output_size_vec[pair_index as usize];
+
         let number_of_iterations: usize = 5;
         let mut computed_images = Vec::<Image>::new();
         let mut last_computed_image: Option<Image> = None;
         for iteration_index in 0..number_of_iterations {
-            let records = Self::process_task_iteration(task, iteration_index, test_index, last_computed_image)?;
+            let records = Self::process_task_iteration(context, task, iteration_index, test_index, last_computed_image)?;
             let computed_image: Image = perform_logistic_regression(task, test_index, &records)?;
             last_computed_image = Some(computed_image.clone());
             computed_images.push(computed_image);
@@ -392,7 +484,17 @@ impl SolveLogisticRegression {
                 return Err(anyhow::anyhow!("Unable to get last computed image"));
             }
         };
-        Ok(computed_image)
+
+        // Get rid of the `outside` area.
+        let mut cropped_image: Image = computed_image.crop_outside(0, 0, crop_output_size.width, crop_output_size.height, 255)?;
+
+        // Eliminate illegal colors.
+        let most_popular_output_color: u8 = 0;
+        for color in 10..=255 {
+            cropped_image = cropped_image.replace_color(color, most_popular_output_color)?;
+        }
+
+        Ok(cropped_image)
     }
 
     fn object_id_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
@@ -548,11 +650,35 @@ impl SolveLogisticRegression {
         Ok(vec![image_shape_width, image_shape_height])
     }
 
-    fn process_task_iteration(task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
+    fn process_task_iteration(context: &ProcessTaskContext, task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
 
-        // let obfuscated_color_offset: f64 = 0.2;
-        let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
+        if context.input_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.input_size_vec.len() != task.pairs.len()"));
+        }
+        if context.output_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
+        }
+
+        let one_eleventh: f64 = 1.0 / 11.0;
+        let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * one_eleventh + 0.2) % 1.0;
+        let obfuscated_cluster_offset: f64 = 0.2;
+
+        // When input_size == output_size then the parameters only needs to be serialized once.
+        // When the input_size != output_size, then serialize parameters for input and serialize parameters for output.
+        let has_different_size_for_input_output = match context.mode {
+            ProcessTaskMode::InputOutputSameSize => false,
+            ProcessTaskMode::InputOutputDifferentSize => true,
+        };
+        
+        let enable_total_clustercount: bool = has_different_size_for_input_output;
+        let enable_color_clustercount: bool = has_different_size_for_input_output;
+        let enable_half_context_output_size: bool = has_different_size_for_input_output;
+        let enable_normalized_coordinates_context_input_size: bool = has_different_size_for_input_output;
+        let enable_normalized_coordinates_context_output_size: bool = has_different_size_for_input_output;
+        let enable_output_orientation: bool = has_different_size_for_input_output;
+        let enable_coordinates_xy: bool = has_different_size_for_input_output;
+        let enable_is_outside: bool = has_different_size_for_input_output;
 
         let enable_histogram_diagonal_a: bool = false;
         let enable_histogram_diagonal_b: bool = false;
@@ -562,9 +688,9 @@ impl SolveLogisticRegression {
         let enable_histogram_diagonal_f: bool = false;
         let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
 
-        let enable_center_indicator_a: bool = false;
-        let enable_center_indicator_x: bool = false;
-        let enable_center_indicator_y: bool = false;
+        let enable_center_indicator_a: bool = has_different_size_for_input_output;
+        let enable_center_indicator_x: bool = has_different_size_for_input_output;
+        let enable_center_indicator_y: bool = has_different_size_for_input_output;
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         let enable_mod2: bool = process_task_iteration_index % 2 == 0;
@@ -600,6 +726,26 @@ impl SolveLogisticRegression {
         //     }
         // }
 
+        // Generate a random image when there is no computed image.
+        // let computed_image2: Image;
+        // if let Some(computed_image) = computed_image {
+        //     computed_image2 = computed_image;
+        // } else {
+        //     let mut size: ImageSize = ImageSize::empty();
+        //     for pair in &task.pairs {
+        //         if pair.pair_type == PairType::Test {
+        //             if pair.test_index == Some(test_index) {
+        //                 size = pair.input.image.size();
+        //                 break;
+        //             }
+        //         }
+        //     }
+        //     let random_seed: u64 = process_task_iteration_index as u64;
+        //     let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
+        //     let image: Image = RandomImage::uniform_colors(&mut rng, size, 9)?;
+        //     computed_image2 = image;
+        // }
+
         let mut earlier_prediction_image_vec = Vec::<Image>::new();
         if let Some(computed_image) = computed_image {
             let random_seed: u64 = process_task_iteration_index as u64;
@@ -618,7 +764,7 @@ impl SolveLogisticRegression {
                     let mut semi_useful_output_image = pair.output.image.clone_zero();
                     for y in 0..size.height {
                         for x in 0..size.width {
-                            let strategy_value: &u8 = &strategy_vec.choose_weighted(&mut rng, |item| item.1).unwrap().0;
+                            let strategy_value: u8 = strategy_vec.choose_weighted(&mut rng, |item| item.1).unwrap().0;
                             let _noise_value: u8 = rng.gen_range(0..=255).max(255) as u8;
                             let noise_value: u8 = 255;
 
@@ -661,18 +807,18 @@ impl SolveLogisticRegression {
             }
         }
 
-        let mut input_histogram_intersection: [bool; 10] = [false; 10];
-        for color in 0..=9u8 {
+        let mut input_histogram_intersection: [bool; COUNT_COLORS_PLUS1 as usize] = [false; COUNT_COLORS_PLUS1 as usize];
+        for color in 0..COUNT_COLORS_PLUS1 {
             if task.input_histogram_intersection.get(color) > 0 {
                 input_histogram_intersection[color as usize] = true;
             }
         }
 
-        let mut no_change_to_color: [bool; 10] = [false; 10];
+        let mut no_change_to_color: [bool; COUNT_COLORS_PLUS1 as usize] = [false; COUNT_COLORS_PLUS1 as usize];
         for label in &task.action_label_set_intersection {
             match label {
                 ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
-                    if *color < 10 {
+                    if *color < COUNT_COLORS_PLUS1 {
                         no_change_to_color[*color as usize] = true;
                     }
                 },
@@ -723,6 +869,9 @@ impl SolveLogisticRegression {
 
             let width: u8 = original_input.width().max(original_output.width()).min(253);
             let height: u8 = original_input.height().max(original_output.height()).min(253);
+
+            let context_input_size: ImageSize = context.input_size_vec[pair_index];
+            let context_output_size: ImageSize = context.output_size_vec[pair_index];
 
             let background: Image = Image::color(width, height, 10);
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
@@ -859,7 +1008,7 @@ impl SolveLogisticRegression {
                     ImageNeighbourDirection::DownRight,
                 ];
                 for direction in directions {
-                    for color in 0..=9 {
+                    for color in 0..COUNT_COLORS_PLUS1 {
                         let ignore_mask: Image = input.to_mask_where_color_is(color);
                         match input.neighbour_color(&ignore_mask, direction, 255) {
                             Ok(image) => {
@@ -875,7 +1024,7 @@ impl SolveLogisticRegression {
             if let Some(sco) = &pair.input.image_meta.single_color_object {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
-                    for color in 0..=9 {
+                    for color in 0..COUNT_COLORS_PLUS1 {
                         match sco.enumerate_clusters(color, connectivity) {
                             Ok(image) => {
                                 enumerated_clusters.insert((color, connectivity), image);
@@ -890,7 +1039,7 @@ impl SolveLogisticRegression {
             if let Some(sco) = &pair.input.image_meta.single_color_object {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
-                    for color in 0..=9 {
+                    for color in 0..COUNT_COLORS_PLUS1 {
                         match sco.filled_holes_mask(color, connectivity) {
                             Ok(image) => {
                                 enumerated_clusters_filled_holes_mask.insert((color, connectivity), image);
@@ -947,7 +1096,7 @@ impl SolveLogisticRegression {
             {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in &connectivity_vec {
-                    for color in 0..=9 {
+                    for color in 0..COUNT_COLORS_PLUS1 {
                         let mask: Image = input.to_mask_where_color_is(color);
                         match mask.mask_grow(*connectivity) {
                             Ok(image) => {
@@ -1027,7 +1176,7 @@ impl SolveLogisticRegression {
             }
 
             let mut cluster_distance1 = HashMap::<(u8, PixelConnectivity), Image>::new();
-            for color in 0..=9u8 {
+            for color in 0..COUNT_COLORS_PLUS1 {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
                     let image: Image = input.to_mask_where_color_is_different(color);
@@ -1039,7 +1188,7 @@ impl SolveLogisticRegression {
                 }
             }
             let mut cluster_distance2 = HashMap::<(u8, PixelConnectivity), Image>::new();
-            for color in 0..=9u8 {
+            for color in 0..COUNT_COLORS_PLUS1 {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
                     let image: Image = input.to_mask_where_color_is(color);
@@ -1052,7 +1201,7 @@ impl SolveLogisticRegression {
             }
             let mut cluster_distance3 = HashMap::<(u8, PixelConnectivity), Image>::new();
             let mut cluster_distance4 = HashMap::<(u8, PixelConnectivity), Image>::new();
-            for color in 0..=9u8 {
+            for color in 0..COUNT_COLORS_PLUS1 {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
                     // let image: Image = input.to_mask_where_color_is_different(color);
@@ -1104,7 +1253,7 @@ impl SolveLogisticRegression {
 
             let mut color_to_linespan_images = HashMap::<u8, Vec::<Image>>::new();
             {
-                for color in 0..=9u8 {
+                for color in 0..COUNT_COLORS_PLUS1 {
 
                     let mut images = Vec::<Image>::new();
                     {
@@ -1254,7 +1403,7 @@ impl SolveLogisticRegression {
             if let Some(sco) = &pair.input.image_meta.single_color_object {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
-                    for color in 0..=9 {
+                    for color in 0..COUNT_COLORS_PLUS1 {
                         match sco.squares(color, connectivity) {
                             Ok(image) => {
                                 squares.insert((color, connectivity), image);
@@ -1284,7 +1433,7 @@ impl SolveLogisticRegression {
             if let Some(sco) = &pair.input.image_meta.single_color_object {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
-                    for color in 0..=9 {
+                    for color in 0..COUNT_COLORS_PLUS1 {
                         match sco.rectangles(color, connectivity) {
                             Ok(image) => {
                                 rectangles.insert((color, connectivity), image);
@@ -1299,7 +1448,7 @@ impl SolveLogisticRegression {
             if let Some(sco) = &pair.input.image_meta.single_color_object {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
-                    for color in 0..=9 {
+                    for color in 0..COUNT_COLORS_PLUS1 {
                         match sco.boxes(color, connectivity) {
                             Ok(image) => {
                                 boxes.insert((color, connectivity), image);
@@ -1314,7 +1463,7 @@ impl SolveLogisticRegression {
             if let Some(sco) = &pair.input.image_meta.single_color_object {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
-                    for color in 0..=9 {
+                    for color in 0..COUNT_COLORS_PLUS1 {
                         match sco.lines(color, connectivity) {
                             Ok(image) => {
                                 lines.insert((color, connectivity), image);
@@ -1432,7 +1581,7 @@ impl SolveLogisticRegression {
             let mut holes_connectivity4 = HashMap::<u8, Image>::new();
             let mut holes_connectivity8 = HashMap::<u8, Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                for color in 0..=9 {
+                for color in 0..COUNT_COLORS_PLUS1 {
                     let image: Image = match sco.holes_mask(color, PixelConnectivity::Connectivity4) {
                         Ok(value) => value,
                         Err(_) => {
@@ -1441,7 +1590,7 @@ impl SolveLogisticRegression {
                     };
                     holes_connectivity4.insert(color, image);
                 }
-                for color in 0..=9 {
+                for color in 0..COUNT_COLORS_PLUS1 {
                     let image: Image = match sco.holes_mask(color, PixelConnectivity::Connectivity8) {
                         Ok(value) => value,
                         Err(_) => {
@@ -1466,7 +1615,7 @@ impl SolveLogisticRegression {
             let mut holecount_connectivity4 = HashMap::<u8, Image>::new();
             let mut holecount_connectivity8 = HashMap::<u8, Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                for color in 0..=9 {
+                for color in 0..COUNT_COLORS_PLUS1 {
                     let image: Image = match sco.holecount_image(color, PixelConnectivity::Connectivity4) {
                         Ok(value) => value,
                         Err(_) => {
@@ -1475,7 +1624,7 @@ impl SolveLogisticRegression {
                     };
                     holecount_connectivity4.insert(color, image);
                 }
-                for color in 0..=9 {
+                for color in 0..COUNT_COLORS_PLUS1 {
                     let image: Image = match sco.holecount_image(color, PixelConnectivity::Connectivity8) {
                         Ok(value) => value,
                         Err(_) => {
@@ -1538,7 +1687,7 @@ impl SolveLogisticRegression {
             // let mut outline2_connectivity4 = HashMap::<u8, Image>::new();
             // let mut outline2_connectivity8 = HashMap::<u8, Image>::new();
             {
-                for color in 0..=9 {
+                for color in 0..COUNT_COLORS_PLUS1 {
                     let mask: Image = pair.input.image.to_mask_where_color_is(color);
                     let maskgrow1: Image = mask.mask_grow(PixelConnectivity::Connectivity4)?;
                     // let maskgrow2: Image = maskgrow1.mask_grow(PixelConnectivity::Connectivity4)?;
@@ -1547,7 +1696,7 @@ impl SolveLogisticRegression {
                     outline1_connectivity4.insert(color, outline1);
                     // outline2_connectivity4.insert(color, outline2);
                 }
-                for color in 0..=9 {
+                for color in 0..COUNT_COLORS_PLUS1 {
                     let mask: Image = pair.input.image.to_mask_where_color_is(color);
                     let maskgrow1: Image = mask.mask_grow(PixelConnectivity::Connectivity8)?;
                     // let maskgrow2: Image = maskgrow1.mask_grow(PixelConnectivity::Connectivity8)?;
@@ -1559,14 +1708,15 @@ impl SolveLogisticRegression {
             }
 
             let mut color_to_hole_type1 = HashMap::<u8, Image>::new();
-            for color in 0..=9 {
+            for color in 0..COUNT_COLORS_PLUS1 {
                 let input_padded: Image = input.padding_advanced(0, 0, 1, 1, 255)?;
+                // 2x2 convolution, possible displacing x and y by 1 pixel.
                 let image: Image = input_padded.detect_hole_type1(color)?;
                 color_to_hole_type1.insert(color, image);
             }
 
             let mut color_to_repair = HashMap::<u8, Image>::new();
-            for color in 0..=9 {
+            for color in 0..COUNT_COLORS_PLUS1 {
                 let image: Image = input.repair_pattern_with_color(color)?;
                 color_to_repair.insert(color, image);
             }
@@ -1654,12 +1804,21 @@ impl SolveLogisticRegression {
             _ = earlier_prediction_mass_connectivity8;
 
             let input_orientation: i8;
-            if width > height {
+            if context_input_size.width > context_input_size.height {
                 input_orientation = 1;
-            } else if width < height {
+            } else if context_input_size.width < context_input_size.height {
                 input_orientation = -1;
             } else {
                 input_orientation = 0;
+            }
+
+            let output_orientation: i8;
+            if context_output_size.width > context_output_size.height {
+                output_orientation = 1;
+            } else if context_output_size.width < context_output_size.height {
+                output_orientation = -1;
+            } else {
+                output_orientation = 0;
             }
 
             let number_of_shape3x3ids: u8 = Shape3x3::instance().number_of_shapes();
@@ -1674,9 +1833,58 @@ impl SolveLogisticRegression {
                 center_indicator_y = input.clone_zero();
             }
 
+            let mut total_clustercount_connectivity4: usize = 0;
+            let mut total_clustercount_connectivity8: usize = 0;
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                total_clustercount_connectivity4 += sco.rectangle_vec.len();
+                total_clustercount_connectivity8 += sco.rectangle_vec.len();
+                for object in &sco.sparse_vec {
+                    if let Some(container) = &object.container4 {
+                        total_clustercount_connectivity4 += container.cluster_vec.len();
+                    }
+                    if let Some(container) = &object.container8 {
+                        total_clustercount_connectivity8 += container.cluster_vec.len();
+                    }
+                }
+            }
+
+            let mut color_clustercount_connectivity4 = HashMap::<u8, u8>::new();
+            let mut color_clustercount_connectivity8 = HashMap::<u8, u8>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                for color in 0..COUNT_COLORS_PLUS1 {
+                    let mut count4: usize = 0;
+                    let mut count8: usize = 0;
+                    for rect in &sco.rectangle_vec {
+                        if rect.color == color {
+                            count4 += 1;
+                            count8 += 1;
+                        }
+                    }
+                    for object in &sco.sparse_vec {
+                        if object.color != color {
+                            continue;
+                        }
+                        if let Some(container) = &object.container4 {
+                            count4 += container.cluster_vec.len();
+                        }
+                        if let Some(container) = &object.container8 {
+                            count8 += container.cluster_vec.len();
+                        }
+                    }
+
+                    let count4_u8: u8 = count4.min(255) as u8;
+                    color_clustercount_connectivity4.insert(color, count4_u8);
+
+                    let count8_u8: u8 = count8.min(255) as u8;
+                    color_clustercount_connectivity8.insert(color, count8_u8);
+                }
+            }
+
+
             for y in 0..height {
                 let yy: i32 = y as i32;
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
+                let context_input_y_reverse: i32 = (context_input_size.height as i32) - 1 - yy;
 
                 // let area_top: Image = if y > 2 {
                 //     input.top_rows(y - 1)?
@@ -1708,6 +1916,7 @@ impl SolveLogisticRegression {
                 for x in 0..width {
                     let xx: i32 = x as i32;
                     let x_reverse: u8 = ((width as i32) - 1 - xx).max(0) as u8;
+                    let context_input_x_reverse: i32 = (context_input_size.width as i32) - 1 - xx;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
                     let mut record = Record {
@@ -1716,6 +1925,23 @@ impl SolveLogisticRegression {
                         pair_id,
                         values: vec!(),
                     };
+
+                    if enable_total_clustercount {
+                        record.serialize_u8(total_clustercount_connectivity4.min(255) as u8);
+                        record.serialize_u8(total_clustercount_connectivity8.min(255) as u8);
+                    }
+
+                    if enable_color_clustercount {
+                        for color in 0..COUNT_COLORS_PLUS1 {
+                            let count: u8 = *color_clustercount_connectivity4.get(&color).unwrap_or(&0);
+                            record.serialize_u8(count);
+                        }
+                        for color in 0..COUNT_COLORS_PLUS1 {
+                            let count: u8 = *color_clustercount_connectivity8.get(&color).unwrap_or(&0);
+                            record.serialize_u8(count);
+                        }
+                    }
+
 
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
@@ -1858,13 +2084,13 @@ impl SolveLogisticRegression {
                     // let nonbackground_area3x3: Image = non_background_mask.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
 
                     let image_top: u8 = input.get(xx, 0).unwrap_or(255);
-                    let image_bottom: u8 = input.get(xx, original_input.height() as i32 - 1).unwrap_or(255);
+                    let image_bottom: u8 = input.get(xx, context_input_size.height as i32 - 1).unwrap_or(255);
                     let image_left: u8 = input.get(0, yy).unwrap_or(255);
-                    let image_right: u8 = input.get(original_input.width() as i32 - 1, yy).unwrap_or(255);
+                    let image_right: u8 = input.get(context_input_size.width as i32 - 1, yy).unwrap_or(255);
 
-                    let center_x_reversed: u8 = input.get(x_reverse as i32, yy).unwrap_or(255);
-                    let center_y_reversed: u8 = input.get(xx, y_reverse as i32).unwrap_or(255);
-                    let center_xy_reversed: u8 = input.get(x_reverse as i32, y_reverse as i32).unwrap_or(255);
+                    let center_x_reversed: u8 = input.get(context_input_x_reverse as i32, yy).unwrap_or(255);
+                    let center_y_reversed: u8 = input.get(xx, context_input_y_reverse as i32).unwrap_or(255);
+                    let center_xy_reversed: u8 = input.get(context_input_x_reverse as i32, context_input_y_reverse as i32).unwrap_or(255);
                     _ = center_xy_reversed;
                     
                     let center_denoise_type1: u8 = input_denoise_type1.get(xx, yy).unwrap_or(255);
@@ -1877,9 +2103,14 @@ impl SolveLogisticRegression {
                     // let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
                     // let enumerated_object: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
 
-                    let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
-                    let grid_center: u8 = if grid_mask_center > 0 { grid_color } else { 255 };
-                    let is_grid: bool = grid_mask_center > 0;
+                    {
+                        let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
+                        let grid_center: u8 = if grid_mask_center > 0 { grid_color } else { 255 };
+                        let is_grid: bool = grid_mask_center > 0;
+                        record.serialize_bool_onehot(is_grid);
+                        record.serialize_color_complex(grid_center, obfuscated_color_offset);
+                        record.serialize_color_complex(grid_color, obfuscated_color_offset);
+                    }
 
                     // let repair_center: u8 = repair_mask.get(xx, yy).unwrap_or(255);
 
@@ -1892,12 +2123,18 @@ impl SolveLogisticRegression {
                     // let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
                     // let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
 
+                    // {
+                    //     record.serialize_bool_onehot(neighbour_up == center);
+                    //     record.serialize_bool_onehot(neighbour_down == center);
+                    //     record.serialize_bool_onehot(neighbour_left == center);
+                    //     record.serialize_bool_onehot(neighbour_right == center);
+                    // }
+
                     let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
-                    let corners_center1: bool = corners_center == 1;
-                    let corners_center2: bool = corners_center == 2;
-                    let corners_center3: bool = corners_center == 3;
-                    let corners_center4: bool = corners_center == 4;
-                    // let corners_center5: bool = corners_center >= 3;
+                    record.serialize_bool(corners_center == 1);
+                    record.serialize_bool(corners_center == 2);
+                    record.serialize_bool(corners_center == 3);
+                    record.serialize_bool(corners_center == 4);
 
                     // let column_above_center: Image = match input.crop(Rectangle::new(x, 0, 1, y)) {
                     //     Ok(value) => value,
@@ -1915,11 +2152,11 @@ impl SolveLogisticRegression {
                     //     Ok(value) => value,
                     //     Err(_) => Image::empty()
                     // };
-                    let center_column: Image = match input.crop(Rectangle::new(x, 0, 1, height)) {
+                    let center_column: Image = match input.crop(Rectangle::new(x, 0, 1, context_input_size.height)) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row: Image = match input.crop(Rectangle::new(0, y, width, 1)) {
+                    let center_row: Image = match input.crop(Rectangle::new(0, y, context_input_size.width, 1)) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -1927,7 +2164,7 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_column_bottom: Image = match center_column.bottom_rows(y_reverse) {
+                    let center_column_bottom: Image = match center_column.bottom_rows(context_input_y_reverse.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -1935,7 +2172,14 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row_right: Image = match center_row.right_columns(y_reverse) {
+                    // let center_row_right_x: i32 = if has_different_size_for_input_output { 
+                    //     context_input_x_reverse
+                    // } else { 
+                    //     // This is an old typo. Where I by mistake use the Y coordinate for the X coordinate.
+                    //     // Fixing the typo, and the number of tasks solved drops by 3 tasks.
+                    //     context_input_y_reverse 
+                    // };
+                    let center_row_right: Image = match center_row.right_columns(context_input_x_reverse.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -1966,13 +2210,17 @@ impl SolveLogisticRegression {
                 
                     let x_mod2: u8 = x % 2;
                     let y_mod2: u8 = y % 2;
-                    let x_reverse_mod2: u8 = x_reverse % 2;
-                    let y_reverse_mod2: u8 = y_reverse % 2;
+                    // let x_reverse_mod2: u8 = x_reverse % 2;
+                    // let y_reverse_mod2: u8 = y_reverse % 2;
+                    let x_reverse_mod2: u8 = ((context_input_x_reverse % 2) % 2) as u8;
+                    let y_reverse_mod2: u8 = ((context_input_y_reverse % 2) % 2) as u8;
 
                     let x_mod3: u8 = x % 3;
                     let y_mod3: u8 = y % 3;
-                    let x_reverse_mod3: u8 = x_reverse % 3;
-                    let y_reverse_mod3: u8 = y_reverse % 3;
+                    // let x_reverse_mod3: u8 = x_reverse % 3;
+                    // let y_reverse_mod3: u8 = y_reverse % 3;
+                    let x_reverse_mod3: u8 = ((context_input_x_reverse % 3) % 3) as u8;
+                    let y_reverse_mod3: u8 = ((context_input_y_reverse % 3) % 3) as u8;
                     _ = x_mod3;
                     _ = y_mod3;
                     _ = x_reverse_mod3;
@@ -2588,25 +2836,53 @@ impl SolveLogisticRegression {
                     }
                     _ = inside_bounding_box;
 
-                    let half_horizontal: i8;
-                    if xx * 2 == width as i32 { 
-                        half_horizontal = 0;
-                    } else {
-                        if xx * 2 < width as i32 { 
-                            half_horizontal = -1;
-                        } else { 
-                            half_horizontal = 1;
-                        };
+                    {
+                        let half_horizontal: i8;
+                        if xx * 2 == context_input_size.width as i32 { 
+                            half_horizontal = 0;
+                        } else {
+                            if xx * 2 < context_input_size.width as i32 { 
+                                half_horizontal = -1;
+                            } else { 
+                                half_horizontal = 1;
+                            };
+                        }
+                        let half_vertical: i8;
+                        if yy * 2 == context_input_size.height as i32 { 
+                            half_vertical = 0;
+                        } else {
+                            if yy * 2 < context_input_size.height as i32 { 
+                                half_vertical = -1;
+                            } else { 
+                                half_vertical = 1;
+                            };
+                        }
+                        record.serialize_ternary(half_horizontal);
+                        record.serialize_ternary(half_vertical);
                     }
-                    let half_vertical: i8;
-                    if yy * 2 == height as i32 { 
-                        half_vertical = 0;
-                    } else {
-                        if yy * 2 < height as i32 { 
-                            half_vertical = -1;
-                        } else { 
-                            half_vertical = 1;
-                        };
+                    if enable_half_context_output_size {
+                        let half_horizontal: i8;
+                        if xx * 2 == context_output_size.width as i32 { 
+                            half_horizontal = 0;
+                        } else {
+                            if xx * 2 < context_output_size.width as i32 { 
+                                half_horizontal = -1;
+                            } else { 
+                                half_horizontal = 1;
+                            };
+                        }
+                        let half_vertical: i8;
+                        if yy * 2 == context_output_size.height as i32 { 
+                            half_vertical = 0;
+                        } else {
+                            if yy * 2 < context_output_size.height as i32 { 
+                                half_vertical = -1;
+                            } else { 
+                                half_vertical = 1;
+                            };
+                        }
+                        record.serialize_ternary(half_horizontal);
+                        record.serialize_ternary(half_vertical);
                     }
 
                     let input_has_unambiguous_connectivity: bool = input_unambiguous_connectivity_histogram.get(center) > 0;
@@ -2676,12 +2952,13 @@ impl SolveLogisticRegression {
                     // record.serialize_onehot_discard_overflow(mass_connectivity4, 40);
                     // record.serialize_onehot_discard_overflow(mass_connectivity8, 40);
                     record.serialize_ternary(input_orientation);
+                    if enable_output_orientation {
+                        record.serialize_ternary(output_orientation);
+                    }
                     // record.serialize_u8(distance_top);
                     // record.serialize_u8(distance_bottom);
                     // record.serialize_u8(distance_left);
                     // record.serialize_u8(distance_right);
-                    record.serialize_ternary(half_horizontal);
-                    record.serialize_ternary(half_vertical);
                     record.serialize_bool_onehot(input_is_noise_color);
                     record.serialize_bool_onehot(input_is_most_popular_color);
                     // record.serialize_bool(input_is_removal_color == 1);
@@ -2691,8 +2968,51 @@ impl SolveLogisticRegression {
                     // }
                     // record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
 
+                    if enable_normalized_coordinates_context_input_size {
+                        let fx: f64 = ((xx as f64) + 0.5) / (context_input_size.width.max(1) as f64);
+                        record.serialize_f64(fx);
+                        let fy: f64 = ((yy as f64) + 0.5) / (context_input_size.height.max(1) as f64);
+                        record.serialize_f64(fy);
+                    }
+                    if enable_normalized_coordinates_context_output_size {
+                        let fx: f64 = ((xx as f64) + 0.5) / (context_output_size.width.max(1) as f64);
+                        record.serialize_f64(fx);
+                        let fy: f64 = ((yy as f64) + 0.5) / (context_output_size.height.max(1) as f64);
+                        record.serialize_f64(fy);
+                    }
+
+                    if enable_coordinates_xy {
+                        record.serialize_u8(x);
+                        record.serialize_u8(y);
+                    }
                     // record.serialize_u8(x + 2);
                     // record.serialize_u8(y + 2);
+                    // record.serialize_u8(255 - x);
+                    // record.serialize_u8(255 - y);
+                    // record.serialize_f64(((x + 2) as f64) * ((x + 2) as f64));
+                    // record.serialize_f64(((y + 2) as f64) * ((y + 2) as f64));
+
+                    // record.serialize_f64(((y as usize) * (width as usize) + (x as usize)) as f64);
+                    // record.serialize_f64(((y as usize) + (y as usize) + (width as usize) + (height as usize)) as f64);
+                    // record.serialize_f64(((y as usize) * (y as usize) * (width as usize) * (height as usize)) as f64);
+                    // record.serialize_f64(context_input_x_reverse as f64);
+                    // record.serialize_f64(context_input_y_reverse as f64);
+
+                    if enable_is_outside {
+                        {
+                            let is_outside: bool = x >= context_input_size.width || y >= context_input_size.height;
+                            record.serialize_bool_onehot(is_outside);
+                        }
+                        {
+                            let is_outside: bool = x >= context_output_size.width || y >= context_output_size.height;
+                            record.serialize_bool_onehot(is_outside);
+                        }
+                    }
+                    // record.serialize_bool_onehot(x >= context_input_size.width);
+                    // record.serialize_bool_onehot(y >= context_input_size.height);
+
+                    // record.serialize_u8(x_reverse);
+                    // record.serialize_u8(y_reverse);
                     // record.serialize_u8(x_reverse + 2);
                     // record.serialize_u8(y_reverse + 2);
                     // record.serialize_onehot_discard_overflow(x, 30);
@@ -2751,6 +3071,8 @@ impl SolveLogisticRegression {
                     record.serialize_bool(full_row_and_column);
                     record.serialize_bool(full_row_xor_column);
                     record.serialize_bool(full_row_or_column);
+                    // record.serialize_bool(is_full_row);
+                    // record.serialize_bool(is_full_column);
                     record.serialize_bool(one_or_more_holes_connectivity4);
                     record.serialize_bool(one_or_more_holes_connectivity8);
                     record.serialize_color_complex(the_holecount_connectivity4, obfuscated_color_offset);
@@ -2761,21 +3083,25 @@ impl SolveLogisticRegression {
                     record.serialize_onehot_discard_overflow(the_holecount_connectivity8, 2);
                     // record.serialize_onehot_discard_overflow(the_holecount_connectivity4.min(9), 10);
                     // record.serialize_onehot_discard_overflow(the_holecount_connectivity8.min(9), 10);
-                    record.serialize_bool(corners_center1);
-                    record.serialize_bool(corners_center2);
-                    record.serialize_bool(corners_center3);
-                    record.serialize_bool(corners_center4);
-                    // record.serialize_bool_onehot(corners_center5);
-                    for i in 0..10 {
+                    // for i in 0..10 {
                         // let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
                         // record.serialize_u8(value);
-                        let value2: u8 = if no_change_to_color[i] { i as u8 } else { 255 };
-                        record.serialize_color_complex(value2, obfuscated_color_offset);
+                        // let value2: u8 = if no_change_to_color[i] { i as u8 } else { 255 };
+                        // record.serialize_color_complex(value2, obfuscated_color_offset);
+                    // }
+                    {
+                        // record.serialize_bool(no_change_to_color[(center % 10) as usize]);
+
+                        let mut value: bool = false;
+                        if let Some(color) = noise_color {
+                            value = no_change_to_color[(color % 10) as usize];
+                        }
+                        record.serialize_bool(value);
                     }
-                    for i in 0..10 {
+                    for i in 0..COUNT_COLORS_PLUS1 {
                         // let value: u8 = if input_histogram_intersection[i] { 1 } else { 0 };
                         // record.serialize_u8(value);
-                        let value2: u8 = if input_histogram_intersection[i] { i as u8 } else { 255 };
+                        let value2: u8 = if input_histogram_intersection[i as usize] { i as u8 } else { 255 };
                         record.serialize_color_complex(value2, obfuscated_color_offset);
                     }
                     record.serialize_bool_onehot(input_has_unambiguous_connectivity);
@@ -2918,7 +3244,7 @@ impl SolveLogisticRegression {
                         // record.serialize_bool_onehot(count > 0);
                         // record.serialize_f64(count as f64);
                         // record.serialize(histogram_columns.num, count)
-                        for color in 0..=9u8 {
+                        for color in 0..COUNT_COLORS_PLUS1 {
                             record.serialize_bool(histogram_columns[x as usize].get(color) > 0);
                         }
 
@@ -2962,7 +3288,7 @@ impl SolveLogisticRegression {
                         // record.serialize_bool_onehot(count > 0);
                         // record.serialize_f64(count as f64);
                         // record.serialize(histogram_columns.num, count)
-                        for color in 0..=9u8 {
+                        for color in 0..COUNT_COLORS_PLUS1 {
                             record.serialize_bool(histogram_rows[y as usize].get(color) > 0);
                         }
 
@@ -3004,7 +3330,7 @@ impl SolveLogisticRegression {
                     if enable_histogram_diagonal {
                         if let (Some(histogram_diagonal_a), Some(histogram_diagonal_b)) = (&histogram_diagonal_a, &histogram_diagonal_b) {
                             if enable_histogram_diagonal_a {
-                                for color in 0..=9u8 {
+                                for color in 0..COUNT_COLORS_PLUS1 {
                                     let mut found = false;
                                     if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
                                         if histogram.get(color) > 0 {
@@ -3013,7 +3339,7 @@ impl SolveLogisticRegression {
                                     }
                                     record.serialize_bool_onehot(found);
                                 }
-                                for color in 0..=9u8 {
+                                for color in 0..COUNT_COLORS_PLUS1 {
                                     let mut found = false;
                                     if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
                                         if histogram.get(color) > 0 {
@@ -3025,7 +3351,7 @@ impl SolveLogisticRegression {
                             }
 
                             if enable_histogram_diagonal_b {
-                                for color in 0..=9u8 {
+                                for color in 0..COUNT_COLORS_PLUS1 {
                                     let mut count: u32 = 0;
                                     if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
                                         count = histogram.get(color);
@@ -3033,7 +3359,7 @@ impl SolveLogisticRegression {
                                     let limit: u32 = if color == center { 1 } else { 0 };
                                     record.serialize_bool_onehot(count > limit);
                                 }
-                                for color in 0..=9u8 {
+                                for color in 0..COUNT_COLORS_PLUS1 {
                                     let mut count: u32 = 0;
                                     if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
                                         count = histogram.get(color);
@@ -3069,7 +3395,7 @@ impl SolveLogisticRegression {
                             }
 
                             if enable_histogram_diagonal_d {
-                                for color in 0..=9u8 {
+                                for color in 0..COUNT_COLORS_PLUS1 {
                                     let mut mass : u8 = 0;
                                     if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
                                         mass = histogram.get(color).min(255) as u8;
@@ -3077,7 +3403,7 @@ impl SolveLogisticRegression {
                                     record.serialize_onehot(mass, 4);
                                     // record.serialize_u8(mass);
                                 }
-                                for color in 0..=9u8 {
+                                for color in 0..COUNT_COLORS_PLUS1 {
                                     let mut mass : u8 = 0;
                                     if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
                                         mass = histogram.get(color).min(255) as u8;
@@ -3097,7 +3423,7 @@ impl SolveLogisticRegression {
                                         is_min = count == histogram_diagonal_a.min_number_of_unique_colors();
                                         is_max = count == histogram_diagonal_a.max_number_of_unique_colors();
                                     }
-                                    record.serialize_onehot(count.min(255) as u8, 10);
+                                    record.serialize_onehot(count.min(255) as u8, COUNT_COLORS_PLUS1);
                                     record.serialize_bool_onehot(is_max);
                                     record.serialize_bool_onehot(is_min);
                                     record.serialize_bool_onehot(is_max == false && is_min == false);
@@ -3111,7 +3437,7 @@ impl SolveLogisticRegression {
                                         is_min = count == histogram_diagonal_b.min_number_of_unique_colors();
                                         is_max = count == histogram_diagonal_b.max_number_of_unique_colors();
                                     }
-                                    record.serialize_onehot(count.min(255) as u8, 10);
+                                    record.serialize_onehot(count.min(255) as u8, COUNT_COLORS_PLUS1);
                                     record.serialize_bool_onehot(is_max);
                                     record.serialize_bool_onehot(is_min);
                                     record.serialize_bool_onehot(is_max == false && is_min == false);
@@ -3205,7 +3531,7 @@ impl SolveLogisticRegression {
                         ImageNeighbourDirection::DownRight,
                     ];
                     for direction in &directions {
-                        for color in 0..=9 {
+                        for color in 0..COUNT_COLORS_PLUS1 {
                             let neighbour_color: u8 = match image_neighbour.get(&(color, *direction)) {
                                 Some(value) => {
                                     value.get(xx, yy).unwrap_or(255)
@@ -3225,20 +3551,20 @@ impl SolveLogisticRegression {
                     {
                         let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let cluster_id: u8 = match enumerated_clusters.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
                                     }
                                     None => 255
                                 };
-                                record.serialize_cluster_id(color, cluster_id);
+                                record.serialize_cluster_id(color, cluster_id, obfuscated_cluster_offset);
                                 // record.serialize_cluster_id(color, 255 - cluster_id);
                                 // record.serialize_complex(cluster_id as u16, 41);
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let small_medium_big_id: u8 = match small_medium_big.get(&(color, *connectivity)) {
                                     Some(image) => {
                                         image.get(xx, yy).unwrap_or(255)
@@ -3249,7 +3575,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let sort2_small_big_id: u8 = match sort2_small_big.get(&(color, *connectivity)) {
                                     Some(image) => {
                                         image.get(xx, yy).unwrap_or(255)
@@ -3260,7 +3586,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let mask_value: u8 = match enumerated_clusters_filled_holes_mask.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -3283,7 +3609,7 @@ impl SolveLogisticRegression {
                         //     }
                         // }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let mask_value: u8 = match enumerated_clusters_grow_mask1.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -3294,7 +3620,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let mask_value: u8 = match enumerated_clusters_grow_mask2.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -3305,7 +3631,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let mask_value: u8 = match enumerated_clusters_grow_mask3.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -3316,7 +3642,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let mask_value: u8 = match color_grow_mask1.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -3327,7 +3653,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let mask_value: u8 = match color_grow_mask2.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -3338,7 +3664,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let mask_value: u8 = match color_grow_mask3.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -3371,7 +3697,7 @@ impl SolveLogisticRegression {
                         //     }
                         // }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance1.get(&(color, *connectivity)) {
                                     Some(value) => {
@@ -3389,7 +3715,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance2.get(&(color, *connectivity)) {
                                     Some(value) => {
@@ -3407,7 +3733,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance3.get(&(color, *connectivity)) {
                                     Some(value) => {
@@ -3423,7 +3749,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 #[allow(unused_variables)]
                                 let distance: u8 = match cluster_distance4.get(&(color, *connectivity)) {
                                     Some(value) => {
@@ -3438,7 +3764,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let distance: u8 = match cluster_distance5.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(255)
@@ -3456,7 +3782,7 @@ impl SolveLogisticRegression {
                             }
                         }
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let is_square: bool = match squares.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(0) > 0
@@ -3481,7 +3807,7 @@ impl SolveLogisticRegression {
                         // }
 
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let is_rectangle: bool = match rectangles.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(0) > 0
@@ -3493,7 +3819,7 @@ impl SolveLogisticRegression {
                         }
                         
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let is_box: bool = match boxes.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(0) > 0
@@ -3505,7 +3831,7 @@ impl SolveLogisticRegression {
                         }
 
                         for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
+                            for color in 0..COUNT_COLORS_PLUS1 {
                                 let line_status: u8 = match lines.get(&(color, *connectivity)) {
                                     Some(value) => {
                                         value.get(xx, yy).unwrap_or(0)
@@ -3609,13 +3935,88 @@ impl SolveLogisticRegression {
                     // let border_histogram_count: u32 = histogram_border.get(center);
                     // record.serialize_bool_onehot(border_histogram_count > 0);
 
-                    for color in 0..=9 {
+                    for color in 0..COUNT_COLORS_PLUS1 {
                         let mut is_inside_bounding_box: bool = false;
                         if let Some(sco) = &pair.input.image_meta.single_color_object {
                             is_inside_bounding_box = sco.is_inside_bounding_box(color, xx, yy);
                         }
                         record.serialize_bool(is_inside_bounding_box);
                         // record.serialize_bool_onehot(is_inside_bounding_box)
+                    }
+
+                    {
+                        // for color in 0..=9 {
+                        //     let mut is_above: bool = false;
+                        //     let mut is_below: bool = false;
+                        //     let mut is_left: bool = false;
+                        //     let mut is_right: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             is_above = rectangle.is_above(xx, yy);
+                        //             is_below = rectangle.is_below(xx, yy);
+                        //             is_left = rectangle.is_left(xx, yy);
+                        //             is_right = rectangle.is_right(xx, yy);
+                        //         }
+                        //     }
+                        //     record.serialize_bool_onehot(is_above);
+                        //     record.serialize_bool_onehot(is_below);
+                        //     record.serialize_bool_onehot(is_left);
+                        //     record.serialize_bool_onehot(is_right);
+                        // }
+                    }
+
+                    {
+                        // for color in 0..=9 {
+                        //     let mut is_above: bool = false;
+                        //     let mut is_below: bool = false;
+                        //     let mut is_left: bool = false;
+                        //     let mut is_right: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             is_above = yy < rectangle.min_y();
+                        //             is_below = yy > rectangle.max_y();
+                        //             is_left = xx < rectangle.min_x();
+                        //             is_right = xx > rectangle.max_x();
+                        //         }
+                        //     }
+                        //     record.serialize_bool_onehot(is_above);
+                        //     record.serialize_bool_onehot(is_below);
+                        //     record.serialize_bool_onehot(is_left);
+                        //     record.serialize_bool_onehot(is_right);
+                        // }
+                        // for color in 0..=9 {
+                        //     let mut is_x_between_inclusive: bool = false;
+                        //     let mut is_y_between_inclusive: bool = false;
+                        //     let mut is_x_between_exclusive: bool = false;
+                        //     let mut is_y_between_exclusive: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             // is_x_between_inclusive = xx >= rectangle.min_x() && xx <= rectangle.max_x();
+                        //             // is_y_between_inclusive = yy >= rectangle.min_y() && yy <= rectangle.max_y();
+                        //             // is_x_between_exclusive = xx > rectangle.min_x() && xx < rectangle.max_x();
+                        //             // is_y_between_exclusive = yy > rectangle.min_y() && yy < rectangle.max_y();
+                        //             is_x_between_inclusive = xx <= rectangle.min_x() || xx >= rectangle.max_x();
+                        //             is_y_between_inclusive = yy <= rectangle.min_y() || yy >= rectangle.max_y();
+                        //             is_x_between_exclusive = xx < rectangle.min_x() || xx > rectangle.max_x();
+                        //             is_y_between_exclusive = yy < rectangle.min_y() || yy > rectangle.max_y();
+                        //         }
+                        //     }
+                        //     record.serialize_bool(is_x_between_inclusive);
+                        //     record.serialize_bool(is_y_between_inclusive);
+                        //     record.serialize_bool(is_x_between_exclusive);
+                        //     record.serialize_bool(is_y_between_exclusive);
+                        // }
+                        // for color in 0..=9 {
+                        //     let mut is_x_edge: bool = false;
+                        //     let mut is_y_edge: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             is_x_edge = xx == rectangle.min_x() || xx == rectangle.max_x();
+                        //             is_y_edge = yy == rectangle.min_y() || yy == rectangle.max_y();
+                        //         }
+                        //     }
+                        //     record.serialize_bool_onehot(is_x_edge && is_y_edge);
+                        // }
                     }
 
                     // for linespan_image in &linespan_images {
@@ -4144,6 +4545,15 @@ impl SolveLogisticRegression {
                         record.serialize_onehot(pixel, 30);
                     }
 
+                    // if let Some(image) = earlier_prediction_image {
+                    //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
+                    //     let mut value: bool = false;
+                    //     if pixel < 10 {
+                    //         value = no_change_to_color[pixel as usize];
+                    //     }
+                    //     record.serialize_bool_onehot(value);
+                    // }
+
                     {
 
                         // if let Some(image) = &earlier_prediction_image {
@@ -4210,6 +4620,7 @@ impl SolveLogisticRegression {
                         //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
                         //     record.serialize_color_complex(mass, obfuscated_color_offset);
                         //     record.serialize_u8(mass);
+                        //     record.serialize_onehot_discard_overflow(mass, 5);
                         //     record.serialize_onehot_discard_overflow(mass, 40);
                         // }
 
@@ -4217,6 +4628,7 @@ impl SolveLogisticRegression {
                         //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
                         //     record.serialize_color_complex(mass, obfuscated_color_offset);
                         //     record.serialize_u8(mass);
+                        //     record.serialize_onehot_discard_overflow(mass, 5);
                         //     record.serialize_onehot_discard_overflow(mass, 40);
                         // }
 
@@ -4226,43 +4638,30 @@ impl SolveLogisticRegression {
                             // record.serialize_bool_onehot(pixel == center);
                             // record.serialize_color_complex(pixel, obfuscated_color_offset);
 
-                            {
-                                let pixel: u8 = image.get(xx - 1, yy - 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx, yy - 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx + 1, yy - 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx - 1, yy).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
                             // {
                             //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             //     record.serialize_onehot_discard_overflow(pixel, 10);
                             //     record.serialize_bool(Some(pixel) == most_popular_color);
                             //     record.serialize_bool_onehot(pixel == center);
                             // }
-                            {
-                                let pixel: u8 = image.get(xx + 1, yy).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx - 1, yy + 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx, yy + 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx + 1, yy + 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
+
+                            // for j in 0..5 {
+                            //     for i in 0..5 {
+                            //         if j == 2 && i == 2 {
+                            //             continue;
+                            //         }
+                            //         let pixel: u8 = image.get(xx - 2 + i, yy - 2 + j).unwrap_or(255);
+                            //         record.serialize_onehot_discard_overflow(pixel, 10);
+                            //     }
+                            // }
+                            for j in 0..3 {
+                                for i in 0..3 {
+                                    if j == 1 && i == 1 {
+                                        continue;
+                                    }
+                                    let pixel: u8 = image.get(xx - 1 + i, yy - 1 + j).unwrap_or(255);
+                                    record.serialize_onehot_discard_overflow(pixel, COUNT_COLORS_PLUS1);
+                                }
                             }
                         }
                     }
@@ -4463,9 +4862,6 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(corner_top_right);
                     // record.serialize_u8(corner_bottom_left);
                     // record.serialize_u8(corner_bottom_right);
-                    record.serialize_bool_onehot(is_grid);
-                    record.serialize_color_complex(grid_center, obfuscated_color_offset);
-                    record.serialize_color_complex(grid_color, obfuscated_color_offset);
                     // record.serialize_bool(inside_bounding_box);
                     // record.serialize_complex(object_center, 20);
 

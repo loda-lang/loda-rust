@@ -151,6 +151,30 @@ impl Rectangle {
     pub fn is_inside(&self, x: i32, y: i32) -> bool {
         x >= self.min_x() && x <= self.max_x() && y >= self.min_y() && y <= self.max_y()
     }
+
+    /// Check if the coordinate is above the rectangle.
+    #[allow(dead_code)]
+    pub fn is_above(&self, x: i32, y: i32) -> bool {
+        x >= self.min_x() && x <= self.max_x() && y < self.min_y()
+    }
+
+    /// Check if the coordinate is below the rectangle.
+    #[allow(dead_code)]
+    pub fn is_below(&self, x: i32, y: i32) -> bool {
+        x >= self.min_x() && x <= self.max_x() && y > self.max_y()
+    }
+
+    /// Check if the coordinate is left of the rectangle.
+    #[allow(dead_code)]
+    pub fn is_left(&self, x: i32, y: i32) -> bool {
+        x < self.min_x() && y >= self.min_y() && y <= self.max_y()
+    }
+
+    /// Check if the coordinate is right of the rectangle.
+    #[allow(dead_code)]
+    pub fn is_right(&self, x: i32, y: i32) -> bool {
+        x > self.max_x() && y >= self.min_y() && y <= self.max_y()
+    }
 }
 
 #[cfg(test)]
@@ -364,6 +388,78 @@ mod tests {
             assert_eq!(rect.is_inside(5, 15), false);
             assert_eq!(rect.is_inside(25, 15), false);
             assert_eq!(rect.is_inside(15, 25), false);
+        }
+    }
+
+    #[test]
+    fn test_80001_is_above() {
+        {
+            let rect = Rectangle::new(5, 5, 1, 1);
+            assert_eq!(rect.is_above(5, 4), true);
+            assert_eq!(rect.is_above(4, 5), false);
+            assert_eq!(rect.is_above(5, 5), false);
+            assert_eq!(rect.is_above(6, 5), false);
+            assert_eq!(rect.is_above(6, 6), false);
+        }
+        {
+            let rect = Rectangle::new(10, 10, 3, 10);
+            assert_eq!(rect.is_above(9, 9), false);
+            assert_eq!(rect.is_above(10, 9), true);
+            assert_eq!(rect.is_above(12, 9), true);
+            assert_eq!(rect.is_above(13, 9), false);
+        }
+    }
+
+    #[test]
+    fn test_80002_is_below() {
+        {
+            let rect = Rectangle::new(5, 5, 1, 1);
+            assert_eq!(rect.is_below(4, 6), false);
+            assert_eq!(rect.is_below(5, 6), true);
+            assert_eq!(rect.is_below(6, 6), false);
+        }
+        {
+            let rect = Rectangle::new(10, 10, 3, 1);
+            assert_eq!(rect.is_below(9, 11), false);
+            assert_eq!(rect.is_below(10, 11), true);
+            assert_eq!(rect.is_below(12, 11), true);
+            assert_eq!(rect.is_below(13, 11), false);
+        }
+    }
+
+    #[test]
+    fn test_80003_is_left() {
+        {
+            let rect = Rectangle::new(5, 5, 1, 1);
+            assert_eq!(rect.is_left(4, 4), false);
+            assert_eq!(rect.is_left(4, 5), true);
+            assert_eq!(rect.is_left(5, 5), false);
+            assert_eq!(rect.is_left(4, 6), false);
+        }
+        {
+            let rect = Rectangle::new(10, 10, 1, 3);
+            assert_eq!(rect.is_left(9, 9), false);
+            assert_eq!(rect.is_left(9, 10), true);
+            assert_eq!(rect.is_left(9, 12), true);
+            assert_eq!(rect.is_left(9, 13), false);
+        }
+    }
+
+    #[test]
+    fn test_80004_is_right() {
+        {
+            let rect = Rectangle::new(5, 5, 1, 1);
+            assert_eq!(rect.is_right(6, 4), false);
+            assert_eq!(rect.is_right(6, 5), true);
+            assert_eq!(rect.is_right(5, 5), false);
+            assert_eq!(rect.is_right(6, 6), false);
+        }
+        {
+            let rect = Rectangle::new(10, 10, 1, 3);
+            assert_eq!(rect.is_right(11, 9), false);
+            assert_eq!(rect.is_right(11, 10), true);
+            assert_eq!(rect.is_right(11, 12), true);
+            assert_eq!(rect.is_right(11, 13), false);
         }
     }
 }
