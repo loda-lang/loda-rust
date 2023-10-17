@@ -1948,10 +1948,10 @@ impl SolveLogisticRegression {
             // }
 
             let gravity_background_color: u8 = most_popular_color.unwrap_or(0);
-            let gravity_up: Image = input.gravity(gravity_background_color, GravityDirection::Up).unwrap_or_else(|_| Image::empty());
-            let gravity_down: Image = input.gravity(gravity_background_color, GravityDirection::Down).unwrap_or_else(|_| Image::empty());
-            let gravity_left: Image = input.gravity(gravity_background_color, GravityDirection::Left).unwrap_or_else(|_| Image::empty());
-            let gravity_right: Image = input.gravity(gravity_background_color, GravityDirection::Right).unwrap_or_else(|_| Image::empty());
+            let gravity_up: Image = input.gravity(gravity_background_color, GravityDirection::Up)?;
+            let gravity_down: Image = input.gravity(gravity_background_color, GravityDirection::Down)?;
+            let gravity_left: Image = input.gravity(gravity_background_color, GravityDirection::Left)?;
+            let gravity_right: Image = input.gravity(gravity_background_color, GravityDirection::Right)?;
 
             for y in 0..height {
                 let yy: i32 = y as i32;
