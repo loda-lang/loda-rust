@@ -55,7 +55,7 @@ use serde::Serialize;
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use linfa::prelude::*;
-use linfa_logistic::MultiLogisticRegression;
+use linfa_logistic::{MultiLogisticRegression, MultiFittedLogisticRegression};
 use ndarray::prelude::*;
 use rayon::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -5223,15 +5223,45 @@ fn create_dataset(records: &Vec<Record>, is_test: bool) -> anyhow::Result<Datase
 }
 
 fn perform_logistic_regression(task: &Task, test_index: u8, records: &Vec<Record>) -> anyhow::Result<Image> {
+    for retry_index in 0..=3 {
+        match perform_logistic_regression_inner(task, test_index, records, retry_index) {
+            Ok(image) => return Ok(image),
+            Err(error) => {
+                let error_message = format!("{:?}", error);
+                if error_message.contains("MoreThuenteLineSearch") {
+                    // Often the `MultiLogisticRegression.fit()` function returned this error:
+                    // Condition violated: "`MoreThuenteLineSearch`: Search direction must be a descent direction."
+                    // The naive solution is to be try again with lower `max_iterations` value.
+                    debug!("perform_logistic_regression_inner retrying due to MoreThuenteLineSearch error. retry_index: {} error: {}", retry_index, error);
+                    continue;
+                }
+                return Err(error);
+            },
+        }
+    }
+    Err(anyhow::anyhow!("perform_logistic_regression exhausted all retries"))
+}
+
+fn perform_logistic_regression_inner(task: &Task, test_index: u8, records: &Vec<Record>, retry_index: u8) -> anyhow::Result<Image> {
     // println!("task_id: {}", task.id);
 
-    let dataset_train: Dataset<f64, usize, Ix1> = create_dataset(records, false)?;
-    let dataset_test: Dataset<f64, usize, Ix1> = create_dataset(records, true)?;
+    let dataset_train: Dataset<f64, usize, Ix1> = create_dataset(records, false)
+        .context("perform_logistic_regression_inner dataset_train")?;
 
-    let model = MultiLogisticRegression::<f64>::default()
-        .max_iterations(50)
+    let dataset_test: Dataset<f64, usize, Ix1> = create_dataset(records, true)
+        .context("perform_logistic_regression_inner dataset_test")?;
+
+    let max_iterations: u64 = match retry_index {
+        0 => 50,
+        1 => 25,
+        2 => 10,
+        _ => 5,
+    };
+
+    let model: MultiFittedLogisticRegression<f64, _> = MultiLogisticRegression::<f64>::default()
+        .max_iterations(max_iterations)
         .fit(&dataset_train)
-        .context("MultiLogisticRegression")?;
+        .context("perform_logistic_regression_inner fit")?;
 
     // predict and map targets
     let pred = model.predict(&dataset_test);
