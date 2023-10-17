@@ -2021,6 +2021,53 @@ impl SolveLogisticRegression {
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
 
                     // {
+                    //     let histogram: Histogram = area3x3.histogram_all();
+                    //     let mut color: u8 = 255;
+                    //     if histogram.number_of_counters_greater_than_zero() == 1 {
+                    //         color = histogram.most_popular_color().unwrap_or(255);
+                    //     }
+                    //     // record.serialize_onehot(color, 10);
+                    //     record.serialize_color_complex(color, obfuscated_color_offset);
+                    // }
+                    // {
+                    //     let histogram: Histogram = area5x5.histogram_all();
+                    //     let mut color: u8 = 255;
+                    //     if histogram.number_of_counters_greater_than_zero() == 1 {
+                    //         color = histogram.most_popular_color().unwrap_or(255);
+                    //     }
+                    //     // record.serialize_onehot(color, 10);
+                    //     record.serialize_color_complex(color, obfuscated_color_offset);
+                    // }
+
+                    // {
+                    //     // let area_top_left: Image = area3x3.crop_outside(0, 0, 2, 2, 255)?;
+                    //     // let area_top_right: Image = area3x3.crop_outside(1, 0, 2, 2, 255)?;
+                    //     // let area_bottom_left: Image = area3x3.crop_outside(0, 1, 2, 2, 255)?;
+                    //     // let area_bottom_right: Image = area3x3.crop_outside(1, 1, 2, 2, 255)?;
+                    //     let image0: Image = area5x5.crop_outside(0, 0, 3, 3, 255)?;
+                    //     let image1: Image = area5x5.crop_outside(1, 0, 3, 3, 255)?;
+                    //     let image2: Image = area5x5.crop_outside(2, 0, 3, 3, 255)?;
+                    //     let image3: Image = area5x5.crop_outside(0, 1, 3, 3, 255)?;
+                    //     let image4: Image = area5x5.crop_outside(2, 1, 3, 3, 255)?;
+                    //     let image5: Image = area5x5.crop_outside(0, 2, 3, 3, 255)?;
+                    //     let image6: Image = area5x5.crop_outside(1, 2, 3, 3, 255)?;
+                    //     let image7: Image = area5x5.crop_outside(2, 2, 3, 3, 255)?;
+                    //     // let images = [&area_top_left, &area_top_right, &area_bottom_left, &area_bottom_right];
+                    //     let images = [&image0, &image1, &image2, &image3, &image4, &image5, &image6, &image7];
+                    //     for image in images {
+                    //         let histogram: Histogram = image.histogram_all();
+                    //         // histogram.set_counter_to_zero(center);
+                    //         // histogram.set_counter_to_zero(10);
+                    //         // histogram.set_counter_to_zero(255);
+                    //         // record.serialize_bool_onehot(histogram.number_of_counters_greater_than_zero() == 1);
+                    //         // record.serialize_onehot_discard_overflow(histogram.number_of_counters_greater_than_zero().min(8) as u8, 8);
+                    //         // record.serialize_onehot_discard_overflow(histogram.get(center).min(9) as u8, 9);
+                    //         record.serialize_bool(histogram.get(center) > 0);
+                    //     }
+                    // }
+
+
+                    // {
                     //     let count: u8 = number_of_unique_bigrams_column_vec.get(x as usize).map(|n| *n).unwrap_or(0);
                     //     record.serialize_u8(count);
                     //     record.serialize_onehot_discard_overflow(count, 28);
