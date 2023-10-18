@@ -662,7 +662,8 @@ impl SolveLogisticRegression {
         for y in 0..height {
             for x in 0..width {
                 let shape_type: ShapeType = match rotate45 {
-                    false => task_graph.get_shapetype_for_input_pixel(pair_index, x, y, connectivity)?,
+                    false => task_graph.get_shapetype_for_input_pixel(pair_index, x, y, connectivity)
+                        .with_context(|| format!("shape_type_image. pair_index: {} x: {} y: {} width: {} height: {} connectivity: {:?}", pair_index, x, y, width, height, connectivity))?,
                     true => task_graph.get_shapetype45_for_input_pixel(pair_index, x, y, connectivity)?
                 };
                 let color: u8 = Self::color_from_shape_type(shape_type);
