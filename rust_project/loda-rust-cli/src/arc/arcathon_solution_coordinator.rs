@@ -115,13 +115,15 @@ impl Prediction {
     }
 }
 
+pub type TaskNameToPredictionVec = HashMap<String, Vec<Prediction>>;
+
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ArcathonSolutionCoordinator {
     path_solution_dir: PathBuf,
     path_solution_teamid_json: PathBuf,
 
-    taskname_to_prediction_vec: Arc<Mutex<HashMap<String, Vec<Prediction>>>>,
+    taskname_to_prediction_vec: Arc<Mutex<TaskNameToPredictionVec>>,
 }
 
 impl ArcathonSolutionCoordinator {
@@ -129,7 +131,14 @@ impl ArcathonSolutionCoordinator {
         Self {
             path_solution_dir: path_solution_dir.to_path_buf(),
             path_solution_teamid_json: path_solution_teamid_json.to_path_buf(),
-            taskname_to_prediction_vec: Arc::new(Mutex::new(HashMap::new())),
+            taskname_to_prediction_vec: Arc::new(Mutex::new(TaskNameToPredictionVec::new())),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn append_predictions_from_hashmap(&mut self, taskname_to_predictions: &TaskNameToPredictionVec) {
+        for (task_name, prediction_vec) in taskname_to_predictions {
+            self.append_predictions(task_name.clone(), prediction_vec.clone());
         }
     }
 
@@ -172,8 +181,8 @@ impl ArcathonSolutionCoordinator {
     }
 
     /// Returns a copy of the `taskname_to_prediction_vec`.
-    fn clone_taskname_to_prediction_vec(&self) -> anyhow::Result<HashMap<String, Vec<Prediction>>> {
-        let taskname_to_prediction_vec: HashMap<String, Vec<Prediction>> = match self.taskname_to_prediction_vec.lock() {
+    fn clone_taskname_to_prediction_vec(&self) -> anyhow::Result<TaskNameToPredictionVec> {
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = match self.taskname_to_prediction_vec.lock() {
             Ok(map) => map.clone(),
             Err(error) => {
                 return Err(anyhow::anyhow!("Unable to lock taskname_to_prediction_vec. error: {:?}", error));
@@ -185,7 +194,7 @@ impl ArcathonSolutionCoordinator {
     /// Returns the number of bytes of the saved file.
     #[allow(dead_code)]
     pub fn save_solutions_json(&self) -> anyhow::Result<usize> {
-        let taskname_to_prediction_vec: HashMap<String, Vec<Prediction>> = self.clone_taskname_to_prediction_vec().context("save_solutions_json")?;
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = self.clone_taskname_to_prediction_vec().context("save_solutions_json")?;
         let mut task_vec = Vec::<TaskItem>::new();
         for (taskname, prediction_vec) in &taskname_to_prediction_vec {
 
@@ -256,7 +265,7 @@ mod tests {
         coordinator.import_predictions_from_solution_json_file(&solution_json_file);
 
         // Assert
-        let taskname_to_prediction_vec: HashMap<String, Vec<Prediction>> = coordinator.clone_taskname_to_prediction_vec().expect("ok");
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = coordinator.clone_taskname_to_prediction_vec().expect("ok");
         assert_eq!(taskname_to_prediction_vec.len(), 2);
         {
             let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("12997ef3").expect("ok");
@@ -437,7 +446,7 @@ mod tests {
         }
 
         // Assert
-        let taskname_to_prediction_vec: HashMap<String, Vec<Prediction>> = coordinator.clone_taskname_to_prediction_vec().expect("ok");
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = coordinator.clone_taskname_to_prediction_vec().expect("ok");
         assert_eq!(taskname_to_prediction_vec.len(), 1);
         {
             let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("mytask1").expect("ok");
@@ -479,7 +488,7 @@ mod tests {
         }
 
         // Assert
-        let taskname_to_prediction_vec: HashMap<String, Vec<Prediction>> = coordinator.clone_taskname_to_prediction_vec().expect("ok");
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = coordinator.clone_taskname_to_prediction_vec().expect("ok");
         assert_eq!(taskname_to_prediction_vec.len(), 2);
         {
             let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("mytask1").expect("ok");

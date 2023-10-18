@@ -157,7 +157,7 @@ mod traverse_programs_and_models;
 
 pub use action_label_util::ActionLabelUtil;
 pub use arc_json_model_to_html::ModelToHTML;
-pub use arcathon_solution_coordinator::{ArcathonSolutionCoordinator, PredictionType};
+pub use arcathon_solution_coordinator::{ArcathonSolutionCoordinator, PredictionType, TaskNameToPredictionVec};
 pub use arcathon_solution_json::{Prediction, TestItem, TaskItem, ArcathonSolutionJsonFile};
 pub use auto_repair_symmetry::AutoRepairSymmetry;
 pub use center_of_mass::CenterOfMass;
