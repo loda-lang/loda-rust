@@ -292,8 +292,7 @@ impl SolveLogisticRegression {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn run(&mut self) -> anyhow::Result<()> {
+    pub fn run_and_verify(&self) -> anyhow::Result<()> {
         let verbose = false;
         let verify_test_output = true;
         let number_of_tasks: u64 = self.tasks.len() as u64;
@@ -304,7 +303,7 @@ impl SolveLogisticRegression {
             .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
             .progress_chars("#>-")
         );
-        self.tasks.par_iter_mut().for_each(|task| {
+        self.tasks.par_iter().for_each(|task| {
             match Self::process_task(task, verify_test_output) {
                 Ok(_predictions) => {
                     count_solved.fetch_add(1, Ordering::Relaxed);

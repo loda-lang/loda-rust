@@ -96,8 +96,8 @@ impl TraverseProgramsAndModels {
         {
             let tpam = TraverseProgramsAndModels::new()?;
             let task_vec: Vec<Task> = tpam.to_task_vec();
-            let mut instance = SolveLogisticRegression::new(task_vec);
-            instance.run()?;
+            let instance = SolveLogisticRegression::new(task_vec);
+            instance.run_and_verify()?;
             return Ok(());
         }
     }
