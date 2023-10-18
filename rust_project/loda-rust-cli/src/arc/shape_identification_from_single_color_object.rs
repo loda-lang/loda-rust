@@ -17,7 +17,10 @@ impl ShapeIdentificationFromSingleColorObject {
     pub fn find_shapes(sco: &SingleColorObject, connectivity: PixelConnectivity) -> anyhow::Result<Self> {
         let image_size: ImageSize = sco.image_size;
         let mut color_and_shape_vec = Vec::<ColorAndShape>::new();
-        for color in 0..=9 {
+        for color in 0..=255 {
+            if sco.image_histogram.get(color) == 0 {
+                continue;
+            }
             let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
                 Ok(value) => value,
                 Err(_error) => {
@@ -101,6 +104,41 @@ mod tests {
             assert_eq!(record.position_x, 0);
             assert_eq!(record.position_y, 2);
             assert_eq!(record.position_x_reverse, Some(2));
+            assert_eq!(record.position_y_reverse, Some(0));
+        }
+    }
+
+    #[test]
+    fn test_10001_find_shapes_color_values_beyond09range() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 10,
+            17, 17, 17, 17, 10,
+            17, 0, 0, 17, 10,
+            17, 17, 17, 17, 10,
+            10, 10, 10, 10, 10,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+        let sco = SingleColorObject::find_objects(&input).expect("SingleColorObject");
+
+        // Act
+        let instance = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, PixelConnectivity::Connectivity4).expect("ok");
+
+        // Assert
+        {
+            let record: &ColorAndShape = instance.color_and_shape_vec.iter().find(|record| record.color == 17 ).expect("some");
+            assert_eq!(record.shape_identification.shape_type, ShapeType::Box);
+            assert_eq!(record.position_x, 0);
+            assert_eq!(record.position_y, 1);
+            assert_eq!(record.position_x_reverse, Some(1));
+            assert_eq!(record.position_y_reverse, Some(1));
+        }
+        {
+            let record: &ColorAndShape = instance.color_and_shape_vec.iter().find(|record| record.color == 10 ).expect("some");
+            assert_eq!(record.shape_identification.shape_type, ShapeType::L);
+            assert_eq!(record.position_x, 0);
+            assert_eq!(record.position_y, 0);
+            assert_eq!(record.position_x_reverse, Some(0));
             assert_eq!(record.position_y_reverse, Some(0));
         }
     }

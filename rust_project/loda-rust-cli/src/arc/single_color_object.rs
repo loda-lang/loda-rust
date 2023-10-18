@@ -273,6 +273,7 @@ pub struct SingleColorObjectCluster {
 #[derive(Clone, Debug)]
 pub struct SingleColorObject {
     pub image_size: ImageSize,
+    pub image_histogram: Histogram,
     pub rectangle_vec: Vec<SingleColorObjectRectangle>,
     pub sparse_vec: Vec<SingleColorObjectSparse>,
 }
@@ -313,6 +314,7 @@ impl SingleColorObject {
         }
         let instance = Self {
             image_size: image.size(),
+            image_histogram,
             rectangle_vec,
             sparse_vec,
         };
