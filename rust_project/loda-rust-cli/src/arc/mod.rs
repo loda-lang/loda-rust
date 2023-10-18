@@ -139,6 +139,7 @@ mod shape_identification_from_single_color_object;
 mod single_color_object;
 mod single_color_object_satisfies_label;
 mod single_color_object_to_label;
+mod solve_logisticregression;
 mod solve_split;
 mod split;
 mod split_to_label;
@@ -274,6 +275,7 @@ pub use shape_identification_from_single_color_object::{ShapeIdentificationFromS
 pub use single_color_object::{SingleColorObject, SingleColorObjectRectangle, SingleColorObjectSparse, SingleColorObjectCluster, SingleColorObjectClusterContainer};
 pub use single_color_object_satisfies_label::SingleColorObjectSatisfiesLabel;
 pub use single_color_object_to_label::SingleColorObjectToLabel;
+pub use solve_logisticregression::SolveLogisticRegression;
 pub use solve_split::{Operation, SolveSplit, SolveSplitFoundSolution};
 pub use split::{EvenSplit, Split, SplitCandidate, SplitCandidateContainer};
 pub use split_to_label::SplitToLabel;
@@ -286,9 +288,3 @@ pub use symmetry_to_label::SymmetryToLabel;
 pub use task_graph::*;
 pub use time_util::*;
 pub use traverse_programs_and_models::TraverseProgramsAndModels;
-
-#[cfg(feature = "linfa")]
-mod solve_logisticregression;
-
-#[cfg(feature = "linfa")]
-pub use solve_logisticregression::SolveLogisticRegression;
