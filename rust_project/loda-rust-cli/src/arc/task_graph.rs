@@ -993,6 +993,7 @@ impl TaskGraph {
     }
 
     /// Get the object ID for pixel.
+    #[allow(dead_code)]
     pub fn get_objectid_for_input_pixel(&self, pair_index: u8, x: u8, y: u8, connectivity: PixelConnectivity) -> anyhow::Result<usize> {
         let object_node: NodeIndex = self.get_object_for_input_pixel(pair_index, x, y, connectivity).context("get_objectid_for_input_pixel object_node")?;
         let index: usize = object_node.index();

@@ -559,11 +559,13 @@ impl SolveLogisticRegression {
         Ok(cropped_image)
     }
 
+    #[allow(dead_code)]
     fn object_id_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         let mut image: Image = Image::zero(width, height);
         for y in 0..height {
             for x in 0..width {
-                let object_id: usize = task_graph.get_objectid_for_input_pixel(pair_index, x, y, connectivity)?;
+                let object_id: usize = task_graph.get_objectid_for_input_pixel(pair_index, x, y, connectivity)
+                    .context("object_id_image object_id")?;
                 let color: u8 = object_id.min(255) as u8;
                 _ = image.set(x as i32, y as i32, color);
             }
@@ -571,12 +573,14 @@ impl SolveLogisticRegression {
         Ok(image)
     }
 
+    #[allow(dead_code)]
     fn relative_position_images(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
         let mut image_x: Image = Image::zero(width, height);
         let mut image_y: Image = Image::zero(width, height);
         for y in 0..height {
             for x in 0..width {
-                let (position_x, position_y) = task_graph.get_objectposition_for_input_pixel(pair_index, x, y, connectivity)?;
+                let (position_x, position_y) = task_graph.get_objectposition_for_input_pixel(pair_index, x, y, connectivity)
+                    .context("relative_position_images position_x position_y")?;
                 let relative_x: i32 = (x as i32) - (position_x as i32);
                 let relative_y: i32 = (y as i32) - (position_y as i32);
                 {
@@ -963,15 +967,15 @@ impl SolveLogisticRegression {
                 grid_color = grid_pattern.color;
             }
 
-            let object_id_image_connectivity4: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
-            _ = object_id_image_connectivity4;
-            let object_id_image_connectivity8: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
-            _ = object_id_image_connectivity8;
+            // let object_id_image_connectivity4: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            // _ = object_id_image_connectivity4;
+            // let object_id_image_connectivity8: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            // _ = object_id_image_connectivity8;
 
-            let relative_position_images_connectivity4: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
-            _ = relative_position_images_connectivity4;
-            let relative_position_images_connectivity8: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
-            _ = relative_position_images_connectivity8;
+            // let relative_position_images_connectivity4: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            // _ = relative_position_images_connectivity4;
+            // let relative_position_images_connectivity8: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            // _ = relative_position_images_connectivity8;
 
             let shape_type_count: u8 = ShapeType::len();
             let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, false)?;
