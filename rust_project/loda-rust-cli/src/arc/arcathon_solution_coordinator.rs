@@ -1,12 +1,14 @@
 //! Decides what gets saved to the `archaton_solution_json` file.
 //! 
 //! Future experiments:
-//! Assign it a higher confidence score, when there are identical predictions from multple solvers.
-//! Eliminate duplicate predictions, when there are identical predictions from multple solvers.
+//! Assign it a higher confidence score, when there are identical predictions from multiple solvers.
+//! Eliminate duplicate predictions, when there are identical predictions from multiple solvers.
 use super::{TestItem, TaskItem, arc_json_model, arcathon_solution_json};
 use super::ArcathonSolutionJsonFile;
 use std::collections::HashMap;
 use std::path::{PathBuf, Path};
+use std::sync::{Arc, Mutex};
+use anyhow::Context;
 
 /// ARCathon solutions json file allows for [1..3] predictions per output_id.
 #[allow(dead_code)]
@@ -119,7 +121,7 @@ pub struct ArcathonSolutionCoordinator {
     path_solution_dir: PathBuf,
     path_solution_teamid_json: PathBuf,
 
-    taskname_to_prediction_vec: HashMap<String, Vec<Prediction>>,
+    taskname_to_prediction_vec: Arc<Mutex<HashMap<String, Vec<Prediction>>>>,
 }
 
 impl ArcathonSolutionCoordinator {
@@ -127,7 +129,7 @@ impl ArcathonSolutionCoordinator {
         Self {
             path_solution_dir: path_solution_dir.to_path_buf(),
             path_solution_teamid_json: path_solution_teamid_json.to_path_buf(),
-            taskname_to_prediction_vec: HashMap::new(),
+            taskname_to_prediction_vec: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -136,8 +138,14 @@ impl ArcathonSolutionCoordinator {
         if prediction_vec.is_empty() {
             return;
         }
-        self.taskname_to_prediction_vec
-            .entry(task_name)
+        let mut map = match self.taskname_to_prediction_vec.lock() {
+            Ok(map) => map,
+            Err(error) => {
+                error!("append_predictions. Unable to lock taskname_to_prediction_vec. error: {:?}", error);
+                return;
+            }
+        };
+        map.entry(task_name)
             .or_insert(Vec::new())
             .extend(prediction_vec);
     }
@@ -163,11 +171,23 @@ impl ArcathonSolutionCoordinator {
         }
     }
 
+    /// Returns a copy of the `taskname_to_prediction_vec`.
+    fn clone_taskname_to_prediction_vec(&self) -> anyhow::Result<HashMap<String, Vec<Prediction>>> {
+        let taskname_to_prediction_vec: HashMap<String, Vec<Prediction>> = match self.taskname_to_prediction_vec.lock() {
+            Ok(map) => map.clone(),
+            Err(error) => {
+                return Err(anyhow::anyhow!("Unable to lock taskname_to_prediction_vec. error: {:?}", error));
+            }
+        };
+        Ok(taskname_to_prediction_vec)
+    }
+
     /// Returns the number of bytes of the saved file.
     #[allow(dead_code)]
     pub fn save_solutions_json(&self) -> anyhow::Result<usize> {
+        let taskname_to_prediction_vec: HashMap<String, Vec<Prediction>> = self.clone_taskname_to_prediction_vec().context("save_solutions_json")?;
         let mut task_vec = Vec::<TaskItem>::new();
-        for (taskname, prediction_vec) in &self.taskname_to_prediction_vec {
+        for (taskname, prediction_vec) in &taskname_to_prediction_vec {
 
             let testitem_vec: Vec<TestItem> = Prediction::testitems_from_predictionitems(prediction_vec);
             if testitem_vec.is_empty() {
@@ -236,13 +256,14 @@ mod tests {
         coordinator.import_predictions_from_solution_json_file(&solution_json_file);
 
         // Assert
-        assert_eq!(coordinator.taskname_to_prediction_vec.len(), 2);
+        let taskname_to_prediction_vec: HashMap<String, Vec<Prediction>> = coordinator.clone_taskname_to_prediction_vec().expect("ok");
+        assert_eq!(taskname_to_prediction_vec.len(), 2);
         {
-            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("12997ef3").expect("ok");
+            let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("12997ef3").expect("ok");
             assert_eq!(predictions.len(), 6);
         }
         {
-            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("13713586").expect("ok");
+            let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("13713586").expect("ok");
             assert_eq!(predictions.len(), 3);
         }
         Ok(())
@@ -416,9 +437,10 @@ mod tests {
         }
 
         // Assert
-        assert_eq!(coordinator.taskname_to_prediction_vec.len(), 1);
+        let taskname_to_prediction_vec: HashMap<String, Vec<Prediction>> = coordinator.clone_taskname_to_prediction_vec().expect("ok");
+        assert_eq!(taskname_to_prediction_vec.len(), 1);
         {
-            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("mytask1").expect("ok");
+            let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("mytask1").expect("ok");
             assert_eq!(predictions.len(), 2);
         }
         Ok(())
@@ -457,13 +479,14 @@ mod tests {
         }
 
         // Assert
-        assert_eq!(coordinator.taskname_to_prediction_vec.len(), 2);
+        let taskname_to_prediction_vec: HashMap<String, Vec<Prediction>> = coordinator.clone_taskname_to_prediction_vec().expect("ok");
+        assert_eq!(taskname_to_prediction_vec.len(), 2);
         {
-            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("mytask1").expect("ok");
+            let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("mytask1").expect("ok");
             assert_eq!(predictions.len(), 1);
         }
         {
-            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("mytask2").expect("ok");
+            let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("mytask2").expect("ok");
             assert_eq!(predictions.len(), 1);
         }
         Ok(())
