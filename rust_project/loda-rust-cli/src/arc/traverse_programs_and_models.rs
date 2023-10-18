@@ -1735,36 +1735,20 @@ impl TraverseProgramsAndModels {
 
         if try_logistic_regression {
             let solver_start_time: Instant = Instant::now();
-            let number_of_tasks: u64 = self.model_item_vec.len() as u64;
-            println!("{} - SolveLogisticRegression - start with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
-            let pb = ProgressBar::new(number_of_tasks as u64);
-            let verbose_logistic_regression = false;
-            let verify_test_output = false;
-            let mut count_tasks_solved: usize = 0;
-            for model_item in &self.model_item_vec {
-                let task: Task = model_item.borrow().task.clone();
-                
-                let prediction_vec: Vec<arcathon_solution_coordinator::Prediction> = match SolveLogisticRegression::process_task(&task, verify_test_output) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        if verbose_logistic_regression {
-                            println!("task: {} - could not make predictions. error: {:?}", task.id, error);
-                        }
-                        pb.inc(1);
-                        continue;
-                    }
-                };
-                count_tasks_solved += 1;
-                if verbose_logistic_regression {
-                    pb.println(format!("solved task: {}", task.id));
+            println!("{} - SolveLogisticRegression - start", human_readable_utc_timestamp());
+            let task_vec: Vec<Task> = self.to_task_vec();
+            let instance = SolveLogisticRegression::new(task_vec);
+            match instance.run_predictions() {
+                Ok(taskname_to_predictions) => {
+                    println!("SolveLogisticRegression::run_predictions completed successfully");
+                    coordinator.append_predictions_from_hashmap(&taskname_to_predictions);
+                },
+                Err(error) => {
+                    error!("SolveLogisticRegression::run_with_callback failed with error: {:?}", error);
                 }
-
-                coordinator.append_predictions(task.id.clone(), prediction_vec);
-                pb.inc(1);
             }
-            pb.finish_and_clear();
             coordinator.save_solutions_json_with_console_output();
-            println!("{} - SolveLogisticRegression - complete - solved {} of {} tasks. Elapsed {}", human_readable_utc_timestamp(), count_tasks_solved, number_of_tasks, HumanDuration(solver_start_time.elapsed()));
+            println!("{} - SolveLogisticRegression - end. Elapsed {}", human_readable_utc_timestamp(), HumanDuration(solver_start_time.elapsed()));
         }
 
         let bloom_items_count = 1000000;

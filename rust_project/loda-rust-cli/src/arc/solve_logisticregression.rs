@@ -41,7 +41,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize, ImageReplaceColor, GravityDirection, ImageGravity};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize, ImageReplaceColor, GravityDirection, ImageGravity, TaskNameToPredictionVec};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -54,6 +54,7 @@ use rand::rngs::StdRng;
 use serde::Serialize;
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use linfa::prelude::*;
 use linfa_logistic::{MultiLogisticRegression, MultiFittedLogisticRegression};
 use ndarray::prelude::*;
@@ -292,6 +293,11 @@ impl SolveLogisticRegression {
         }
     }
 
+    /// Checks that the predicted output is the same as the expected output.
+    /// 
+    /// This can be run with the public ARC dataset contains expected output for the test pairs.
+    /// 
+    /// This cannot be run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
     pub fn run_and_verify(&self) -> anyhow::Result<()> {
         let verbose = false;
         let verify_test_output = true;
@@ -324,6 +330,61 @@ impl SolveLogisticRegression {
         println!("{} - run - end", human_readable_utc_timestamp());
         println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
         Ok(())
+    }
+
+    /// Run without verifying that the predictions are correct.
+    /// 
+    /// This code is intended to run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
+    pub fn run_predictions(&self) -> anyhow::Result<TaskNameToPredictionVec> {
+        let verbose = false;
+        let verify_test_output = false;
+        let number_of_tasks: u64 = self.tasks.len() as u64;
+        println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
+        let count_solved = AtomicUsize::new(0);
+        let pb = ProgressBar::new(number_of_tasks as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
+            .progress_chars("#>-")
+        );
+        let accumulated = Arc::new(Mutex::new(TaskNameToPredictionVec::new()));
+        self.tasks.par_iter().for_each(|task| {
+            match Self::process_task(task, verify_test_output) {
+                Ok(predictions) => {
+                    count_solved.fetch_add(1, Ordering::Relaxed);
+                    let count: usize = count_solved.load(Ordering::Relaxed);
+                    pb.set_message(format!("Solved: {}", count));
+                    pb.println(format!("task {} - solved", task.id));
+
+                    match accumulated.lock() {
+                        Ok(mut map) => {
+                            map.entry(task.id.clone())
+                                .or_insert(Vec::new())
+                                .extend(predictions);            
+                        },
+                        Err(error) => {
+                            pb.println(format!("run_predictions. Unable to lock accumulated. error: {:?}", error));
+                        }
+                    };
+                },
+                Err(error) => {
+                    if verbose {
+                        pb.println(format!("task {} - error: {:?}", task.id, error));
+                    }
+                }
+            }
+            pb.inc(1);
+        });
+        pb.finish_and_clear();
+        let count_solved: usize = count_solved.load(Ordering::Relaxed);
+        println!("{} - run - end", human_readable_utc_timestamp());
+        println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = match accumulated.lock() {
+            Ok(map) => map.clone(),
+            Err(error) => {
+                return Err(anyhow::anyhow!("run_predictions. taskname_to_prediction_vec. Unable to lock accumulated. error: {:?}", error));
+            }
+        };
+        Ok(taskname_to_prediction_vec)
     }
 
     /// Converts an unsigned binary number to reflected binary Gray code.
