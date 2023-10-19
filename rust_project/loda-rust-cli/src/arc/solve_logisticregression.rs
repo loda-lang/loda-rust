@@ -2043,32 +2043,32 @@ impl SolveLogisticRegression {
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
                 let context_input_y_reverse: i32 = (context_input_size.height as i32) - 1 - yy;
 
-                // let area_top: Image = if y > 2 {
-                //     input.top_rows(y - 1)?
-                // } else {
-                //     Image::empty()
-                // };
-                // let area_bottom: Image = if y_reverse > 2 {
-                //     input.bottom_rows(y_reverse - 1)?
-                // } else {
-                //     Image::empty()
-                // };
+                let input_area_top: Image = if y > 2 {
+                    input.top_rows(y - 1)?
+                } else {
+                    Image::empty()
+                };
+                let input_area_bottom: Image = if y_reverse > 2 {
+                    input.bottom_rows(y_reverse - 1)?
+                } else {
+                    Image::empty()
+                };
 
-                let mut area_top = Image::empty();
-                let mut area_bottom = Image::empty();
+                let mut output_area_top = Image::empty();
+                let mut output_area_bottom = Image::empty();
                 if let Some(image) = earlier_prediction_image {
                     if y > 2 {
-                        area_top = image.top_rows(y - 1)?;
+                        output_area_top = image.top_rows(y - 1)?;
                     };
                     if y_reverse > 2 {
-                        area_bottom = image.bottom_rows(y_reverse - 1)?;
+                        output_area_bottom = image.bottom_rows(y_reverse - 1)?;
                     }
                 }
 
-                // let area_top_histogram_columns: Vec<Histogram> = area_top.histogram_columns();
-                // let area_bottom_histogram_columns: Vec<Histogram> = area_bottom.histogram_columns();
-                // let area_top_histogram: Histogram = area_top.histogram_all();
-                // let area_bottom_histogram: Histogram = area_bottom.histogram_all();
+                // let area_top_histogram_columns: Vec<Histogram> = input_area_top.histogram_columns();
+                // let area_bottom_histogram_columns: Vec<Histogram> = input_area_bottom.histogram_columns();
+                // let area_top_histogram: Histogram = input_area_top.histogram_all();
+                // let area_bottom_histogram: Histogram = input_area_bottom.histogram_all();
 
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -2234,18 +2234,33 @@ impl SolveLogisticRegression {
                     //     }
                     // }
 
-                    let mut area_topleft = Image::empty();
-                    let mut area_topright = Image::empty();
-                    let mut area_bottomleft = Image::empty();
-                    let mut area_bottomright = Image::empty();
+                    let mut input_area_topleft = Image::empty();
+                    let mut input_area_topright = Image::empty();
+                    let mut input_area_bottomleft = Image::empty();
+                    let mut input_area_bottomright = Image::empty();
                     {
                         if x > 2 {
-                            area_topleft = area_top.left_columns(x - 1)?;
-                            area_bottomleft = area_bottom.left_columns(x - 1)?;
+                            input_area_topleft = input_area_top.left_columns(x - 1)?;
+                            input_area_bottomleft = input_area_bottom.left_columns(x - 1)?;
                         };
                         if x_reverse > 2 {
-                            area_topright = area_top.right_columns(x_reverse - 1)?;
-                            area_bottomright = area_bottom.right_columns(x_reverse - 1)?;
+                            input_area_topright = input_area_top.right_columns(x_reverse - 1)?;
+                            input_area_bottomright = input_area_bottom.right_columns(x_reverse - 1)?;
+                        }
+                    }
+
+                    let mut output_area_topleft = Image::empty();
+                    let mut output_area_topright = Image::empty();
+                    let mut output_area_bottomleft = Image::empty();
+                    let mut output_area_bottomright = Image::empty();
+                    {
+                        if x > 2 {
+                            output_area_topleft = output_area_top.left_columns(x - 1)?;
+                            output_area_bottomleft = output_area_bottom.left_columns(x - 1)?;
+                        };
+                        if x_reverse > 2 {
+                            output_area_topright = output_area_top.right_columns(x_reverse - 1)?;
+                            output_area_bottomright = output_area_bottom.right_columns(x_reverse - 1)?;
                         }
                     }
                     // let area_topleft_histogram: Histogram = area_topleft.histogram_all();
@@ -2304,22 +2319,58 @@ impl SolveLogisticRegression {
                     // }
                 
                     {
-                        let diagonalhistogram_topleft: DiagonalHistogram = DiagonalHistogram::diagonal_a(&area_topleft)?;
-                        let diagonalhistogram_topright: DiagonalHistogram = DiagonalHistogram::diagonal_b(&area_topright)?;
-                        let diagonalhistogram_bottomleft: DiagonalHistogram = DiagonalHistogram::diagonal_b(&area_bottomleft)?;
-                        let diagonalhistogram_bottomright: DiagonalHistogram = DiagonalHistogram::diagonal_a(&area_bottomright)?;
-                        let diagonalhistograms = [&diagonalhistogram_topleft, &diagonalhistogram_topright, &diagonalhistogram_bottomleft, &diagonalhistogram_bottomright];
+                        let dh_input_area_topleft: DiagonalHistogram = DiagonalHistogram::diagonal_a(&input_area_topleft)?;
+                        let dh_input_area_topright: DiagonalHistogram = DiagonalHistogram::diagonal_b(&input_area_topright)?;
+                        let dh_input_area_bottomleft: DiagonalHistogram = DiagonalHistogram::diagonal_b(&input_area_bottomleft)?;
+                        let dh_input_area_bottomright: DiagonalHistogram = DiagonalHistogram::diagonal_a(&input_area_bottomright)?;
+                        let dh_output_area_topleft: DiagonalHistogram = DiagonalHistogram::diagonal_a(&output_area_topleft)?;
+                        let dh_output_area_topright: DiagonalHistogram = DiagonalHistogram::diagonal_b(&output_area_topright)?;
+                        let dh_output_area_bottomleft: DiagonalHistogram = DiagonalHistogram::diagonal_b(&output_area_bottomleft)?;
+                        let dh_output_area_bottomright: DiagonalHistogram = DiagonalHistogram::diagonal_a(&output_area_bottomright)?;
+                        let diagonalhistograms = [
+                            &dh_input_area_topleft, &dh_input_area_topright, &dh_input_area_bottomleft, &dh_input_area_bottomright,
+                            &dh_output_area_topleft, &dh_output_area_topright, &dh_output_area_bottomleft, &dh_output_area_bottomright,
+                        ];
                         for diagonalhistogram in diagonalhistograms {
                             for color in 0..COUNT_COLORS_PLUS1 {
-                                let mut found = false;
+                                let mut mass: u32 = 0;
+                                let mut unique_count: u16 = 0;
+                                let mut found_center: bool = false;
                                 if let Some(histogram) = diagonalhistogram.get(x as i32, y as i32) {
-                                    if histogram.get(color) > 0 {
-                                        found = true;
-                                    }
+                                    mass = histogram.get(color);
+                                    unique_count = histogram.number_of_counters_greater_than_zero();
+                                    found_center = histogram.get(center) > 0;
                                 }
-                                // record.serialize_bool_onehot(found);
-                                let the_color: u8 = if found { color } else { 255 };
+                                record.serialize_bool_onehot(mass > 0);
+                                let the_color: u8 = if mass > 0 { color } else { 255 };
                                 record.serialize_color_complex(the_color, obfuscated_color_offset);
+                                // record.serialize_u8(mass.min(255) as u8);
+                                record.serialize_onehot(unique_count.min(255) as u8, COUNT_COLORS_PLUS1);
+                                record.serialize_bool(found_center);
+                            }
+                        }
+
+                        let dh_opposites = [
+                            (&dh_input_area_topleft, &dh_input_area_bottomright),
+                            (&dh_input_area_bottomleft, &dh_input_area_topright),
+                            (&dh_output_area_topleft, &dh_output_area_bottomright),
+                            (&dh_output_area_bottomleft, &dh_output_area_topright),
+                        ];
+                        for (dh0, dh1) in dh_opposites {
+                            for color in 0..COUNT_COLORS_PLUS1 {
+                                let mut mass0: u32 = 0;
+                                let mut mass1: u32 = 0;
+                                if let Some(histogram) = dh0.get(x as i32, y as i32) {
+                                    mass0 = histogram.get(color);
+                                }
+                                if let Some(histogram) = dh1.get(x as i32, y as i32) {
+                                    mass1 = histogram.get(color);
+                                }
+                                record.serialize_bool(mass0 == 1 && mass1 == 1);
+                                record.serialize_bool(mass0 > 0 && mass1 > 0);
+                                record.serialize_bool(mass0 > 0 && mass1 == 0);
+                                record.serialize_bool(mass0 == 0 && mass1 > 0);
+                                record.serialize_bool(mass0 == 0 && mass1 == 0);
                             }
                         }
                     }
