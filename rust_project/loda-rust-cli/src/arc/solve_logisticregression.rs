@@ -4496,7 +4496,11 @@ impl SolveLogisticRegression {
                     //             shape_height = value;
                     //         }
                     //     }
-
+                    //     record.serialize_onehot_discard_overflow(shape_width, 30);
+                    //     record.serialize_onehot_discard_overflow(shape_height, 30);
+                    //     record.serialize_u8(shape_width);
+                    //     record.serialize_u8(shape_height);
+                    //
                     //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity4.iter().enumerate() {
                     //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
                     //         let mut shape_size: u8 = 0;
@@ -4526,7 +4530,7 @@ impl SolveLogisticRegression {
                     //             shape_height = value;
                     //         }
                     //     }
-
+                    //
                     //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity8.iter().enumerate() {
                     //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
                     //         let mut shape_size: u8 = 0;
