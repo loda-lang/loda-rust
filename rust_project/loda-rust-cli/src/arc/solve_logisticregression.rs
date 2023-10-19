@@ -2043,13 +2043,13 @@ impl SolveLogisticRegression {
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
                 let context_input_y_reverse: i32 = (context_input_size.height as i32) - 1 - yy;
 
-                let input_area_top: Image = if y > 2 {
-                    input.top_rows(y - 1)?
+                let input_area_top: Image = if y > 0 {
+                    input.top_rows(y)?
                 } else {
                     Image::empty()
                 };
-                let input_area_bottom: Image = if y_reverse > 2 {
-                    input.bottom_rows(y_reverse - 1)?
+                let input_area_bottom: Image = if y_reverse > 0 {
+                    input.bottom_rows(y_reverse)?
                 } else {
                     Image::empty()
                 };
@@ -2057,11 +2057,11 @@ impl SolveLogisticRegression {
                 let mut output_area_top = Image::empty();
                 let mut output_area_bottom = Image::empty();
                 if let Some(image) = earlier_prediction_image {
-                    if y > 2 {
-                        output_area_top = image.top_rows(y - 1)?;
+                    if y > 0 {
+                        output_area_top = image.top_rows(y)?;
                     };
-                    if y_reverse > 2 {
-                        output_area_bottom = image.bottom_rows(y_reverse - 1)?;
+                    if y_reverse > 0 {
+                        output_area_bottom = image.bottom_rows(y_reverse)?;
                     }
                 }
 
@@ -2239,13 +2239,13 @@ impl SolveLogisticRegression {
                     let mut input_area_bottomleft = Image::empty();
                     let mut input_area_bottomright = Image::empty();
                     {
-                        if x > 2 {
-                            input_area_topleft = input_area_top.left_columns(x - 1)?;
-                            input_area_bottomleft = input_area_bottom.left_columns(x - 1)?;
+                        if x > 0 {
+                            input_area_topleft = input_area_top.left_columns(x)?;
+                            input_area_bottomleft = input_area_bottom.left_columns(x)?;
                         };
-                        if x_reverse > 2 {
-                            input_area_topright = input_area_top.right_columns(x_reverse - 1)?;
-                            input_area_bottomright = input_area_bottom.right_columns(x_reverse - 1)?;
+                        if x_reverse > 0 {
+                            input_area_topright = input_area_top.right_columns(x_reverse)?;
+                            input_area_bottomright = input_area_bottom.right_columns(x_reverse)?;
                         }
                     }
 
@@ -2254,13 +2254,13 @@ impl SolveLogisticRegression {
                     let mut output_area_bottomleft = Image::empty();
                     let mut output_area_bottomright = Image::empty();
                     {
-                        if x > 2 {
-                            output_area_topleft = output_area_top.left_columns(x - 1)?;
-                            output_area_bottomleft = output_area_bottom.left_columns(x - 1)?;
+                        if x > 0 {
+                            output_area_topleft = output_area_top.left_columns(x)?;
+                            output_area_bottomleft = output_area_bottom.left_columns(x)?;
                         };
-                        if x_reverse > 2 {
-                            output_area_topright = output_area_top.right_columns(x_reverse - 1)?;
-                            output_area_bottomright = output_area_bottom.right_columns(x_reverse - 1)?;
+                        if x_reverse > 0 {
+                            output_area_topright = output_area_top.right_columns(x_reverse)?;
+                            output_area_bottomright = output_area_bottom.right_columns(x_reverse)?;
                         }
                     }
                     // let area_topleft_histogram: Histogram = area_topleft.histogram_all();
@@ -2368,7 +2368,9 @@ impl SolveLogisticRegression {
                                 }
                                 record.serialize_bool(mass0 == 1 && mass1 == 1);
                                 record.serialize_bool(mass0 > 0 && mass1 > 0);
+                                record.serialize_bool(mass0 == 1 && mass1 == 0);
                                 record.serialize_bool(mass0 > 0 && mass1 == 0);
+                                record.serialize_bool(mass0 == 0 && mass1 == 1);
                                 record.serialize_bool(mass0 == 0 && mass1 > 0);
                                 record.serialize_bool(mass0 == 0 && mass1 == 0);
                             }
