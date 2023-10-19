@@ -6,14 +6,15 @@
 //! 
 //! However currently this approach solves none of the tasks from the hidden ARC dataset.
 //!
-//! This solves 70 of the 800 tasks in the public ARC dataset.
-//! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 1c0d0a4b, 21f83797, 2281f1f4, 23581191, 253bf280,
-//! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 45737921, 4612dd53, 5289ad53, 543a7ed5,
-//! 54d9e175, 5b526a93, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b,
-//! 776ffc46, 810b9b61, 84f2aca1, 868de0fa, 913fb3ed, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c,
-//! a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, af902bf9, b0c4d837, b1948b0a, b2862040, b60334d2,
-//! b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d364b489, d37a1ef5, d406998b, d5d6de2d,
-//! dc433765, ded97339, e0fb7511, e133d23d, e7dd8335, e872b94a, e9c9d9a1, ef135b50, f0df5ff0, f45f5ca7,
+//! This solves 72 of the 800 tasks in the public ARC dataset.
+//! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 140c817e, 1c0d0a4b, 21f83797, 2281f1f4, 23581191,
+//! 253bf280, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53,
+//! 5289ad53, 543a7ed5, 54d9e175, 5b526a93, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb,
+//! 6ea4a07e, 6f8cd79b, 776ffc46, 810b9b61, 84f2aca1, 868de0fa, 913fb3ed, 95990924, a5313dff, a61f2674,
+//! a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, af902bf9, b0c4d837, b1948b0a,
+//! b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d364b489, d37a1ef5,
+//! d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e133d23d, e7dd8335, e872b94a, e9c9d9a1, ef135b50,
+//! f0df5ff0, f45f5ca7,
 //! 
 //! This partially solves 6 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 239be575, 27a28665, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3
@@ -37,9 +38,10 @@
 //! Future experiments:
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 //! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
+//! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize, ImageReplaceColor};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize, ImageReplaceColor, GravityDirection, ImageGravity};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -53,7 +55,7 @@ use serde::Serialize;
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use linfa::prelude::*;
-use linfa_logistic::MultiLogisticRegression;
+use linfa_logistic::{MultiLogisticRegression, MultiFittedLogisticRegression};
 use ndarray::prelude::*;
 use rayon::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -66,7 +68,7 @@ const COUNT_COLORS_PLUS1: u8 = 11;
 #[derive(Clone, Debug, Serialize)]
 struct Record {
     classification: u8,
-    is_test: u8,
+    is_test: bool,
     pair_id: u8,
 
     // Future experiment
@@ -853,15 +855,15 @@ impl SolveLogisticRegression {
             let pair_id: u8 = pair_index.min(255) as u8;
             let pair_index_u8: u8 = pair_index.min(255) as u8;
 
-            let is_test: u8;
+            let is_test: bool;
             let original_output: Image;
             match pair.pair_type {
                 PairType::Train => {
-                    is_test = 0;
+                    is_test = false;
                     original_output = pair.output.image.clone();
                 },
                 PairType::Test => {
-                    is_test = 1;
+                    is_test = true;
                     original_output = Image::empty();
                 },
             }
@@ -1880,6 +1882,77 @@ impl SolveLogisticRegression {
                 }
             }
 
+            // let random_image: Image;
+            // {
+            //     let random_seed: u64 = 0;
+            //     let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
+            //     let image: Image = RandomImage::two_colors(&mut rng, ImageSize { width: 30, height: 30 }, 0, 1, 33)?;
+            //     let image: Image = RandomImage::uniform_colors(&mut rng, ImageSize { width: 30, height: 30 }, 9)?;
+            //     random_image = image.crop_outside(0, 0, width, height, 255)?;
+            // }
+
+            // let mut number_of_unique_bigrams_column_vec = Vec::<u8>::new();
+            // for x in 0..width {
+            //     let image: Image = input.crop_outside(x as i32, 0, 1, height, 255)?;
+            //     let bigrams: Vec<RecordBigram> = image.bigram_y()?;
+            //     let bigrams: Vec<RecordTrigram> = image.trigram_y()?;
+            //     number_of_unique_bigrams_column_vec.push(bigrams.len().min(255) as u8);
+            // }
+            // let mut number_of_unique_bigrams_row_vec = Vec::<u8>::new();
+            // for y in 0..height {
+            //     let image: Image = input.crop_outside(0, y as i32, width, 1, 255)?;
+            //     let bigrams: Vec<RecordBigram> = image.bigram_x()?;
+            //     let bigrams: Vec<RecordTrigram> = image.trigram_x()?;
+            //     number_of_unique_bigrams_row_vec.push(bigrams.len().min(255) as u8);
+            // }
+
+            // if let Some(ep_image) = earlier_prediction_image {
+            //     for x in 0..width {
+            //         let image: Image = ep_image.crop_outside(x as i32, 0, 1, height, 255)?;
+            //         let bigrams: Vec<RecordBigram> = image.bigram_y()?;
+            //         let bigrams: Vec<RecordTrigram> = image.trigram_y()?;
+            //         number_of_unique_bigrams_column_vec.push(bigrams.len().min(255) as u8);
+            //     }
+            //     for y in 0..height {
+            //         let image: Image = ep_image.crop_outside(0, y as i32, width, 1, 255)?;
+            //         let bigrams: Vec<RecordBigram> = image.bigram_x()?;
+            //         let bigrams: Vec<RecordTrigram> = image.trigram_x()?;
+            //         number_of_unique_bigrams_row_vec.push(bigrams.len().min(255) as u8);
+            //     }
+            // }
+
+            // let mut trigrams_column = HashMap::<u8, Vec::<RecordTrigram>>::new();
+            // let mut trigrams_row = HashMap::<u8, Vec::<RecordTrigram>>::new();
+            // {
+            //     for x in 0..width {
+            //         let image: Image = input.crop_outside(x as i32, 0, 1, height, 255)?;
+            //         let trigrams: Vec<RecordTrigram> = image.trigram_y()?;
+            //         trigrams_column.insert(x, trigrams);
+            //     }
+            //     for y in 0..height {
+            //         let image: Image = input.crop_outside(0, y as i32, width, 1, 255)?;
+            //         let trigrams: Vec<RecordTrigram> = image.trigram_x()?;
+            //         trigrams_row.insert(y, trigrams);
+            //     }
+            // }
+            // if let Some(ep_image) = earlier_prediction_image {
+            //     for x in 0..width {
+            //         let image: Image = ep_image.crop_outside(x as i32, 0, 1, height, 255)?;
+            //         let trigrams: Vec<RecordTrigram> = image.trigram_y()?;
+            //         trigrams_column.insert(x, trigrams);
+            //     }
+            //     for y in 0..height {
+            //         let image: Image = ep_image.crop_outside(0, y as i32, width, 1, 255)?;
+            //         let trigrams: Vec<RecordTrigram> = image.trigram_x()?;
+            //         trigrams_row.insert(y, trigrams);
+            //     }
+            // }
+
+            let gravity_background_color: u8 = most_popular_color.unwrap_or(0);
+            let gravity_up: Image = input.gravity(gravity_background_color, GravityDirection::Up)?;
+            let gravity_down: Image = input.gravity(gravity_background_color, GravityDirection::Down)?;
+            let gravity_left: Image = input.gravity(gravity_background_color, GravityDirection::Left)?;
+            let gravity_right: Image = input.gravity(gravity_background_color, GravityDirection::Right)?;
 
             for y in 0..height {
                 let yy: i32 = y as i32;
@@ -1926,6 +1999,14 @@ impl SolveLogisticRegression {
                         values: vec!(),
                     };
 
+                    // {
+                    //     let random_color: u8 = random_image.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_bool(random_color == 0);
+                    //     record.serialize_bool_onehot(random_color == 0);
+                    //     record.serialize_onehot(random_color, 10);
+                    //     record.serialize_u8(random_color);
+                    // }
+
                     if enable_total_clustercount {
                         record.serialize_u8(total_clustercount_connectivity4.min(255) as u8);
                         record.serialize_u8(total_clustercount_connectivity8.min(255) as u8);
@@ -1946,6 +2027,107 @@ impl SolveLogisticRegression {
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
+
+                    {
+                        let images = [&gravity_up, &gravity_down, &gravity_left, &gravity_right];
+                        for image in images {
+                            let pixel: u8 = image.get(xx, yy).unwrap_or(255);
+                            record.serialize_color_complex(pixel, obfuscated_color_offset);
+                        }
+                    }
+
+                    // {
+                    //     let histogram: Histogram = area3x3.histogram_all();
+                    //     let mut color: u8 = 255;
+                    //     if histogram.number_of_counters_greater_than_zero() == 1 {
+                    //         color = histogram.most_popular_color().unwrap_or(255);
+                    //     }
+                    //     // record.serialize_onehot(color, 10);
+                    //     record.serialize_color_complex(color, obfuscated_color_offset);
+                    // }
+                    // {
+                    //     let histogram: Histogram = area5x5.histogram_all();
+                    //     let mut color: u8 = 255;
+                    //     if histogram.number_of_counters_greater_than_zero() == 1 {
+                    //         color = histogram.most_popular_color().unwrap_or(255);
+                    //     }
+                    //     // record.serialize_onehot(color, 10);
+                    //     record.serialize_color_complex(color, obfuscated_color_offset);
+                    // }
+
+                    // {
+                    //     // let area_top_left: Image = area3x3.crop_outside(0, 0, 2, 2, 255)?;
+                    //     // let area_top_right: Image = area3x3.crop_outside(1, 0, 2, 2, 255)?;
+                    //     // let area_bottom_left: Image = area3x3.crop_outside(0, 1, 2, 2, 255)?;
+                    //     // let area_bottom_right: Image = area3x3.crop_outside(1, 1, 2, 2, 255)?;
+                    //     let image0: Image = area5x5.crop_outside(0, 0, 3, 3, 255)?;
+                    //     let image1: Image = area5x5.crop_outside(1, 0, 3, 3, 255)?;
+                    //     let image2: Image = area5x5.crop_outside(2, 0, 3, 3, 255)?;
+                    //     let image3: Image = area5x5.crop_outside(0, 1, 3, 3, 255)?;
+                    //     let image4: Image = area5x5.crop_outside(2, 1, 3, 3, 255)?;
+                    //     let image5: Image = area5x5.crop_outside(0, 2, 3, 3, 255)?;
+                    //     let image6: Image = area5x5.crop_outside(1, 2, 3, 3, 255)?;
+                    //     let image7: Image = area5x5.crop_outside(2, 2, 3, 3, 255)?;
+                    //     // let images = [&area_top_left, &area_top_right, &area_bottom_left, &area_bottom_right];
+                    //     let images = [&image0, &image1, &image2, &image3, &image4, &image5, &image6, &image7];
+                    //     for image in images {
+                    //         let histogram: Histogram = image.histogram_all();
+                    //         // histogram.set_counter_to_zero(center);
+                    //         // histogram.set_counter_to_zero(10);
+                    //         // histogram.set_counter_to_zero(255);
+                    //         // record.serialize_bool_onehot(histogram.number_of_counters_greater_than_zero() == 1);
+                    //         // record.serialize_onehot_discard_overflow(histogram.number_of_counters_greater_than_zero().min(8) as u8, 8);
+                    //         // record.serialize_onehot_discard_overflow(histogram.get(center).min(9) as u8, 9);
+                    //         record.serialize_bool(histogram.get(center) > 0);
+                    //     }
+                    // }
+
+
+                    // {
+                    //     let count: u8 = number_of_unique_bigrams_column_vec.get(x as usize).map(|n| *n).unwrap_or(0);
+                    //     record.serialize_u8(count);
+                    //     record.serialize_onehot_discard_overflow(count, 28);
+                    // }
+                    // {
+                    //     let count: u8 = number_of_unique_bigrams_row_vec.get(y as usize).map(|n| *n).unwrap_or(0);
+                    //     record.serialize_u8(count);
+                    //     record.serialize_onehot_discard_overflow(count, 28);
+                    // }
+
+                    // {
+                    //     let mut count: u8 = 0;
+                    //     if let Some(trigrams) = trigrams_column.get(&x) {
+                    //         for trigram in trigrams {
+                    //             if trigram.word0 == center {
+                    //                 count += 1;
+                    //             }
+                    //             if trigram.word1 == center {
+                    //                 count += 1;
+                    //             }
+                    //             if trigram.word2 == center {
+                    //                 count += 1;
+                    //             }
+                    //         }
+                    //     }
+                    //     record.serialize_u8(count);
+                    // }
+                    // {
+                    //     let mut count: u8 = 0;
+                    //     if let Some(trigrams) = trigrams_row.get(&y) {
+                    //         for trigram in trigrams {
+                    //             if trigram.word0 == center {
+                    //                 count += 1;
+                    //             }
+                    //             if trigram.word1 == center {
+                    //                 count += 1;
+                    //             }
+                    //             if trigram.word2 == center {
+                    //                 count += 1;
+                    //             }
+                    //         }
+                    //     }
+                    //     record.serialize_u8(count);
+                    // }
 
                     // let area_left: Image = if x > 2 {
                     //     input.left_columns(x - 1)?
@@ -2184,7 +2366,138 @@ impl SolveLogisticRegression {
                         Err(_) => Image::empty()
                     };
                     
+                    // {
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_column_top.trigram_y() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_column_bottom.trigram_y() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_row_left.trigram_x() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_row_right.trigram_x() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    // }
 
+                    {
+                        // {
+                        //     let trigrams_vec: [Vec<RecordTrigram>; 4] = [
+                        //         center_column_top.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //         center_column_bottom.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //         center_row_left.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //         center_row_right.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //     ];
+                        //     for trigrams in &trigrams_vec {
+                        //         let mut count: u8 = 0;
+                        //         for trigram in trigrams {
+                        //             if trigram.word0 != center && trigram.word1 == center && trigram.word2 != center {
+                        //                 count += 1;
+                        //             }
+                        //         }
+                        //         record.serialize_u8(count);
+                        //     }
+                        // }
+                        // {
+                        //     let trigrams_vec: [Vec<RecordTrigram>; 2] = [
+                        //         center_row_left.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //         center_row_right.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //     ];
+                        //     let word0: u8 = area3x3.get(0, 1).unwrap_or(255);
+                        //     let word1: u8 = center;
+                        //     let word2: u8 = area3x3.get(2, 1).unwrap_or(255);
+                        //     for trigrams in &trigrams_vec {
+                        //         let mut count: u8 = 0;
+                        //         for trigram in trigrams {
+                        //             if trigram.word0 == word0 && trigram.word1 == word1 && trigram.word2 == word2 {
+                        //                 count += trigram.count.min(255) as u8;
+                        //             }
+                        //         }
+                        //         // record.serialize_u8(count);
+                        //         record.serialize_onehot(count, 4);
+                        //     }
+                        // }
+                        // {
+                        //     let trigrams_vec: [Vec<RecordTrigram>; 2] = [
+                        //         center_column_top.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //         center_column_bottom.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //     ];
+                        //     let word0: u8 = area3x3.get(1, 0).unwrap_or(255);
+                        //     let word1: u8 = center;
+                        //     let word2: u8 = area3x3.get(1, 2).unwrap_or(255);
+                        //     for trigrams in &trigrams_vec {
+                        //         let mut count: u8 = 0;
+                        //         for trigram in trigrams {
+                        //             if trigram.word0 == word0 && trigram.word1 == word1 && trigram.word2 == word2 {
+                        //                 count += trigram.count.min(255) as u8;
+                        //             }
+                        //         }
+                        //         // record.serialize_u8(count);
+                        //         record.serialize_onehot(count, 4);
+                        //     }
+                        // }
+                    }
 
 
                     // let max_distance: u8 = 3;
@@ -4874,102 +5187,84 @@ impl SolveLogisticRegression {
     }
 }
 
-struct MyDataset {
-    dataset: Dataset<f64, usize, Ix1>,
-    split_ratio: f32,
-}
-
-fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
+fn create_dataset(records: &Vec<Record>, is_test: bool) -> anyhow::Result<Dataset<f64, usize, Ix1>> {
     let mut data: Vec<f64> = Vec::new();
+    let mut rows: usize = 0;
+    let mut targets_raw: Vec<usize> = Vec::new();
     let mut values_max: usize = 0;
     let mut values_min: usize = usize::MAX;
     for record in records {
-        data.push(record.classification as f64);
-        data.push(record.is_test as f64);
+        let value_count: usize = record.values.len();
+        values_max = values_max.max(value_count);
+        values_min = values_min.min(value_count);
+
+        if is_test != record.is_test {
+            continue;
+        }
+        targets_raw.push(record.classification as usize);
         data.push(record.pair_id as f64);
         for value in &record.values {
             data.push(*value);
         }
-        let value_count: usize = record.values.len();
-        values_max = values_max.max(value_count);
-        values_min = values_min.min(value_count);
+        rows += 1;
     }
     if values_max != values_min {
         return Err(anyhow::anyhow!("values_max != values_min. values_max: {} values_min: {}", values_max, values_min));
     }
-    // println!("values_max: {}", values_max);
-    let columns: usize = values_max + 3;
+    let columns: usize = values_max + 1;
 
     let array1: Array1<f64> = Array1::<f64>::from(data);
-    let array: Array2<f64> = array1.into_shape((records.len(), columns))?;
+    let x: Array2<f64> = array1.into_shape((rows, columns))?;
+    
+    let y: Array1<usize> = Array1::<usize>::from(targets_raw);
 
-    // split using the "is_test" column
-    // the "is_test" column, determine where the split point is
-    let col1 = array.column(1);
-    let mut n_above: usize = 0;
-    let mut n_below: usize = 0;
-    for item in col1.iter() {
-        if *item > 0.01 {
-            n_above += 1;
-        } else {
-            n_below += 1;
-        }
-    }
-    let split_ratio: f32 = (n_below as f32) / ((n_above + n_below) as f32);
-    // println!("train: {} test: {} split_ratio: {}", n_below, n_above, split_ratio);
-
-    let (data, targets) = (
-        array.slice(s![.., 2..]).to_owned(),
-        array.column(0).to_owned(),
-    );
-
-    let dataset = Dataset::new(data, targets)
-        .map_targets(|x| *x as usize);
-
-    let instance = MyDataset {
-        dataset,
-        split_ratio,
-    };
-    Ok(instance)
+    let dataset: Dataset<f64, usize, Ix1> = Dataset::new(x, y);
+    Ok(dataset)
 }
 
 fn perform_logistic_regression(task: &Task, test_index: u8, records: &Vec<Record>) -> anyhow::Result<Image> {
+    for retry_index in 0..=3 {
+        match perform_logistic_regression_inner(task, test_index, records, retry_index) {
+            Ok(image) => return Ok(image),
+            Err(error) => {
+                let error_message = format!("{:?}", error);
+                if error_message.contains("MoreThuenteLineSearch") {
+                    // Often the `MultiLogisticRegression.fit()` function returned this error:
+                    // Condition violated: "`MoreThuenteLineSearch`: Search direction must be a descent direction."
+                    // The naive solution is to be try again with lower `max_iterations` value.
+                    debug!("perform_logistic_regression_inner retrying due to MoreThuenteLineSearch error. retry_index: {} error: {}", retry_index, error);
+                    continue;
+                }
+                return Err(error);
+            },
+        }
+    }
+    Err(anyhow::anyhow!("perform_logistic_regression exhausted all retries"))
+}
+
+fn perform_logistic_regression_inner(task: &Task, test_index: u8, records: &Vec<Record>, retry_index: u8) -> anyhow::Result<Image> {
     // println!("task_id: {}", task.id);
 
-    // Future experiment:
-    // Deal with ARC tasks that have 2 or more `test` pairs.
-    // If there are multiple `test` pairs, then the `test` pairs should be split into multiple `valid` pairs.
-    // Currently assumes that there is only 1 `test` pair. So the `pred.get(address)` behaves the same for all the `test` pairs.
-    //
-    // Run logistic regression on the `train` pairs. By adding the `train` pairs to the `valid` pairs. 
-    // If all the `train` inputs yields the correct output.
-    // Then run logistic regression on the `test` pairs.
+    let dataset_train: Dataset<f64, usize, Ix1> = create_dataset(records, false)
+        .context("perform_logistic_regression_inner dataset_train")?;
 
-    let dataset: Dataset<f64, usize, Ix1>;
-    let ratio: f32;
-    {
-        let my_dataset: MyDataset = dataset_from_records(records)?;
-        ratio = my_dataset.split_ratio;
-        dataset = my_dataset.dataset;
-    }
+    let dataset_test: Dataset<f64, usize, Ix1> = create_dataset(records, true)
+        .context("perform_logistic_regression_inner dataset_test")?;
 
-    // split using the "is_test" column
-    // let (train, valid) = dataset.split_with_ratio(0.9);
-    let (train, valid) = dataset.split_with_ratio(ratio);
+    let max_iterations: u64 = match retry_index {
+        0 => 50,
+        1 => 25,
+        2 => 10,
+        _ => 5,
+    };
 
-    // println!(
-    //     "Fit Multinomial Logistic Regression classifier with #{} training points",
-    //     train.nsamples()
-    // );
-
-    // fit a Logistic regression model with 150 max iterations
-    let model = MultiLogisticRegression::default()
-        .max_iterations(50)
-        .fit(&train)
-        .context("MultiLogisticRegression")?;
+    let model: MultiFittedLogisticRegression<f64, _> = MultiLogisticRegression::<f64>::default()
+        .max_iterations(max_iterations)
+        .fit(&dataset_train)
+        .context("perform_logistic_regression_inner fit")?;
 
     // predict and map targets
-    let pred = model.predict(&valid);
+    let pred = model.predict(&dataset_test);
 
     // create a confusion matrix
     // let cm = pred.confusion_matrix(&valid)
