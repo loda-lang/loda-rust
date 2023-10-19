@@ -765,6 +765,8 @@ impl SolveLogisticRegression {
 
         let enable_hole_type1: bool = process_task_iteration_index == 0;
         let enable_color_repair: bool = process_task_iteration_index == 0;
+        
+        let enable_shape_transformation_images: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -983,9 +985,16 @@ impl SolveLogisticRegression {
             let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8, false)?;
             let shape_type45_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, true)?;
             let shape_type45_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8, true)?;
-            
-            // let shape_transformation_images_connectivity4: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
-            // let shape_transformation_images_connectivity8: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+
+            let shape_transformation_images_connectivity4: Vec<Image>;
+            let shape_transformation_images_connectivity8: Vec<Image>;
+            if enable_shape_transformation_images {
+                shape_transformation_images_connectivity4 = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+                shape_transformation_images_connectivity8 = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            } else {
+                shape_transformation_images_connectivity4 = vec!();
+                shape_transformation_images_connectivity8 = vec!();
+            }
 
             let shape_size_images_connectivity4: Vec<Image> = Self::shape_size_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             _ = shape_size_images_connectivity4;
@@ -4855,16 +4864,18 @@ impl SolveLogisticRegression {
                         let pixel: u8 = shape_type45_image_connectivity8.get(xx, yy).unwrap_or(255);
                         record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
-                    // for shape_transformation_image in &shape_transformation_images_connectivity4 {
-                    //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_u8(pixel);
-                    //     record.serialize_bitmask_as_onehot(pixel as u16, 8);
-                    // }
-                    // for shape_transformation_image in &shape_transformation_images_connectivity8 {
-                    //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_u8(pixel);
-                    //     record.serialize_bitmask_as_onehot(pixel as u16, 8);
-                    // }
+                    if enable_shape_transformation_images {
+                        for shape_transformation_image in &shape_transformation_images_connectivity4 {
+                            let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
+                            // record.serialize_u8(pixel);
+                            record.serialize_bitmask_as_onehot(pixel as u16, 8);
+                        }
+                        for shape_transformation_image in &shape_transformation_images_connectivity8 {
+                            let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
+                            // record.serialize_u8(pixel);
+                            record.serialize_bitmask_as_onehot(pixel as u16, 8);
+                        }
+                    }
 
                     // Shape orientation: landscape, portrait, square
                     {
