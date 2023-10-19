@@ -6,22 +6,20 @@
 //! 
 //! However currently this approach solves none of the tasks from the hidden ARC dataset.
 //!
-//! This solves 72 of the 800 tasks in the public ARC dataset.
+//! This solves 59 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 140c817e, 1c0d0a4b, 21f83797, 2281f1f4, 23581191,
-//! 253bf280, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53,
-//! 5289ad53, 543a7ed5, 54d9e175, 5b526a93, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb,
-//! 6ea4a07e, 6f8cd79b, 776ffc46, 810b9b61, 84f2aca1, 868de0fa, 913fb3ed, 95990924, a5313dff, a61f2674,
-//! a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, af902bf9, b0c4d837, b1948b0a,
-//! b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d364b489, d37a1ef5,
-//! d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e133d23d, e7dd8335, e872b94a, e9c9d9a1, ef135b50,
-//! f0df5ff0, f45f5ca7,
+//! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 45737921, 5289ad53, 543a7ed5, 54d9e175,
+//! 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 913fb3ed,
+//! 95990924, a5313dff, a61f2674, a65b410d, a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e,
+//! aedd82e4, b0c4d837, b1948b0a, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a,
+//! d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e872b94a, ef135b50,
 //! 
 //! This partially solves 6 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 239be575, 27a28665, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3
 //! 
-//! The 400 `evaluation` tasks. It solves 28 tasks.
+//! The 400 `evaluation` tasks. It solves ? tasks.
 //! 
-//! The 400 `training` tasks. It solves 50 tasks.
+//! The 400 `training` tasks. It solves ? tasks.
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
