@@ -2327,28 +2327,29 @@ impl SolveLogisticRegression {
                         let dh_output_area_topright: DiagonalHistogram = DiagonalHistogram::diagonal_b(&output_area_topright)?;
                         let dh_output_area_bottomleft: DiagonalHistogram = DiagonalHistogram::diagonal_b(&output_area_bottomleft)?;
                         let dh_output_area_bottomright: DiagonalHistogram = DiagonalHistogram::diagonal_a(&output_area_bottomright)?;
-                        let diagonalhistograms = [
-                            &dh_input_area_topleft, &dh_input_area_topright, &dh_input_area_bottomleft, &dh_input_area_bottomright,
-                            &dh_output_area_topleft, &dh_output_area_topright, &dh_output_area_bottomleft, &dh_output_area_bottomright,
-                        ];
-                        for diagonalhistogram in diagonalhistograms {
-                            for color in 0..COUNT_COLORS_PLUS1 {
-                                let mut mass: u32 = 0;
-                                let mut unique_count: u16 = 0;
-                                let mut found_center: bool = false;
-                                if let Some(histogram) = diagonalhistogram.get(x as i32, y as i32) {
-                                    mass = histogram.get(color);
-                                    unique_count = histogram.number_of_counters_greater_than_zero();
-                                    found_center = histogram.get(center) > 0;
-                                }
-                                record.serialize_bool_onehot(mass > 0);
-                                let the_color: u8 = if mass > 0 { color } else { 255 };
-                                record.serialize_color_complex(the_color, obfuscated_color_offset);
-                                // record.serialize_u8(mass.min(255) as u8);
-                                record.serialize_onehot(unique_count.min(255) as u8, COUNT_COLORS_PLUS1);
-                                record.serialize_bool(found_center);
-                            }
-                        }
+                        // let diagonalhistograms = [
+                        //     &dh_input_area_topleft, &dh_input_area_topright, &dh_input_area_bottomleft, &dh_input_area_bottomright,
+                        //     &dh_output_area_topleft, &dh_output_area_topright, &dh_output_area_bottomleft, &dh_output_area_bottomright,
+                        // ];
+                        // for diagonalhistogram in diagonalhistograms {
+                        //     for color in 0..COUNT_COLORS_PLUS1 {
+                        //         let mut mass: u32 = 0;
+                        //         let mut unique_count: u16 = 0;
+                        //         let mut found_center: bool = false;
+                        //         if let Some(histogram) = diagonalhistogram.get(x as i32, y as i32) {
+                        //             mass = histogram.get(color);
+                        //             unique_count = histogram.number_of_counters_greater_than_zero();
+                        //             found_center = histogram.get(center) > 0;
+                        //         }
+                        //         record.serialize_bool(mass > 0);
+                        //         record.serialize_bool_onehot(mass > 0);
+                        //         let the_color: u8 = if mass > 0 { color } else { 255 };
+                        //         record.serialize_color_complex(the_color, obfuscated_color_offset);
+                        //         record.serialize_u8(mass.min(255) as u8);
+                        //         record.serialize_onehot(unique_count.min(255) as u8, COUNT_COLORS_PLUS1);
+                        //         record.serialize_bool(found_center);
+                        //     }
+                        // }
 
                         let dh_opposites = [
                             (&dh_input_area_topleft, &dh_input_area_bottomright),
@@ -2366,11 +2367,11 @@ impl SolveLogisticRegression {
                                 if let Some(histogram) = dh1.get(x as i32, y as i32) {
                                     mass1 = histogram.get(color);
                                 }
-                                record.serialize_bool(mass0 == 1 && mass1 == 1);
+                                // record.serialize_bool(mass0 == 1 && mass1 == 1);
                                 record.serialize_bool(mass0 > 0 && mass1 > 0);
-                                record.serialize_bool(mass0 == 1 && mass1 == 0);
+                                // record.serialize_bool(mass0 == 1 && mass1 == 0);
                                 record.serialize_bool(mass0 > 0 && mass1 == 0);
-                                record.serialize_bool(mass0 == 0 && mass1 == 1);
+                                // record.serialize_bool(mass0 == 0 && mass1 == 1);
                                 record.serialize_bool(mass0 == 0 && mass1 > 0);
                                 record.serialize_bool(mass0 == 0 && mass1 == 0);
                             }
