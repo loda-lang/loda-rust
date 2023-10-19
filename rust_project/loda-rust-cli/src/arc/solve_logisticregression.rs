@@ -19,6 +19,10 @@
 //! This partially solves 6 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 239be575, 27a28665, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3
 //! 
+//! The 400 `evaluation` tasks. It solves 28 tasks.
+//! 
+//! The 400 `training` tasks. It solves 50 tasks.
+//! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
 //! 
