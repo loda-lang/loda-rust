@@ -1,19 +1,20 @@
 use super::{Image, convolution2x2, HtmlLog, ImageMaskCount, Rectangle, ImageSymmetry};
+use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LargestInteriorRectangle {
-    rectangles: Vec<Rectangle>,
-    mass: u16,
+    pub rectangles: HashSet<Rectangle>,
+    pub mass: u16,
 }
 
 impl LargestInteriorRectangle {
-    fn analyze(image: &Image) -> anyhow::Result<Self> {
+    pub fn analyze(image: &Image) -> anyhow::Result<Self> {
         let verbose = false;
         if verbose {
             HtmlLog::image(&image);
         }
 
-        let mut candidates = Vec::<Rectangle>::new();
+        let mut candidates = HashSet::<Rectangle>::new();
         let mut biggest_area: u16 = 0;
         {
             let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&image)?;
@@ -26,7 +27,7 @@ impl LargestInteriorRectangle {
             if mass == biggest_area {
                 for (x, y) in &slices.positions {
                     let rect: Rectangle = Rectangle::new(*x, *y, slices.mass, 1);
-                    candidates.push(rect);
+                    candidates.insert(rect);
                 }
             }
         }
@@ -43,13 +44,16 @@ impl LargestInteriorRectangle {
             if mass == biggest_area {
                 for (x, y) in &slices.positions {
                     let rect: Rectangle = Rectangle::new(*y, *x, 1, slices.mass);
-                    candidates.push(rect);
+                    candidates.insert(rect);
                 }
             }
         }
         let mut current_layer: Image = image.clone();
         let mut scale: u8 = 2;
         loop {
+            if current_layer.width() < 2 || current_layer.height() < 2 {
+                break;
+            }
             let layer: Image = convolution2x2(&current_layer, conv2x2_is_full)?;
             let count: u16 = layer.mask_count_nonzero();
             if count == 0 {
@@ -75,7 +79,7 @@ impl LargestInteriorRectangle {
                             slices.mass + scale - 1, 
                             scale,
                         );
-                        candidates.push(rect);
+                        candidates.insert(rect);
                     }
                 }
             }
@@ -97,7 +101,7 @@ impl LargestInteriorRectangle {
                             scale,
                             slices.mass + scale - 1, 
                         );
-                        candidates.push(rect);
+                        candidates.insert(rect);
                     }
                 }
             }
@@ -216,11 +220,112 @@ mod tests {
         let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
 
         // Assert
+        let mut rectangles = HashSet::<Rectangle>::new();
+        rectangles.insert(Rectangle::new(1, 2, 4, 3));
         let expected = LargestInteriorRectangle {
-            rectangles: vec![
-                Rectangle::new(1, 2, 4, 3),
-            ],
+            rectangles,
             mass: 12,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20001_largest_interior_rectangle() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            1, 0, 1, 1, 0, 1,
+            1, 1, 1, 0, 1, 1,
+            0, 1, 0, 1, 1, 1,
+            1, 0, 1, 1, 1, 0,
+            1, 1, 0, 0, 1, 1,
+        ];
+        let input: Image = Image::try_create(6, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
+
+        // Assert
+        let mut rectangles = HashSet::<Rectangle>::new();
+        rectangles.insert(Rectangle::new(4, 1, 1, 4));
+        rectangles.insert(Rectangle::new(4, 1, 2, 2));
+        rectangles.insert(Rectangle::new(3, 2, 2, 2));
+        let expected = LargestInteriorRectangle {
+            rectangles,
+            mass: 4,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20002_largest_interior_rectangle() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            1, 0, 1, 1, 0, 1,
+            1, 1, 1, 0, 1, 1,
+            0, 1, 0, 1, 0, 1,
+            1, 1, 1, 1, 1, 1,
+            1, 1, 0, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(6, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
+
+        // Assert
+        let mut rectangles = HashSet::<Rectangle>::new();
+        rectangles.insert(Rectangle::new(0, 3, 6, 1));
+        rectangles.insert(Rectangle::new(3, 3, 3, 2));
+        let expected = LargestInteriorRectangle {
+            rectangles,
+            mass: 6,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20003_largest_interior_rectangle() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            1, 0, 1, 0, 1, 0, 1,
+            0, 1, 0, 0, 0, 1, 0,
+            1, 0, 1, 0, 1, 0, 1,
+            1, 0, 1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(7, 4, input_pixels).expect("image");
+
+        // Act
+        let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
+
+        // Assert
+        let mut rectangles = HashSet::<Rectangle>::new();
+        rectangles.insert(Rectangle::new(2, 3, 5, 1));
+        let expected = LargestInteriorRectangle {
+            rectangles,
+            mass: 5,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20004_largest_interior_rectangle() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            1, 0, 1, 1, 1, 1, 1,
+            0, 1, 1, 1, 1, 1, 0,
+            1, 0, 1, 1, 1, 1, 0,
+            1, 0, 1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(7, 4, input_pixels).expect("image");
+
+        // Act
+        let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
+
+        // Assert
+        let mut rectangles = HashSet::<Rectangle>::new();
+        rectangles.insert(Rectangle::new(2, 0, 4, 4));
+        let expected = LargestInteriorRectangle {
+            rectangles,
+            mass: 16,
         };
         assert_eq!(actual, expected);
     }
