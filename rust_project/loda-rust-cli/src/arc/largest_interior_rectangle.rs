@@ -1,3 +1,7 @@
+//! Largest interior rectangle.
+//! 
+//! Only considering the pixels that have the value `1`.
+//! This algorithm determines the biggest rectangles that can be drawn inside `1` value area.
 use super::{Image, convolution2x2, ImageMaskCount, Rectangle, ImageSymmetry};
 use std::collections::HashSet;
 
@@ -8,7 +12,112 @@ pub struct LargestInteriorRectangle {
 }
 
 impl LargestInteriorRectangle {
+    #[allow(dead_code)]
     pub fn analyze(image: &Image) -> anyhow::Result<Self> {
+        Self::analyze_stack_algorithm(image)
+        // Self::analyze_my_own_adhoc_algorithm(image)
+    }
+
+    #[allow(dead_code)]
+    fn analyze_stack_algorithm(image: &Image) -> anyhow::Result<Self> {
+        if image.is_empty() {
+            return Ok(Self {
+                rectangles: HashSet::new(),
+                mass: 0,
+            });
+        }
+    
+        let mut max_area: u16 = 0;
+        let mut largest_rects = HashSet::<Rectangle>::new();
+        let mut height_vec: Vec<u8> = vec![0; image.width() as usize];
+        let mut start_y_vec: Vec<u8> = vec![0; image.width() as usize];
+    
+        for y in 0..image.height() {
+            for x in 0..(image.width() as usize) {
+                if image.get(x as i32, y as i32) == Some(1) {
+                    height_vec[x] += 1;
+                    if height_vec[x] == 1 {
+                        start_y_vec[x] = y;
+                    }
+                } else {
+                    height_vec[x] = 0;
+                    start_y_vec[x] = 0;
+                }
+            }
+            let (current_rects, area) = Self::largest_rectangles_under_histogram(&height_vec, &start_y_vec);
+            if area > max_area {
+                max_area = area;
+                largest_rects = current_rects;
+            } else if area == max_area {
+                largest_rects.extend(current_rects);
+            }
+        }
+
+        if max_area == 0 {
+            largest_rects.clear();
+        }
+    
+        Ok(Self {
+            rectangles: largest_rects,
+            mass: max_area,
+        })
+    }
+
+    /// https://stackoverflow.com/questions/4311694/maximize-the-rectangular-area-under-histogram
+    fn largest_rectangles_under_histogram(height_vec: &Vec<u8>, start_y_vec: &Vec<u8>) -> (HashSet<Rectangle>, u16) {
+        let mut stack = Vec::<usize>::new();
+        let mut max_area: usize = 0;
+        let mut largest_rects = HashSet::<Rectangle>::new();
+        let mut index: usize = 0;
+    
+        while index < height_vec.len() {
+            if stack.is_empty() || height_vec[index] >= height_vec[*stack.last().unwrap()] {
+                stack.push(index);
+                index += 1;
+            } else {
+                let top = stack.pop().unwrap();
+                let width = if stack.is_empty() { index } else { index - stack.last().unwrap() - 1 };
+                let area = (height_vec[top] as usize) * width;
+                if area > max_area {
+                    max_area = area;
+                    largest_rects.clear();
+                }
+                if area == max_area {
+                    let start_x = if stack.is_empty() { 0 } else { *stack.last().unwrap() + 1 };
+                    largest_rects.insert(Rectangle::new(
+                        start_x as u8,
+                        start_y_vec[top],
+                        width as u8,
+                        height_vec[top],
+                    ));
+                }
+            }
+        }
+    
+        while !stack.is_empty() {
+            let top = stack.pop().unwrap();
+            let width = if stack.is_empty() { index } else { index - stack.last().unwrap() - 1 };
+            let area = (height_vec[top] as usize) * width;
+            if area > max_area {
+                max_area = area;
+                largest_rects.clear();
+            }
+            if area == max_area {
+                let start_x = if stack.is_empty() { 0 } else { *stack.last().unwrap() + 1 };
+                largest_rects.insert(Rectangle::new(
+                    start_x as u8,
+                    start_y_vec[top],
+                    width as u8,
+                    height_vec[top],
+                ));
+            }
+        }
+    
+        (largest_rects, max_area.min(u16::MAX as usize) as u16)
+    }
+
+    #[allow(dead_code)]
+    fn analyze_my_own_adhoc_algorithm(image: &Image) -> anyhow::Result<Self> {
         let mut candidates = HashSet::<Rectangle>::new();
         let mut biggest_area: u16 = 0;
 
@@ -312,6 +421,110 @@ mod tests {
         let expected = LargestInteriorRectangle {
             rectangles,
             mass: 15,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20006_largest_interior_rectangle() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(11, 1, input_pixels).expect("image");
+
+        // Act
+        let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
+
+        // Assert
+        let mut rectangles = HashSet::<Rectangle>::new();
+        rectangles.insert(Rectangle::new(2, 0, 3, 1));
+        rectangles.insert(Rectangle::new(8, 0, 3, 1));
+        let expected = LargestInteriorRectangle {
+            rectangles,
+            mass: 3,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20007_largest_interior_rectangle() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            1,
+            0,
+            1,
+            1,
+            1,
+            0,
+            1,
+            0,
+            1,
+            1,
+            1,
+        ];
+        let input: Image = Image::try_create(1, 11, input_pixels).expect("image");
+
+        // Act
+        let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
+
+        // Assert
+        let mut rectangles = HashSet::<Rectangle>::new();
+        rectangles.insert(Rectangle::new(0, 2, 1, 3));
+        rectangles.insert(Rectangle::new(0, 8, 1, 3));
+        let expected = LargestInteriorRectangle {
+            rectangles,
+            mass: 3,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20008_largest_interior_rectangle() {
+        // Arrange
+        let input: Image = Image::color(1, 1, 1);
+
+        // Act
+        let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
+
+        // Assert
+        let mut rectangles = HashSet::<Rectangle>::new();
+        rectangles.insert(Rectangle::new(0, 0, 1, 1));
+        let expected = LargestInteriorRectangle {
+            rectangles,
+            mass: 1,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20009_largest_interior_rectangle() {
+        // Arrange
+        let input: Image = Image::zero(1, 1);
+
+        // Act
+        let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
+
+        // Assert
+        let expected = LargestInteriorRectangle {
+            rectangles: HashSet::<Rectangle>::new(),
+            mass: 0,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20010_largest_interior_rectangle() {
+        // Arrange
+        let input: Image = Image::empty();
+
+        // Act
+        let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
+
+        // Assert
+        let expected = LargestInteriorRectangle {
+            rectangles: HashSet::<Rectangle>::new(),
+            mass: 0,
         };
         assert_eq!(actual, expected);
     }
