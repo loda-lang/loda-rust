@@ -1,4 +1,4 @@
-use super::{Image, convolution2x2, HtmlLog, ImageMaskCount, Rectangle, ImageSymmetry};
+use super::{Image, convolution2x2, ImageMaskCount, Rectangle, ImageSymmetry};
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -9,16 +9,12 @@ pub struct LargestInteriorRectangle {
 
 impl LargestInteriorRectangle {
     pub fn analyze(image: &Image) -> anyhow::Result<Self> {
-        let verbose = false;
-        if verbose {
-            HtmlLog::image(&image);
-        }
-
         let mut candidates = HashSet::<Rectangle>::new();
         let mut biggest_area: u16 = 0;
+
+        // Find the longest horizontal slices
         {
             let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&image)?;
-            // println!("x slices: {:?}", slices);
             let mass: u16 = slices.mass as u16;
             if mass > biggest_area {
                 biggest_area = slices.mass as u16;
@@ -32,10 +28,10 @@ impl LargestInteriorRectangle {
             }
         }
 
+        // Find the longest vertical slices
         {
-            let layer90: Image = image.flip_diagonal_a()?;
-            let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&layer90)?;
-            // println!("y slices: {:?}", slices);
+            let layer2: Image = image.flip_diagonal_a()?;
+            let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&layer2)?;
             let mass: u16 = slices.mass as u16;
             if mass > biggest_area {
                 biggest_area = slices.mass as u16;
@@ -52,20 +48,19 @@ impl LargestInteriorRectangle {
         let mut scale: u8 = 2;
         loop {
             if current_layer.width() < 2 || current_layer.height() < 2 {
+                // The image is too small, so no more convolution 2x2 operations can be applied.
                 break;
             }
             let layer: Image = convolution2x2(&current_layer, conv2x2_is_full)?;
             let count: u16 = layer.mask_count_nonzero();
             if count == 0 {
+                // The image is all zeros, so it makes no sense to continue with the convolution 2x2 operations.
                 break;
             }
-            if verbose {
-                HtmlLog::image(&layer);
-            }
 
+            // Find the longest horizontal slices
             {
                 let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&layer)?;
-                // println!("x slices: {:?}", slices);
                 let mass: u16 = ((slices.mass as u16) + ((scale - 1) as u16)) * (scale as u16);
                 if mass > biggest_area {
                     biggest_area = mass;
@@ -84,10 +79,10 @@ impl LargestInteriorRectangle {
                 }
             }
 
+            // Find the longest vertical slices
             {
-                let layer90: Image = layer.flip_diagonal_a()?;
-                let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&layer90)?;
-                // println!("slices: {:?}", slices);
+                let layer2: Image = layer.flip_diagonal_a()?;
+                let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&layer2)?;
                 let mass: u16 = ((slices.mass as u16) + ((scale - 1) as u16)) * (scale as u16);
                 if mass > biggest_area {
                     biggest_area = mass;
@@ -326,6 +321,31 @@ mod tests {
         let expected = LargestInteriorRectangle {
             rectangles,
             mass: 16,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20005_largest_interior_rectangle() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1,
+            0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1,
+            1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1,
+            1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1,
+            1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(11, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&input).expect("ok");
+
+        // Assert
+        let mut rectangles = HashSet::<Rectangle>::new();
+        rectangles.insert(Rectangle::new(8, 0, 3, 5));
+        let expected = LargestInteriorRectangle {
+            rectangles,
+            mass: 15,
         };
         assert_eq!(actual, expected);
     }
