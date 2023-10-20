@@ -107,6 +107,7 @@ mod index_for_pixel;
 mod inspect_task;
 mod lab_analyze_task;
 mod label;
+mod largest_interior_rectangle;
 mod linespan;
 mod ngram;
 mod number_to_image;
