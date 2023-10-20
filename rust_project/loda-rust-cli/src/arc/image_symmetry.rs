@@ -12,13 +12,13 @@ pub trait ImageSymmetry {
     /// This is the same as rotating 180 degrees.
     fn flip_xy(&self) -> anyhow::Result<Image>;
 
-    /// Flip over the diagonal so that the `top-left` corner and the `bottom-right` corner changes place.
+    /// Flip over the diagonal so that the `top-right` corner and the `bottom-left` corner changes place.
     /// 
     /// Does the same as Matrix Transpose.
     /// https://en.wikipedia.org/wiki/Transpose
     fn flip_diagonal_a(&self) -> anyhow::Result<Image>;
-
-    /// Flip over the diagonal so that the `top-right` corner and the `bottom-left` corner changes place.
+    
+    /// Flip over the diagonal so that the `top-left` corner and the `bottom-right` corner changes place.
     fn flip_diagonal_b(&self) -> anyhow::Result<Image>;
 
     /// Detect symmetry along the `x-axis`.
@@ -27,10 +27,22 @@ pub trait ImageSymmetry {
     /// Detect symmetry along the `y-axis`.
     fn is_symmetric_y(&self) -> anyhow::Result<bool>;
 
-    /// Detect symmetry along the diagonal going from `top-left` to `bottom-right`
+    /// Detect diagonal symmetry.
+    ///
+    /// If the images is not square, then it's not symmetric and `false` is returned.
+    /// 
+    /// Compare the original with the `flip_diagonal_a()` version.
+    /// If they are the same, then it's symmetric, and `true` is returned.
+    /// If they are different, then it's not symmetric, and `false` is returned.
     fn is_symmetric_diagonal_a(&self) -> anyhow::Result<bool>;
 
-    /// Detect symmetry along the diagonal going from `top-right` to `bottom-left`
+    /// Detect diagonal symmetry.
+    ///
+    /// If the images is not square, then it's not symmetric and `false` is returned.
+    /// 
+    /// Compare the original with the `flip_diagonal_b()` version.
+    /// If they are the same, then it's symmetric, and `true` is returned.
+    /// If they are different, then it's not symmetric, and `false` is returned.
     fn is_symmetric_diagonal_b(&self) -> anyhow::Result<bool>;
 
     /// Detect symmetry along the any of the diagonals
