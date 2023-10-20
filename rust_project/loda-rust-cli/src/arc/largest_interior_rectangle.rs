@@ -12,38 +12,11 @@ impl LargestInteriorRectangle {
         let mut candidates = HashSet::<Rectangle>::new();
         let mut biggest_area: u16 = 0;
 
-        // Find the longest horizontal slices
-        {
-            let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&image)?;
-            let mass: u16 = slices.mass as u16;
-            if mass > biggest_area {
-                biggest_area = slices.mass as u16;
-                candidates.clear();
-            }
-            if mass == biggest_area {
-                for (x, y) in &slices.positions {
-                    let rect: Rectangle = Rectangle::new(*x, *y, slices.mass, 1);
-                    candidates.insert(rect);
-                }
-            }
-        }
+        // Analyze initial layer
+        Self::analyze_slices(&image, &mut biggest_area, &mut candidates, 1, true)?;
+        let flipped_image = image.flip_diagonal_a()?;
+        Self::analyze_slices(&flipped_image, &mut biggest_area, &mut candidates, 1, false)?;
 
-        // Find the longest vertical slices
-        {
-            let layer2: Image = image.flip_diagonal_a()?;
-            let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&layer2)?;
-            let mass: u16 = slices.mass as u16;
-            if mass > biggest_area {
-                biggest_area = slices.mass as u16;
-                candidates.clear();
-            }
-            if mass == biggest_area {
-                for (x, y) in &slices.positions {
-                    let rect: Rectangle = Rectangle::new(*y, *x, 1, slices.mass);
-                    candidates.insert(rect);
-                }
-            }
-        }
         let mut current_layer: Image = image.clone();
         let mut scale: u8 = 2;
         loop {
@@ -51,57 +24,17 @@ impl LargestInteriorRectangle {
                 // The image is too small, so no more convolution 2x2 operations can be applied.
                 break;
             }
-            let layer: Image = convolution2x2(&current_layer, conv2x2_is_full)?;
-            let count: u16 = layer.mask_count_nonzero();
-            if count == 0 {
+            let next_layer = convolution2x2(&current_layer, conv2x2_is_full)?;
+            if next_layer.mask_count_nonzero() == 0 {
                 // The image is all zeros, so it makes no sense to continue with the convolution 2x2 operations.
                 break;
             }
 
-            // Find the longest horizontal slices
-            {
-                let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&layer)?;
-                let mass: u16 = ((slices.mass as u16) + ((scale - 1) as u16)) * (scale as u16);
-                if mass > biggest_area {
-                    biggest_area = mass;
-                    candidates.clear();
-                }
-                if mass == biggest_area {
-                    for (x, y) in &slices.positions {
-                        let rect: Rectangle = Rectangle::new(
-                            *x, 
-                            *y, 
-                            slices.mass + scale - 1, 
-                            scale,
-                        );
-                        candidates.insert(rect);
-                    }
-                }
-            }
+            Self::analyze_slices(&next_layer, &mut biggest_area, &mut candidates, scale, true)?;
+            let flipped_layer = next_layer.flip_diagonal_a()?;
+            Self::analyze_slices(&flipped_layer, &mut biggest_area, &mut candidates, scale, false)?;
 
-            // Find the longest vertical slices
-            {
-                let layer2: Image = layer.flip_diagonal_a()?;
-                let slices: LongestHorizontalSlices = LongestHorizontalSlices::analyze(&layer2)?;
-                let mass: u16 = ((slices.mass as u16) + ((scale - 1) as u16)) * (scale as u16);
-                if mass > biggest_area {
-                    biggest_area = mass;
-                    candidates.clear();
-                }
-                if mass == biggest_area {
-                    for (x, y) in &slices.positions {
-                        let rect: Rectangle = Rectangle::new(
-                            *y, 
-                            *x, 
-                            scale,
-                            slices.mass + scale - 1, 
-                        );
-                        candidates.insert(rect);
-                    }
-                }
-            }
-
-            current_layer = layer;
+            current_layer = next_layer;
             scale += 1;
         }
         let instance = Self {
@@ -109,6 +42,34 @@ impl LargestInteriorRectangle {
             mass: biggest_area,
         };
         Ok(instance)
+    }
+
+    fn analyze_slices(
+        image: &Image, 
+        biggest_area: &mut u16, 
+        candidates: &mut HashSet<Rectangle>, 
+        scale: u8,
+        horizontal: bool
+    ) -> anyhow::Result<()> {
+        let slices = LongestHorizontalSlices::analyze(&image)?;
+        let mass = ((slices.mass as u16) + ((scale - 1) as u16)) * (scale as u16);
+
+        if mass > *biggest_area {
+            *biggest_area = mass;
+            candidates.clear();
+        }
+        
+        if mass == *biggest_area {
+            for (x, y) in &slices.positions {
+                let rect = if horizontal {
+                    Rectangle::new(*x, *y, slices.mass + scale - 1, scale)
+                } else {
+                    Rectangle::new(*y, *x, scale, slices.mass + scale - 1)
+                };
+                candidates.insert(rect);
+            }
+        }
+        Ok(())
     }
 }
 
@@ -163,6 +124,11 @@ impl LongestHorizontalSlices {
     }
 }
 
+/// Determines if the 2x2 convolution window is filled with pixel data.
+/// 
+/// Returns `1` when all pixels are non-zero.
+/// 
+/// Returns `0` when one or more pixels are zero.
 fn conv2x2_is_full(image: &Image) -> anyhow::Result<u8> {
     for pixel in image.pixels() {
         if *pixel == 0 {
