@@ -17,10 +17,11 @@ impl ShapeIdentificationFromSingleColorObject {
     pub fn find_shapes(sco: &SingleColorObject, connectivity: PixelConnectivity) -> anyhow::Result<Self> {
         let image_size: ImageSize = sco.image_size;
         let mut color_and_shape_vec = Vec::<ColorAndShape>::new();
-        for color in 0..=255 {
-            if sco.image_histogram.get(color) == 0 {
-                continue;
-            }
+        for color in 0..=9 {
+        // for color in 0..=255 {
+        //     if sco.image_histogram.get(color) == 0 {
+        //         continue;
+        //     }
             let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
                 Ok(value) => value,
                 Err(_error) => {
