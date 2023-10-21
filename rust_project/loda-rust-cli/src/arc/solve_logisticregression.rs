@@ -707,6 +707,11 @@ impl SolveLogisticRegression {
             return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
         }
 
+        if !task.is_output_size_same_as_input_size() {
+            return Err(anyhow::anyhow!("process_task_iteration all the pairs must have same input_size and output_size"));
+        }
+
+
         // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
 
