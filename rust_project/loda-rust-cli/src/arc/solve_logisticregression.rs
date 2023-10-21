@@ -1744,6 +1744,13 @@ impl SolveLogisticRegression {
                     let x_reverse: u8 = ((width as i32) - 1 - xx).max(0) as u8;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
+                    let mut record = Record {
+                        classification: output_color,
+                        is_test,
+                        pair_id,
+                        values: vec!(),
+                    };
+
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
@@ -2457,12 +2464,6 @@ impl SolveLogisticRegression {
 
                     let input_has_unambiguous_connectivity: bool = input_unambiguous_connectivity_histogram.get(center) > 0;
 
-                    let mut record = Record {
-                        classification: output_color,
-                        is_test,
-                        pair_id,
-                        values: vec!(),
-                    };
                     for area_y in 0..area5x5.height() {
                         for area_x in 0..area5x5.width() {
                             let color: u8 = area5x5.get(area_x as i32, area_y as i32).unwrap_or(255);
