@@ -539,11 +539,13 @@ impl SolveLogisticRegression {
         Ok(cropped_image)
     }
 
+    #[allow(dead_code)]
     fn object_id_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         let mut image: Image = Image::zero(width, height);
         for y in 0..height {
             for x in 0..width {
-                let object_id: usize = task_graph.get_objectid_for_input_pixel(pair_index, x, y, connectivity)?;
+                let object_id: usize = task_graph.get_objectid_for_input_pixel(pair_index, x, y, connectivity)
+                    .context("object_id_image object_id")?;
                 let color: u8 = object_id.min(255) as u8;
                 _ = image.set(x as i32, y as i32, color);
             }
@@ -551,12 +553,14 @@ impl SolveLogisticRegression {
         Ok(image)
     }
 
+    #[allow(dead_code)]
     fn relative_position_images(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
         let mut image_x: Image = Image::zero(width, height);
         let mut image_y: Image = Image::zero(width, height);
         for y in 0..height {
             for x in 0..width {
-                let (position_x, position_y) = task_graph.get_objectposition_for_input_pixel(pair_index, x, y, connectivity)?;
+                let (position_x, position_y) = task_graph.get_objectposition_for_input_pixel(pair_index, x, y, connectivity)
+                    .context("relative_position_images position_x position_y")?;
                 let relative_x: i32 = (x as i32) - (position_x as i32);
                 let relative_y: i32 = (y as i32) - (position_y as i32);
                 {
@@ -638,7 +642,8 @@ impl SolveLogisticRegression {
         for y in 0..height {
             for x in 0..width {
                 let shape_type: ShapeType = match rotate45 {
-                    false => task_graph.get_shapetype_for_input_pixel(pair_index, x, y, connectivity)?,
+                    false => task_graph.get_shapetype_for_input_pixel(pair_index, x, y, connectivity)
+                        .with_context(|| format!("shape_type_image. pair_index: {} x: {} y: {} width: {} height: {} connectivity: {:?}", pair_index, x, y, width, height, connectivity))?,
                     true => task_graph.get_shapetype45_for_input_pixel(pair_index, x, y, connectivity)?
                 };
                 let color: u8 = Self::color_from_shape_type(shape_type);
@@ -695,6 +700,13 @@ impl SolveLogisticRegression {
     fn process_task_iteration(context: &ProcessTaskContext, task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
 
+        if context.input_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.input_size_vec.len() != task.pairs.len()"));
+        }
+        if context.output_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
+        }
+
         // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
 
@@ -743,7 +755,7 @@ impl SolveLogisticRegression {
                     let mut semi_useful_output_image = pair.output.image.clone_zero();
                     for y in 0..size.height {
                         for x in 0..size.width {
-                            let strategy_value: &u8 = &strategy_vec.choose_weighted(&mut rng, |item| item.1).unwrap().0;
+                            let strategy_value: u8 = strategy_vec.choose_weighted(&mut rng, |item| item.1).unwrap().0;
                             let _noise_value: u8 = rng.gen_range(0..=255).max(255) as u8;
                             let noise_value: u8 = 255;
 
