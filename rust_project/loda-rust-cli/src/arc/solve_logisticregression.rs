@@ -6,14 +6,14 @@
 //! 
 //! However currently this approach solves none of the tasks from the hidden ARC dataset.
 //!
-//! This solves 62 of the 800 tasks in the public ARC dataset.
-//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 0d3d703e, 178fcbfb, 1c0d0a4b, 21f83797, 2281f1f4,
-//! 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53,
-//! 50cb2852, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b,
-//! 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5,
-//! ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91,
-//! ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e7dd8335,
-//! e9c9d9a1, ef135b50,
+//! This solves 63 of the 800 tasks in the public ARC dataset.
+//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 0d3d703e, 140c817e, 178fcbfb, 1c0d0a4b, 21f83797,
+//! 2281f1f4, 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921,
+//! 4612dd53, 50cb2852, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e,
+//! 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b, a9f96cdd,
+//! aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002,
+//! ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339, e0fb7511,
+//! e7dd8335, e9c9d9a1, ef135b50,
 //! 
 //! This partially solves 3 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 25ff71a9, 794b24be, da2b0fe3
@@ -36,6 +36,8 @@
 //! 
 //! Future experiments:
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
+//! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
+//! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
 use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec};
@@ -53,7 +55,7 @@ use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use linfa::prelude::*;
-use linfa_logistic::MultiLogisticRegression;
+use linfa_logistic::{MultiLogisticRegression, MultiFittedLogisticRegression};
 use ndarray::prelude::*;
 use rayon::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -63,7 +65,7 @@ static WRITE_TO_HTMLLOG: bool = false;
 #[derive(Clone, Debug, Serialize)]
 struct Record {
     classification: u8,
-    is_test: u8,
+    is_test: bool,
     pair_id: u8,
 
     // Future experiment
@@ -731,15 +733,15 @@ impl SolveLogisticRegression {
             let pair_id: u8 = pair_index.min(255) as u8;
             let pair_index_u8: u8 = pair_index.min(255) as u8;
 
-            let is_test: u8;
+            let is_test: bool;
             let original_output: Image;
             match pair.pair_type {
                 PairType::Train => {
-                    is_test = 0;
+                    is_test = false;
                     original_output = pair.output.image.clone();
                 },
                 PairType::Test => {
-                    is_test = 1;
+                    is_test = true;
                     original_output = Image::empty();
                 },
             }
@@ -3949,102 +3951,84 @@ impl SolveLogisticRegression {
     }
 }
 
-struct MyDataset {
-    dataset: Dataset<f64, usize, Ix1>,
-    split_ratio: f32,
-}
-
-fn dataset_from_records(records: &Vec<Record>) -> anyhow::Result<MyDataset> {
+fn create_dataset(records: &Vec<Record>, is_test: bool) -> anyhow::Result<Dataset<f64, usize, Ix1>> {
     let mut data: Vec<f64> = Vec::new();
+    let mut rows: usize = 0;
+    let mut targets_raw: Vec<usize> = Vec::new();
     let mut values_max: usize = 0;
     let mut values_min: usize = usize::MAX;
     for record in records {
-        data.push(record.classification as f64);
-        data.push(record.is_test as f64);
+        let value_count: usize = record.values.len();
+        values_max = values_max.max(value_count);
+        values_min = values_min.min(value_count);
+
+        if is_test != record.is_test {
+            continue;
+        }
+        targets_raw.push(record.classification as usize);
         data.push(record.pair_id as f64);
         for value in &record.values {
             data.push(*value);
         }
-        let value_count: usize = record.values.len();
-        values_max = values_max.max(value_count);
-        values_min = values_min.min(value_count);
+        rows += 1;
     }
     if values_max != values_min {
         return Err(anyhow::anyhow!("values_max != values_min. values_max: {} values_min: {}", values_max, values_min));
     }
-    // println!("values_max: {}", values_max);
-    let columns: usize = values_max + 3;
+    let columns: usize = values_max + 1;
 
     let array1: Array1<f64> = Array1::<f64>::from(data);
-    let array: Array2<f64> = array1.into_shape((records.len(), columns))?;
+    let x: Array2<f64> = array1.into_shape((rows, columns))?;
+    
+    let y: Array1<usize> = Array1::<usize>::from(targets_raw);
 
-    // split using the "is_test" column
-    // the "is_test" column, determine where the split point is
-    let col1 = array.column(1);
-    let mut n_above: usize = 0;
-    let mut n_below: usize = 0;
-    for item in col1.iter() {
-        if *item > 0.01 {
-            n_above += 1;
-        } else {
-            n_below += 1;
-        }
-    }
-    let split_ratio: f32 = (n_below as f32) / ((n_above + n_below) as f32);
-    // println!("train: {} test: {} split_ratio: {}", n_below, n_above, split_ratio);
-
-    let (data, targets) = (
-        array.slice(s![.., 2..]).to_owned(),
-        array.column(0).to_owned(),
-    );
-
-    let dataset = Dataset::new(data, targets)
-        .map_targets(|x| *x as usize);
-
-    let instance = MyDataset {
-        dataset,
-        split_ratio,
-    };
-    Ok(instance)
+    let dataset: Dataset<f64, usize, Ix1> = Dataset::new(x, y);
+    Ok(dataset)
 }
 
 fn perform_logistic_regression(task: &Task, test_index: u8, records: &Vec<Record>) -> anyhow::Result<Image> {
+    for retry_index in 0..=3 {
+        match perform_logistic_regression_inner(task, test_index, records, retry_index) {
+            Ok(image) => return Ok(image),
+            Err(error) => {
+                let error_message = format!("{:?}", error);
+                if error_message.contains("MoreThuenteLineSearch") {
+                    // Often the `MultiLogisticRegression.fit()` function returned this error:
+                    // Condition violated: "`MoreThuenteLineSearch`: Search direction must be a descent direction."
+                    // The naive solution is to be try again with lower `max_iterations` value.
+                    debug!("perform_logistic_regression_inner retrying due to MoreThuenteLineSearch error. retry_index: {} error: {}", retry_index, error);
+                    continue;
+                }
+                return Err(error);
+            },
+        }
+    }
+    Err(anyhow::anyhow!("perform_logistic_regression exhausted all retries"))
+}
+
+fn perform_logistic_regression_inner(task: &Task, test_index: u8, records: &Vec<Record>, retry_index: u8) -> anyhow::Result<Image> {
     // println!("task_id: {}", task.id);
 
-    // Future experiment:
-    // Deal with ARC tasks that have 2 or more `test` pairs.
-    // If there are multiple `test` pairs, then the `test` pairs should be split into multiple `valid` pairs.
-    // Currently assumes that there is only 1 `test` pair. So the `pred.get(address)` behaves the same for all the `test` pairs.
-    //
-    // Run logistic regression on the `train` pairs. By adding the `train` pairs to the `valid` pairs. 
-    // If all the `train` inputs yields the correct output.
-    // Then run logistic regression on the `test` pairs.
+    let dataset_train: Dataset<f64, usize, Ix1> = create_dataset(records, false)
+        .context("perform_logistic_regression_inner dataset_train")?;
 
-    let dataset: Dataset<f64, usize, Ix1>;
-    let ratio: f32;
-    {
-        let my_dataset: MyDataset = dataset_from_records(records)?;
-        ratio = my_dataset.split_ratio;
-        dataset = my_dataset.dataset;
-    }
+    let dataset_test: Dataset<f64, usize, Ix1> = create_dataset(records, true)
+        .context("perform_logistic_regression_inner dataset_test")?;
 
-    // split using the "is_test" column
-    // let (train, valid) = dataset.split_with_ratio(0.9);
-    let (train, valid) = dataset.split_with_ratio(ratio);
+    let max_iterations: u64 = match retry_index {
+        0 => 50,
+        1 => 25,
+        2 => 10,
+        _ => 5,
+    };
 
-    // println!(
-    //     "Fit Multinomial Logistic Regression classifier with #{} training points",
-    //     train.nsamples()
-    // );
-
-    // fit a Logistic regression model with 150 max iterations
-    let model = MultiLogisticRegression::default()
-        .max_iterations(50)
-        .fit(&train)
-        .context("MultiLogisticRegression")?;
+    let model: MultiFittedLogisticRegression<f64, _> = MultiLogisticRegression::<f64>::default()
+        .max_iterations(max_iterations)
+        .fit(&dataset_train)
+        .context("perform_logistic_regression_inner fit")?;
 
     // predict and map targets
-    let pred = model.predict(&valid);
+    let pred = model.predict(&dataset_test);
 
     // create a confusion matrix
     // let cm = pred.confusion_matrix(&valid)
