@@ -1537,6 +1537,9 @@ impl SolveLogisticRegression {
                     let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, connectivity)?;
                     let mut shapetype_image: Image = ep_image.clone_zero();
                     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                        if color_and_shape.color > 9 {
+                            continue;
+                        }
                         let shape_type: ShapeType = color_and_shape.shape_identification.shape_type;
                         let color: u8 = Self::color_from_shape_type(shape_type);
                         let mode = MixMode::PickColor1WhenColor0IsZero { color };
@@ -1546,6 +1549,9 @@ impl SolveLogisticRegression {
 
                     let mut shapetype45_image: Image = ep_image.clone_zero();
                     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                        if color_and_shape.color > 9 {
+                            continue;
+                        }
                         let shape_type: ShapeType = color_and_shape.shape_identification.shape_type45;
                         let color: u8 = Self::color_from_shape_type(shape_type);
                         let mode = MixMode::PickColor1WhenColor0IsZero { color };

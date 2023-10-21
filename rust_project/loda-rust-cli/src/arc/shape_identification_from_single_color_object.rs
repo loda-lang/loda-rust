@@ -17,11 +17,10 @@ impl ShapeIdentificationFromSingleColorObject {
     pub fn find_shapes(sco: &SingleColorObject, connectivity: PixelConnectivity) -> anyhow::Result<Self> {
         let image_size: ImageSize = sco.image_size;
         let mut color_and_shape_vec = Vec::<ColorAndShape>::new();
-        for color in 0..=9 {
-        // for color in 0..=255 {
-        //     if sco.image_histogram.get(color) == 0 {
-        //         continue;
-        //     }
+        for color in 0..=255 {
+            if sco.image_histogram.get(color) == 0 {
+                continue;
+            }
             let enumerated_objects: Image = match sco.enumerate_clusters(color, connectivity) {
                 Ok(value) => value,
                 Err(_error) => {
@@ -91,6 +90,7 @@ mod tests {
         let instance = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, PixelConnectivity::Connectivity4).expect("ok");
 
         // Assert
+        assert_eq!(instance.color_and_shape_vec.len(), 3);
         {
             let record: &ColorAndShape = instance.color_and_shape_vec.iter().find(|record| record.color == 5 ).expect("some");
             assert_eq!(record.shape_identification.shape_type, ShapeType::L);
@@ -126,6 +126,7 @@ mod tests {
         let instance = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, PixelConnectivity::Connectivity4).expect("ok");
 
         // Assert
+        assert_eq!(instance.color_and_shape_vec.len(), 4);
         {
             let record: &ColorAndShape = instance.color_and_shape_vec.iter().find(|record| record.color == 17 ).expect("some");
             assert_eq!(record.shape_identification.shape_type, ShapeType::Box);
@@ -142,5 +143,7 @@ mod tests {
             assert_eq!(record.position_x_reverse, Some(0));
             assert_eq!(record.position_y_reverse, Some(0));
         }
+        let count0: usize = instance.color_and_shape_vec.iter().filter(|record| record.color == 0 ).count();
+        assert_eq!(count0, 2);
     }
 }
