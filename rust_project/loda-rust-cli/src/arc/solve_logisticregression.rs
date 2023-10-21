@@ -6,17 +6,17 @@
 //! 
 //! However currently this approach solves none of the tasks from the hidden ARC dataset.
 //!
-//! This solves 63 of the 800 tasks in the public ARC dataset.
+//! This solves 66 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 0d3d703e, 140c817e, 178fcbfb, 1c0d0a4b, 21f83797,
 //! 2281f1f4, 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921,
-//! 4612dd53, 50cb2852, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e,
-//! 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b, a9f96cdd,
-//! aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002,
-//! ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339, e0fb7511,
-//! e7dd8335, e9c9d9a1, ef135b50,
+//! 4612dd53, 50cb2852, 5289ad53, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb,
+//! 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b,
+//! a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, b0c4d837, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb,
+//! c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765,
+//! ded97339, e0fb7511, e7dd8335, e872b94a, e9c9d9a1, ef135b50, 
 //! 
-//! This partially solves 3 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
-//! 25ff71a9, 794b24be, da2b0fe3
+//! This partially solves 5 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
+//! 239be575, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3, 
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
@@ -40,7 +40,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -217,6 +217,64 @@ impl Record {
     }
 }
 
+#[derive(Clone, Debug)]
+enum ProcessTaskMode {
+    InputOutputSameSize,
+    InputOutputDifferentSize,
+}
+
+#[derive(Clone, Debug)]
+pub struct ProcessTaskContext {
+    mode: ProcessTaskMode,
+    input_size_vec: Vec<ImageSize>,
+    output_size_vec: Vec<ImageSize>,
+}
+
+impl ProcessTaskContext {
+    pub fn new(task: &Task) -> Self {
+        let mode: ProcessTaskMode = if task.is_output_size_same_as_input_size() { 
+            ProcessTaskMode::InputOutputSameSize 
+        } else { 
+            ProcessTaskMode::InputOutputDifferentSize 
+        };
+        let mut instance = Self {
+            mode,
+            input_size_vec: Vec::<ImageSize>::new(),
+            output_size_vec: Vec::<ImageSize>::new(),
+        };
+        instance.populate_input_size_vec(task);
+        instance.populate_output_size_vec(task);
+        instance
+    }
+
+    fn populate_input_size_vec(&mut self, task: &Task) {
+        self.input_size_vec.clear();
+        for pair in &task.pairs {
+            let size: ImageSize = pair.input.image.size();
+            self.input_size_vec.push(size);
+        }
+    }
+
+    fn populate_output_size_vec(&mut self, task: &Task) {
+        self.output_size_vec.clear();
+        for pair in &task.pairs {
+            match pair.pair_type {
+                PairType::Train => {
+                    let size: ImageSize = pair.output.image.size();
+                    self.output_size_vec.push(size);
+                },
+                PairType::Test => {
+                    let mut the_size: ImageSize = pair.output.test_image.size();
+                    if let Some(size) = pair.predicted_output_size() {
+                        the_size = size;
+                    }
+                    self.output_size_vec.push(the_size);
+                }
+            }
+        }
+    }
+}
+
 pub struct SolveLogisticRegression {
     #[allow(dead_code)]
     tasks: Vec<Task>,
@@ -326,22 +384,28 @@ impl SolveLogisticRegression {
     }
 
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
-        if !task.is_output_size_same_as_input_size() {
-            // if WRITE_TO_HTMLLOG {
-            //     HtmlLog::text(&format!("skipping task: {} because output size is not the same as input size", task.id));
-            // }
-            return Err(anyhow::anyhow!("skipping task: {} because output size is not the same as input size", task.id));
-        }
-
         let count_test: u8 = task.count_test().min(255) as u8;
         if count_test < 1 {
             return Err(anyhow::anyhow!("skipping task: {} because it has no test pairs", task.id));
         }    
 
+        let context = ProcessTaskContext::new(task);
+
+        let task_for_processing: Task;
+        let prediction_type: arcathon_solution_coordinator::PredictionType;
+        if task.is_output_size_same_as_input_size() {
+            task_for_processing = task.clone();
+            prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionSameSize;
+        } else {
+            let task2: Task = CreateTaskWithSameSize::create(task)?;
+            task_for_processing = task2;
+            prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionDifferentSize;
+        }
+
         let mut computed_images = Vec::<Image>::new();
         for test_index in 0..count_test {
             // println!("task: {} test_index: {} before", task.id, test_index);
-            let computed_image: Image = match Self::process_task_with_one_test_pair(task, test_index) {
+            let computed_image: Image = match Self::process_task_with_one_test_pair(&context, &task_for_processing, test_index) {
                 Ok(value) => value,
                 Err(error) => {
                     // println!("task: {} test_index: {} error: {:?}", task.id, test_index, error);
@@ -359,7 +423,7 @@ impl SolveLogisticRegression {
             let prediction = arcathon_solution_coordinator::Prediction {
                 output_id: test_index.min(255) as u8,
                 output: grid,
-                prediction_type: arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionSameSize,
+                prediction_type,
             };
             result_predictions.push(prediction);
         }
@@ -417,12 +481,37 @@ impl SolveLogisticRegression {
         Ok(result_predictions)
     }
 
-    fn process_task_with_one_test_pair(task: &Task, test_index: u8) -> anyhow::Result<Image> {
+    fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Image> {
+        if context.input_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
+        }
+        if context.output_size_vec.len() != task.pairs.len() {
+            return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
+        }
+
+        // Obtain `pair_index` from `test_index`.
+        let mut found_pair_index: Option<u8> = None;
+        for pair in &task.pairs {
+            if pair.test_index == Some(test_index) {
+                found_pair_index = Some(pair.pair_index);
+                break;
+            }
+        }
+        let pair_index: u8 = match found_pair_index {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to find pair with test_index: {}", test_index));
+            }
+        };
+
+        // Obtain the size of the output image
+        let crop_output_size: ImageSize = context.output_size_vec[pair_index as usize];
+
         let number_of_iterations: usize = 5;
         let mut computed_images = Vec::<Image>::new();
         let mut last_computed_image: Option<Image> = None;
         for iteration_index in 0..number_of_iterations {
-            let records = Self::process_task_iteration(task, iteration_index, test_index, last_computed_image)?;
+            let records = Self::process_task_iteration(context, task, iteration_index, test_index, last_computed_image)?;
             let computed_image: Image = perform_logistic_regression(task, test_index, &records)?;
             last_computed_image = Some(computed_image.clone());
             computed_images.push(computed_image);
@@ -437,7 +526,17 @@ impl SolveLogisticRegression {
                 return Err(anyhow::anyhow!("Unable to get last computed image"));
             }
         };
-        Ok(computed_image)
+
+        // Get rid of the `outside` area.
+        let mut cropped_image: Image = computed_image.crop_outside(0, 0, crop_output_size.width, crop_output_size.height, 255)?;
+
+        // Eliminate illegal colors.
+        let most_popular_output_color: u8 = 0;
+        for color in 10..=255 {
+            cropped_image = cropped_image.replace_color(color, most_popular_output_color)?;
+        }
+
+        Ok(cropped_image)
     }
 
     fn object_id_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
@@ -593,7 +692,7 @@ impl SolveLogisticRegression {
         Ok(vec![image_shape_width, image_shape_height])
     }
 
-    fn process_task_iteration(task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
+    fn process_task_iteration(context: &ProcessTaskContext, task: &Task, process_task_iteration_index: usize, test_index: u8, computed_image: Option<Image>) -> anyhow::Result<Vec::<Record>> {
         // println!("exporting task: {}", task.id);
 
         // let obfuscated_color_offset: f64 = 0.2;
