@@ -1160,29 +1160,30 @@ impl SolveLogisticRegression {
 
             let mut color_to_linespan_images = HashMap::<u8, Vec::<Image>>::new();
             {
-                for color in 0..=9u8 {
+                for color in 0..=10u8 {
+                    let mask: Image = if color < 10 {
+                        input.to_mask_where_color_is(color)
+                    } else {
+                        input.to_mask_where_color_is_equal_or_greater_than(color)
+                    };
 
                     let mut images = Vec::<Image>::new();
                     {
-                        let mask: Image = input.to_mask_where_color_is(color);
                         let draw_mass: bool = true;
                         let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::Before, draw_mass })?;
                         images.push(image);
                     }
                     {
-                        let mask: Image = input.to_mask_where_color_is(color);
                         let draw_mass: bool = true;
                         let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Horizontal { mode: LineSpanMode::After, draw_mass })?;
                         images.push(image);
                     }
                     {
-                        let mask: Image = input.to_mask_where_color_is(color);
                         let draw_mass: bool = true;
                         let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::Before, draw_mass })?;
                         images.push(image);
                     }
                     {
-                        let mask: Image = input.to_mask_where_color_is(color);
                         let draw_mass: bool = true;
                         let image: Image = LineSpan::draw(&mask, &LineSpanDirection::Vertical { mode: LineSpanMode::After, draw_mass })?;
                         images.push(image);
@@ -3220,13 +3221,16 @@ impl SolveLogisticRegression {
                         // record.serialize_bool(is_line);
                     // }
 
-                    if let Some(images) = color_to_linespan_images.get(&center) {
+                    let center_clamp10: u8 = center.min(10);
+                    if let Some(images) = color_to_linespan_images.get(&center_clamp10) {
                         for linespan_image in images {
                             let pixel: u8 = linespan_image.get(xx, yy).unwrap_or(255);
                             record.serialize_u8(pixel);
                             // record.serialize_onehot(pixel, 4);
                             // record.serialize_onehot_discard_overflow(pixel, 2);
                         }
+                    } else {
+                        return Err(anyhow::anyhow!("no linespan images for color {}", center));
                     }
                     
                     // {
