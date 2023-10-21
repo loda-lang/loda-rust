@@ -6,18 +6,20 @@
 //! 
 //! However currently this approach solves none of the tasks from the hidden ARC dataset.
 //!
-//! This solves 72 of the 800 tasks in the public ARC dataset.
+//! This solves 59 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 140c817e, 1c0d0a4b, 21f83797, 2281f1f4, 23581191,
-//! 253bf280, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921, 4612dd53,
-//! 5289ad53, 543a7ed5, 54d9e175, 5b526a93, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb,
-//! 6ea4a07e, 6f8cd79b, 776ffc46, 810b9b61, 84f2aca1, 868de0fa, 913fb3ed, 95990924, a5313dff, a61f2674,
-//! a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, af902bf9, b0c4d837, b1948b0a,
-//! b2862040, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d364b489, d37a1ef5,
-//! d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e133d23d, e7dd8335, e872b94a, e9c9d9a1, ef135b50,
-//! f0df5ff0, f45f5ca7,
+//! 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 45737921, 5289ad53, 543a7ed5, 54d9e175,
+//! 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 913fb3ed,
+//! 95990924, a5313dff, a61f2674, a65b410d, a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e,
+//! aedd82e4, b0c4d837, b1948b0a, b60334d2, b6afb2da, bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a,
+//! d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339, e0fb7511, e872b94a, ef135b50,
 //! 
 //! This partially solves 6 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 239be575, 27a28665, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3
+//! 
+//! The 400 `evaluation` tasks. It solves ? tasks.
+//! 
+//! The 400 `training` tasks. It solves ? tasks.
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
@@ -41,7 +43,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize, ImageReplaceColor, GravityDirection, ImageGravity};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, ImageCenterIndicator, DiagonalHistogram, CreateTaskWithSameSize, ImageReplaceColor, GravityDirection, ImageGravity, TaskNameToPredictionVec};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -54,6 +56,7 @@ use rand::rngs::StdRng;
 use serde::Serialize;
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use linfa::prelude::*;
 use linfa_logistic::{MultiLogisticRegression, MultiFittedLogisticRegression};
 use ndarray::prelude::*;
@@ -292,8 +295,12 @@ impl SolveLogisticRegression {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn run(&mut self) -> anyhow::Result<()> {
+    /// Checks that the predicted output is the same as the expected output.
+    /// 
+    /// This can be run with the public ARC dataset contains expected output for the test pairs.
+    /// 
+    /// This cannot be run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
+    pub fn run_and_verify(&self) -> anyhow::Result<()> {
         let verbose = false;
         let verify_test_output = true;
         let number_of_tasks: u64 = self.tasks.len() as u64;
@@ -304,7 +311,7 @@ impl SolveLogisticRegression {
             .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
             .progress_chars("#>-")
         );
-        self.tasks.par_iter_mut().for_each(|task| {
+        self.tasks.par_iter().for_each(|task| {
             match Self::process_task(task, verify_test_output) {
                 Ok(_predictions) => {
                     count_solved.fetch_add(1, Ordering::Relaxed);
@@ -325,6 +332,61 @@ impl SolveLogisticRegression {
         println!("{} - run - end", human_readable_utc_timestamp());
         println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
         Ok(())
+    }
+
+    /// Run without verifying that the predictions are correct.
+    /// 
+    /// This code is intended to run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
+    pub fn run_predictions(&self) -> anyhow::Result<TaskNameToPredictionVec> {
+        let verbose = false;
+        let verify_test_output = false;
+        let number_of_tasks: u64 = self.tasks.len() as u64;
+        println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
+        let count_solved = AtomicUsize::new(0);
+        let pb = ProgressBar::new(number_of_tasks as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
+            .progress_chars("#>-")
+        );
+        let accumulated = Arc::new(Mutex::new(TaskNameToPredictionVec::new()));
+        self.tasks.par_iter().for_each(|task| {
+            match Self::process_task(task, verify_test_output) {
+                Ok(predictions) => {
+                    count_solved.fetch_add(1, Ordering::Relaxed);
+                    let count: usize = count_solved.load(Ordering::Relaxed);
+                    pb.set_message(format!("Solved: {}", count));
+                    pb.println(format!("task {} - solved", task.id));
+
+                    match accumulated.lock() {
+                        Ok(mut map) => {
+                            map.entry(task.id.clone())
+                                .or_insert(Vec::new())
+                                .extend(predictions);            
+                        },
+                        Err(error) => {
+                            pb.println(format!("run_predictions. Unable to lock accumulated. error: {:?}", error));
+                        }
+                    };
+                },
+                Err(error) => {
+                    if verbose {
+                        pb.println(format!("task {} - error: {:?}", task.id, error));
+                    }
+                }
+            }
+            pb.inc(1);
+        });
+        pb.finish_and_clear();
+        let count_solved: usize = count_solved.load(Ordering::Relaxed);
+        println!("{} - run - end", human_readable_utc_timestamp());
+        println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = match accumulated.lock() {
+            Ok(map) => map.clone(),
+            Err(error) => {
+                return Err(anyhow::anyhow!("run_predictions. taskname_to_prediction_vec. Unable to lock accumulated. error: {:?}", error));
+            }
+        };
+        Ok(taskname_to_prediction_vec)
     }
 
     /// Converts an unsigned binary number to reflected binary Gray code.
@@ -499,11 +561,13 @@ impl SolveLogisticRegression {
         Ok(cropped_image)
     }
 
+    #[allow(dead_code)]
     fn object_id_image(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         let mut image: Image = Image::zero(width, height);
         for y in 0..height {
             for x in 0..width {
-                let object_id: usize = task_graph.get_objectid_for_input_pixel(pair_index, x, y, connectivity)?;
+                let object_id: usize = task_graph.get_objectid_for_input_pixel(pair_index, x, y, connectivity)
+                    .context("object_id_image object_id")?;
                 let color: u8 = object_id.min(255) as u8;
                 _ = image.set(x as i32, y as i32, color);
             }
@@ -511,12 +575,14 @@ impl SolveLogisticRegression {
         Ok(image)
     }
 
+    #[allow(dead_code)]
     fn relative_position_images(task_graph: &TaskGraph, pair_index: u8, width: u8, height: u8, connectivity: PixelConnectivity) -> anyhow::Result<Vec<Image>> {
         let mut image_x: Image = Image::zero(width, height);
         let mut image_y: Image = Image::zero(width, height);
         for y in 0..height {
             for x in 0..width {
-                let (position_x, position_y) = task_graph.get_objectposition_for_input_pixel(pair_index, x, y, connectivity)?;
+                let (position_x, position_y) = task_graph.get_objectposition_for_input_pixel(pair_index, x, y, connectivity)
+                    .context("relative_position_images position_x position_y")?;
                 let relative_x: i32 = (x as i32) - (position_x as i32);
                 let relative_y: i32 = (y as i32) - (position_y as i32);
                 {
@@ -598,7 +664,8 @@ impl SolveLogisticRegression {
         for y in 0..height {
             for x in 0..width {
                 let shape_type: ShapeType = match rotate45 {
-                    false => task_graph.get_shapetype_for_input_pixel(pair_index, x, y, connectivity)?,
+                    false => task_graph.get_shapetype_for_input_pixel(pair_index, x, y, connectivity)
+                        .with_context(|| format!("shape_type_image. pair_index: {} x: {} y: {} width: {} height: {} connectivity: {:?}", pair_index, x, y, width, height, connectivity))?,
                     true => task_graph.get_shapetype45_for_input_pixel(pair_index, x, y, connectivity)?
                 };
                 let color: u8 = Self::color_from_shape_type(shape_type);
@@ -682,12 +749,12 @@ impl SolveLogisticRegression {
         let enable_coordinates_xy: bool = has_different_size_for_input_output;
         let enable_is_outside: bool = has_different_size_for_input_output;
 
-        let enable_histogram_diagonal_a: bool = false;
-        let enable_histogram_diagonal_b: bool = false;
-        let enable_histogram_diagonal_c: bool = false;
-        let enable_histogram_diagonal_d: bool = false;
-        let enable_histogram_diagonal_e: bool = false;
-        let enable_histogram_diagonal_f: bool = false;
+        let enable_histogram_diagonal_a: bool = true;
+        let enable_histogram_diagonal_b: bool = true;
+        let enable_histogram_diagonal_c: bool = true;
+        let enable_histogram_diagonal_d: bool = true;
+        let enable_histogram_diagonal_e: bool = true;
+        let enable_histogram_diagonal_f: bool = true;
         let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
 
         let enable_center_indicator_a: bool = has_different_size_for_input_output;
@@ -700,6 +767,8 @@ impl SolveLogisticRegression {
 
         let enable_hole_type1: bool = process_task_iteration_index == 0;
         let enable_color_repair: bool = process_task_iteration_index == 0;
+        
+        let enable_shape_transformation_images: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -903,24 +972,31 @@ impl SolveLogisticRegression {
                 grid_color = grid_pattern.color;
             }
 
-            let object_id_image_connectivity4: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
-            _ = object_id_image_connectivity4;
-            let object_id_image_connectivity8: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
-            _ = object_id_image_connectivity8;
+            // let object_id_image_connectivity4: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            // _ = object_id_image_connectivity4;
+            // let object_id_image_connectivity8: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            // _ = object_id_image_connectivity8;
 
-            let relative_position_images_connectivity4: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
-            _ = relative_position_images_connectivity4;
-            let relative_position_images_connectivity8: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
-            _ = relative_position_images_connectivity8;
+            // let relative_position_images_connectivity4: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            // _ = relative_position_images_connectivity4;
+            // let relative_position_images_connectivity8: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            // _ = relative_position_images_connectivity8;
 
             let shape_type_count: u8 = ShapeType::len();
             let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, false)?;
             let shape_type_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8, false)?;
             let shape_type45_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, true)?;
             let shape_type45_image_connectivity8: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8, true)?;
-            
-            // let shape_transformation_images_connectivity4: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
-            // let shape_transformation_images_connectivity8: Vec<Image> = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+
+            let shape_transformation_images_connectivity4: Vec<Image>;
+            let shape_transformation_images_connectivity8: Vec<Image>;
+            if enable_shape_transformation_images {
+                shape_transformation_images_connectivity4 = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+                shape_transformation_images_connectivity8 = Self::shape_transformation_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            } else {
+                shape_transformation_images_connectivity4 = vec!();
+                shape_transformation_images_connectivity8 = vec!();
+            }
 
             let shape_size_images_connectivity4: Vec<Image> = Self::shape_size_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             _ = shape_size_images_connectivity4;
@@ -1751,6 +1827,9 @@ impl SolveLogisticRegression {
                     let sifsco: ShapeIdentificationFromSingleColorObject = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, connectivity)?;
                     let mut shapetype_image: Image = ep_image.clone_zero();
                     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                        if color_and_shape.color > 9 {
+                            continue;
+                        }
                         let shape_type: ShapeType = color_and_shape.shape_identification.shape_type;
                         let color: u8 = Self::color_from_shape_type(shape_type);
                         let mode = MixMode::PickColor1WhenColor0IsZero { color };
@@ -1760,6 +1839,9 @@ impl SolveLogisticRegression {
 
                     let mut shapetype45_image: Image = ep_image.clone_zero();
                     for (_color_and_shape_index, color_and_shape) in sifsco.color_and_shape_vec.iter().enumerate() {
+                        if color_and_shape.color > 9 {
+                            continue;
+                        }
                         let shape_type: ShapeType = color_and_shape.shape_identification.shape_type45;
                         let color: u8 = Self::color_from_shape_type(shape_type);
                         let mode = MixMode::PickColor1WhenColor0IsZero { color };
@@ -1959,32 +2041,32 @@ impl SolveLogisticRegression {
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
                 let context_input_y_reverse: i32 = (context_input_size.height as i32) - 1 - yy;
 
-                // let area_top: Image = if y > 2 {
-                //     input.top_rows(y - 1)?
-                // } else {
-                //     Image::empty()
-                // };
-                // let area_bottom: Image = if y_reverse > 2 {
-                //     input.bottom_rows(y_reverse - 1)?
-                // } else {
-                //     Image::empty()
-                // };
+                let input_area_top: Image = if y > 0 {
+                    input.top_rows(y)?
+                } else {
+                    Image::empty()
+                };
+                let input_area_bottom: Image = if y_reverse > 0 {
+                    input.bottom_rows(y_reverse)?
+                } else {
+                    Image::empty()
+                };
 
-                // let mut area_top = Image::empty();
-                // let mut area_bottom = Image::empty();
-                // if let Some(image) = earlier_prediction_image {
-                //     if y > 2 {
-                //         area_top = image.top_rows(y - 1)?;
-                //     };
-                //     if y_reverse > 2 {
-                //         area_bottom = image.bottom_rows(y_reverse - 1)?;
-                //     }
-                // }
+                let mut output_area_top = Image::empty();
+                let mut output_area_bottom = Image::empty();
+                if let Some(image) = earlier_prediction_image {
+                    if y > 0 {
+                        output_area_top = image.top_rows(y)?;
+                    };
+                    if y_reverse > 0 {
+                        output_area_bottom = image.bottom_rows(y_reverse)?;
+                    }
+                }
 
-                // let area_top_histogram_columns: Vec<Histogram> = area_top.histogram_columns();
-                // let area_bottom_histogram_columns: Vec<Histogram> = area_bottom.histogram_columns();
-                // let area_top_histogram: Histogram = area_top.histogram_all();
-                // let area_bottom_histogram: Histogram = area_bottom.histogram_all();
+                // let area_top_histogram_columns: Vec<Histogram> = input_area_top.histogram_columns();
+                // let area_bottom_histogram_columns: Vec<Histogram> = input_area_bottom.histogram_columns();
+                // let area_top_histogram: Histogram = input_area_top.histogram_all();
+                // let area_bottom_histogram: Histogram = input_area_bottom.histogram_all();
 
                 for x in 0..width {
                     let xx: i32 = x as i32;
@@ -2150,20 +2232,35 @@ impl SolveLogisticRegression {
                     //     }
                     // }
 
-                    // let mut area_topleft = Image::empty();
-                    // let mut area_topright = Image::empty();
-                    // let mut area_bottomleft = Image::empty();
-                    // let mut area_bottomright = Image::empty();
-                    // {
-                    //     if x > 2 {
-                    //         area_topleft = area_top.left_columns(x - 1)?;
-                    //         area_bottomleft = area_bottom.left_columns(x - 1)?;
-                    //     };
-                    //     if x_reverse > 2 {
-                    //         area_topright = area_top.right_columns(x_reverse - 1)?;
-                    //         area_bottomright = area_bottom.right_columns(x_reverse - 1)?;
-                    //     }
-                    // }
+                    let mut input_area_topleft = Image::empty();
+                    let mut input_area_topright = Image::empty();
+                    let mut input_area_bottomleft = Image::empty();
+                    let mut input_area_bottomright = Image::empty();
+                    {
+                        if x > 0 {
+                            input_area_topleft = input_area_top.left_columns(x)?;
+                            input_area_bottomleft = input_area_bottom.left_columns(x)?;
+                        };
+                        if x_reverse > 0 {
+                            input_area_topright = input_area_top.right_columns(x_reverse)?;
+                            input_area_bottomright = input_area_bottom.right_columns(x_reverse)?;
+                        }
+                    }
+
+                    let mut output_area_topleft = Image::empty();
+                    let mut output_area_topright = Image::empty();
+                    let mut output_area_bottomleft = Image::empty();
+                    let mut output_area_bottomright = Image::empty();
+                    {
+                        if x > 0 {
+                            output_area_topleft = output_area_top.left_columns(x)?;
+                            output_area_bottomleft = output_area_bottom.left_columns(x)?;
+                        };
+                        if x_reverse > 0 {
+                            output_area_topright = output_area_top.right_columns(x_reverse)?;
+                            output_area_bottomright = output_area_bottom.right_columns(x_reverse)?;
+                        }
+                    }
                     // let area_topleft_histogram: Histogram = area_topleft.histogram_all();
                     // let area_topright_histogram: Histogram = area_topright.histogram_all();
                     // let area_bottomleft_histogram: Histogram = area_bottomleft.histogram_all();
@@ -2219,24 +2316,65 @@ impl SolveLogisticRegression {
                     //     }
                     // }
                 
-                    // {
-                    //     let diagonalhistogram_topleft: DiagonalHistogram = DiagonalHistogram::diagonal_a(&area_topleft)?;
-                    //     let diagonalhistogram_topright: DiagonalHistogram = DiagonalHistogram::diagonal_b(&area_topright)?;
-                    //     let diagonalhistogram_bottomleft: DiagonalHistogram = DiagonalHistogram::diagonal_b(&area_bottomleft)?;
-                    //     let diagonalhistogram_bottomright: DiagonalHistogram = DiagonalHistogram::diagonal_a(&area_bottomright)?;
-                    //     let diagonalhistograms = [&diagonalhistogram_topleft, &diagonalhistogram_topright, &diagonalhistogram_bottomleft, &diagonalhistogram_bottomright];
-                    //     for diagonalhistogram in diagonalhistograms {
-                    //         for color in 0..=9u8 {
-                    //             let mut found = false;
-                    //             if let Some(histogram) = diagonalhistogram.get(x as i32, y as i32) {
-                    //                 if histogram.get(color) > 0 {
-                    //                     found = true;
-                    //                 }
-                    //             }
-                    //             record.serialize_bool_onehot(found);
-                    //         }
-                    //     }
-                    // }
+                    {
+                        let dh_input_area_topleft: DiagonalHistogram = DiagonalHistogram::diagonal_a(&input_area_topleft)?;
+                        let dh_input_area_topright: DiagonalHistogram = DiagonalHistogram::diagonal_b(&input_area_topright)?;
+                        let dh_input_area_bottomleft: DiagonalHistogram = DiagonalHistogram::diagonal_b(&input_area_bottomleft)?;
+                        let dh_input_area_bottomright: DiagonalHistogram = DiagonalHistogram::diagonal_a(&input_area_bottomright)?;
+                        let dh_output_area_topleft: DiagonalHistogram = DiagonalHistogram::diagonal_a(&output_area_topleft)?;
+                        let dh_output_area_topright: DiagonalHistogram = DiagonalHistogram::diagonal_b(&output_area_topright)?;
+                        let dh_output_area_bottomleft: DiagonalHistogram = DiagonalHistogram::diagonal_b(&output_area_bottomleft)?;
+                        let dh_output_area_bottomright: DiagonalHistogram = DiagonalHistogram::diagonal_a(&output_area_bottomright)?;
+                        // let diagonalhistograms = [
+                        //     &dh_input_area_topleft, &dh_input_area_topright, &dh_input_area_bottomleft, &dh_input_area_bottomright,
+                        //     &dh_output_area_topleft, &dh_output_area_topright, &dh_output_area_bottomleft, &dh_output_area_bottomright,
+                        // ];
+                        // for diagonalhistogram in diagonalhistograms {
+                        //     for color in 0..COUNT_COLORS_PLUS1 {
+                        //         let mut mass: u32 = 0;
+                        //         let mut unique_count: u16 = 0;
+                        //         let mut found_center: bool = false;
+                        //         if let Some(histogram) = diagonalhistogram.get(x as i32, y as i32) {
+                        //             mass = histogram.get(color);
+                        //             unique_count = histogram.number_of_counters_greater_than_zero();
+                        //             found_center = histogram.get(center) > 0;
+                        //         }
+                        //         record.serialize_bool(mass > 0);
+                        //         record.serialize_bool_onehot(mass > 0);
+                        //         let the_color: u8 = if mass > 0 { color } else { 255 };
+                        //         record.serialize_color_complex(the_color, obfuscated_color_offset);
+                        //         record.serialize_u8(mass.min(255) as u8);
+                        //         record.serialize_onehot(unique_count.min(255) as u8, COUNT_COLORS_PLUS1);
+                        //         record.serialize_bool(found_center);
+                        //     }
+                        // }
+
+                        let dh_opposites = [
+                            (&dh_input_area_topleft, &dh_input_area_bottomright),
+                            (&dh_input_area_bottomleft, &dh_input_area_topright),
+                            (&dh_output_area_topleft, &dh_output_area_bottomright),
+                            (&dh_output_area_bottomleft, &dh_output_area_topright),
+                        ];
+                        for (dh0, dh1) in dh_opposites {
+                            for color in 0..COUNT_COLORS_PLUS1 {
+                                let mut mass0: u32 = 0;
+                                let mut mass1: u32 = 0;
+                                if let Some(histogram) = dh0.get(x as i32, y as i32) {
+                                    mass0 = histogram.get(color);
+                                }
+                                if let Some(histogram) = dh1.get(x as i32, y as i32) {
+                                    mass1 = histogram.get(color);
+                                }
+                                // record.serialize_bool(mass0 == 1 && mass1 == 1);
+                                record.serialize_bool(mass0 > 0 && mass1 > 0);
+                                // record.serialize_bool(mass0 == 1 && mass1 == 0);
+                                record.serialize_bool(mass0 > 0 && mass1 == 0);
+                                // record.serialize_bool(mass0 == 0 && mass1 == 1);
+                                record.serialize_bool(mass0 == 0 && mass1 > 0);
+                                record.serialize_bool(mass0 == 0 && mass1 == 0);
+                            }
+                        }
+                    }
 
                     if enable_center_indicator {
                         let center_indicator_x_value: u8 = center_indicator_x.get(xx, yy).unwrap_or(0);
@@ -2279,11 +2417,21 @@ impl SolveLogisticRegression {
                     // let center_denoise_type1_border: u8 = input_denoise_type1_border.get(xx, yy).unwrap_or(255);
 
                     let object_center: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
-                    // let object_top: u8 = enumerated_objects.get(xx, yy - 1).unwrap_or(255);
-                    // let object_bottom: u8 = enumerated_objects.get(xx, yy + 1).unwrap_or(255);
-                    // let object_left: u8 = enumerated_objects.get(xx - 1, yy).unwrap_or(255);
-                    // let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
-                    // let enumerated_object: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
+                    {
+                        // record.serialize_complex(object_center as u16, 20);
+                        // record.serialize_u8(object_center);
+                    }
+
+                    let object_top: u8 = enumerated_objects.get(xx, yy - 1).unwrap_or(255);
+                    let object_bottom: u8 = enumerated_objects.get(xx, yy + 1).unwrap_or(255);
+                    let object_left: u8 = enumerated_objects.get(xx - 1, yy).unwrap_or(255);
+                    let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
+                    {
+                        record.serialize_bool(object_top == object_center);
+                        record.serialize_bool(object_bottom == object_center);
+                        record.serialize_bool(object_left == object_center);
+                        record.serialize_bool(object_right == object_center);
+                    }
 
                     {
                         let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
@@ -4416,7 +4564,11 @@ impl SolveLogisticRegression {
                     //             shape_height = value;
                     //         }
                     //     }
-
+                    //     record.serialize_onehot_discard_overflow(shape_width, 30);
+                    //     record.serialize_onehot_discard_overflow(shape_height, 30);
+                    //     record.serialize_u8(shape_width);
+                    //     record.serialize_u8(shape_height);
+                    //
                     //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity4.iter().enumerate() {
                     //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
                     //         let mut shape_size: u8 = 0;
@@ -4446,7 +4598,7 @@ impl SolveLogisticRegression {
                     //             shape_height = value;
                     //         }
                     //     }
-
+                    //
                     //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity8.iter().enumerate() {
                     //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
                     //         let mut shape_size: u8 = 0;
@@ -4784,16 +4936,18 @@ impl SolveLogisticRegression {
                         let pixel: u8 = shape_type45_image_connectivity8.get(xx, yy).unwrap_or(255);
                         record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
-                    // for shape_transformation_image in &shape_transformation_images_connectivity4 {
-                    //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_u8(pixel);
-                    //     record.serialize_bitmask_as_onehot(pixel as u16, 8);
-                    // }
-                    // for shape_transformation_image in &shape_transformation_images_connectivity8 {
-                    //     let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_u8(pixel);
-                    //     record.serialize_bitmask_as_onehot(pixel as u16, 8);
-                    // }
+                    if enable_shape_transformation_images {
+                        for shape_transformation_image in &shape_transformation_images_connectivity4 {
+                            let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
+                            // record.serialize_u8(pixel);
+                            record.serialize_bitmask_as_onehot(pixel as u16, 8);
+                        }
+                        for shape_transformation_image in &shape_transformation_images_connectivity8 {
+                            let pixel: u8 = shape_transformation_image.get(xx, yy).unwrap_or(255);
+                            // record.serialize_u8(pixel);
+                            record.serialize_bitmask_as_onehot(pixel as u16, 8);
+                        }
+                    }
 
                     // Shape orientation: landscape, portrait, square
                     {
@@ -5176,7 +5330,6 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(corner_bottom_left);
                     // record.serialize_u8(corner_bottom_right);
                     // record.serialize_bool(inside_bounding_box);
-                    // record.serialize_complex(object_center, 20);
 
                     records.push(record);
                 }

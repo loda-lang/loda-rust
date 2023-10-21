@@ -23,7 +23,11 @@ impl DiagonalHistogram {
 
     fn create(image: &Image, reverse_x: bool, image_size: ImageSize) -> anyhow::Result<DiagonalHistogram> {
         if image.is_empty() {
-            anyhow::bail!("image is empty. Must be 1x1 or bigger.");
+            return Ok(DiagonalHistogram { 
+                reverse_x,
+                image_size,
+                histogram_vec: vec!(),
+            });
         }
         let magic_color: u8 = 255;
         let image_skewed: Image = image.skew_x(magic_color, false)?;

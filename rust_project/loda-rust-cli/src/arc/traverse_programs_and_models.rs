@@ -6,6 +6,7 @@ use super::{SolveSplitFoundSolution, ArcathonSolutionCoordinator};
 use super::human_readable_utc_timestamp;
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::arc::arcathon_solution_coordinator;
+use super::SolveLogisticRegression;
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
 use crate::common::find_asm_files_recursively;
@@ -32,10 +33,6 @@ use serde::{Serialize, Deserialize};
 
 #[allow(unused_imports)]
 use super::ExperimentWithConvolution;
-
-#[allow(unused_imports)]
-#[cfg(feature = "linfa")]
-use super::SolveLogisticRegression;
 
 #[allow(unused_imports)]
 use super::{HtmlLog, ImageToHTML, ImageLabel, GridLabel};
@@ -96,19 +93,12 @@ impl TraverseProgramsAndModels {
         // let task_vec: Vec<Task> = tpam.to_task_vec();
         // let mut instance = ExperimentWithConvolution::new(task_vec);
         // instance.run()?;
-        #[cfg(feature = "linfa")]
         {
             let tpam = TraverseProgramsAndModels::new()?;
             let task_vec: Vec<Task> = tpam.to_task_vec();
-            let mut instance = SolveLogisticRegression::new(task_vec);
-            instance.run()?;
+            let instance = SolveLogisticRegression::new(task_vec);
+            instance.run_and_verify()?;
             return Ok(());
-        }
-
-        #[cfg(not(feature = "linfa"))]
-        {
-            // return anyhow::bail!("The 'linfa' feature is not enabled");
-            anyhow::bail!("The 'linfa' feature is not enabled")
         }
     }
 
@@ -1744,45 +1734,21 @@ impl TraverseProgramsAndModels {
         }
 
         if try_logistic_regression {
-            #[cfg(feature = "linfa")]
-            {
-                let solver_start_time: Instant = Instant::now();
-                let number_of_tasks: u64 = self.model_item_vec.len() as u64;
-                println!("{} - SolveLogisticRegression - start with {} tasks", human_readable_utc_timestamp(), number_of_tasks);
-                let pb = ProgressBar::new(number_of_tasks as u64);
-                let verbose_logistic_regression = false;
-                let verify_test_output = false;
-                let mut count_tasks_solved: usize = 0;
-                for model_item in &self.model_item_vec {
-                    let task: Task = model_item.borrow().task.clone();
-                    
-                    let prediction_vec: Vec<arcathon_solution_coordinator::Prediction> = match SolveLogisticRegression::process_task(&task, verify_test_output) {
-                        Ok(value) => value,
-                        Err(error) => {
-                            if verbose_logistic_regression {
-                                println!("task: {} - could not make predictions. error: {:?}", task.id, error);
-                            }
-                            pb.inc(1);
-                            continue;
-                        }
-                    };
-                    count_tasks_solved += 1;
-                    if verbose_logistic_regression {
-                        pb.println(format!("solved task: {}", task.id));
-                    }
-    
-                    coordinator.append_predictions(task.id.clone(), prediction_vec);
-                    pb.inc(1);
+            let solver_start_time: Instant = Instant::now();
+            println!("{} - SolveLogisticRegression - start", human_readable_utc_timestamp());
+            let task_vec: Vec<Task> = self.to_task_vec();
+            let instance = SolveLogisticRegression::new(task_vec);
+            match instance.run_predictions() {
+                Ok(taskname_to_predictions) => {
+                    println!("SolveLogisticRegression::run_predictions completed successfully");
+                    coordinator.append_predictions_from_hashmap(&taskname_to_predictions);
+                },
+                Err(error) => {
+                    error!("SolveLogisticRegression::run_with_callback failed with error: {:?}", error);
                 }
-                pb.finish_and_clear();
-                coordinator.save_solutions_json_with_console_output();
-                println!("{} - SolveLogisticRegression - complete - solved {} of {} tasks. Elapsed {}", human_readable_utc_timestamp(), count_tasks_solved, number_of_tasks, HumanDuration(solver_start_time.elapsed()));
             }
-
-            #[cfg(not(feature = "linfa"))]
-            {
-                error!("{} - Logistic regression is not enabled. Please enable the 'linfa' feature.", human_readable_utc_timestamp());
-            }
+            coordinator.save_solutions_json_with_console_output();
+            println!("{} - SolveLogisticRegression - end. Elapsed {}", human_readable_utc_timestamp(), HumanDuration(solver_start_time.elapsed()));
         }
 
         let bloom_items_count = 1000000;

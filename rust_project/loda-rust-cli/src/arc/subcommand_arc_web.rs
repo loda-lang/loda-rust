@@ -8,6 +8,7 @@ use super::{Image, ImageToHTML};
 use super::arc_work_model::{Task, PairType};
 use super::{TaskGraph, NodeData, EdgeData, PixelNeighborEdgeType};
 use super::prompt::{PromptType, PromptDeserialize};
+use super::CreateTaskWithSameSize;
 use http_types::Url;
 use serde::{Deserialize, Serialize};
 use tera::Tera;
@@ -21,6 +22,10 @@ use cached::{SizedCache, Cached};
 use petgraph::{Graph, stable_graph::NodeIndex, visit::EdgeRef};
 
 const DEFAULT_CACHE_CAPACITY: usize = 10;
+
+/// Inspect what the task looks like, when it has been padded so input and output sizes are the same.
+/// There padding is done with a color that is not used in the input or output images.
+const FORCE_SAME_SIZE_FOR_INPUT_AND_OUTPUT: bool = false;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct CacheKey {
@@ -182,7 +187,15 @@ impl SubcommandARCWeb {
         };
         // debug!("task_json_file: {:?}", task_json_file);
 
-        let task: Task = Task::load_with_json_file(&task_json_file)?;
+        let mut task: Task = Task::load_with_json_file(&task_json_file)?;
+
+        if FORCE_SAME_SIZE_FOR_INPUT_AND_OUTPUT {
+            if !task.is_output_size_same_as_input_size() {
+                debug!("FORCE_SAME_SIZE_FOR_INPUT_AND_OUTPUT: creating a new task with the same size. task: {}", task_id);
+                task = CreateTaskWithSameSize::create(&task)?;
+            }
+        }
+
         cache_value.task = Some(task.clone());
         Ok(task)
     }

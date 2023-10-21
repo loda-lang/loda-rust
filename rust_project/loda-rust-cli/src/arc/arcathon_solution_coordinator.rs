@@ -1,8 +1,8 @@
 //! Decides what gets saved to the `archaton_solution_json` file.
 //! 
 //! Future experiments:
-//! Assign it a higher confidence score, when there are identical predictions from multple solvers.
-//! Eliminate duplicate predictions, when there are identical predictions from multple solvers.
+//! Assign it a higher confidence score, when there are identical predictions from multiple solvers.
+//! Eliminate duplicate predictions, when there are identical predictions from multiple solvers.
 use super::{TestItem, TaskItem, arc_json_model, arcathon_solution_json};
 use super::ArcathonSolutionJsonFile;
 use std::collections::HashMap;
@@ -113,13 +113,14 @@ impl Prediction {
     }
 }
 
+pub type TaskNameToPredictionVec = HashMap<String, Vec<Prediction>>;
+
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ArcathonSolutionCoordinator {
     path_solution_dir: PathBuf,
     path_solution_teamid_json: PathBuf,
-
-    taskname_to_prediction_vec: HashMap<String, Vec<Prediction>>,
+    taskname_to_prediction_vec: TaskNameToPredictionVec,
 }
 
 impl ArcathonSolutionCoordinator {
@@ -127,7 +128,14 @@ impl ArcathonSolutionCoordinator {
         Self {
             path_solution_dir: path_solution_dir.to_path_buf(),
             path_solution_teamid_json: path_solution_teamid_json.to_path_buf(),
-            taskname_to_prediction_vec: HashMap::new(),
+            taskname_to_prediction_vec: TaskNameToPredictionVec::new(),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn append_predictions_from_hashmap(&mut self, taskname_to_predictions: &TaskNameToPredictionVec) {
+        for (task_name, prediction_vec) in taskname_to_predictions {
+            self.append_predictions(task_name.clone(), prediction_vec.clone());
         }
     }
 
@@ -136,8 +144,7 @@ impl ArcathonSolutionCoordinator {
         if prediction_vec.is_empty() {
             return;
         }
-        self.taskname_to_prediction_vec
-            .entry(task_name)
+        self.taskname_to_prediction_vec.entry(task_name)
             .or_insert(Vec::new())
             .extend(prediction_vec);
     }
@@ -236,13 +243,14 @@ mod tests {
         coordinator.import_predictions_from_solution_json_file(&solution_json_file);
 
         // Assert
-        assert_eq!(coordinator.taskname_to_prediction_vec.len(), 2);
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = coordinator.taskname_to_prediction_vec.clone();
+        assert_eq!(taskname_to_prediction_vec.len(), 2);
         {
-            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("12997ef3").expect("ok");
+            let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("12997ef3").expect("ok");
             assert_eq!(predictions.len(), 6);
         }
         {
-            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("13713586").expect("ok");
+            let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("13713586").expect("ok");
             assert_eq!(predictions.len(), 3);
         }
         Ok(())
@@ -416,9 +424,10 @@ mod tests {
         }
 
         // Assert
-        assert_eq!(coordinator.taskname_to_prediction_vec.len(), 1);
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = coordinator.taskname_to_prediction_vec.clone();
+        assert_eq!(taskname_to_prediction_vec.len(), 1);
         {
-            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("mytask1").expect("ok");
+            let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("mytask1").expect("ok");
             assert_eq!(predictions.len(), 2);
         }
         Ok(())
@@ -457,13 +466,14 @@ mod tests {
         }
 
         // Assert
-        assert_eq!(coordinator.taskname_to_prediction_vec.len(), 2);
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = coordinator.taskname_to_prediction_vec.clone();
+        assert_eq!(taskname_to_prediction_vec.len(), 2);
         {
-            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("mytask1").expect("ok");
+            let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("mytask1").expect("ok");
             assert_eq!(predictions.len(), 1);
         }
         {
-            let predictions: &Vec<Prediction> = coordinator.taskname_to_prediction_vec.get("mytask2").expect("ok");
+            let predictions: &Vec<Prediction> = taskname_to_prediction_vec.get("mytask2").expect("ok");
             assert_eq!(predictions.len(), 1);
         }
         Ok(())
