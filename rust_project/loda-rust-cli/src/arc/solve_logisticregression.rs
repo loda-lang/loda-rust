@@ -225,6 +225,7 @@ enum ProcessTaskMode {
 
 #[derive(Clone, Debug)]
 pub struct ProcessTaskContext {
+    #[allow(dead_code)]
     mode: ProcessTaskMode,
     input_size_vec: Vec<ImageSize>,
     output_size_vec: Vec<ImageSize>,
