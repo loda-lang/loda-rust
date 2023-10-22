@@ -6,14 +6,14 @@
 //! 
 //! However currently this approach solves none of the tasks from the hidden ARC dataset.
 //!
-//! This solves 66 of the 800 tasks in the public ARC dataset.
+//! This solves 65 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 0d3d703e, 140c817e, 178fcbfb, 1c0d0a4b, 21f83797,
 //! 2281f1f4, 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921,
 //! 4612dd53, 50cb2852, 5289ad53, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb,
 //! 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b,
-//! a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, b0c4d837, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb,
-//! c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765,
-//! ded97339, e0fb7511, e7dd8335, e872b94a, e9c9d9a1, ef135b50, 
+//! a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784,
+//! c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339,
+//! e0fb7511, e7dd8335, e872b94a, e9c9d9a1, ef135b50, 
 //! 
 //! This partially solves 5 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 239be575, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3, 
@@ -724,7 +724,9 @@ impl SolveLogisticRegression {
         };
 
         let enable_output_orientation: bool = has_different_size_for_input_output;
-
+        let enable_coordinates_xy: bool = false;
+        let enable_is_outside: bool = has_different_size_for_input_output;
+        let enable_distance: bool = !has_different_size_for_input_output;
         
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1916,12 +1918,17 @@ impl SolveLogisticRegression {
                     };                    
 
 
-
-                    let max_distance: u8 = 3;
-                    let distance_top: u8 = y.min(max_distance) + 1;
-                    let distance_bottom: u8 = y_reverse.min(max_distance) + 1;
-                    let distance_left: u8 = x.min(max_distance) + 1;
-                    let distance_right: u8 = x_reverse.min(max_distance) + 1;
+                    if enable_distance {
+                        let max_distance: u8 = 3;
+                        let distance_top: u8 = y.min(max_distance) + 1;
+                        let distance_bottom: u8 = y_reverse.min(max_distance) + 1;
+                        let distance_left: u8 = x.min(max_distance) + 1;
+                        let distance_right: u8 = x_reverse.min(max_distance) + 1;
+                        record.serialize_u8(distance_top);
+                        record.serialize_u8(distance_bottom);
+                        record.serialize_u8(distance_left);
+                        record.serialize_u8(distance_right);    
+                    }
 
                     let input_is_noise_color: bool = noise_color == Some(center);
                     // let input_is_removal_color: u8 = if removal_color == Some(center) { 1 } else { 0 };
@@ -2544,15 +2551,28 @@ impl SolveLogisticRegression {
                     if enable_output_orientation {
                         record.serialize_ternary(output_orientation);
                     }
-                    record.serialize_u8(distance_top);
-                    record.serialize_u8(distance_bottom);
-                    record.serialize_u8(distance_left);
-                    record.serialize_u8(distance_right);
                     record.serialize_ternary(half_horizontal);
                     record.serialize_ternary(half_vertical);
                     record.serialize_bool_onehot(input_is_noise_color);
                     record.serialize_bool_onehot(input_is_most_popular_color);
                     // record.serialize_bool(input_is_removal_color == 1);
+
+                    if enable_coordinates_xy {
+                        record.serialize_u8(x);
+                        record.serialize_u8(y);
+                    }
+
+                    if enable_is_outside {
+                        {
+                            let is_outside: bool = x >= context_input_size.width || y >= context_input_size.height;
+                            record.serialize_bool_onehot(is_outside);
+                        }
+                        {
+                            let is_outside: bool = x >= context_output_size.width || y >= context_output_size.height;
+                            record.serialize_bool_onehot(is_outside);
+                        }
+                    }
+
                     record.serialize_onehot_discard_overflow(x_mod2, 2);
                     record.serialize_onehot_discard_overflow(y_mod2, 2);
                     record.serialize_onehot_discard_overflow(x_reverse_mod2, 2);
