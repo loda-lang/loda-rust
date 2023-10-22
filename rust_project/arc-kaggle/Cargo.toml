@@ -1,0 +1,12 @@
+[package]
+name = "arc-kaggle"
+version = "2023.10.22"
+authors = ["Simon Strandgaard <neoneye@gmail.com>"]
+description = "Simons Kaggle ARC experiments"
+repository = "https://github.com/loda-lang/loda-rust"
+license = "MIT OR Apache-2.0"
+edition = "2021"
+
+[[bin]]
+name = "arc-kaggle"
+path = "src/main.rs"

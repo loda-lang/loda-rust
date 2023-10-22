@@ -141,6 +141,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "arc-kaggle"
+version = "2023.10.22"
+
+[[package]]
 name = "argmin"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
