@@ -716,6 +716,16 @@ impl SolveLogisticRegression {
         // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
 
+        // When input_size == output_size then the parameters only needs to be serialized once.
+        // When the input_size != output_size, then serialize parameters for input and serialize parameters for output.
+        let has_different_size_for_input_output = match context.mode {
+            ProcessTaskMode::InputOutputSameSize => false,
+            ProcessTaskMode::InputOutputDifferentSize => true,
+        };
+
+        let enable_output_orientation: bool = has_different_size_for_input_output;
+
+        
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -866,6 +876,9 @@ impl SolveLogisticRegression {
 
             let width: u8 = original_input.width().max(original_output.width()).min(253);
             let height: u8 = original_input.height().max(original_output.height()).min(253);
+
+            let context_input_size: ImageSize = context.input_size_vec[pair_index];
+            let context_output_size: ImageSize = context.output_size_vec[pair_index];
 
             let background: Image = Image::color(width, height, 10);
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
@@ -1718,12 +1731,21 @@ impl SolveLogisticRegression {
             _ = earlier_prediction_mass_connectivity8;
 
             let input_orientation: i8;
-            if width > height {
+            if context_input_size.width > context_input_size.height {
                 input_orientation = 1;
-            } else if width < height {
+            } else if context_input_size.width < context_input_size.height {
                 input_orientation = -1;
             } else {
                 input_orientation = 0;
+            }
+
+            let output_orientation: i8;
+            if context_output_size.width > context_output_size.height {
+                output_orientation = 1;
+            } else if context_output_size.width < context_output_size.height {
+                output_orientation = -1;
+            } else {
+                output_orientation = 0;
             }
 
             let number_of_shape3x3ids: u8 = Shape3x3::instance().number_of_shapes();
@@ -1731,6 +1753,7 @@ impl SolveLogisticRegression {
             for y in 0..height {
                 let yy: i32 = y as i32;
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
+                let context_input_y_reverse: i32 = (context_input_size.height as i32) - 1 - yy;
 
                 // let area_top: Image = if y > 2 {
                 //     input.top_rows(y - 1)?
@@ -1761,6 +1784,7 @@ impl SolveLogisticRegression {
                 for x in 0..width {
                     let xx: i32 = x as i32;
                     let x_reverse: u8 = ((width as i32) - 1 - xx).max(0) as u8;
+                    let context_input_x_reverse: i32 = (context_input_size.width as i32) - 1 - xx;
                     let output_color: u8 = output.get(xx, yy).unwrap_or(255);
 
                     let mut record = Record {
@@ -1802,13 +1826,13 @@ impl SolveLogisticRegression {
                     // let nonbackground_area3x3: Image = non_background_mask.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
 
                     let image_top: u8 = input.get(xx, 0).unwrap_or(255);
-                    let image_bottom: u8 = input.get(xx, original_input.height() as i32 - 1).unwrap_or(255);
+                    let image_bottom: u8 = input.get(xx, context_input_size.height as i32 - 1).unwrap_or(255);
                     let image_left: u8 = input.get(0, yy).unwrap_or(255);
-                    let image_right: u8 = input.get(original_input.width() as i32 - 1, yy).unwrap_or(255);
+                    let image_right: u8 = input.get(context_input_size.width as i32 - 1, yy).unwrap_or(255);
 
-                    let center_x_reversed: u8 = input.get(x_reverse as i32, yy).unwrap_or(255);
-                    let center_y_reversed: u8 = input.get(xx, y_reverse as i32).unwrap_or(255);
-                    let center_xy_reversed: u8 = input.get(x_reverse as i32, y_reverse as i32).unwrap_or(255);
+                    let center_x_reversed: u8 = input.get(context_input_x_reverse as i32, yy).unwrap_or(255);
+                    let center_y_reversed: u8 = input.get(xx, context_input_y_reverse as i32).unwrap_or(255);
+                    let center_xy_reversed: u8 = input.get(context_input_x_reverse as i32, context_input_y_reverse as i32).unwrap_or(255);
                     _ = center_xy_reversed;
                     
                     let center_denoise_type1: u8 = input_denoise_type1.get(xx, yy).unwrap_or(255);
@@ -1859,11 +1883,11 @@ impl SolveLogisticRegression {
                     //     Ok(value) => value,
                     //     Err(_) => Image::empty()
                     // };
-                    let center_column: Image = match input.crop(Rectangle::new(x, 0, 1, height)) {
+                    let center_column: Image = match input.crop(Rectangle::new(x, 0, 1, context_input_size.height)) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row: Image = match input.crop(Rectangle::new(0, y, width, 1)) {
+                    let center_row: Image = match input.crop(Rectangle::new(0, y, context_input_size.width, 1)) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -1871,7 +1895,7 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_column_bottom: Image = match center_column.bottom_rows(y_reverse) {
+                    let center_column_bottom: Image = match center_column.bottom_rows(context_input_y_reverse.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -1879,11 +1903,17 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row_right: Image = match center_row.right_columns(y_reverse) {
+                    let center_row_right_x: i32 = if has_different_size_for_input_output { 
+                        context_input_x_reverse
+                    } else { 
+                        // This is an old typo. Where I by mistake use the Y coordinate for the X coordinate.
+                        // Fixing the typo, and the number of tasks solved drops by 3 tasks.
+                        context_input_y_reverse 
+                    };
+                    let center_row_right: Image = match center_row.right_columns(center_row_right_x.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
-                    };
-                    
+                    };                    
 
 
 
@@ -2511,6 +2541,9 @@ impl SolveLogisticRegression {
                     // record.serialize_onehot_discard_overflow(mass_connectivity4, 40);
                     // record.serialize_onehot_discard_overflow(mass_connectivity8, 40);
                     record.serialize_ternary(input_orientation);
+                    if enable_output_orientation {
+                        record.serialize_ternary(output_orientation);
+                    }
                     record.serialize_u8(distance_top);
                     record.serialize_u8(distance_bottom);
                     record.serialize_u8(distance_left);
