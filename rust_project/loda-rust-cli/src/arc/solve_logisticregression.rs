@@ -743,6 +743,8 @@ impl SolveLogisticRegression {
         let enable_color_clustercount: bool = false;
         let enable_half_context_input_size: bool = true;
         let enable_half_context_output_size: bool = false;
+        let enable_normalized_coordinates_context_input_size: bool = false;
+        let enable_normalized_coordinates_context_output_size: bool = false;
 
         let enable_output_orientation: bool = has_different_size_for_input_output;
         let enable_coordinates_xy: bool = false;
@@ -3336,6 +3338,24 @@ impl SolveLogisticRegression {
                     record.serialize_bool_onehot(input_is_noise_color);
                     record.serialize_bool_onehot(input_is_most_popular_color);
                     // record.serialize_bool(input_is_removal_color == 1);
+
+                    // for color in 0..=9u8 {
+                    //     record.serialize_bool_onehot(task.removal_histogram_intersection.get(color) > 0);
+                    // }
+                    // record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
+
+                    if enable_normalized_coordinates_context_input_size {
+                        let fx: f64 = ((xx as f64) + 0.5) / (context_input_size.width.max(1) as f64);
+                        record.serialize_f64(fx);
+                        let fy: f64 = ((yy as f64) + 0.5) / (context_input_size.height.max(1) as f64);
+                        record.serialize_f64(fy);
+                    }
+                    if enable_normalized_coordinates_context_output_size {
+                        let fx: f64 = ((xx as f64) + 0.5) / (context_output_size.width.max(1) as f64);
+                        record.serialize_f64(fx);
+                        let fy: f64 = ((yy as f64) + 0.5) / (context_output_size.height.max(1) as f64);
+                        record.serialize_f64(fy);
+                    }
 
                     if enable_coordinates_xy {
                         record.serialize_u8(x);
