@@ -821,6 +821,7 @@ impl SolveLogisticRegression {
         let enable_full_column: bool = false;
 
         let enable_symmetry_masks: bool = false;
+        let enable_corner_classification: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -3305,29 +3306,36 @@ impl SolveLogisticRegression {
                         record.serialize_bool_onehot(the_vertical_symmetry_connectivity8 > 0);
                     }
 
-                    // let mut is_corner: u8 = 0;
-                    // let mut corner_top_left: u8 = 0;
-                    // let mut corner_top_right: u8 = 0;
-                    // let mut corner_bottom_left: u8 = 0;
-                    // let mut corner_bottom_right: u8 = 0;
-                    // if let Some(sco) = &pair.input.single_color_objects {
-                    //     let corner_classification: u8 = sco.corner_classification(center, xx, yy);
-                    //     if corner_classification > 0 {
-                    //         is_corner = 1;
-                    //     }
-                    //     if corner_classification & 1 > 0 {
-                    //         corner_top_left = 1;
-                    //     }
-                    //     if corner_classification & 2 > 0 {
-                    //         corner_top_right = 1;
-                    //     }
-                    //     if corner_classification & 4 > 0 {
-                    //         corner_bottom_left = 1;
-                    //     }
-                    //     if corner_classification & 8 > 0 {
-                    //         corner_bottom_right = 1;
-                    //     }
-                    // }
+                    if enable_corner_classification {
+                        let mut is_corner: bool = false;
+                        let mut corner_top_left: bool = false;
+                        let mut corner_top_right: bool = false;
+                        let mut corner_bottom_left: bool = false;
+                        let mut corner_bottom_right: bool = false;
+                        if let Some(sco) = &pair.input.image_meta.single_color_object {
+                            let corner_classification: u8 = sco.corner_classification(center, xx, yy);
+                            if corner_classification > 0 {
+                                is_corner = true;
+                            }
+                            if corner_classification & 1 > 0 {
+                                corner_top_left = true;
+                            }
+                            if corner_classification & 2 > 0 {
+                                corner_top_right = true;
+                            }
+                            if corner_classification & 4 > 0 {
+                                corner_bottom_left = true;
+                            }
+                            if corner_classification & 8 > 0 {
+                                corner_bottom_right = true;
+                            }
+                        }
+                        record.serialize_bool_onehot(is_corner);
+                        record.serialize_bool_onehot(corner_top_left);
+                        record.serialize_bool_onehot(corner_top_right);
+                        record.serialize_bool_onehot(corner_bottom_left);
+                        record.serialize_bool_onehot(corner_bottom_right);
+                    }
 
                     if enable_half_context_input_size {
                         let half_horizontal: i8;
@@ -5393,11 +5401,6 @@ impl SolveLogisticRegression {
                     // preserve corner: u8,
                     // x_distance_from_center: i16,
                     // y_distance_from_center: i16,
-                    // record.serialize_u8(is_corner);
-                    // record.serialize_u8(corner_top_left);
-                    // record.serialize_u8(corner_top_right);
-                    // record.serialize_u8(corner_bottom_left);
-                    // record.serialize_u8(corner_bottom_right);
 
                     records.push(record);
                 }
