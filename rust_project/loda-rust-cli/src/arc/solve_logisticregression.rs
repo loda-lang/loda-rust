@@ -771,6 +771,14 @@ impl SolveLogisticRegression {
 
         let enable_gravity: bool = false;
 
+        let enable_mod2: bool = true;
+        let enable_mod2_reverse_input: bool = true;
+        let enable_mod2_reverse_output: bool = false;
+
+        let enable_mod3: bool = false;
+        let enable_mod3_reverse_input: bool = false;
+        let enable_mod3_reverse_output: bool = false;
+
         let enable_hole_type1: bool = true;
         let enable_color_repair: bool = true;
         
@@ -2684,20 +2692,6 @@ impl SolveLogisticRegression {
 
                     let input_is_most_popular_color: bool = most_popular_color == Some(center);
                 
-                    let x_mod2: u8 = x % 2;
-                    let y_mod2: u8 = y % 2;
-                    let x_reverse_mod2: u8 = x_reverse % 2;
-                    let y_reverse_mod2: u8 = y_reverse % 2;
-
-                    let x_mod3: u8 = x % 3;
-                    let y_mod3: u8 = y % 3;
-                    let x_reverse_mod3: u8 = x_reverse % 3;
-                    let y_reverse_mod3: u8 = y_reverse % 3;
-                    _ = x_mod3;
-                    _ = y_mod3;
-                    _ = x_reverse_mod3;
-                    _ = y_reverse_mod3;
-
                     let x_mod4: u8 = x % 4;
                     let y_mod4: u8 = y % 4;
                     let x_reverse_mod4: u8 = x_reverse % 4;
@@ -3504,14 +3498,44 @@ impl SolveLogisticRegression {
                     // record.serialize_bitmask_as_onehot(Self::grey_to_binary(x_reverse) as u16, 8);
                     // record.serialize_bitmask_as_onehot(Self::grey_to_binary(y_reverse) as u16, 8);
 
-                    record.serialize_onehot_discard_overflow(x_mod2, 2);
-                    record.serialize_onehot_discard_overflow(y_mod2, 2);
-                    record.serialize_onehot_discard_overflow(x_reverse_mod2, 2);
-                    record.serialize_onehot_discard_overflow(y_reverse_mod2, 2);
-                    // record.serialize_onehot_discard_overflow(x_mod3, 3);
-                    // record.serialize_onehot_discard_overflow(y_mod3, 3);
-                    // record.serialize_onehot_discard_overflow(x_reverse_mod3, 3);
-                    // record.serialize_onehot_discard_overflow(y_reverse_mod3, 3);
+                    if enable_mod2 {
+                        let x_value: u8 = x % 2;
+                        let y_value: u8 = y % 2;
+                        record.serialize_onehot_discard_overflow(x_value, 2);
+                        record.serialize_onehot_discard_overflow(y_value, 2);
+                    }
+                    if enable_mod2_reverse_input {
+                        let x_value: u8 = ((context_input_x_reverse % 2) % 2) as u8;
+                        let y_value: u8 = ((context_input_y_reverse % 2) % 2) as u8;
+                        record.serialize_onehot_discard_overflow(x_value, 2);
+                        record.serialize_onehot_discard_overflow(y_value, 2);
+                    }
+                    if enable_mod2_reverse_output {
+                        let x_value: u8 = ((context_output_x_reverse % 2) % 2) as u8;
+                        let y_value: u8 = ((context_output_y_reverse % 2) % 2) as u8;
+                        record.serialize_onehot_discard_overflow(x_value, 2);
+                        record.serialize_onehot_discard_overflow(y_value, 2);
+                    }
+
+                    if enable_mod3 {
+                        let x_value: u8 = x % 3;
+                        let y_value: u8 = y % 3;
+                        record.serialize_onehot_discard_overflow(x_value, 3);
+                        record.serialize_onehot_discard_overflow(y_value, 3);
+                    }
+                    if enable_mod3_reverse_input {
+                        let x_value: u8 = ((context_input_x_reverse % 3) % 3) as u8;
+                        let y_value: u8 = ((context_input_y_reverse % 3) % 3) as u8;
+                        record.serialize_onehot_discard_overflow(x_value, 3);
+                        record.serialize_onehot_discard_overflow(y_value, 3);
+                    }
+                    if enable_mod3_reverse_output {
+                        let x_value: u8 = ((context_output_x_reverse % 3) % 3) as u8;
+                        let y_value: u8 = ((context_output_y_reverse % 3) % 3) as u8;
+                        record.serialize_onehot_discard_overflow(x_value, 3);
+                        record.serialize_onehot_discard_overflow(y_value, 3);
+                    }
+
                     // record.serialize_onehot_discard_overflow(x_mod4, 4);
                     // record.serialize_onehot_discard_overflow(y_mod4, 4);
                     // record.serialize_onehot_discard_overflow(x_reverse_mod4, 4);
