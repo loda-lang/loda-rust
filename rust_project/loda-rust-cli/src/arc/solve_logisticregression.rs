@@ -807,6 +807,8 @@ impl SolveLogisticRegression {
         let enable_edge: bool = false;
 
         let enable_color_inside_bounding_box: bool = true;
+        let enable_object_id_image_connectivity4: bool = false;
+        let enable_object_id_image_connectivity8: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1010,10 +1012,19 @@ impl SolveLogisticRegression {
                 grid_color = grid_pattern.color;
             }
 
-            // let object_id_image_connectivity4: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
-            // _ = object_id_image_connectivity4;
-            // let object_id_image_connectivity8: Image = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
-            // _ = object_id_image_connectivity8;
+            let object_id_image_connectivity4: Image;
+            if enable_object_id_image_connectivity4 {
+                object_id_image_connectivity4 = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+            } else {
+                object_id_image_connectivity4 = Image::empty();
+            }
+
+            let object_id_image_connectivity8: Image;
+            if enable_object_id_image_connectivity8 {
+                object_id_image_connectivity8 = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            } else {
+                object_id_image_connectivity8 = Image::empty();
+            }
 
             // let relative_position_images_connectivity4: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
             // _ = relative_position_images_connectivity4;
@@ -4581,19 +4592,21 @@ impl SolveLogisticRegression {
                     } else {
                         return Err(anyhow::anyhow!("no linespan images for color {}", center));
                     }
-                    
-                    // {
-                    //     let pixel: u8 = object_id_image_connectivity4.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_onehot(pixel, 255);
-                    //     record.serialize_u8(pixel);
-                    //     record.serialize_complex(pixel as u16, 256);
-                    // }
-                    // {
-                    //     let pixel: u8 = object_id_image_connectivity8.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_onehot(pixel, 255);
-                    //     record.serialize_u8(pixel);
-                    //     record.serialize_complex(pixel as u16, 256);
-                    // }
+
+                    if enable_object_id_image_connectivity4 {
+                        let pixel: u8 = object_id_image_connectivity4.get(xx, yy).unwrap_or(255);
+                        record.serialize_onehot(pixel, 255);
+                        record.serialize_u8(pixel);
+                        record.serialize_complex(pixel as u16, 256);
+                        record.serialize_cluster_id(center, pixel, obfuscated_cluster_offset);
+                    }
+                    if enable_object_id_image_connectivity8 {
+                        let pixel: u8 = object_id_image_connectivity8.get(xx, yy).unwrap_or(255);
+                        record.serialize_onehot(pixel, 255);
+                        record.serialize_u8(pixel);
+                        record.serialize_complex(pixel as u16, 256);
+                        record.serialize_cluster_id(center, pixel, obfuscated_cluster_offset);
+                    }
 
                     // for relative_position_image in &relative_position_images_connectivity4 {
                     //     let pixel: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
