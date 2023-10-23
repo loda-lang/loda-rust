@@ -40,7 +40,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -829,6 +829,7 @@ impl SolveLogisticRegression {
         let enable_histogram_columns_rows_lookaround: bool = false;
 
         let enable_exterior_of_clusters: bool = false;
+        let enable_largest_interior_rectangle_masks: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1019,6 +1020,22 @@ impl SolveLogisticRegression {
             //         }
             //     }
             // }
+
+            let mut largest_interior_rectangle_masks = HashMap::<u8, Image>::new();
+            if enable_largest_interior_rectangle_masks {
+                for color in 0..=9u8 {
+                    if pair.input.image_meta.histogram_all.get(color) == 0 {
+                        continue;
+                    }
+                    let mask: Image = input.to_mask_where_color_is(color);
+                    let lir: LargestInteriorRectangle = LargestInteriorRectangle::analyze(&mask)?;
+                    let mut lir_mask: Image = input.clone_zero();
+                    for rect in &lir.rectangles {
+                        lir_mask = lir_mask.draw_rect_filled(*rect, 1)?;
+                    }
+                    largest_interior_rectangle_masks.insert(color, lir_mask);
+                }
+            }
 
             let mut enumerated_objects: Image = Image::zero(width, height);
             if let Some(image) = &pair.input.enumerated_objects {
@@ -4297,6 +4314,16 @@ impl SolveLogisticRegression {
                                 };
                                 record.serialize_bool(is_square);
                             }
+                        }
+
+                        if enable_largest_interior_rectangle_masks {
+                            let mask_value: u8 = match largest_interior_rectangle_masks.get(&center) {
+                                Some(value) => {
+                                    value.get(xx, yy).unwrap_or(0)
+                                }
+                                None => 0
+                            };
+                            record.serialize_bool_onehot(mask_value > 0);
                         }
 
                         // non-squares are worsening the prediction.
