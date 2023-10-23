@@ -820,6 +820,8 @@ impl SolveLogisticRegression {
         let enable_full_row: bool = false;
         let enable_full_column: bool = false;
 
+        let enable_symmetry_masks: bool = false;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -1779,51 +1781,51 @@ impl SolveLogisticRegression {
                 }
             }
 
-            // let mut horizontal_symmetry_connectivity4 = HashMap::<u8, Image>::new();
-            // let mut horizontal_symmetry_connectivity8 = HashMap::<u8, Image>::new();
-            // if let Some(sco) = &pair.input.image_meta.single_color_object {
-            //     for color in 0..=9 {
-            //         let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity4) {
-            //             Ok(value) => value,
-            //             Err(_) => {
-            //                 continue;
-            //             }
-            //         };
-            //         horizontal_symmetry_connectivity4.insert(color, image);
-            //     }
-            //     for color in 0..=9 {
-            //         let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity8) {
-            //             Ok(value) => value,
-            //             Err(_) => {
-            //                 continue;
-            //             }
-            //         };
-            //         horizontal_symmetry_connectivity8.insert(color, image);
-            //     }
-            // }
+            let mut horizontal_symmetry_connectivity4 = HashMap::<u8, Image>::new();
+            let mut horizontal_symmetry_connectivity8 = HashMap::<u8, Image>::new();
+            let mut vertical_symmetry_connectivity4 = HashMap::<u8, Image>::new();
+            let mut vertical_symmetry_connectivity8 = HashMap::<u8, Image>::new();
+            if enable_symmetry_masks {
+                if let Some(sco) = &pair.input.image_meta.single_color_object {
+                    for color in 0..=9 {
+                        let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity4) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        horizontal_symmetry_connectivity4.insert(color, image);
+                    }
+                    for color in 0..=9 {
+                        let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity8) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        horizontal_symmetry_connectivity8.insert(color, image);
+                    }
+                    for color in 0..=9 {
+                        let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity4) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        vertical_symmetry_connectivity4.insert(color, image);
+                    }
+                    for color in 0..=9 {
+                        let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity8) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        vertical_symmetry_connectivity8.insert(color, image);
+                    }
+                }
+            }
 
-            // let mut vertical_symmetry_connectivity4 = HashMap::<u8, Image>::new();
-            // let mut vertical_symmetry_connectivity8 = HashMap::<u8, Image>::new();
-            // if let Some(sco) = &pair.input.image_meta.single_color_object {
-            //     for color in 0..=9 {
-            //         let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity4) {
-            //             Ok(value) => value,
-            //             Err(_) => {
-            //                 continue;
-            //             }
-            //         };
-            //         vertical_symmetry_connectivity4.insert(color, image);
-            //     }
-            //     for color in 0..=9 {
-            //         let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity8) {
-            //             Ok(value) => value,
-            //             Err(_) => {
-            //                 continue;
-            //             }
-            //         };
-            //         vertical_symmetry_connectivity8.insert(color, image);
-            //     }
-            // }
 
             // The outline of each color mask
             let mut outline1_connectivity4 = HashMap::<u8, Image>::new();
@@ -3276,22 +3278,32 @@ impl SolveLogisticRegression {
                         // record.serialize_u8(noise_color_in_outline2_connectivity8); // worsens the prediction
                     }
 
-                    // let mut the_horizontal_symmetry_connectivity4: u8 = 0;
-                    // if let Some(mask) = horizontal_symmetry_connectivity4.get(&center) {
-                    //     the_horizontal_symmetry_connectivity4 = mask.get(xx, yy).unwrap_or(0);
-                    // }
-                    // let mut the_horizontal_symmetry_connectivity8: u8 = 0;
-                    // if let Some(mask) = horizontal_symmetry_connectivity8.get(&center) {
-                    //     the_horizontal_symmetry_connectivity8 = mask.get(xx, yy).unwrap_or(0);
-                    // }
-                    // let mut the_vertical_symmetry_connectivity4: u8 = 0;
-                    // if let Some(mask) = vertical_symmetry_connectivity4.get(&center) {
-                    //     the_vertical_symmetry_connectivity4 = mask.get(xx, yy).unwrap_or(0);
-                    // }
-                    // let mut the_vertical_symmetry_connectivity8: u8 = 0;
-                    // if let Some(mask) = vertical_symmetry_connectivity8.get(&center) {
-                    //     the_vertical_symmetry_connectivity8 = mask.get(xx, yy).unwrap_or(0);
-                    // }
+                    if enable_symmetry_masks {
+                        let mut the_horizontal_symmetry_connectivity4: u8 = 0;
+                        if let Some(mask) = horizontal_symmetry_connectivity4.get(&center) {
+                            the_horizontal_symmetry_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                        }
+                        let mut the_horizontal_symmetry_connectivity8: u8 = 0;
+                        if let Some(mask) = horizontal_symmetry_connectivity8.get(&center) {
+                            the_horizontal_symmetry_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                        }
+                        let mut the_vertical_symmetry_connectivity4: u8 = 0;
+                        if let Some(mask) = vertical_symmetry_connectivity4.get(&center) {
+                            the_vertical_symmetry_connectivity4 = mask.get(xx, yy).unwrap_or(0);
+                        }
+                        let mut the_vertical_symmetry_connectivity8: u8 = 0;
+                        if let Some(mask) = vertical_symmetry_connectivity8.get(&center) {
+                            the_vertical_symmetry_connectivity8 = mask.get(xx, yy).unwrap_or(0);
+                        }
+                        // record.serialize_u8(the_horizontal_symmetry_connectivity4);
+                        // record.serialize_u8(the_horizontal_symmetry_connectivity8);
+                        // record.serialize_u8(the_vertical_symmetry_connectivity4);
+                        // record.serialize_u8(the_vertical_symmetry_connectivity8);
+                        record.serialize_bool_onehot(the_horizontal_symmetry_connectivity4 > 0);
+                        record.serialize_bool_onehot(the_horizontal_symmetry_connectivity8 > 0);
+                        record.serialize_bool_onehot(the_vertical_symmetry_connectivity4 > 0);
+                        record.serialize_bool_onehot(the_vertical_symmetry_connectivity8 > 0);
+                    }
 
                     // let mut is_corner: u8 = 0;
                     // let mut corner_top_left: u8 = 0;
@@ -5381,10 +5393,6 @@ impl SolveLogisticRegression {
                     // preserve corner: u8,
                     // x_distance_from_center: i16,
                     // y_distance_from_center: i16,
-                    // record.serialize_u8(the_horizontal_symmetry_connectivity4);
-                    // record.serialize_u8(the_horizontal_symmetry_connectivity8);
-                    // record.serialize_u8(the_vertical_symmetry_connectivity4);
-                    // record.serialize_u8(the_vertical_symmetry_connectivity8);
                     // record.serialize_u8(is_corner);
                     // record.serialize_u8(corner_top_left);
                     // record.serialize_u8(corner_top_right);
