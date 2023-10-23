@@ -722,7 +722,9 @@ impl SolveLogisticRegression {
             ProcessTaskMode::InputOutputSameSize => false,
             ProcessTaskMode::InputOutputDifferentSize => true,
         };
-
+        
+        let enable_total_clustercount: bool = false;
+        let enable_color_clustercount: bool = false;
         let enable_output_orientation: bool = has_different_size_for_input_output;
         let enable_coordinates_xy: bool = false;
         let enable_is_outside: bool = has_different_size_for_input_output;
@@ -1752,6 +1754,43 @@ impl SolveLogisticRegression {
 
             let number_of_shape3x3ids: u8 = Shape3x3::instance().number_of_shapes();
 
+            let mut total_clustercount_connectivity4: usize = 0;
+            let mut total_clustercount_connectivity8: usize = 0;
+            let mut color_clustercount_connectivity4 = HashMap::<u8, u8>::new();
+            let mut color_clustercount_connectivity8 = HashMap::<u8, u8>::new();
+            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                for color in 0..=9 {
+                    let mut count4: usize = 0;
+                    let mut count8: usize = 0;
+                    for rect in &sco.rectangle_vec {
+                        if rect.color == color {
+                            count4 += 1;
+                            count8 += 1;
+                        }
+                    }
+                    for object in &sco.sparse_vec {
+                        if object.color != color {
+                            continue;
+                        }
+                        if let Some(container) = &object.container4 {
+                            count4 += container.cluster_vec.len();
+                        }
+                        if let Some(container) = &object.container8 {
+                            count8 += container.cluster_vec.len();
+                        }
+                    }
+
+                    let count4_u8: u8 = count4.min(255) as u8;
+                    color_clustercount_connectivity4.insert(color, count4_u8);
+
+                    let count8_u8: u8 = count8.min(255) as u8;
+                    color_clustercount_connectivity8.insert(color, count8_u8);
+
+                    total_clustercount_connectivity4 += count4;
+                    total_clustercount_connectivity8 += count8;
+                }
+            }
+
             for y in 0..height {
                 let yy: i32 = y as i32;
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
@@ -1795,6 +1834,31 @@ impl SolveLogisticRegression {
                         pair_id,
                         values: vec!(),
                     };
+
+                    // {
+                    //     let random_color: u8 = random_image.get(xx, yy).unwrap_or(255);
+                    //     record.serialize_bool(random_color == 0);
+                    //     record.serialize_bool_onehot(random_color == 0);
+                    //     record.serialize_onehot(random_color, 10);
+                    //     record.serialize_u8(random_color);
+                    // }
+
+                    if enable_total_clustercount {
+                        record.serialize_u8(total_clustercount_connectivity4.min(255) as u8);
+                        record.serialize_u8(total_clustercount_connectivity8.min(255) as u8);
+                    }
+
+                    if enable_color_clustercount {
+                        for color in 0..=9 {
+                            let count: u8 = *color_clustercount_connectivity4.get(&color).unwrap_or(&0);
+                            record.serialize_u8(count);
+                        }
+                        for color in 0..=9 {
+                            let count: u8 = *color_clustercount_connectivity8.get(&color).unwrap_or(&0);
+                            record.serialize_u8(count);
+                        }
+                    }
+
 
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
