@@ -814,6 +814,12 @@ impl SolveLogisticRegression {
         let enable_trigram_count_word1_center: bool = false;
         let enable_trigram_count_word012_center: bool = false;
 
+        let enable_full_row_and_column: bool = true;
+        let enable_full_row_xor_column: bool = true;
+        let enable_full_row_or_column: bool = true;
+        let enable_full_row: bool = false;
+        let enable_full_column: bool = false;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -3201,9 +3207,21 @@ impl SolveLogisticRegression {
                         // }
                     }
 
-                    let full_row_and_column: bool = is_full_row & is_full_column;
-                    let full_row_xor_column: bool = is_full_row ^ is_full_column;
-                    let full_row_or_column: bool = is_full_row | is_full_column;
+                    if enable_full_row_and_column {
+                        record.serialize_bool(is_full_row & is_full_column);
+                    }
+                    if enable_full_row_xor_column {
+                        record.serialize_bool(is_full_row ^ is_full_column);
+                    }
+                    if enable_full_row_or_column {
+                        record.serialize_bool(is_full_row | is_full_column);
+                    }
+                    if enable_full_row {
+                        record.serialize_bool(is_full_row);
+                    }
+                    if enable_full_column {
+                        record.serialize_bool(is_full_column);
+                    }
 
                     let mut one_or_more_holes_connectivity4: bool = false;
                     if let Some(hole_mask) = holes_connectivity4.get(&center) {
@@ -3557,11 +3575,6 @@ impl SolveLogisticRegression {
                     // record.serialize_onehot_discard_overflow((x2_reverse_mod2 + y2_mod2) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x2_reverse_mod2 + y2_reverse_mod2) & 1, 2);
                     record.serialize_bool_onehot(preserve_edge);
-                    record.serialize_bool(full_row_and_column);
-                    record.serialize_bool(full_row_xor_column);
-                    record.serialize_bool(full_row_or_column);
-                    // record.serialize_bool(is_full_row);
-                    // record.serialize_bool(is_full_column);
                     record.serialize_bool(one_or_more_holes_connectivity4);
                     record.serialize_bool(one_or_more_holes_connectivity8);
                     record.serialize_color_complex(the_holecount_connectivity4, obfuscated_color_offset);
