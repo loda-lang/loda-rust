@@ -774,6 +774,11 @@ impl SolveLogisticRegression {
         let enable_noisecolor_in_outline: bool = true;
         let enable_grid: bool = true;
 
+        let enable_enumerated_clusters_grow_mask3: bool = false;
+        let enable_color_grow_mask1: bool = false;
+        let enable_color_grow_mask2: bool = false;
+        let enable_color_grow_mask3: bool = false;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -1151,6 +1156,91 @@ impl SolveLogisticRegression {
                     Err(_) => {},
                 }
             }
+
+            let mut enumerated_clusters_grow_mask3 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if enable_enumerated_clusters_grow_mask3 {
+                for ((color, connectivity), image) in &enumerated_clusters_grow_mask2 {
+                    match image.mask_grow(*connectivity) {
+                        Ok(image) => {
+                            enumerated_clusters_grow_mask3.insert((*color, *connectivity), image);
+                        },
+                        Err(_) => {},
+                    }
+                }
+            }
+
+            // let mut exterior_of_clusters = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // for ((color, connectivity), mask) in &enumerated_clusters_grow_mask1 {
+            // // for ((color, connectivity), mask) in &enumerated_clusters {
+            // // for ((color, connectivity), mask) in &enumerated_clusters_filled_holes_mask {
+            //     match mask.mask_exterior_corners() {
+            //         Ok(image) => {
+            //             exterior_of_clusters.insert((*color, *connectivity), image);
+            //         },
+            //         Err(_) => {},
+            //     }
+            // }
+
+            let mut color_grow_mask1 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if enable_color_grow_mask1 {
+                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+                for connectivity in &connectivity_vec {
+                    for color in 0..=9 {
+                        let mask: Image = input.to_mask_where_color_is(color);
+                        match mask.mask_grow(*connectivity) {
+                            Ok(image) => {
+                                color_grow_mask1.insert((color, *connectivity), image);
+                            },
+                            Err(_) => {},
+                        }
+                    }
+                }
+            }
+
+            let mut color_grow_mask2 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if enable_color_grow_mask2 {
+                for ((color, connectivity), image) in &color_grow_mask1 {
+                    match image.mask_grow(*connectivity) {
+                        Ok(image) => {
+                            color_grow_mask2.insert((*color, *connectivity), image);
+                        },
+                        Err(_) => {},
+                    }
+                }
+            }
+
+            let mut color_grow_mask3 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if enable_color_grow_mask3 {
+                for ((color, connectivity), image) in &color_grow_mask2 {
+                    match image.mask_grow(*connectivity) {
+                        Ok(image) => {
+                            color_grow_mask3.insert((*color, *connectivity), image);
+                        },
+                        Err(_) => {},
+                    }
+                }
+            }
+
+            // let mut color_grow_mask4 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // for ((color, connectivity), image) in &color_grow_mask3 {
+            //     match image.mask_grow(*connectivity) {
+            //         Ok(image) => {
+            //             color_grow_mask4.insert((*color, *connectivity), image);
+            //         },
+            //         Err(_) => {},
+            //     }
+            // }
+
+            // let mut color_grow_mask5 = HashMap::<(u8, PixelConnectivity), Image>::new();
+            // for ((color, connectivity), image) in &color_grow_mask4 {
+            //     match image.mask_grow(*connectivity) {
+            //         Ok(image) => {
+            //             color_grow_mask5.insert((*color, *connectivity), image);
+            //         },
+            //         Err(_) => {},
+            //     }
+            // }
+
 
             let mut small_medium_big = HashMap::<(u8, PixelConnectivity), Image>::new();
             for ((color, connectivity), image) in &enumerated_clusters {
@@ -3961,6 +4051,18 @@ impl SolveLogisticRegression {
                                 record.serialize_bool(mask_value > 0);
                             }
                         }
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let corner_value: u8 = match exterior_of_clusters.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(255)
+                        //             }
+                        //             None => 255
+                        //         };
+                        //         record.serialize_bool_onehot(corner_value > 0);
+                        //         // record.serialize_onehot_discard_overflow(corner_value, 7);
+                        //     }
+                        // }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 let mask_value: u8 = match enumerated_clusters_grow_mask1.get(&(color, *connectivity)) {
@@ -3983,6 +4085,80 @@ impl SolveLogisticRegression {
                                 record.serialize_bool(mask_value > 0);
                             }
                         }
+                        if enable_enumerated_clusters_grow_mask3 {
+                            for connectivity in &connectivity_vec {
+                                for color in 0..=9 {
+                                    let mask_value: u8 = match enumerated_clusters_grow_mask3.get(&(color, *connectivity)) {
+                                        Some(value) => {
+                                            value.get(xx, yy).unwrap_or(255)
+                                        }
+                                        None => 255
+                                    };
+                                    record.serialize_bool(mask_value > 0);
+                                }
+                            }
+                        }
+                        if enable_color_grow_mask1 {
+                            for connectivity in &connectivity_vec {
+                                for color in 0..=9 {
+                                    let mask_value: u8 = match color_grow_mask1.get(&(color, *connectivity)) {
+                                        Some(value) => {
+                                            value.get(xx, yy).unwrap_or(255)
+                                        }
+                                        None => 255
+                                    };
+                                    record.serialize_bool(mask_value > 0);
+                                }
+                            }
+                        }
+                        if enable_color_grow_mask2 {
+                            for connectivity in &connectivity_vec {
+                                for color in 0..=9 {
+                                    let mask_value: u8 = match color_grow_mask2.get(&(color, *connectivity)) {
+                                        Some(value) => {
+                                            value.get(xx, yy).unwrap_or(255)
+                                        }
+                                        None => 255
+                                    };
+                                    record.serialize_bool(mask_value > 0);
+                                }
+                            }
+                        }
+                        if enable_color_grow_mask3 {
+                            for connectivity in &connectivity_vec {
+                                for color in 0..=9 {
+                                    let mask_value: u8 = match color_grow_mask3.get(&(color, *connectivity)) {
+                                        Some(value) => {
+                                            value.get(xx, yy).unwrap_or(255)
+                                        }
+                                        None => 255
+                                    };
+                                    record.serialize_bool(mask_value > 0);
+                                }
+                            }
+                        }
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let mask_value: u8 = match color_grow_mask4.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(255)
+                        //             }
+                        //             None => 255
+                        //         };
+                        //         record.serialize_bool(mask_value > 0);
+                        //     }
+                        // }
+                        // for connectivity in &connectivity_vec {
+                        //     for color in 0..=9 {
+                        //         let mask_value: u8 = match color_grow_mask5.get(&(color, *connectivity)) {
+                        //             Some(value) => {
+                        //                 value.get(xx, yy).unwrap_or(255)
+                        //             }
+                        //             None => 255
+                        //         };
+                        //         record.serialize_bool(mask_value > 0);
+                        //     }
+                        // }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 #[allow(unused_variables)]
