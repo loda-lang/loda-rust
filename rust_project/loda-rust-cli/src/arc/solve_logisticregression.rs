@@ -2778,6 +2778,62 @@ impl SolveLogisticRegression {
                     //     }
                     // }
 
+                    // let mut same_xy_histogram_colors: bool = false;
+                    // if let Some(histogram0) = histogram_columns.get(x as usize) {
+                    //     if let Some(histogram1) = histogram_rows.get(y as usize) {
+                    //         let mut histogram2: Histogram = histogram0.clone();
+                    //         histogram2.intersection_histogram(histogram1);
+                    //         if histogram2.number_of_counters_greater_than_zero() == histogram0.number_of_counters_greater_than_zero() {
+                    //             same_xy_histogram_colors = true;
+                    //         }
+                    //     }
+                    // }
+                    // record.serialize_bool_onehot(same_xy_histogram_colors);
+
+                    // let mut rows_columns_agree_on_one_color: Option<u8> = None;
+                    // if let Some(histogram0) = histogram_columns.get(x as usize) {
+                    //     if let Some(histogram1) = histogram_rows.get(y as usize) {
+                    //         let mut histogram2: Histogram = histogram0.clone();
+                    //         histogram2.intersection_histogram(histogram1);
+                    //         if let Some(color) = most_popular_color {
+                    //             histogram2.set_counter_to_zero(color);
+                    //         }
+
+                    //         if histogram2.number_of_counters_greater_than_zero() == 1 {
+                    //             rows_columns_agree_on_one_color = histogram2.most_popular_color_disallow_ambiguous();
+                    //         }
+                    //     }
+                    // }
+                    // record.serialize_color_complex(rows_columns_agree_on_one_color.unwrap_or(255), obfuscated_color_offset);
+                    // record.serialize_onehot_discard_overflow(rows_columns_agree_on_one_color.unwrap_or(255), 10);
+
+                    // {
+                    //     let mut most_popular_color_in_column: Option<u8> = None;
+                    //     let mut least_popular_color_in_column: Option<u8> = None;
+                    //     if let Some(histogram) = histogram_columns.get(x as usize) {
+                    //         most_popular_color_in_column = histogram.most_popular_color_disallow_ambiguous();
+                    //         least_popular_color_in_column = histogram.least_popular_color_disallow_ambiguous();
+                    //     }
+                    //     record.serialize_color_complex(most_popular_color_in_column.unwrap_or(255), obfuscated_color_offset);
+                    //     record.serialize_color_complex(least_popular_color_in_column.unwrap_or(255), obfuscated_color_offset);
+                    //     record.serialize_onehot_discard_overflow(most_popular_color_in_column.unwrap_or(255), 10);
+                    //     record.serialize_onehot_discard_overflow(least_popular_color_in_column.unwrap_or(255), 10);
+                    // }
+
+                    // {
+                    //     let mut most_popular_color_in_row: Option<u8> = None;
+                    //     let mut least_popular_color_in_row: Option<u8> = None;
+                    //     if let Some(histogram) = histogram_rows.get(y as usize) {
+                    //         most_popular_color_in_row = histogram.most_popular_color_disallow_ambiguous();
+                    //         least_popular_color_in_row = histogram.least_popular_color_disallow_ambiguous();
+                    //     }
+                    //     record.serialize_color_complex(most_popular_color_in_row.unwrap_or(255), obfuscated_color_offset);
+                    //     record.serialize_color_complex(least_popular_color_in_row.unwrap_or(255), obfuscated_color_offset);
+                    //     record.serialize_onehot_discard_overflow(most_popular_color_in_row.unwrap_or(255), 10);
+                    //     record.serialize_onehot_discard_overflow(least_popular_color_in_row.unwrap_or(255), 10);
+                    // }
+
+
                     let mut is_full_column: bool = false;
                     let mut is_full_row: bool = false;
                     if let Some(histogram) = &histogram_columns.get(x as usize) {
