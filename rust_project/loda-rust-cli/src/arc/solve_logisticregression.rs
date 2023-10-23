@@ -825,6 +825,8 @@ impl SolveLogisticRegression {
         let enable_symmetry_masks: bool = false;
         let enable_corner_classification: bool = false;
 
+        let enable_histogram_columns_rows_get_color: bool = true;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -3766,16 +3768,20 @@ impl SolveLogisticRegression {
                     //     // record.serialize_onehot(histogram.number_of_counters_greater_than_zero().min(11) as u8, 10);
                     // }
 
-
+                    if enable_histogram_columns_rows_get_color {
+                        for color in 0..=9u8 {
+                            record.serialize_bool(histogram_columns[x as usize].get(color) > 0);
+                        }
+                        for color in 0..=9u8 {
+                            record.serialize_bool(histogram_rows[y as usize].get(color) > 0);
+                        }
+                    }
 
                     {
                         // let count: u16 = histogram_columns[x as usize].number_of_counters_greater_than_zero();
                         // record.serialize_bool_onehot(count > 0);
                         // record.serialize_f64(count as f64);
                         // record.serialize(histogram_columns.num, count)
-                        for color in 0..=9u8 {
-                            record.serialize_bool(histogram_columns[x as usize].get(color) > 0);
-                        }
 
                         // for color in 0..=9u8 {
                         //     let x_minus1: i32 = (x as i32) - 2;
@@ -3817,9 +3823,6 @@ impl SolveLogisticRegression {
                         // record.serialize_bool_onehot(count > 0);
                         // record.serialize_f64(count as f64);
                         // record.serialize(histogram_columns.num, count)
-                        for color in 0..=9u8 {
-                            record.serialize_bool(histogram_rows[y as usize].get(color) > 0);
-                        }
 
                         // for color in 0..=9u8 {
                         //     let y_minus1: i32 = (y as i32) - 2;
