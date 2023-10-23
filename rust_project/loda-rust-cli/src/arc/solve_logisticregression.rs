@@ -115,12 +115,12 @@ impl Record {
     }
 
     #[allow(dead_code)]
-    fn serialize_cluster_id(&mut self, color: u8, cluster_id: u8) {
+    fn serialize_cluster_id(&mut self, color: u8, cluster_id: u8, offset: f64) {
         let mut value: u16 = u16::MAX;
         if cluster_id < 41 && color < 10 {
             value = (cluster_id as u16) * 10 + (color as u16);
         }
-        self.serialize_complex(value, 410);
+        self.serialize_complex_scaled(value, 410, offset, 1.0);
     }
 
     /// Set the counter to 1 that are equal to the value.
@@ -731,6 +731,10 @@ impl SolveLogisticRegression {
 
         // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
+        // let one_eleventh: f64 = 1.0 / 11.0;
+        // let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * one_eleventh + 0.2) % 1.0;
+        
+        let obfuscated_cluster_offset: f64 = 0.2;
 
         // When input_size == output_size then the parameters only needs to be serialized once.
         // When the input_size != output_size, then serialize parameters for input and serialize parameters for output.
@@ -4027,8 +4031,7 @@ impl SolveLogisticRegression {
                                     }
                                     None => 255
                                 };
-                                record.serialize_cluster_id(color, cluster_id);
-                                // record.serialize_cluster_id(color, cluster_id, obfuscated_cluster_offset);
+                                record.serialize_cluster_id(color, cluster_id, obfuscated_cluster_offset);
                                 // record.serialize_cluster_id(color, 255 - cluster_id);
                                 // record.serialize_complex(cluster_id as u16, 41);
                             }
