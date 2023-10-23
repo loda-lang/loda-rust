@@ -4018,26 +4018,26 @@ impl SolveLogisticRegression {
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
-                                let cluster_id: u8 = match small_medium_big.get(&(color, *connectivity)) {
-                                    Some(value) => {
-                                        value.get(xx, yy).unwrap_or(255)
+                                let small_medium_big_id: u8 = match small_medium_big.get(&(color, *connectivity)) {
+                                    Some(image) => {
+                                        image.get(xx, yy).unwrap_or(255)
                                     }
                                     None => 255
                                 };
-                                record.serialize_complex(cluster_id as u16, 4);
-                                // record.serialize_onehot_discard_overflow(cluster_id, 4);
+                                record.serialize_complex(small_medium_big_id as u16, 4);
+                                // record.serialize_onehot_discard_overflow(small_medium_big_id, 4);
                             }
                         }
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
-                                let cluster_id: u8 = match sort2_small_big.get(&(color, *connectivity)) {
-                                    Some(value) => {
-                                        value.get(xx, yy).unwrap_or(255)
+                                let sort2_small_big_id: u8 = match sort2_small_big.get(&(color, *connectivity)) {
+                                    Some(image) => {
+                                        image.get(xx, yy).unwrap_or(255)
                                     }
                                     None => 255
                                 };
-                                // record.serialize_complex(cluster_id as u16, 3);
-                                record.serialize_onehot_discard_overflow(cluster_id, 3);
+                                // record.serialize_complex(sort2_small_big_id as u16, 3);
+                                record.serialize_onehot_discard_overflow(sort2_small_big_id, 3);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -4169,6 +4169,12 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 3);
+                                // record.serialize_onehot(distance, 4);
+                                // record.serialize_onehot(distance, 5);
+                                // record.serialize_onehot(distance, 6);
+                                // record.serialize_onehot(distance, 8);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -4181,6 +4187,12 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 3);
+                                // record.serialize_onehot(distance, 4);
+                                // record.serialize_onehot(distance, 5);
+                                // record.serialize_onehot(distance, 6);
+                                // record.serialize_onehot(distance, 8);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -5096,42 +5108,30 @@ impl SolveLogisticRegression {
                             // record.serialize_bool_onehot(pixel == center);
                             // record.serialize_color_complex(pixel, obfuscated_color_offset);
 
-                            {
-                                let pixel: u8 = image.get(xx - 1, yy - 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx, yy - 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx + 1, yy - 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx - 1, yy).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
                             // {
                             //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             //     record.serialize_onehot_discard_overflow(pixel, 10);
                             //     record.serialize_bool(Some(pixel) == most_popular_color);
+                            //     record.serialize_bool_onehot(pixel == center);
                             // }
-                            {
-                                let pixel: u8 = image.get(xx + 1, yy).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx - 1, yy + 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx, yy + 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
-                            }
-                            {
-                                let pixel: u8 = image.get(xx + 1, yy + 1).unwrap_or(255);
-                                record.serialize_onehot_discard_overflow(pixel, 10);
+
+                            // for j in 0..5 {
+                            //     for i in 0..5 {
+                            //         if j == 2 && i == 2 {
+                            //             continue;
+                            //         }
+                            //         let pixel: u8 = image.get(xx - 2 + i, yy - 2 + j).unwrap_or(255);
+                            //         record.serialize_onehot_discard_overflow(pixel, 10);
+                            //     }
+                            // }
+                            for j in 0..3 {
+                                for i in 0..3 {
+                                    if j == 1 && i == 1 {
+                                        continue;
+                                    }
+                                    let pixel: u8 = image.get(xx - 1 + i, yy - 1 + j).unwrap_or(255);
+                                    record.serialize_onehot_discard_overflow(pixel, 10);
+                                }
                             }
                         }
                     }
