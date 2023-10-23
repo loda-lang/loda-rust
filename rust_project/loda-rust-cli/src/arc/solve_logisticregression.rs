@@ -826,6 +826,7 @@ impl SolveLogisticRegression {
         let enable_corner_classification: bool = false;
 
         let enable_histogram_columns_rows_get_color: bool = true;
+        let enable_histogram_columns_rows_lookaround: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -3771,9 +3772,33 @@ impl SolveLogisticRegression {
                     if enable_histogram_columns_rows_get_color {
                         for color in 0..=9u8 {
                             record.serialize_bool(histogram_columns[x as usize].get(color) > 0);
-                        }
-                        for color in 0..=9u8 {
                             record.serialize_bool(histogram_rows[y as usize].get(color) > 0);
+                        }
+                    }
+
+                    if enable_histogram_columns_rows_lookaround {
+                        for color in 0..=9u8 {
+                            for i in -2..=2 {
+                                if i == 0 {
+                                    continue;
+                                }
+                                {
+                                    let xi: i32 = (x as i32) + i;
+                                    let mut value: bool = false;
+                                    if xi >= 0 && xi < width as i32 {
+                                        value = histogram_columns[xi as usize].get(color) > 0;
+                                    }
+                                    record.serialize_bool(value);
+                                }
+                                {
+                                    let yi: i32 = (y as i32) + i;
+                                    let mut value: bool = false;
+                                    if yi >= 0 && yi < height as i32 {
+                                        value = histogram_rows[yi as usize].get(color) > 0;
+                                    }
+                                    record.serialize_bool(value);
+                                }
+                            }
                         }
                     }
 
@@ -3782,81 +3807,12 @@ impl SolveLogisticRegression {
                         // record.serialize_bool_onehot(count > 0);
                         // record.serialize_f64(count as f64);
                         // record.serialize(histogram_columns.num, count)
-
-                        // for color in 0..=9u8 {
-                        //     let x_minus1: i32 = (x as i32) - 2;
-                        //     let mut value: bool = false;
-                        //     if x_minus1 >= 0 {
-                        //         value = histogram_columns[x_minus1 as usize].get(color) > 0;
-                        //     }
-                        //     record.serialize_bool(value);
-                        // }
-                        // for color in 0..=9u8 {
-                        //     let x_minus1: i32 = (x as i32) - 1;
-                        //     let mut value: bool = false;
-                        //     if x_minus1 >= 0 {
-                        //         value = histogram_columns[x_minus1 as usize].get(color) > 0;
-                        //     }
-                        //     record.serialize_bool(value);
-                        // }
-
-                        // for color in 0..=9u8 {
-                        //     let x_plus1: u16 = (x as u16) + 1;
-                        //     let mut value: bool = false;
-                        //     if x_plus1 < (width as u16) {
-                        //         value = histogram_columns[x_plus1 as usize].get(color) > 0;
-                        //     }
-                        //     record.serialize_bool(value);
-                        // }
-                        // for color in 0..=9u8 {
-                        //     let x_plus1: u16 = (x as u16) + 2;
-                        //     let mut value: bool = false;
-                        //     if x_plus1 < (width as u16) {
-                        //         value = histogram_columns[x_plus1 as usize].get(color) > 0;
-                        //     }
-                        //     record.serialize_bool(value);
-                        // }
                     }
-
                     {
                         // let count: u16 = histogram_rows[y as usize].number_of_counters_greater_than_zero();
                         // record.serialize_bool_onehot(count > 0);
                         // record.serialize_f64(count as f64);
                         // record.serialize(histogram_columns.num, count)
-
-                        // for color in 0..=9u8 {
-                        //     let y_minus1: i32 = (y as i32) - 2;
-                        //     let mut value: bool = false;
-                        //     if y_minus1 >= 0 {
-                        //         value = histogram_rows[y_minus1 as usize].get(color) > 0;
-                        //     }
-                        //     record.serialize_bool(value);
-                        // }
-                        // for color in 0..=9u8 {
-                        //     let y_minus1: i32 = (y as i32) - 1;
-                        //     let mut value: bool = false;
-                        //     if y_minus1 >= 0 {
-                        //         value = histogram_rows[y_minus1 as usize].get(color) > 0;
-                        //     }
-                        //     record.serialize_bool(value);
-                        // }
-
-                        // for color in 0..=9u8 {
-                        //     let y_plus1: u16 = (y as u16) + 1;
-                        //     let mut value: bool = false;
-                        //     if y_plus1 < (height as u16) {
-                        //         value = histogram_rows[y_plus1 as usize].get(color) > 0;
-                        //     }
-                        //     record.serialize_bool(value);
-                        // }
-                        // for color in 0..=9u8 {
-                        //     let y_plus1: u16 = (y as u16) + 2;
-                        //     let mut value: bool = false;
-                        //     if y_plus1 < (height as u16) {
-                        //         value = histogram_rows[y_plus1 as usize].get(color) > 0;
-                        //     }
-                        //     record.serialize_bool(value);
-                        // }
                     }
 
                     if enable_histogram_diagonal {
