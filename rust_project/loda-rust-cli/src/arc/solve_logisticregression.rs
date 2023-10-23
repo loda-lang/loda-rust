@@ -40,7 +40,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -734,6 +734,8 @@ impl SolveLogisticRegression {
         let enable_center_indicator_x: bool = false;
         let enable_center_indicator_y: bool = false;
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
+
+        let enable_gravity: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1806,6 +1808,90 @@ impl SolveLogisticRegression {
                 }
             }
 
+            // let random_image: Image;
+            // {
+            //     let random_seed: u64 = 0;
+            //     let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
+            //     let image: Image = RandomImage::two_colors(&mut rng, ImageSize { width: 30, height: 30 }, 0, 1, 33)?;
+            //     let image: Image = RandomImage::uniform_colors(&mut rng, ImageSize { width: 30, height: 30 }, 9)?;
+            //     random_image = image.crop_outside(0, 0, width, height, 255)?;
+            // }
+
+            // let mut number_of_unique_bigrams_column_vec = Vec::<u8>::new();
+            // for x in 0..width {
+            //     let image: Image = input.crop_outside(x as i32, 0, 1, height, 255)?;
+            //     let bigrams: Vec<RecordBigram> = image.bigram_y()?;
+            //     let bigrams: Vec<RecordTrigram> = image.trigram_y()?;
+            //     number_of_unique_bigrams_column_vec.push(bigrams.len().min(255) as u8);
+            // }
+            // let mut number_of_unique_bigrams_row_vec = Vec::<u8>::new();
+            // for y in 0..height {
+            //     let image: Image = input.crop_outside(0, y as i32, width, 1, 255)?;
+            //     let bigrams: Vec<RecordBigram> = image.bigram_x()?;
+            //     let bigrams: Vec<RecordTrigram> = image.trigram_x()?;
+            //     number_of_unique_bigrams_row_vec.push(bigrams.len().min(255) as u8);
+            // }
+
+            // if let Some(ep_image) = earlier_prediction_image {
+            //     for x in 0..width {
+            //         let image: Image = ep_image.crop_outside(x as i32, 0, 1, height, 255)?;
+            //         let bigrams: Vec<RecordBigram> = image.bigram_y()?;
+            //         let bigrams: Vec<RecordTrigram> = image.trigram_y()?;
+            //         number_of_unique_bigrams_column_vec.push(bigrams.len().min(255) as u8);
+            //     }
+            //     for y in 0..height {
+            //         let image: Image = ep_image.crop_outside(0, y as i32, width, 1, 255)?;
+            //         let bigrams: Vec<RecordBigram> = image.bigram_x()?;
+            //         let bigrams: Vec<RecordTrigram> = image.trigram_x()?;
+            //         number_of_unique_bigrams_row_vec.push(bigrams.len().min(255) as u8);
+            //     }
+            // }
+
+            // let mut trigrams_column = HashMap::<u8, Vec::<RecordTrigram>>::new();
+            // let mut trigrams_row = HashMap::<u8, Vec::<RecordTrigram>>::new();
+            // {
+            //     for x in 0..width {
+            //         let image: Image = input.crop_outside(x as i32, 0, 1, height, 255)?;
+            //         let trigrams: Vec<RecordTrigram> = image.trigram_y()?;
+            //         trigrams_column.insert(x, trigrams);
+            //     }
+            //     for y in 0..height {
+            //         let image: Image = input.crop_outside(0, y as i32, width, 1, 255)?;
+            //         let trigrams: Vec<RecordTrigram> = image.trigram_x()?;
+            //         trigrams_row.insert(y, trigrams);
+            //     }
+            // }
+            // if let Some(ep_image) = earlier_prediction_image {
+            //     for x in 0..width {
+            //         let image: Image = ep_image.crop_outside(x as i32, 0, 1, height, 255)?;
+            //         let trigrams: Vec<RecordTrigram> = image.trigram_y()?;
+            //         trigrams_column.insert(x, trigrams);
+            //     }
+            //     for y in 0..height {
+            //         let image: Image = ep_image.crop_outside(0, y as i32, width, 1, 255)?;
+            //         let trigrams: Vec<RecordTrigram> = image.trigram_x()?;
+            //         trigrams_row.insert(y, trigrams);
+            //     }
+            // }
+
+            let gravity_up: Image;
+            let gravity_down: Image;
+            let gravity_left: Image;
+            let gravity_right: Image;
+            if enable_gravity {
+                let hardcoded_background_color: u8 = 0;
+                let gravity_background_color: u8 = most_popular_color.unwrap_or(hardcoded_background_color);
+                gravity_up = input.gravity(gravity_background_color, GravityDirection::Up)?;
+                gravity_down = input.gravity(gravity_background_color, GravityDirection::Down)?;
+                gravity_left = input.gravity(gravity_background_color, GravityDirection::Left)?;
+                gravity_right = input.gravity(gravity_background_color, GravityDirection::Right)?;
+            } else {
+                gravity_up = Image::empty();
+                gravity_down = Image::empty();
+                gravity_left = Image::empty();
+                gravity_right = Image::empty();
+            }
+
             for y in 0..height {
                 let yy: i32 = y as i32;
                 let y_reverse: u8 = ((height as i32) - 1 - yy).max(0) as u8;
@@ -1878,6 +1964,14 @@ impl SolveLogisticRegression {
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
+
+                    if enable_gravity {
+                        let images = [&gravity_up, &gravity_down, &gravity_left, &gravity_right];
+                        for image in images {
+                            let pixel: u8 = image.get(xx, yy).unwrap_or(255);
+                            record.serialize_color_complex(pixel, obfuscated_color_offset);
+                        }
+                    }
 
                     // let area_left: Image = if x > 2 {
                     //     input.left_columns(x - 1)?
