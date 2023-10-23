@@ -2369,10 +2369,16 @@ impl SolveLogisticRegression {
                         let dh_input_area_topright: DiagonalHistogram = DiagonalHistogram::diagonal_b(&input_area_topright)?;
                         let dh_input_area_bottomleft: DiagonalHistogram = DiagonalHistogram::diagonal_b(&input_area_bottomleft)?;
                         let dh_input_area_bottomright: DiagonalHistogram = DiagonalHistogram::diagonal_a(&input_area_bottomright)?;
-                        let dh_output_area_topleft: DiagonalHistogram = DiagonalHistogram::diagonal_a(&output_area_topleft)?;
-                        let dh_output_area_topright: DiagonalHistogram = DiagonalHistogram::diagonal_b(&output_area_topright)?;
-                        let dh_output_area_bottomleft: DiagonalHistogram = DiagonalHistogram::diagonal_b(&output_area_bottomleft)?;
-                        let dh_output_area_bottomright: DiagonalHistogram = DiagonalHistogram::diagonal_a(&output_area_bottomright)?;
+                        let mut dh_output_area_topleft: Option<DiagonalHistogram> = None;
+                        let mut dh_output_area_topright: Option<DiagonalHistogram> = None;
+                        let mut dh_output_area_bottomleft: Option<DiagonalHistogram> = None;
+                        let mut dh_output_area_bottomright: Option<DiagonalHistogram> = None;
+                        if has_different_size_for_input_output {
+                            dh_output_area_topleft = Some(DiagonalHistogram::diagonal_a(&output_area_topleft)?);
+                            dh_output_area_topright = Some(DiagonalHistogram::diagonal_b(&output_area_topright)?);
+                            dh_output_area_bottomleft = Some(DiagonalHistogram::diagonal_b(&output_area_bottomleft)?);
+                            dh_output_area_bottomright = Some(DiagonalHistogram::diagonal_a(&output_area_bottomright)?);
+                        }
                         // let diagonalhistograms = [
                         //     &dh_input_area_topleft, &dh_input_area_topright, &dh_input_area_bottomleft, &dh_input_area_bottomright,
                         //     &dh_output_area_topleft, &dh_output_area_topright, &dh_output_area_bottomleft, &dh_output_area_bottomright,
@@ -2397,12 +2403,19 @@ impl SolveLogisticRegression {
                         //     }
                         // }
 
-                        let dh_opposites = [
-                            (&dh_input_area_topleft, &dh_input_area_bottomright),
-                            (&dh_input_area_bottomleft, &dh_input_area_topright),
-                            (&dh_output_area_topleft, &dh_output_area_bottomright),
-                            (&dh_output_area_bottomleft, &dh_output_area_topright),
-                        ];
+                        let mut dh_opposites = Vec::<(&DiagonalHistogram, &DiagonalHistogram)>::new();
+                        dh_opposites.push((&dh_input_area_topleft, &dh_input_area_bottomright));
+                        dh_opposites.push((&dh_input_area_bottomleft, &dh_input_area_topright));
+                        if let Some(topleft) = &dh_output_area_topleft {
+                            if let Some(bottomright) = &dh_output_area_bottomright {
+                                dh_opposites.push((topleft, bottomright));
+                            }
+                        }
+                        if let Some(bottomleft) = &dh_output_area_bottomleft {
+                            if let Some(topright) = &dh_output_area_topright {
+                                dh_opposites.push((bottomleft, topright));
+                            }
+                        }
                         for (dh0, dh1) in dh_opposites {
                             for color in 0..=9 {
                                 let mut mass0: u32 = 0;
