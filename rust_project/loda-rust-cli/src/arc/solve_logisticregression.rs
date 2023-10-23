@@ -779,6 +779,10 @@ impl SolveLogisticRegression {
         let enable_color_grow_mask2: bool = false;
         let enable_color_grow_mask3: bool = false;
 
+        let enable_no_change_to_color: bool = true;
+        let enable_no_change_to_center_color: bool = false;
+        let enable_no_change_to_noise_color: bool = false;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -3545,11 +3549,23 @@ impl SolveLogisticRegression {
                     record.serialize_onehot_discard_overflow(the_holecount_connectivity8, 2);
                     // record.serialize_onehot_discard_overflow(the_holecount_connectivity4.min(9), 10);
                     // record.serialize_onehot_discard_overflow(the_holecount_connectivity8.min(9), 10);
-                    for i in 0..10 {
-                        // let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
-                        // record.serialize_u8(value);
-                        let value2: u8 = if no_change_to_color[i] { i as u8 } else { 255 };
-                        record.serialize_color_complex(value2, obfuscated_color_offset);
+                    if enable_no_change_to_color {
+                        for i in 0..10 {
+                            // let value: u8 = if no_change_to_color[i] { 1 } else { 0 };
+                            // record.serialize_u8(value);
+                            let value2: u8 = if no_change_to_color[i] { i as u8 } else { 255 };
+                            record.serialize_color_complex(value2, obfuscated_color_offset);
+                        }
+                    }
+                    if enable_no_change_to_center_color {
+                        record.serialize_bool(no_change_to_color[(center % 10) as usize]);
+                    }
+                    if enable_no_change_to_noise_color {
+                        let mut value: bool = false;
+                        if let Some(color) = noise_color {
+                            value = no_change_to_color[(color % 10) as usize];
+                        }
+                        record.serialize_bool(value);
                     }
                     for i in 0..10 {
                         // let value: u8 = if input_histogram_intersection[i] { 1 } else { 0 };
@@ -4012,6 +4028,7 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 record.serialize_cluster_id(color, cluster_id);
+                                // record.serialize_cluster_id(color, cluster_id, obfuscated_cluster_offset);
                                 // record.serialize_cluster_id(color, 255 - cluster_id);
                                 // record.serialize_complex(cluster_id as u16, 41);
                             }
