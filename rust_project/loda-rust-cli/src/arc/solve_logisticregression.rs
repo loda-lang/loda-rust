@@ -806,6 +806,8 @@ impl SolveLogisticRegression {
         let enable_object_center_same_as_neighbour: bool = false;
         let enable_edge: bool = false;
 
+        let enable_color_inside_bounding_box: bool = true;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -4462,13 +4464,15 @@ impl SolveLogisticRegression {
                     // let border_histogram_count: u32 = histogram_border.get(center);
                     // record.serialize_bool_onehot(border_histogram_count > 0);
 
-                    for color in 0..=9 {
-                        let mut is_inside_bounding_box: bool = false;
-                        if let Some(sco) = &pair.input.image_meta.single_color_object {
-                            is_inside_bounding_box = sco.is_inside_bounding_box(color, xx, yy);
+                    if enable_color_inside_bounding_box {
+                        for color in 0..=9 {
+                            let mut is_inside: bool = false;
+                            if let Some(sco) = &pair.input.image_meta.single_color_object {
+                                is_inside = sco.is_inside_bounding_box(color, xx, yy);
+                            }
+                            record.serialize_bool(is_inside);
+                            // record.serialize_bool_onehot(is_inside);
                         }
-                        record.serialize_bool(is_inside_bounding_box);
-                        // record.serialize_bool_onehot(is_inside_bounding_box)
                     }
 
                     {
