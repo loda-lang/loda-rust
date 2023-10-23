@@ -384,6 +384,22 @@ impl SolveLogisticRegression {
         Ok(taskname_to_prediction_vec)
     }
 
+    /// Converts an unsigned binary number to reflected binary Gray code.
+    // fn binary_to_grey(value: u8) -> u8 {
+    //     value ^ (value >> 1)
+    // }
+
+    /// Converts a reflected binary Gray code number to a binary number.
+    // fn grey_to_binary(value: u8) -> u8 {
+    //     let mut result: u8 = value;
+    //     let mut mask: u8 = value;
+    //     for _ in 1..8 {
+    //         mask >>= 1;
+    //         result ^= mask;
+    //     }
+    //     result
+    // }
+
     pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
         let count_test: u8 = task.count_test().min(255) as u8;
         if count_test < 1 {
@@ -3102,6 +3118,39 @@ impl SolveLogisticRegression {
                         }
                     }
 
+                    // {
+                    //     record.serialize_color_complex(neighbour_up, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_down, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_left, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_right, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_upleft, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_upright, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_downleft, obfuscated_color_offset);
+                    //     record.serialize_color_complex(neighbour_downright, obfuscated_color_offset);
+                    // }
+
+                    // {
+                    //     record.serialize_bool_onehot(neighbour_up == center);
+                    //     record.serialize_bool_onehot(neighbour_down == center);
+                    //     record.serialize_bool_onehot(neighbour_left == center);
+                    //     record.serialize_bool_onehot(neighbour_right == center);
+                    //     record.serialize_bool_onehot(neighbour_up == neighbour_down);
+                    //     record.serialize_bool_onehot(neighbour_left == neighbour_right);
+                    //     record.serialize_bool_onehot(neighbour_upleft == neighbour_downright);
+                    //     record.serialize_bool_onehot(neighbour_upright == neighbour_downleft);
+                    // }
+
+                    // {
+                    //     record.serialize_onehot_discard_overflow(neighbour_up, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_down, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_left, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_right, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_upleft, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_upright, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_downleft, shape_type_count);
+                    //     record.serialize_onehot_discard_overflow(neighbour_downright, shape_type_count);
+                    // }
+
                     // record.serialize_bool_onehot(preserve_center_color);
                     // {
                     //     let color: u8 = if preserve_center_color { center } else { 255 };
@@ -3118,6 +3167,10 @@ impl SolveLogisticRegression {
                     // record.serialize_color_complex(center_xy_reversed, obfuscated_color_offset);
                     record.serialize_color_complex(mass_connectivity4, obfuscated_color_offset);
                     record.serialize_color_complex(mass_connectivity8, obfuscated_color_offset);
+                    // record.serialize_onehot(mass_connectivity4, 4);
+                    // record.serialize_onehot(mass_connectivity8, 4);
+                    // record.serialize_f64(1.0 / ((mass_connectivity4 as f64) + 1.0));
+                    // record.serialize_f64(1.0 / ((mass_connectivity8 as f64) + 1.0));
                     // record.serialize_u8(mass_connectivity4);
                     // record.serialize_u8(mass_connectivity8);
                     // record.serialize_onehot_discard_overflow(mass_connectivity4, 40);
@@ -3126,6 +3179,10 @@ impl SolveLogisticRegression {
                     if enable_output_orientation {
                         record.serialize_ternary(output_orientation);
                     }
+                    // record.serialize_u8(distance_top);
+                    // record.serialize_u8(distance_bottom);
+                    // record.serialize_u8(distance_left);
+                    // record.serialize_u8(distance_right);
                     record.serialize_bool_onehot(input_is_noise_color);
                     record.serialize_bool_onehot(input_is_most_popular_color);
                     // record.serialize_bool(input_is_removal_color == 1);
@@ -3170,6 +3227,7 @@ impl SolveLogisticRegression {
                     // record.serialize_onehot_discard_overflow(y4_mod2, 2);
                     // record.serialize_onehot_discard_overflow(x4_reverse_mod2, 2);
                     // record.serialize_onehot_discard_overflow(y4_reverse_mod2, 2);
+                    // record.serialize_onehot_discard_overflow((x ^ y) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x_mod2 + y_mod2) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x_mod2 + y_reverse_mod2) & 1, 2);
                     // record.serialize_onehot_discard_overflow((x_reverse_mod2 + y_mod2) & 1, 2);
@@ -3182,6 +3240,8 @@ impl SolveLogisticRegression {
                     record.serialize_bool(full_row_and_column);
                     record.serialize_bool(full_row_xor_column);
                     record.serialize_bool(full_row_or_column);
+                    // record.serialize_bool(is_full_row);
+                    // record.serialize_bool(is_full_column);
                     record.serialize_bool(one_or_more_holes_connectivity4);
                     record.serialize_bool(one_or_more_holes_connectivity8);
                     record.serialize_color_complex(the_holecount_connectivity4, obfuscated_color_offset);
@@ -3272,6 +3332,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -3290,6 +3351,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -3308,6 +3370,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -3326,6 +3389,7 @@ impl SolveLogisticRegression {
                     //         record.serialize_bool(mass == 1);
                     //         record.serialize_bool(mass == 2);
                     //         record.serialize_bool(mass > 2);
+                    //         record.serialize_f64(1.0 / (mass as f64 + 1.0));
                     //         // record.serialize_bool(mass > 0);
                     //         // record.serialize_u8(mass.min(255) as u8);
                     //         // record.serialize_onehot(mass.min(11) as u8, 10);
@@ -3645,6 +3709,9 @@ impl SolveLogisticRegression {
                                 };
                                 // record.serialize_u8(distance);
                                 record.serialize_bool(distance == 0);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 4);
+                                // record.serialize_onehot(distance, 6);
                             }
                         }
                         for connectivity in &connectivity_vec {
@@ -3669,6 +3736,9 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                // record.serialize_bool(distance == 0);
+                                // record.serialize_onehot(distance, 2);
+                                // record.serialize_onehot(distance, 4);
                                 // record.serialize_split_zeros_ones(distance, 5);
                                 // record.serialize_split_zeros_ones(distance, 8);
                                 // record.serialize_onehot(distance, 20);
@@ -3811,6 +3881,11 @@ impl SolveLogisticRegression {
                             // let count: u16 = h.number_of_counters_greater_than_zero();
                             // record.serialize_f64((count+1) as f64);
                             // record.serialize_bool(count < 2);
+                            // {
+                                // let mass: u8 = h.get(center).min(255) as u8;
+                                // record.serialize_onehot(mass, 6);
+                                // record.serialize_bool(mass > 0);
+                            // }
                         }
                     }
 
@@ -3831,6 +3906,81 @@ impl SolveLogisticRegression {
                         }
                         record.serialize_bool(is_inside_bounding_box);
                         // record.serialize_bool_onehot(is_inside_bounding_box)
+                    }
+
+                    {
+                        // for color in 0..=9 {
+                        //     let mut is_above: bool = false;
+                        //     let mut is_below: bool = false;
+                        //     let mut is_left: bool = false;
+                        //     let mut is_right: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             is_above = rectangle.is_above(xx, yy);
+                        //             is_below = rectangle.is_below(xx, yy);
+                        //             is_left = rectangle.is_left(xx, yy);
+                        //             is_right = rectangle.is_right(xx, yy);
+                        //         }
+                        //     }
+                        //     record.serialize_bool_onehot(is_above);
+                        //     record.serialize_bool_onehot(is_below);
+                        //     record.serialize_bool_onehot(is_left);
+                        //     record.serialize_bool_onehot(is_right);
+                        // }
+                    }
+
+                    {
+                        // for color in 0..=9 {
+                        //     let mut is_above: bool = false;
+                        //     let mut is_below: bool = false;
+                        //     let mut is_left: bool = false;
+                        //     let mut is_right: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             is_above = yy < rectangle.min_y();
+                        //             is_below = yy > rectangle.max_y();
+                        //             is_left = xx < rectangle.min_x();
+                        //             is_right = xx > rectangle.max_x();
+                        //         }
+                        //     }
+                        //     record.serialize_bool_onehot(is_above);
+                        //     record.serialize_bool_onehot(is_below);
+                        //     record.serialize_bool_onehot(is_left);
+                        //     record.serialize_bool_onehot(is_right);
+                        // }
+                        // for color in 0..=9 {
+                        //     let mut is_x_between_inclusive: bool = false;
+                        //     let mut is_y_between_inclusive: bool = false;
+                        //     let mut is_x_between_exclusive: bool = false;
+                        //     let mut is_y_between_exclusive: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             // is_x_between_inclusive = xx >= rectangle.min_x() && xx <= rectangle.max_x();
+                        //             // is_y_between_inclusive = yy >= rectangle.min_y() && yy <= rectangle.max_y();
+                        //             // is_x_between_exclusive = xx > rectangle.min_x() && xx < rectangle.max_x();
+                        //             // is_y_between_exclusive = yy > rectangle.min_y() && yy < rectangle.max_y();
+                        //             is_x_between_inclusive = xx <= rectangle.min_x() || xx >= rectangle.max_x();
+                        //             is_y_between_inclusive = yy <= rectangle.min_y() || yy >= rectangle.max_y();
+                        //             is_x_between_exclusive = xx < rectangle.min_x() || xx > rectangle.max_x();
+                        //             is_y_between_exclusive = yy < rectangle.min_y() || yy > rectangle.max_y();
+                        //         }
+                        //     }
+                        //     record.serialize_bool(is_x_between_inclusive);
+                        //     record.serialize_bool(is_y_between_inclusive);
+                        //     record.serialize_bool(is_x_between_exclusive);
+                        //     record.serialize_bool(is_y_between_exclusive);
+                        // }
+                        // for color in 0..=9 {
+                        //     let mut is_x_edge: bool = false;
+                        //     let mut is_y_edge: bool = false;
+                        //     if let Some(sco) = &pair.input.image_meta.single_color_object {
+                        //         if let Some(rectangle) = sco.bounding_box(color) {
+                        //             is_x_edge = xx == rectangle.min_x() || xx == rectangle.max_x();
+                        //             is_y_edge = yy == rectangle.min_y() || yy == rectangle.max_y();
+                        //         }
+                        //     }
+                        //     record.serialize_bool_onehot(is_x_edge && is_y_edge);
+                        // }
                     }
 
                     // for linespan_image in &linespan_images {
