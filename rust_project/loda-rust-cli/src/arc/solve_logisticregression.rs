@@ -62,6 +62,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 static WRITE_TO_HTMLLOG: bool = false;
 
+/// The colors 0..9 with an extra `color 10` for the `outside` canvas area.
+#[allow(dead_code)]
+const COUNT_COLORS_PLUS1: u8 = 11;
+
 #[derive(Clone, Debug, Serialize)]
 struct Record {
     classification: u8,
@@ -112,6 +116,11 @@ impl Record {
 
     fn serialize_color_complex(&mut self, color: u8, offset: f64) {
         self.serialize_complex_scaled(color as u16, 10, offset, 1.0)
+    }
+
+    #[allow(dead_code)]
+    fn serialize_color_complex11(&mut self, color: u8, offset: f64) {
+        self.serialize_complex_scaled(color as u16, COUNT_COLORS_PLUS1 as u16, offset, 1.0)
     }
 
     #[allow(dead_code)]
