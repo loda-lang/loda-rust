@@ -3324,16 +3324,6 @@ impl SolveLogisticRegression {
                     //     }
                     // }
 
-                    #[allow(unused_variables)]
-                    #[allow(unused_assignments)]
-                    let mut inside_bounding_box: bool = false;
-                    if let Some(sco) = &pair.input.image_meta.single_color_object {
-                        if sco.is_inside_bounding_box(center, xx, yy) {
-                            inside_bounding_box = true;
-                        }
-                    }
-                    _ = inside_bounding_box;
-
                     if enable_half_context_input_size {
                         let half_horizontal: i8;
                         if xx * 2 == context_input_size.width as i32 { 
@@ -5408,7 +5398,6 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(corner_top_right);
                     // record.serialize_u8(corner_bottom_left);
                     // record.serialize_u8(corner_bottom_right);
-                    // record.serialize_bool(inside_bounding_box);
 
                     records.push(record);
                 }
