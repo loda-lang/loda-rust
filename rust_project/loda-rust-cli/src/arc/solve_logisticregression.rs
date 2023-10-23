@@ -2429,8 +2429,140 @@ impl SolveLogisticRegression {
                     let center_row_right: Image = match center_row.right_columns(center_row_right_x.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
-                    };                    
+                    };
+                    
+                    // {
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_column_top.trigram_y() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_column_bottom.trigram_y() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_row_left.trigram_x() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    //     {
+                    //         let mut count: u8 = 0;
+                    //         if let Ok(trigrams) = center_row_right.trigram_x() {
+                    //             // count = trigrams.len().min(255) as u8;
+                    //             for trigram in trigrams {
+                    //                 if trigram.word0 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word1 == center {
+                    //                     count += 1;
+                    //                 }
+                    //                 if trigram.word2 == center {
+                    //                     count += 1;
+                    //                 }
+                    //             }
+                    //         }
+                    //         record.serialize_u8(count);
+                    //     }
+                    // }
 
+                    {
+                        // {
+                        //     let trigrams_vec: [Vec<RecordTrigram>; 4] = [
+                        //         center_column_top.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //         center_column_bottom.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //         center_row_left.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //         center_row_right.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //     ];
+                        //     for trigrams in &trigrams_vec {
+                        //         let mut count: u8 = 0;
+                        //         for trigram in trigrams {
+                        //             if trigram.word0 != center && trigram.word1 == center && trigram.word2 != center {
+                        //                 count += 1;
+                        //             }
+                        //         }
+                        //         record.serialize_u8(count);
+                        //     }
+                        // }
+                        // {
+                        //     let trigrams_vec: [Vec<RecordTrigram>; 2] = [
+                        //         center_row_left.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //         center_row_right.trigram_x().unwrap_or_else(|_| Vec::new()),
+                        //     ];
+                        //     let word0: u8 = area3x3.get(0, 1).unwrap_or(255);
+                        //     let word1: u8 = center;
+                        //     let word2: u8 = area3x3.get(2, 1).unwrap_or(255);
+                        //     for trigrams in &trigrams_vec {
+                        //         let mut count: u8 = 0;
+                        //         for trigram in trigrams {
+                        //             if trigram.word0 == word0 && trigram.word1 == word1 && trigram.word2 == word2 {
+                        //                 count += trigram.count.min(255) as u8;
+                        //             }
+                        //         }
+                        //         // record.serialize_u8(count);
+                        //         record.serialize_onehot(count, 4);
+                        //     }
+                        // }
+                        // {
+                        //     let trigrams_vec: [Vec<RecordTrigram>; 2] = [
+                        //         center_column_top.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //         center_column_bottom.trigram_y().unwrap_or_else(|_| Vec::new()),
+                        //     ];
+                        //     let word0: u8 = area3x3.get(1, 0).unwrap_or(255);
+                        //     let word1: u8 = center;
+                        //     let word2: u8 = area3x3.get(1, 2).unwrap_or(255);
+                        //     for trigrams in &trigrams_vec {
+                        //         let mut count: u8 = 0;
+                        //         for trigram in trigrams {
+                        //             if trigram.word0 == word0 && trigram.word1 == word1 && trigram.word2 == word2 {
+                        //                 count += trigram.count.min(255) as u8;
+                        //             }
+                        //         }
+                        //         // record.serialize_u8(count);
+                        //         record.serialize_onehot(count, 4);
+                        //     }
+                        // }
+                    }
 
                     if enable_distance {
                         let max_distance: u8 = 3;
@@ -3209,6 +3341,18 @@ impl SolveLogisticRegression {
                         record.serialize_u8(x);
                         record.serialize_u8(y);
                     }
+                    // record.serialize_u8(x + 2);
+                    // record.serialize_u8(y + 2);
+                    // record.serialize_u8(255 - x);
+                    // record.serialize_u8(255 - y);
+                    // record.serialize_f64(((x + 2) as f64) * ((x + 2) as f64));
+                    // record.serialize_f64(((y + 2) as f64) * ((y + 2) as f64));
+
+                    // record.serialize_f64(((y as usize) * (width as usize) + (x as usize)) as f64);
+                    // record.serialize_f64(((y as usize) + (y as usize) + (width as usize) + (height as usize)) as f64);
+                    // record.serialize_f64(((y as usize) * (y as usize) * (width as usize) * (height as usize)) as f64);
+                    // record.serialize_f64(context_input_x_reverse as f64);
+                    // record.serialize_f64(context_input_y_reverse as f64);
 
                     if enable_is_outside {
                         {
@@ -3220,6 +3364,27 @@ impl SolveLogisticRegression {
                             record.serialize_bool_onehot(is_outside);
                         }
                     }
+                    // record.serialize_bool_onehot(x >= context_input_size.width);
+                    // record.serialize_bool_onehot(y >= context_input_size.height);
+
+                    // record.serialize_u8(x_reverse);
+                    // record.serialize_u8(y_reverse);
+                    // record.serialize_u8(x_reverse + 2);
+                    // record.serialize_u8(y_reverse + 2);
+                    // record.serialize_onehot_discard_overflow(x, 30);
+                    // record.serialize_onehot_discard_overflow(y, 30);
+                    // record.serialize_onehot_discard_overflow(x_reverse, 30);
+                    // record.serialize_onehot_discard_overflow(y_reverse, 30);
+
+                    // record.serialize_bitmask_as_onehot(Self::binary_to_grey(x) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::binary_to_grey(y) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::binary_to_grey(x_reverse) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::binary_to_grey(y_reverse) as u16, 8);
+
+                    // record.serialize_bitmask_as_onehot(Self::grey_to_binary(x) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::grey_to_binary(y) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::grey_to_binary(x_reverse) as u16, 8);
+                    // record.serialize_bitmask_as_onehot(Self::grey_to_binary(y_reverse) as u16, 8);
 
                     record.serialize_onehot_discard_overflow(x_mod2, 2);
                     record.serialize_onehot_discard_overflow(y_mod2, 2);
@@ -3508,7 +3673,7 @@ impl SolveLogisticRegression {
                     if enable_histogram_diagonal {
                         if let (Some(histogram_diagonal_a), Some(histogram_diagonal_b)) = (&histogram_diagonal_a, &histogram_diagonal_b) {
                             if enable_histogram_diagonal_a {
-                                for color in 0..COUNT_COLORS_PLUS1 {
+                                for color in 0..=9 {
                                     let mut found = false;
                                     if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
                                         if histogram.get(color) > 0 {
@@ -3517,7 +3682,7 @@ impl SolveLogisticRegression {
                                     }
                                     record.serialize_bool_onehot(found);
                                 }
-                                for color in 0..COUNT_COLORS_PLUS1 {
+                                for color in 0..=9 {
                                     let mut found = false;
                                     if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
                                         if histogram.get(color) > 0 {
@@ -3529,7 +3694,7 @@ impl SolveLogisticRegression {
                             }
 
                             if enable_histogram_diagonal_b {
-                                for color in 0..COUNT_COLORS_PLUS1 {
+                                for color in 0..=9 {
                                     let mut count: u32 = 0;
                                     if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
                                         count = histogram.get(color);
@@ -3537,7 +3702,7 @@ impl SolveLogisticRegression {
                                     let limit: u32 = if color == center { 1 } else { 0 };
                                     record.serialize_bool_onehot(count > limit);
                                 }
-                                for color in 0..COUNT_COLORS_PLUS1 {
+                                for color in 0..=9 {
                                     let mut count: u32 = 0;
                                     if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
                                         count = histogram.get(color);
@@ -3573,7 +3738,7 @@ impl SolveLogisticRegression {
                             }
 
                             if enable_histogram_diagonal_d {
-                                for color in 0..COUNT_COLORS_PLUS1 {
+                                for color in 0..=9 {
                                     let mut mass : u8 = 0;
                                     if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
                                         mass = histogram.get(color).min(255) as u8;
@@ -3581,7 +3746,7 @@ impl SolveLogisticRegression {
                                     record.serialize_onehot(mass, 4);
                                     // record.serialize_u8(mass);
                                 }
-                                for color in 0..COUNT_COLORS_PLUS1 {
+                                for color in 0..=9 {
                                     let mut mass : u8 = 0;
                                     if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
                                         mass = histogram.get(color).min(255) as u8;
@@ -3601,7 +3766,7 @@ impl SolveLogisticRegression {
                                         is_min = count == histogram_diagonal_a.min_number_of_unique_colors();
                                         is_max = count == histogram_diagonal_a.max_number_of_unique_colors();
                                     }
-                                    record.serialize_onehot(count.min(255) as u8, COUNT_COLORS_PLUS1);
+                                    record.serialize_onehot(count.min(255) as u8, 10);
                                     record.serialize_bool_onehot(is_max);
                                     record.serialize_bool_onehot(is_min);
                                     record.serialize_bool_onehot(is_max == false && is_min == false);
@@ -3615,7 +3780,7 @@ impl SolveLogisticRegression {
                                         is_min = count == histogram_diagonal_b.min_number_of_unique_colors();
                                         is_max = count == histogram_diagonal_b.max_number_of_unique_colors();
                                     }
-                                    record.serialize_onehot(count.min(255) as u8, COUNT_COLORS_PLUS1);
+                                    record.serialize_onehot(count.min(255) as u8, 10);
                                     record.serialize_bool_onehot(is_max);
                                     record.serialize_bool_onehot(is_min);
                                     record.serialize_bool_onehot(is_max == false && is_min == false);
