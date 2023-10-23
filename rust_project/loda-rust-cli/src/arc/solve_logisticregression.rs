@@ -2327,6 +2327,13 @@ impl SolveLogisticRegression {
                     // let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
                     // let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
 
+                    // {
+                    //     record.serialize_bool_onehot(neighbour_up == center);
+                    //     record.serialize_bool_onehot(neighbour_down == center);
+                    //     record.serialize_bool_onehot(neighbour_left == center);
+                    //     record.serialize_bool_onehot(neighbour_right == center);
+                    // }
+
                     let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
                     let corners_center1: bool = corners_center == 1;
                     let corners_center2: bool = corners_center == 2;
@@ -3809,6 +3816,7 @@ impl SolveLogisticRegression {
                             let pixel: u8 = linespan_image.get(xx, yy).unwrap_or(255);
                             record.serialize_u8(pixel);
                             // record.serialize_onehot(pixel, 4);
+                            // record.serialize_onehot(pixel, 10);
                             // record.serialize_onehot_discard_overflow(pixel, 2);
                         }
                     } else {
@@ -3883,7 +3891,11 @@ impl SolveLogisticRegression {
                     //             shape_height = value;
                     //         }
                     //     }
-
+                    //     record.serialize_onehot_discard_overflow(shape_width, 30);
+                    //     record.serialize_onehot_discard_overflow(shape_height, 30);
+                    //     record.serialize_u8(shape_width);
+                    //     record.serialize_u8(shape_height);
+                    //
                     //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity4.iter().enumerate() {
                     //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
                     //         let mut shape_size: u8 = 0;
@@ -3913,7 +3925,7 @@ impl SolveLogisticRegression {
                     //             shape_height = value;
                     //         }
                     //     }
-
+                    //
                     //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity8.iter().enumerate() {
                     //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
                     //         let mut shape_size: u8 = 0;
@@ -4327,6 +4339,15 @@ impl SolveLogisticRegression {
                         record.serialize_onehot(pixel, 30);
                     }
 
+                    // if let Some(image) = earlier_prediction_image {
+                    //     let pixel: u8 = image.get(xx, yy).unwrap_or(255);
+                    //     let mut value: bool = false;
+                    //     if pixel < 10 {
+                    //         value = no_change_to_color[pixel as usize];
+                    //     }
+                    //     record.serialize_bool_onehot(value);
+                    // }
+
                     {
 
                         // if let Some(image) = &earlier_prediction_image {
@@ -4393,6 +4414,7 @@ impl SolveLogisticRegression {
                         //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
                         //     record.serialize_color_complex(mass, obfuscated_color_offset);
                         //     record.serialize_u8(mass);
+                        //     record.serialize_onehot_discard_overflow(mass, 5);
                         //     record.serialize_onehot_discard_overflow(mass, 40);
                         // }
 
@@ -4400,6 +4422,7 @@ impl SolveLogisticRegression {
                         //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
                         //     record.serialize_color_complex(mass, obfuscated_color_offset);
                         //     record.serialize_u8(mass);
+                        //     record.serialize_onehot_discard_overflow(mass, 5);
                         //     record.serialize_onehot_discard_overflow(mass, 40);
                         // }
 
@@ -4471,6 +4494,8 @@ impl SolveLogisticRegression {
                     //         count_plus1 = count.min(255) as u8;
                     //         contains_center_color_plus1 = hist.get(center) > 0;
                     //     }
+                    //     record.serialize_onehot(count_minus1, 4);
+                    //     record.serialize_onehot(count_plus1, 4);
                     //     record.serialize_u8(count_minus1);
                     //     record.serialize_u8(count_zero);
                     //     record.serialize_u8(count_plus1);
@@ -4500,6 +4525,8 @@ impl SolveLogisticRegression {
                     //         count_plus1 = count.min(255) as u8;
                     //         contains_center_color_plus1 = hist.get(center) > 0;
                     //     }
+                    //     record.serialize_onehot(count_minus1, 4);
+                    //     record.serialize_onehot(count_plus1, 4);
                     //     record.serialize_u8(count_minus1);
                     //     record.serialize_u8(count_zero);
                     //     record.serialize_u8(count_plus1);
