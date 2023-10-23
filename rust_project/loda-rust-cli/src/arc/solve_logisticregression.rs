@@ -830,6 +830,8 @@ impl SolveLogisticRegression {
 
         let enable_exterior_of_clusters: bool = false;
         let enable_largest_interior_rectangle_masks: bool = false;
+        let enable_relative_position_topleft_xy: bool = false;
+        let enable_relative_position_checkerboard: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1063,10 +1065,15 @@ impl SolveLogisticRegression {
                 object_id_image_connectivity8 = Image::empty();
             }
 
-            // let relative_position_images_connectivity4: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
-            // _ = relative_position_images_connectivity4;
-            // let relative_position_images_connectivity8: Vec<Image> = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
-            // _ = relative_position_images_connectivity8;
+            let relative_position_images_connectivity4: Vec<Image>;
+            let relative_position_images_connectivity8: Vec<Image>;
+            if enable_relative_position_topleft_xy || enable_relative_position_checkerboard {
+                relative_position_images_connectivity4 = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4)?;
+                relative_position_images_connectivity8 = Self::relative_position_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
+            } else {
+                relative_position_images_connectivity4 = vec!();
+                relative_position_images_connectivity8 = vec!();
+            }
 
             let shape_type_count: u8 = ShapeType::len();
             let shape_type_image_connectivity4: Image = Self::shape_type_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity4, false)?;
@@ -4588,16 +4595,38 @@ impl SolveLogisticRegression {
                         record.serialize_cluster_id(center, pixel, obfuscated_cluster_offset);
                     }
 
-                    // for relative_position_image in &relative_position_images_connectivity4 {
-                    //     let pixel: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_u8(pixel);
-                    //     // record.serialize_onehot(pixel, 30);
-                    // }
-                    // for relative_position_image in &relative_position_images_connectivity8 {
-                    //     let pixel: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
-                    //     record.serialize_u8(pixel);
-                    //     // record.serialize_onehot(pixel, 30);
-                    // }
+                    if enable_relative_position_topleft_xy {
+                        for relative_position_image in &relative_position_images_connectivity4 {
+                            let pixel: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                            record.serialize_u8(pixel);
+                            // record.serialize_onehot(pixel, 30);
+                        }
+                        for relative_position_image in &relative_position_images_connectivity8 {
+                            let pixel: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                            record.serialize_u8(pixel);
+                            // record.serialize_onehot(pixel, 30);
+                        }
+                    }
+
+                    if enable_relative_position_checkerboard {
+                        {
+                            let mut sum: u16 = 0;
+                            for relative_position_image in &relative_position_images_connectivity4 {
+                                let pixel: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                                sum += pixel as u16;
+                            }
+                            record.serialize_bool_onehot(sum % 2 == 0);
+                        }
+
+                        {
+                            let mut sum: u16 = 0;
+                            for relative_position_image in &relative_position_images_connectivity8 {
+                                let pixel: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                                sum += pixel as u16;
+                            }
+                            record.serialize_bool_onehot(sum % 2 == 0);
+                        }
+                    }
 
                     // Relative position inside shape value between -0.5 and +0.5
                     // {
