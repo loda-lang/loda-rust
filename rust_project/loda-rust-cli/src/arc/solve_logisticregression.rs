@@ -3456,10 +3456,6 @@ impl SolveLogisticRegression {
                     if enable_output_orientation {
                         record.serialize_ternary(output_orientation);
                     }
-                    // record.serialize_u8(distance_top);
-                    // record.serialize_u8(distance_bottom);
-                    // record.serialize_u8(distance_left);
-                    // record.serialize_u8(distance_right);
                     record.serialize_bool_onehot(input_is_noise_color);
                     record.serialize_bool_onehot(input_is_most_popular_color);
                     // record.serialize_bool(input_is_removal_color == 1);
