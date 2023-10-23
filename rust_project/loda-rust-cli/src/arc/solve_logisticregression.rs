@@ -40,7 +40,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -828,6 +828,8 @@ impl SolveLogisticRegression {
         let enable_histogram_columns_rows_get_color: bool = true;
         let enable_histogram_columns_rows_lookaround: bool = false;
 
+        let enable_exterior_of_clusters: bool = false;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -1227,17 +1229,19 @@ impl SolveLogisticRegression {
                 }
             }
 
-            // let mut exterior_of_clusters = HashMap::<(u8, PixelConnectivity), Image>::new();
-            // for ((color, connectivity), mask) in &enumerated_clusters_grow_mask1 {
-            // // for ((color, connectivity), mask) in &enumerated_clusters {
-            // // for ((color, connectivity), mask) in &enumerated_clusters_filled_holes_mask {
-            //     match mask.mask_exterior_corners() {
-            //         Ok(image) => {
-            //             exterior_of_clusters.insert((*color, *connectivity), image);
-            //         },
-            //         Err(_) => {},
-            //     }
-            // }
+            let mut exterior_of_clusters = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if enable_exterior_of_clusters {
+                for ((color, connectivity), mask) in &enumerated_clusters_grow_mask1 {
+                // for ((color, connectivity), mask) in &enumerated_clusters {
+                // for ((color, connectivity), mask) in &enumerated_clusters_filled_holes_mask {
+                    match mask.mask_exterior_corners() {
+                        Ok(image) => {
+                            exterior_of_clusters.insert((*color, *connectivity), image);
+                        },
+                        Err(_) => {},
+                    }
+                }
+            }
 
             let mut color_grow_mask1 = HashMap::<(u8, PixelConnectivity), Image>::new();
             if enable_color_grow_mask1 {
@@ -4086,18 +4090,22 @@ impl SolveLogisticRegression {
                                 record.serialize_bool(mask_value > 0);
                             }
                         }
-                        // for connectivity in &connectivity_vec {
-                        //     for color in 0..=9 {
-                        //         let corner_value: u8 = match exterior_of_clusters.get(&(color, *connectivity)) {
-                        //             Some(value) => {
-                        //                 value.get(xx, yy).unwrap_or(255)
-                        //             }
-                        //             None => 255
-                        //         };
-                        //         record.serialize_bool_onehot(corner_value > 0);
-                        //         // record.serialize_onehot_discard_overflow(corner_value, 7);
-                        //     }
-                        // }
+
+                        if enable_exterior_of_clusters {
+                            for connectivity in &connectivity_vec {
+                                for color in 0..=9 {
+                                    let corner_value: u8 = match exterior_of_clusters.get(&(color, *connectivity)) {
+                                        Some(value) => {
+                                            value.get(xx, yy).unwrap_or(255)
+                                        }
+                                        None => 255
+                                    };
+                                    record.serialize_bool_onehot(corner_value > 0);
+                                    // record.serialize_onehot_discard_overflow(corner_value, 7);
+                                }
+                            }
+                        }
+
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 let mask_value: u8 = match enumerated_clusters_grow_mask1.get(&(color, *connectivity)) {
