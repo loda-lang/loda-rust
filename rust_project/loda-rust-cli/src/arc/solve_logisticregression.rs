@@ -795,6 +795,7 @@ impl SolveLogisticRegression {
         let enable_no_change_to_center_color: bool = false;
         let enable_no_change_to_noise_color: bool = false;
         let enable_object_center_same_as_neighbour: bool = false;
+        let enable_edge: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -2695,6 +2696,15 @@ impl SolveLogisticRegression {
                         record.serialize_u8(distance_right);    
                     }
 
+                    if enable_edge {
+                        let is_edge: bool = x == 0 || y == 0 || x_reverse == 0 || y_reverse == 0;
+                        record.serialize_bool_onehot(is_edge);
+                        record.serialize_bool_onehot(x == 0);
+                        record.serialize_bool_onehot(y == 0);
+                        record.serialize_bool_onehot(x_reverse == 0);
+                        record.serialize_bool_onehot(y_reverse == 0);
+                    }
+                    
                     let input_is_noise_color: bool = noise_color == Some(center);
                     // let input_is_removal_color: u8 = if removal_color == Some(center) { 1 } else { 0 };
 
@@ -4276,7 +4286,9 @@ impl SolveLogisticRegression {
                                     None => 255
                                 };
                                 // record.serialize_u8(distance);
+                                // record.serialize_bool(distance == 0);
                                 // record.serialize_onehot(distance, 20);
+                                // record.serialize_onehot(distance, 4);
                             }
                         }
                         for connectivity in &connectivity_vec {
