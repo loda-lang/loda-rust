@@ -794,6 +794,7 @@ impl SolveLogisticRegression {
         let enable_no_change_to_color: bool = true;
         let enable_no_change_to_center_color: bool = false;
         let enable_no_change_to_noise_color: bool = false;
+        let enable_object_center_same_as_neighbour: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -2452,11 +2453,21 @@ impl SolveLogisticRegression {
                     // let center_denoise_type1_border: u8 = input_denoise_type1_border.get(xx, yy).unwrap_or(255);
 
                     let object_center: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
-                    // let object_top: u8 = enumerated_objects.get(xx, yy - 1).unwrap_or(255);
-                    // let object_bottom: u8 = enumerated_objects.get(xx, yy + 1).unwrap_or(255);
-                    // let object_left: u8 = enumerated_objects.get(xx - 1, yy).unwrap_or(255);
-                    // let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
-                    // let enumerated_object: u8 = enumerated_objects.get(xx, yy).unwrap_or(255);
+                    {
+                        // record.serialize_complex(object_center as u16, 20);
+                        // record.serialize_u8(object_center);
+                    }
+
+                    let object_top: u8 = enumerated_objects.get(xx, yy - 1).unwrap_or(255);
+                    let object_bottom: u8 = enumerated_objects.get(xx, yy + 1).unwrap_or(255);
+                    let object_left: u8 = enumerated_objects.get(xx - 1, yy).unwrap_or(255);
+                    let object_right: u8 = enumerated_objects.get(xx + 1, yy).unwrap_or(255);
+                    if enable_object_center_same_as_neighbour {
+                        record.serialize_bool(object_top == object_center);
+                        record.serialize_bool(object_bottom == object_center);
+                        record.serialize_bool(object_left == object_center);
+                        record.serialize_bool(object_right == object_center);
+                    }
 
                     if enable_grid {
                         let grid_mask_center: u8 = grid_mask.get(xx, yy).unwrap_or(0);
@@ -5377,7 +5388,6 @@ impl SolveLogisticRegression {
                     // record.serialize_u8(corner_bottom_left);
                     // record.serialize_u8(corner_bottom_right);
                     // record.serialize_bool(inside_bounding_box);
-                    // record.serialize_complex(object_center, 20);
 
                     records.push(record);
                 }
