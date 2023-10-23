@@ -750,6 +750,14 @@ impl SolveLogisticRegression {
         let enable_distance: bool = !has_different_size_for_input_output;
         let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
 
+        let enable_histogram_diagonal_a: bool = false;
+        let enable_histogram_diagonal_b: bool = false;
+        let enable_histogram_diagonal_c: bool = false;
+        let enable_histogram_diagonal_d: bool = false;
+        let enable_histogram_diagonal_e: bool = false;
+        let enable_histogram_diagonal_f: bool = false;
+        let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
+
         let enable_center_indicator_a: bool = false;
         let enable_center_indicator_x: bool = false;
         let enable_center_indicator_y: bool = false;
@@ -757,6 +765,9 @@ impl SolveLogisticRegression {
 
         let enable_gravity: bool = false;
 
+        let enable_hole_type1: bool = true;
+        let enable_color_repair: bool = true;
+        
         let enable_shape_transformation_images: bool = false;
         let enable_noisecolor_in_outline: bool = true;
         let enable_grid: bool = true;
@@ -1051,8 +1062,15 @@ impl SolveLogisticRegression {
                 }
             }
 
-            // let histogram_diagonal_a: DiagonalHistogram = DiagonalHistogram::diagonal_a(&input)?;
-            // let histogram_diagonal_b: DiagonalHistogram = DiagonalHistogram::diagonal_b(&input)?;
+            let histogram_diagonal_a: Option<DiagonalHistogram>;
+            let histogram_diagonal_b: Option<DiagonalHistogram>;
+            if enable_histogram_diagonal {
+                histogram_diagonal_a = Some(DiagonalHistogram::diagonal_a(&input)?);
+                histogram_diagonal_b = Some(DiagonalHistogram::diagonal_b(&input)?);
+            } else {
+                histogram_diagonal_a = None;
+                histogram_diagonal_b = None;
+            }
 
             let histogram_columns: Vec<Histogram> = input.histogram_columns();
             let histogram_rows: Vec<Histogram> = input.histogram_rows();
@@ -3487,82 +3505,188 @@ impl SolveLogisticRegression {
                         // }
                     }
 
-                    // {
-                    //     for color in 0..=9u8 {
-                    //         let mut found = false;
-                    //         if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
-                    //             if histogram.get(color) > 0 {
-                    //                 found = true;
-                    //             }
-                    //         }
-                    //         record.serialize_bool_onehot(found);
-                    //     }
-                    // }
+                    if enable_histogram_diagonal {
+                        if let (Some(histogram_diagonal_a), Some(histogram_diagonal_b)) = (&histogram_diagonal_a, &histogram_diagonal_b) {
+                            if enable_histogram_diagonal_a {
+                                for color in 0..COUNT_COLORS_PLUS1 {
+                                    let mut found = false;
+                                    if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                                        if histogram.get(color) > 0 {
+                                            found = true;
+                                        }
+                                    }
+                                    record.serialize_bool_onehot(found);
+                                }
+                                for color in 0..COUNT_COLORS_PLUS1 {
+                                    let mut found = false;
+                                    if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                                        if histogram.get(color) > 0 {
+                                            found = true;
+                                        }
+                                    }
+                                    record.serialize_bool_onehot(found);
+                                }
+                            }
 
-                    // {
-                    //     for color in 0..=9u8 {
-                    //         let mut found = false;
-                    //         if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
-                    //             if histogram.get(color) > 0 {
-                    //                 found = true;
-                    //             }
-                    //         }
-                    //         record.serialize_bool_onehot(found);
-                    //     }
-                    // }
+                            if enable_histogram_diagonal_b {
+                                for color in 0..COUNT_COLORS_PLUS1 {
+                                    let mut count: u32 = 0;
+                                    if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                                        count = histogram.get(color);
+                                    }
+                                    let limit: u32 = if color == center { 1 } else { 0 };
+                                    record.serialize_bool_onehot(count > limit);
+                                }
+                                for color in 0..COUNT_COLORS_PLUS1 {
+                                    let mut count: u32 = 0;
+                                    if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                                        count = histogram.get(color);
+                                    }
+                                    let limit: u32 = if color == center { 1 } else { 0 };
+                                    record.serialize_bool_onehot(count > limit);
+                                }
+                            }
 
-                    {
-                        // let mut count: u8 = 0;
-                        // if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
-                        //     count = histogram.number_of_counters_greater_than_zero().min(255) as u8;
-                        // }
-                        // record.serialize_onehot(count + 1, 4);
-                        // record.serialize_onehot(count, 20);
-                        // record.serialize_u8(count);
-                        // record.serialize_bool_onehot(count > 1);
+                            if enable_histogram_diagonal_c {
+                                {
+                                    let mut count: u8 = 0;
+                                    if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                                        count = histogram.number_of_counters_greater_than_zero().min(255) as u8;
+                                    }
+                                    // record.serialize_f64(1.0 / (count as f64 + 1.0));
+                                    record.serialize_onehot(count + 1, 4);
+                                    // record.serialize_onehot(count, 20);
+                                    // record.serialize_u8(count);
+                                    // record.serialize_bool_onehot(count > 1);
+                                }
+                                {
+                                    let mut count: u8 = 0;
+                                    if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                                        count = histogram.number_of_counters_greater_than_zero().min(255) as u8;
+                                    }
+                                    // record.serialize_f64(1.0 / (count as f64 + 1.0));
+                                    record.serialize_onehot(count + 1, 4);
+                                    // record.serialize_onehot(count, 20);
+                                    // record.serialize_u8(count);
+                                    // record.serialize_bool_onehot(count > 1);
+                                }
+                            }
+
+                            if enable_histogram_diagonal_d {
+                                for color in 0..COUNT_COLORS_PLUS1 {
+                                    let mut mass : u8 = 0;
+                                    if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                                        mass = histogram.get(color).min(255) as u8;
+                                    }
+                                    record.serialize_onehot(mass, 4);
+                                    // record.serialize_u8(mass);
+                                }
+                                for color in 0..COUNT_COLORS_PLUS1 {
+                                    let mut mass : u8 = 0;
+                                    if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                                        mass = histogram.get(color).min(255) as u8;
+                                    }
+                                    record.serialize_onehot(mass, 4);
+                                    // record.serialize_u8(mass);
+                                }
+                            }
+
+                            if enable_histogram_diagonal_e {
+                                {
+                                    let mut is_min = false;
+                                    let mut is_max = false;
+                                    let mut count: u16 = 0;
+                                    if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                                        count = histogram.number_of_counters_greater_than_zero();
+                                        is_min = count == histogram_diagonal_a.min_number_of_unique_colors();
+                                        is_max = count == histogram_diagonal_a.max_number_of_unique_colors();
+                                    }
+                                    record.serialize_onehot(count.min(255) as u8, COUNT_COLORS_PLUS1);
+                                    record.serialize_bool_onehot(is_max);
+                                    record.serialize_bool_onehot(is_min);
+                                    record.serialize_bool_onehot(is_max == false && is_min == false);
+                                }
+                                {
+                                    let mut is_min = false;
+                                    let mut is_max = false;
+                                    let mut count: u16 = 0;
+                                    if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                                        count = histogram.number_of_counters_greater_than_zero();
+                                        is_min = count == histogram_diagonal_b.min_number_of_unique_colors();
+                                        is_max = count == histogram_diagonal_b.max_number_of_unique_colors();
+                                    }
+                                    record.serialize_onehot(count.min(255) as u8, COUNT_COLORS_PLUS1);
+                                    record.serialize_bool_onehot(is_max);
+                                    record.serialize_bool_onehot(is_min);
+                                    record.serialize_bool_onehot(is_max == false && is_min == false);
+                                }
+                            }
+
+                            if enable_histogram_diagonal_f {
+                                {
+                                    // let mut mass: u8 = 0;
+                                    let mut is_most_popular: bool = false;
+                                    let mut is_least_popular: bool = false;
+                                    if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
+                                        // mass = histogram.get(center).min(255) as u8;
+                                        if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
+                                            if color == center {
+                                                is_most_popular = true;
+                                            }
+                                        }
+                                        if let Some(color) = histogram.least_popular_color_disallow_ambiguous() {
+                                            if color == center {
+                                                is_least_popular = true;
+                                            }
+                                        }
+                                    }
+                                    // record.serialize_onehot(mass, 4);
+                                    record.serialize_bool_onehot(is_most_popular);
+                                    record.serialize_bool_onehot(is_least_popular);
+                                }
+                                {
+                                    // let mut mass: u8 = 0;
+                                    let mut is_most_popular: bool = false;
+                                    let mut is_least_popular: bool = false;
+                                    if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
+                                        // mass = histogram.get(center).min(255) as u8;
+                                        if let Some(color) = histogram.most_popular_color_disallow_ambiguous() {
+                                            if color == center {
+                                                is_most_popular = true;
+                                            }
+                                        }
+                                        if let Some(color) = histogram.least_popular_color_disallow_ambiguous() {
+                                            if color == center {
+                                                is_least_popular = true;
+                                            }
+                                        }
+                                    }
+                                    // record.serialize_onehot(mass, 4);
+                                    record.serialize_bool_onehot(is_most_popular);
+                                    record.serialize_bool_onehot(is_least_popular);
+                                }
+                            }
+
+                        }
                     }
 
-                    {
-                        // let mut count: u8 = 0;
-                        // if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
-                        //     count = histogram.number_of_counters_greater_than_zero().min(255) as u8;
-                        // }
-                        // record.serialize_onehot(count + 1, 4);
-                        // record.serialize_onehot(count, 20);
-                        // record.serialize_u8(count);
-                        // record.serialize_bool_onehot(count > 1);
-                    }
-                    
-                    // {
-                    //     for color in 0..=9u8 {
-                    //         let mut mass : u8 = 0;
-                    //         if let Some(histogram) = histogram_diagonal_a.get(x as i32, y as i32) {
-                    //             mass = histogram.get(color).min(255) as u8;
-                    //         }
-                    //         record.serialize_onehot(mass, 4);
-                    //         // record.serialize_u8(mass);
-                    //     }
-                    //     for color in 0..=9u8 {
-                    //         let mut mass : u8 = 0;
-                    //         if let Some(histogram) = histogram_diagonal_b.get(x as i32, y as i32) {
-                    //             mass = histogram.get(color).min(255) as u8;
-                    //         }
-                    //         record.serialize_onehot(mass, 4);
-                    //         // record.serialize_u8(mass);
-                    //     }
-                    // }
 
-                    let mut color_hole_type1: u8 = 255;
-                    if let Some(image) = color_to_hole_type1.get(&center) {
-                        color_hole_type1 = image.get(xx, yy).unwrap_or(0);
+                    if enable_hole_type1 {
+                        let mut color_hole_type1: u8 = 255;
+                        if let Some(image) = color_to_hole_type1.get(&center) {
+                            color_hole_type1 = image.get(xx, yy).unwrap_or(0);
+                        }
+                        record.serialize_color_complex(color_hole_type1, obfuscated_color_offset);
                     }
-                    record.serialize_color_complex(color_hole_type1, obfuscated_color_offset);
 
-                    let mut color_repair: u8 = 255;
-                    if let Some(image) = color_to_repair.get(&center) {
-                        color_repair = image.get(xx, yy).unwrap_or(0);
+                    if enable_color_repair {
+                        let mut color_repair: u8 = 255;
+                        if let Some(image) = color_to_repair.get(&center) {
+                            color_repair = image.get(xx, yy).unwrap_or(0);
+                        }
+                        record.serialize_color_complex(color_repair, obfuscated_color_offset);
+                        // record.serialize_onehot(color_repair, 10);
                     }
-                    record.serialize_color_complex(color_repair, obfuscated_color_offset);
 
                     // for color in 0..=9u8 {
                     //     let mut color_repair: u8 = 255;
