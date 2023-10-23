@@ -761,6 +761,8 @@ impl SolveLogisticRegression {
 
         let enable_output_orientation: bool = has_different_size_for_input_output;
         let enable_coordinates_xy: bool = false;
+        let enable_coordinates_xy_reverse_input: bool = false;
+        let enable_coordinates_xy_reverse_output: bool = false;
         let enable_is_outside: bool = has_different_size_for_input_output;
         let enable_distance: bool = !has_different_size_for_input_output;
         let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
@@ -3482,6 +3484,14 @@ impl SolveLogisticRegression {
                         record.serialize_u8(x);
                         record.serialize_u8(y);
                     }
+                    if enable_coordinates_xy_reverse_input {
+                        record.serialize_f64(context_input_x_reverse as f64);
+                        record.serialize_f64(context_input_y_reverse as f64);
+                    }
+                    if enable_coordinates_xy_reverse_output {
+                        record.serialize_f64(context_output_x_reverse as f64);
+                        record.serialize_f64(context_output_y_reverse as f64);
+                    }
                     // record.serialize_u8(x + 2);
                     // record.serialize_u8(y + 2);
                     // record.serialize_u8(255 - x);
@@ -3492,8 +3502,6 @@ impl SolveLogisticRegression {
                     // record.serialize_f64(((y as usize) * (width as usize) + (x as usize)) as f64);
                     // record.serialize_f64(((y as usize) + (y as usize) + (width as usize) + (height as usize)) as f64);
                     // record.serialize_f64(((y as usize) * (y as usize) * (width as usize) * (height as usize)) as f64);
-                    // record.serialize_f64(context_input_x_reverse as f64);
-                    // record.serialize_f64(context_input_y_reverse as f64);
 
                     if enable_is_outside {
                         {
