@@ -812,7 +812,7 @@ impl SolveLogisticRegression {
 
         let enable_trigram_count_center: bool = false;
         let enable_trigram_count_word1_center: bool = false;
-        let enable_trigram_count: bool = enable_trigram_count_center || enable_trigram_count_word1_center;
+        let enable_trigram_count_word012_center: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -2590,7 +2590,7 @@ impl SolveLogisticRegression {
                         Err(_) => Image::empty()
                     };
 
-                    if enable_trigram_count {
+                    if enable_trigram_count_center || enable_trigram_count_word1_center {
                         let trigrams_vec: [Vec<RecordTrigram>; 4] = [
                             center_column_top.trigram_y().unwrap_or_else(|_| Vec::new()),
                             center_column_bottom.trigram_y().unwrap_or_else(|_| Vec::new()),
@@ -2627,45 +2627,45 @@ impl SolveLogisticRegression {
                         }
                     }
 
-                    {
-                        // {
-                        //     let trigrams_vec: [Vec<RecordTrigram>; 2] = [
-                        //         center_row_left.trigram_x().unwrap_or_else(|_| Vec::new()),
-                        //         center_row_right.trigram_x().unwrap_or_else(|_| Vec::new()),
-                        //     ];
-                        //     let word0: u8 = area3x3.get(0, 1).unwrap_or(255);
-                        //     let word1: u8 = center;
-                        //     let word2: u8 = area3x3.get(2, 1).unwrap_or(255);
-                        //     for trigrams in &trigrams_vec {
-                        //         let mut count: u8 = 0;
-                        //         for trigram in trigrams {
-                        //             if trigram.word0 == word0 && trigram.word1 == word1 && trigram.word2 == word2 {
-                        //                 count += trigram.count.min(255) as u8;
-                        //             }
-                        //         }
-                        //         // record.serialize_u8(count);
-                        //         record.serialize_onehot(count, 4);
-                        //     }
-                        // }
-                        // {
-                        //     let trigrams_vec: [Vec<RecordTrigram>; 2] = [
-                        //         center_column_top.trigram_y().unwrap_or_else(|_| Vec::new()),
-                        //         center_column_bottom.trigram_y().unwrap_or_else(|_| Vec::new()),
-                        //     ];
-                        //     let word0: u8 = area3x3.get(1, 0).unwrap_or(255);
-                        //     let word1: u8 = center;
-                        //     let word2: u8 = area3x3.get(1, 2).unwrap_or(255);
-                        //     for trigrams in &trigrams_vec {
-                        //         let mut count: u8 = 0;
-                        //         for trigram in trigrams {
-                        //             if trigram.word0 == word0 && trigram.word1 == word1 && trigram.word2 == word2 {
-                        //                 count += trigram.count.min(255) as u8;
-                        //             }
-                        //         }
-                        //         // record.serialize_u8(count);
-                        //         record.serialize_onehot(count, 4);
-                        //     }
-                        // }
+                    if enable_trigram_count_word012_center {
+                        {
+                            let trigrams_vec: [Vec<RecordTrigram>; 2] = [
+                                center_row_left.trigram_x().unwrap_or_else(|_| Vec::new()),
+                                center_row_right.trigram_x().unwrap_or_else(|_| Vec::new()),
+                            ];
+                            let word0: u8 = area3x3.get(0, 1).unwrap_or(255);
+                            let word1: u8 = center;
+                            let word2: u8 = area3x3.get(2, 1).unwrap_or(255);
+                            for trigrams in &trigrams_vec {
+                                let mut count: u8 = 0;
+                                for trigram in trigrams {
+                                    if trigram.word0 == word0 && trigram.word1 == word1 && trigram.word2 == word2 {
+                                        count += trigram.count.min(255) as u8;
+                                    }
+                                }
+                                // record.serialize_u8(count);
+                                record.serialize_onehot(count, 4);
+                            }
+                        }
+                        {
+                            let trigrams_vec: [Vec<RecordTrigram>; 2] = [
+                                center_column_top.trigram_y().unwrap_or_else(|_| Vec::new()),
+                                center_column_bottom.trigram_y().unwrap_or_else(|_| Vec::new()),
+                            ];
+                            let word0: u8 = area3x3.get(1, 0).unwrap_or(255);
+                            let word1: u8 = center;
+                            let word2: u8 = area3x3.get(1, 2).unwrap_or(255);
+                            for trigrams in &trigrams_vec {
+                                let mut count: u8 = 0;
+                                for trigram in trigrams {
+                                    if trigram.word0 == word0 && trigram.word1 == word1 && trigram.word2 == word2 {
+                                        count += trigram.count.min(255) as u8;
+                                    }
+                                }
+                                // record.serialize_u8(count);
+                                record.serialize_onehot(count, 4);
+                            }
+                        }
                     }
 
                     if enable_distance {
