@@ -781,6 +781,7 @@ impl SolveLogisticRegression {
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         let enable_four_xy_pairs: bool = false;
+        let enable_three_xy_pairs: bool = false;
         let enable_gravity: bool = false;
 
         let enable_mod2: bool = true;
@@ -2263,6 +2264,39 @@ impl SolveLogisticRegression {
                             record.serialize_bool(same_cd_different_ab);
                             record.serialize_bool(same_ad_different_bc);
                             record.serialize_bool(same_bc_different_ad);
+                        }
+                    }
+
+                    if enable_three_xy_pairs {
+                        let four_xy_pairs: Vec<[i32; 6]> = vec![
+                            [-1, -1, -1, 1, 1, 0],
+                            [-1, 0, 1, -1, 1, 1],
+                            [0, -1, -1, 1, 1, 1],
+                            [0, 1, -1, -1, 1, -1],
+                            [-2, 0, 0, -1, 2, 0],
+                            [-2, 0, 0, 1, 2, 0],
+                            [0, -2, -1, 0, 0, 2],
+                            [0, -2, 1, 0, 0, 2],
+                        ];
+                        let area5x5_center_offset: i32 = 2;
+                        for xy_pair in &four_xy_pairs {
+                            let ax: i32 = xy_pair[0] + area5x5_center_offset;
+                            let ay: i32 = xy_pair[1] + area5x5_center_offset;
+                            let bx: i32 = xy_pair[2] + area5x5_center_offset;
+                            let by: i32 = xy_pair[3] + area5x5_center_offset;
+                            let cx: i32 = xy_pair[4] + area5x5_center_offset;
+                            let cy: i32 = xy_pair[5] + area5x5_center_offset;
+                            let a: u8 = area5x5.get(ax, ay).unwrap_or(255);
+                            let b: u8 = area5x5.get(bx, by).unwrap_or(255);
+                            let c: u8 = area5x5.get(cx, cy).unwrap_or(255);
+                            let all_same: bool = a == b && b == c;
+                            let all_different: bool = a != b && b != c && a != c;
+                            let same_as_center: bool = a == center && b == center && c == center;
+                            let different_than_center: bool = a != center && b != center && c != center;
+                            record.serialize_bool(all_same);
+                            record.serialize_bool(all_different);
+                            record.serialize_bool(same_as_center);
+                            record.serialize_bool(different_than_center);
                         }
                     }
 
