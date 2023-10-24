@@ -2298,32 +2298,67 @@ impl SolveLogisticRegression {
                     }
                     let center_output: u8 = area5x5_output.get(2, 2).unwrap_or(255);
 
-                    if enable_scale_widthheight && context.scale_widthheight.is_some() {
-                        let mut pixel_resized: u8 = 255;
-                        let mut pixel_repeated: u8 = 255;
-                        if let Some(image) = &resized_input_image {
-                            pixel_resized = image.get(xx, yy).unwrap_or(255);
-                        }
-                        record.serialize_onehot_discard_overflow(pixel_resized, 10);
-                        if let Some(image) = &repeated_input_image {
-                            pixel_repeated = image.get(xx, yy).unwrap_or(255);
-                        }
-                        record.serialize_onehot_discard_overflow(pixel_repeated, 10);
+                    if enable_scale_widthheight {
+                        if let Some((scale_x, scale_y)) = context.scale_widthheight {
+                            let mut pixel_resized: u8 = 255;
+                            let mut pixel_repeated: u8 = 255;
+                            if let Some(image) = &resized_input_image {
+                                pixel_resized = image.get(xx, yy).unwrap_or(255);
+                            }
+                            record.serialize_onehot_discard_overflow(pixel_resized, 10);
+                            if let Some(image) = &repeated_input_image {
+                                pixel_repeated = image.get(xx, yy).unwrap_or(255);
+                            }
+                            record.serialize_onehot_discard_overflow(pixel_repeated, 10);
 
-                        {
-                            let bits0: u16 = 1 << (pixel_resized.min(10) as u16);
-                            let bits1: u16 = 1 << (pixel_repeated.min(10) as u16);
-                            record.serialize_bitmask_as_onehot(bits0 ^ bits1, 10);
-                            record.serialize_bitmask_as_onehot(bits0 | bits1, 10);
-                            record.serialize_bitmask_as_onehot(bits0 & bits1, 10);
-                        }
+                            {
+                                let bits0: u16 = 1 << (pixel_resized.min(10) as u16);
+                                let bits1: u16 = 1 << (pixel_repeated.min(10) as u16);
+                                record.serialize_bitmask_as_onehot(bits0 ^ bits1, 10);
+                                record.serialize_bitmask_as_onehot(bits0 | bits1, 10);
+                                record.serialize_bitmask_as_onehot(bits0 & bits1, 10);
+                            }
 
-                        record.serialize_bool_onehot(pixel_resized == center);
-                        record.serialize_bool_onehot(pixel_repeated == center);
-                        record.serialize_bool_onehot(pixel_resized == center_output);
-                        record.serialize_bool_onehot(pixel_repeated == center_output);
-                        record.serialize_bool_onehot(pixel_resized == most_popular_color.unwrap_or(255));
-                        record.serialize_bool_onehot(pixel_repeated == most_popular_color.unwrap_or(255));
+                            record.serialize_bool_onehot(pixel_resized == center);
+                            record.serialize_bool_onehot(pixel_repeated == center);
+                            record.serialize_bool_onehot(pixel_resized == center_output);
+                            record.serialize_bool_onehot(pixel_repeated == center_output);
+                            record.serialize_bool_onehot(pixel_resized == most_popular_color.unwrap_or(255));
+                            record.serialize_bool_onehot(pixel_repeated == most_popular_color.unwrap_or(255));
+
+                            {
+                                let tx: u8 = x / scale_x.max(1);
+                                let ty: u8 = y / scale_y.max(1);
+                                let sum: u8 = tx + ty;
+                                record.serialize_bool_onehot(sum % 2 == 0);
+                                record.serialize_onehot_discard_overflow(tx, 4);
+                                record.serialize_onehot_discard_overflow(ty, 4);
+                            }
+                            {
+                                let tx: u8 = x % scale_x.max(1);
+                                let ty: u8 = y % scale_y.max(1);
+                                let sum: u8 = tx + ty;
+                                record.serialize_bool_onehot(sum % 2 == 0);
+                                record.serialize_onehot_discard_overflow(tx, 4);
+                                record.serialize_onehot_discard_overflow(ty, 4);
+                            }
+                            {
+                                let tx: u8 = x / context_input_size.width.max(1);
+                                let ty: u8 = y / context_input_size.height.max(1);
+                                let sum: u8 = tx + ty;
+                                record.serialize_bool_onehot(sum % 2 == 0);
+                                record.serialize_onehot_discard_overflow(tx, 4);
+                                record.serialize_onehot_discard_overflow(ty, 4);
+                            }
+                            {
+                                let tx: u8 = x % context_input_size.width.max(1);
+                                let ty: u8 = y % context_input_size.height.max(1);
+                                let sum: u8 = tx + ty;
+                                record.serialize_bool_onehot(sum % 2 == 0);
+                                record.serialize_onehot_discard_overflow(tx, 4);
+                                record.serialize_onehot_discard_overflow(ty, 4);
+                            }
+                        }
                     }
 
                     if enable_gravity {
