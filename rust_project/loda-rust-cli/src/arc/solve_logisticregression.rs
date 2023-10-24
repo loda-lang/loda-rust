@@ -6,14 +6,14 @@
 //! 
 //! However currently this approach solves none of the tasks from the hidden ARC dataset.
 //!
-//! This solves 65 of the 800 tasks in the public ARC dataset.
-//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 0d3d703e, 140c817e, 178fcbfb, 1c0d0a4b, 21f83797,
-//! 2281f1f4, 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921,
-//! 4612dd53, 50cb2852, 5289ad53, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb,
-//! 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b,
-//! a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784,
-//! c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339,
-//! e0fb7511, e7dd8335, e872b94a, e9c9d9a1, ef135b50, 
+//! This solves 67 of the 800 tasks in the public ARC dataset.
+//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 0d3d703e, 140c817e, 178fcbfb, 1c0d0a4b, 2072aba6,
+//! 21f83797, 2281f1f4, 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46,
+//! 45737921, 4612dd53, 50cb2852, 5289ad53, 543a7ed5, 5b6cbef5, 6455b5f5, 67385a82, 694f12f3, 69889d6e,
+//! 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00,
+//! a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da,
+//! bb43febb, c0f76784, c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d,
+//! dc433765, ded97339, e0fb7511, e7dd8335, e872b94a, e9c9d9a1, ef135b50,
 //! 
 //! This partially solves 6 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 239be575, 27a28665, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3, 
@@ -881,7 +881,7 @@ impl SolveLogisticRegression {
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
 
-        let enable_scale_widthheight: bool = false;
+        let enable_scale_widthheight: bool = has_different_size_for_input_output;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -2319,6 +2319,14 @@ impl SolveLogisticRegression {
                                 record.serialize_bitmask_as_onehot(bits0 & bits1, 10);
                             }
 
+                            {
+                                let value0: bool = pixel_resized == most_popular_color.unwrap_or(255);
+                                let value1: bool = pixel_repeated == most_popular_color.unwrap_or(255);
+                                record.serialize_bool_onehot(value0 ^ value1);
+                                record.serialize_bool_onehot(value0 | value1);
+                                record.serialize_bool_onehot(value0 & value1);
+                            }
+
                             record.serialize_bool_onehot(pixel_resized == center);
                             record.serialize_bool_onehot(pixel_repeated == center);
                             record.serialize_bool_onehot(pixel_resized == center_output);
@@ -2331,6 +2339,9 @@ impl SolveLogisticRegression {
                                 let ty: u8 = y / scale_y.max(1);
                                 let sum: u8 = tx + ty;
                                 record.serialize_bool_onehot(sum % 2 == 0);
+                                // record.serialize_u8(sum);
+                                // record.serialize_u8(tx);
+                                // record.serialize_u8(ty);
                                 record.serialize_onehot_discard_overflow(tx, 4);
                                 record.serialize_onehot_discard_overflow(ty, 4);
                             }
@@ -2339,6 +2350,9 @@ impl SolveLogisticRegression {
                                 let ty: u8 = y % scale_y.max(1);
                                 let sum: u8 = tx + ty;
                                 record.serialize_bool_onehot(sum % 2 == 0);
+                                // record.serialize_u8(sum);
+                                // record.serialize_u8(tx);
+                                // record.serialize_u8(ty);
                                 record.serialize_onehot_discard_overflow(tx, 4);
                                 record.serialize_onehot_discard_overflow(ty, 4);
                             }
@@ -2347,6 +2361,9 @@ impl SolveLogisticRegression {
                                 let ty: u8 = y / context_input_size.height.max(1);
                                 let sum: u8 = tx + ty;
                                 record.serialize_bool_onehot(sum % 2 == 0);
+                                // record.serialize_u8(sum);
+                                // record.serialize_u8(tx);
+                                // record.serialize_u8(ty);
                                 record.serialize_onehot_discard_overflow(tx, 4);
                                 record.serialize_onehot_discard_overflow(ty, 4);
                             }
@@ -2355,6 +2372,9 @@ impl SolveLogisticRegression {
                                 let ty: u8 = y % context_input_size.height.max(1);
                                 let sum: u8 = tx + ty;
                                 record.serialize_bool_onehot(sum % 2 == 0);
+                                // record.serialize_u8(sum);
+                                // record.serialize_u8(tx);
+                                // record.serialize_u8(ty);
                                 record.serialize_onehot_discard_overflow(tx, 4);
                                 record.serialize_onehot_discard_overflow(ty, 4);
                             }
