@@ -780,8 +780,10 @@ impl SolveLogisticRegression {
         let enable_center_indicator_y: bool = false;
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
-        let enable_four_xy_pairs: bool = false;
-        let enable_three_xy_pairs: bool = false;
+        let enable_input_four_xy_pairs: bool = false;
+        let enable_output_four_xy_pairs: bool = false;
+        let enable_input_three_xy_pairs: bool = false;
+        let enable_output_three_xy_pairs: bool = false;
         let enable_gravity: bool = false;
 
         let enable_mod2: bool = true;
@@ -2217,6 +2219,13 @@ impl SolveLogisticRegression {
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
 
+                    let area5x5_output: Image;
+                    if let Some(image) = &earlier_prediction_image {
+                        area5x5_output = image.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
+                    } else {
+                        area5x5_output = Image::empty();
+                    }
+
                     if enable_gravity {
                         let images = [&gravity_up, &gravity_down, &gravity_left, &gravity_right];
                         for image in images {
@@ -2225,7 +2234,7 @@ impl SolveLogisticRegression {
                         }
                     }
 
-                    if enable_four_xy_pairs {
+                    if enable_input_four_xy_pairs {
                         let four_xy_pairs: Vec<[i32; 8]> = vec![
                             [0, -2, 0, -1, 0, 1, 0, 2],
                             [-2, 0, -1, 0, 1, 0, 2, 0],
@@ -2267,7 +2276,49 @@ impl SolveLogisticRegression {
                         }
                     }
 
-                    if enable_three_xy_pairs {
+                    if enable_output_four_xy_pairs {
+                        let four_xy_pairs: Vec<[i32; 8]> = vec![
+                            [0, -2, 0, -1, 0, 1, 0, 2],
+                            [-2, 0, -1, 0, 1, 0, 2, 0],
+                            [-2, -2, -1, -1, 1, 1, 2, 2],
+                            [-2, 2, -1, 1, 1, -1, 2, -2],
+                            [-1, -2, 2, -1, 1, 2, -2, 1],
+                            [-2, -1, -1, 2, 2, 1, 1, -2],
+                            [-2, -1, -1, -2, 2, 1, 1, 2],
+                            [-2, -1, 1, 2, 2, 1, -1, -2],
+                        ];
+                        let area5x5_center_offset: i32 = 2;
+                        for xy_pair in &four_xy_pairs {
+                            let ax: i32 = xy_pair[0] + area5x5_center_offset;
+                            let ay: i32 = xy_pair[1] + area5x5_center_offset;
+                            let bx: i32 = xy_pair[2] + area5x5_center_offset;
+                            let by: i32 = xy_pair[3] + area5x5_center_offset;
+                            let cx: i32 = xy_pair[4] + area5x5_center_offset;
+                            let cy: i32 = xy_pair[5] + area5x5_center_offset;
+                            let dx: i32 = xy_pair[6] + area5x5_center_offset;
+                            let dy: i32 = xy_pair[7] + area5x5_center_offset;
+                            let a: u8 = area5x5_output.get(ax, ay).unwrap_or(255);
+                            let b: u8 = area5x5_output.get(bx, by).unwrap_or(255);
+                            let c: u8 = area5x5_output.get(cx, cy).unwrap_or(255);
+                            let d: u8 = area5x5_output.get(dx, dy).unwrap_or(255);
+                            let all_same: bool = a == b && b == c && c == d;
+                            let all_different: bool = a != b && b != c && c != d && a != c && a != d && b != d;
+                            let same_reversed: bool = a == d && b == c;
+                            let same_ab_different_cd: bool = a == b && c != d;
+                            let same_cd_different_ab: bool = a != b && c == d;
+                            let same_ad_different_bc: bool = a == d && b != c;
+                            let same_bc_different_ad: bool = a != d && b == c;
+                            record.serialize_bool(all_same);
+                            record.serialize_bool(all_different);
+                            record.serialize_bool(same_reversed);
+                            record.serialize_bool(same_ab_different_cd);
+                            record.serialize_bool(same_cd_different_ab);
+                            record.serialize_bool(same_ad_different_bc);
+                            record.serialize_bool(same_bc_different_ad);
+                        }
+                    }
+
+                    if enable_input_three_xy_pairs {
                         let four_xy_pairs: Vec<[i32; 6]> = vec![
                             [-1, -1, -1, 1, 1, 0],
                             [-1, 0, 1, -1, 1, 1],
@@ -2289,6 +2340,39 @@ impl SolveLogisticRegression {
                             let a: u8 = area5x5.get(ax, ay).unwrap_or(255);
                             let b: u8 = area5x5.get(bx, by).unwrap_or(255);
                             let c: u8 = area5x5.get(cx, cy).unwrap_or(255);
+                            let all_same: bool = a == b && b == c;
+                            let all_different: bool = a != b && b != c && a != c;
+                            let same_as_center: bool = a == center && b == center && c == center;
+                            let different_than_center: bool = a != center && b != center && c != center;
+                            record.serialize_bool(all_same);
+                            record.serialize_bool(all_different);
+                            record.serialize_bool(same_as_center);
+                            record.serialize_bool(different_than_center);
+                        }
+                    }
+
+                    if enable_output_three_xy_pairs {
+                        let four_xy_pairs: Vec<[i32; 6]> = vec![
+                            [-1, -1, -1, 1, 1, 0],
+                            [-1, 0, 1, -1, 1, 1],
+                            [0, -1, -1, 1, 1, 1],
+                            [0, 1, -1, -1, 1, -1],
+                            [-2, 0, 0, -1, 2, 0],
+                            [-2, 0, 0, 1, 2, 0],
+                            [0, -2, -1, 0, 0, 2],
+                            [0, -2, 1, 0, 0, 2],
+                        ];
+                        let area5x5_center_offset: i32 = 2;
+                        for xy_pair in &four_xy_pairs {
+                            let ax: i32 = xy_pair[0] + area5x5_center_offset;
+                            let ay: i32 = xy_pair[1] + area5x5_center_offset;
+                            let bx: i32 = xy_pair[2] + area5x5_center_offset;
+                            let by: i32 = xy_pair[3] + area5x5_center_offset;
+                            let cx: i32 = xy_pair[4] + area5x5_center_offset;
+                            let cy: i32 = xy_pair[5] + area5x5_center_offset;
+                            let a: u8 = area5x5_output.get(ax, ay).unwrap_or(255);
+                            let b: u8 = area5x5_output.get(bx, by).unwrap_or(255);
+                            let c: u8 = area5x5_output.get(cx, cy).unwrap_or(255);
                             let all_same: bool = a == b && b == c;
                             let all_different: bool = a != b && b != c && a != c;
                             let same_as_center: bool = a == center && b == center && c == center;
