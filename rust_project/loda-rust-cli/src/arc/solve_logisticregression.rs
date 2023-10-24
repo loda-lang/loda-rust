@@ -40,7 +40,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -238,6 +238,7 @@ pub struct ProcessTaskContext {
     mode: ProcessTaskMode,
     input_size_vec: Vec<ImageSize>,
     output_size_vec: Vec<ImageSize>,
+    scale_widthheight: Option<(u8, u8)>,
 }
 
 impl ProcessTaskContext {
@@ -251,9 +252,11 @@ impl ProcessTaskContext {
             mode,
             input_size_vec: Vec::<ImageSize>::new(),
             output_size_vec: Vec::<ImageSize>::new(),
+            scale_widthheight: None,
         };
         instance.populate_input_size_vec(task);
         instance.populate_output_size_vec(task);
+        instance.populate_scale_factor(task);
         instance
     }
 
@@ -279,6 +282,47 @@ impl ProcessTaskContext {
                         the_size = size;
                     }
                     self.output_size_vec.push(the_size);
+                }
+            }
+        }
+    }
+
+    fn populate_scale_factor(&mut self, task: &Task) {
+        let mut scale_width_factor: Option<u8> = None;
+        let mut scale_height_factor: Option<u8> = None;
+        for action_label in &task.action_label_set_intersection {
+            match action_label {
+                ActionLabel::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
+                    match (output, input) {
+                        (PropertyOutput::OutputWidth, ImageProperty::Width) => {
+                            scale_width_factor = Some(*scale);
+                        },
+                        (PropertyOutput::OutputHeight, ImageProperty::Height) => {
+                            scale_height_factor = Some(*scale);
+                        },
+                        _ => {}
+                    }
+                },
+                ActionLabel::OutputPropertyIsEqualToInputProperty { output, input } => {
+                    match (output, input) {
+                        (PropertyOutput::OutputWidth, ImageProperty::Width) => {
+                            scale_width_factor = Some(1);
+                        },
+                        (PropertyOutput::OutputHeight, ImageProperty::Height) => {
+                            scale_height_factor = Some(1);
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+        if let Some(scale_x) = scale_width_factor {
+            if let Some(scale_y) = scale_height_factor {
+                if scale_x > 0 && scale_y > 0 && scale_x <= 6 && scale_y <= 6 {
+                    if scale_x != 1 && scale_y != 1 {
+                        self.scale_widthheight = Some((scale_x, scale_y));
+                    }
                 }
             }
         }
@@ -837,6 +881,8 @@ impl SolveLogisticRegression {
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
 
+        let enable_scale_widthheight: bool = false;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -1014,6 +1060,31 @@ impl SolveLogisticRegression {
             let background: Image = Image::color(width, height, 10);
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
             let output: Image = background.overlay_with_position(&original_output, 0, 0)?;
+
+            let mut resized_input_image: Option<Image> = None;
+            let mut repeated_input_image: Option<Image> = None;
+            if enable_scale_widthheight {
+                if let Some((scale_width, scale_height)) = context.scale_widthheight {
+                    let cropped_input: Image = original_input.crop_outside(0, 0, context_input_size.width, context_input_size.height, 255)?;
+                    let new_width: u16 = (cropped_input.width() as u16) * (scale_width as u16);
+                    let new_height: u16 = (cropped_input.height() as u16) * (scale_height as u16);
+    
+                    if new_width <= 30 && new_height <= 30 {
+                        match cropped_input.resize(new_width as u8, new_height as u8) {
+                            Ok(image) => {
+                                resized_input_image = Some(image);
+                            },
+                            Err(_error) => {}
+                        }
+                        match cropped_input.repeat_by_count(scale_width, scale_height) {
+                            Ok(image) => {
+                                repeated_input_image = Some(image);
+                            },
+                            Err(_error) => {}
+                        }
+                    }
+                }
+            }
 
             // let mut histogram_predicted_palette = Histogram::new();
             // if all_pairs_has_predicted_palette {
@@ -2224,6 +2295,35 @@ impl SolveLogisticRegression {
                         area5x5_output = image.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     } else {
                         area5x5_output = Image::empty();
+                    }
+                    let center_output: u8 = area5x5_output.get(2, 2).unwrap_or(255);
+
+                    if enable_scale_widthheight && context.scale_widthheight.is_some() {
+                        let mut pixel_resized: u8 = 255;
+                        let mut pixel_repeated: u8 = 255;
+                        if let Some(image) = &resized_input_image {
+                            pixel_resized = image.get(xx, yy).unwrap_or(255);
+                        }
+                        record.serialize_onehot_discard_overflow(pixel_resized, 10);
+                        if let Some(image) = &repeated_input_image {
+                            pixel_repeated = image.get(xx, yy).unwrap_or(255);
+                        }
+                        record.serialize_onehot_discard_overflow(pixel_repeated, 10);
+
+                        {
+                            let bits0: u16 = 1 << (pixel_resized.min(10) as u16);
+                            let bits1: u16 = 1 << (pixel_repeated.min(10) as u16);
+                            record.serialize_bitmask_as_onehot(bits0 ^ bits1, 10);
+                            record.serialize_bitmask_as_onehot(bits0 | bits1, 10);
+                            record.serialize_bitmask_as_onehot(bits0 & bits1, 10);
+                        }
+
+                        record.serialize_bool_onehot(pixel_resized == center);
+                        record.serialize_bool_onehot(pixel_repeated == center);
+                        record.serialize_bool_onehot(pixel_resized == center_output);
+                        record.serialize_bool_onehot(pixel_repeated == center_output);
+                        record.serialize_bool_onehot(pixel_resized == most_popular_color.unwrap_or(255));
+                        record.serialize_bool_onehot(pixel_repeated == most_popular_color.unwrap_or(255));
                     }
 
                     if enable_gravity {
