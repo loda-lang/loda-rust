@@ -882,6 +882,7 @@ impl SolveLogisticRegression {
         let enable_relative_position_checkerboard: bool = false;
 
         let enable_scale_widthheight: bool = has_different_size_for_input_output;
+        let enable_check_pixel_in_histogram: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1098,10 +1099,16 @@ impl SolveLogisticRegression {
             //     }
             // }
 
+            let input_histogram: Histogram = pair.input.image_meta.histogram_all.clone();
+            let task_input_histogram_intersection: Histogram = task.input_histogram_intersection.clone();
+            let task_output_histogram_intersection: Histogram = task.output_histogram_intersection.clone();
+            let task_insert_histogram_intersection: Histogram = task.insert_histogram_intersection.clone();
+            let task_removal_histogram_intersection: Histogram = task.removal_histogram_intersection.clone();
+
             let mut largest_interior_rectangle_masks = HashMap::<u8, Image>::new();
             if enable_largest_interior_rectangle_masks {
                 for color in 0..=9u8 {
-                    if pair.input.image_meta.histogram_all.get(color) == 0 {
+                    if input_histogram.get(color) == 0 {
                         continue;
                     }
                     let mask: Image = input.to_mask_where_color_is(color);
@@ -2379,6 +2386,15 @@ impl SolveLogisticRegression {
                                 record.serialize_onehot_discard_overflow(ty, 4);
                             }
                         }
+                    }
+
+                    if enable_check_pixel_in_histogram {
+                        record.serialize_bool_onehot(input_histogram.get(center_output) > 0);
+                        record.serialize_bool_onehot(task_input_histogram_intersection.get(center_output) > 0);
+                        record.serialize_bool_onehot(task_output_histogram_intersection.get(center_output) > 0);
+                        record.serialize_bool_onehot(task_insert_histogram_intersection.get(center_output) > 0);
+                        record.serialize_bool_onehot(task_removal_histogram_intersection.get(center_output) > 0);
+                        record.serialize_bool_onehot(task_removal_histogram_intersection.get(center) > 0);
                     }
 
                     if enable_gravity {
