@@ -449,6 +449,20 @@ impl Histogram {
         }
         true
     }
+
+    /// Compare `count` of two histograms.
+    /// 
+    /// Returns `true` if both histograms contains identical counters, but ignore the `color` component.
+    /// 
+    /// Returns `false` when they are different.
+    #[allow(dead_code)]
+    pub fn is_same_count_but_ignore_color(&self, other: &Histogram) -> bool {
+        let mut counters0: [u32; 256] = self.counters.clone();
+        counters0.sort();
+        let mut counters1: [u32; 256] = other.counters.clone();
+        counters1.sort();
+        counters0 == counters1
+    }
 }
 
 #[cfg(test)]
@@ -1198,5 +1212,25 @@ mod tests {
         assert_eq!(h0.is_same_color_but_ignore_count(&h0), true);
         assert_eq!(h0.is_same_color_but_ignore_count(&h1), true);
         assert_eq!(h0.is_same_color_but_ignore_count(&h2), false);
+    }
+
+    #[test]
+    fn test_210000_is_same_color_but_ignore_count() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment_by(42, 2);
+        h0.increment_by(3, 7);
+
+        let mut h1: Histogram = h0.clone();
+        h1.increment(8);
+
+        let mut h2: Histogram = h0.clone();
+        h2.increment(9);
+
+        // Act + Assert
+        assert_eq!(h0.is_same_count_but_ignore_color(&h0), true);
+        assert_eq!(h0.is_same_count_but_ignore_color(&h1), false);
+        assert_eq!(h0.is_same_count_but_ignore_color(&h2), false);
+        assert_eq!(h1.is_same_count_but_ignore_color(&h2), true);
     }
 }

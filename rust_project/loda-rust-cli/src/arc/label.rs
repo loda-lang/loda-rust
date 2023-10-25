@@ -376,12 +376,21 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageEdge { edge: ImageEdge },
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
+    /// The input histogram is the same colors and counters as the output histogram, in a particular direction.
     HistogramSameColorsAndSameCountsForColumns,
     HistogramSameColorsAndSameCountsForRows,
+
+    /// The input histogram have the same colors (may have different counters) as the output histogram, in a particular direction.
     HistogramSameColorsIgnoringCountsForColumns,
     HistogramSameColorsIgnoringCountsForRows,
 
+    /// The input histogram have the same counters (may have different colors) as the output histogram, in a particular direction.
+    HistogramSameCountsIgnoringColorsForColumns,
+    HistogramSameCountsIgnoringColorsForRows,
+
     // Ideas for more
+    // ChangesOrderOfColumns,
+    // ChangesOrderOfRows,
     // HistogramNoChangeInDirectionDiagonalA,
     // HistogramNoChangeInDirectionDiagonalB,
     // Directionality of a pair. Is it up/down/left/right. Then the images will require the corresponding rotation applied and unapplied.

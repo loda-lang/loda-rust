@@ -309,12 +309,16 @@ impl arc_work_model::Pair {
         if histogram_columns_len == self.output.image_meta.histogram_columns.len() {
             let mut count0: usize = 0;
             let mut count1: usize = 0;
+            let mut count2: usize = 0;
             for (a, b) in self.input.image_meta.histogram_columns.iter().zip(self.output.image_meta.histogram_columns.iter()) {
                 if a.is_same_color_and_count(&b) {
                     count0 += 1;
                 }
                 if a.is_same_color_but_ignore_count(&b) {
                     count1 += 1;
+                }
+                if a.is_same_count_but_ignore_color(&b) {
+                    count2 += 1;
                 }
             }
             if count0 == histogram_columns_len {
@@ -325,6 +329,10 @@ impl arc_work_model::Pair {
             if count1 == histogram_columns_len {
                 self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForColumns);
             }
+            if count2 == histogram_columns_len {
+                // println!("task: {} same counters in histogram_columns", self.id);
+                self.action_label_set.insert(ActionLabel::HistogramSameCountsIgnoringColorsForColumns);
+            }
         }
 
         // Compare rows
@@ -332,12 +340,16 @@ impl arc_work_model::Pair {
         if histogram_rows_len == self.output.image_meta.histogram_rows.len() {
             let mut count0: usize = 0;
             let mut count1: usize = 0;
+            let mut count2: usize = 0;
             for (a, b) in self.input.image_meta.histogram_rows.iter().zip(self.output.image_meta.histogram_rows.iter()) {
                 if a.is_same_color_and_count(&b) {
                     count0 += 1;
                 }
                 if a.is_same_color_but_ignore_count(&b) {
                     count1 += 1;
+                }
+                if a.is_same_count_but_ignore_color(&b) {
+                    count2 += 1;
                 }
             }
             if count0 == histogram_rows_len {
@@ -347,6 +359,10 @@ impl arc_work_model::Pair {
             }
             if count1 == histogram_rows_len {
                 self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForRows);
+            }
+            if count2 == histogram_rows_len {
+                // println!("task: {} same counters in histogram_rows", self.id);
+                self.action_label_set.insert(ActionLabel::HistogramSameCountsIgnoringColorsForRows);
             }
         }
 
