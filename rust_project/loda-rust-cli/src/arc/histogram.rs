@@ -419,6 +419,36 @@ impl Histogram {
             self.counters[i] = self.counters[i].min(1);
         }
     }
+
+    /// Compare `color` and `count` of two histograms.
+    /// 
+    /// Returns `true` if both histograms are identical, both `colors` and `counts`.
+    /// 
+    /// Returns `false` when they are different.
+    #[allow(dead_code)]
+    pub fn is_same_color_and_count(&self, other: &Histogram) -> bool {
+        for i in 0..256 {
+            if self.counters[i] != other.counters[i] {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Compare `color` of two histograms.
+    /// 
+    /// Returns `true` if both histograms contains identical colors, but ignore the `count` component.
+    /// 
+    /// Returns `false` when they are different.
+    #[allow(dead_code)]
+    pub fn is_same_color_but_ignore_count(&self, other: &Histogram) -> bool {
+        for i in 0..256 {
+            if (self.counters[i] > 0) != (other.counters[i] > 0) {
+                return false;
+            }
+        }
+        true
+    }
 }
 
 #[cfg(test)]
@@ -1132,5 +1162,41 @@ mod tests {
         let pairs: Vec<(u32, u8)> = h.pairs_ordered_by_color();
         let expected: Vec<(u32, u8)> = vec![(1, 3), (1, 8), (1, 42)];
         assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_190000_is_same_color_and_count() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment_by(42, 2);
+        h0.increment_by(3, 7);
+        h0.increment(8);
+
+        let mut h1: Histogram = h0.clone();
+        h1.increment(8);
+
+        // Act + Assert
+        assert_eq!(h0.is_same_color_and_count(&h0), true);
+        assert_eq!(h0.is_same_color_and_count(&h1), false);
+    }
+
+    #[test]
+    fn test_200000_is_same_color_but_ignore_count() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment_by(42, 2);
+        h0.increment_by(3, 7);
+        h0.increment(8);
+
+        let mut h1: Histogram = h0.clone();
+        h1.increment(8);
+
+        let mut h2: Histogram = h0.clone();
+        h2.increment(9);
+
+        // Act + Assert
+        assert_eq!(h0.is_same_color_but_ignore_count(&h0), true);
+        assert_eq!(h0.is_same_color_but_ignore_count(&h1), true);
+        assert_eq!(h0.is_same_color_but_ignore_count(&h2), false);
     }
 }
