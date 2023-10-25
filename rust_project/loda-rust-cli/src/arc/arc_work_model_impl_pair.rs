@@ -327,7 +327,7 @@ impl arc_work_model::Pair {
                 self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForColumns);
                 
                 if self.input.image.is_same_rows_ignoring_order(&self.output.image) {
-                    println!("task: {} changes order of rows", self.id);
+                    // println!("task: {} changes order of rows", self.id);
                     self.action_label_set.insert(ActionLabel::ChangesOrderOfRows);
                 }
             }
@@ -363,7 +363,7 @@ impl arc_work_model::Pair {
                 self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForRows);
                 
                 if self.input.image.is_same_columns_ignoring_order(&self.output.image) {
-                    println!("task: {} changes order of columns", self.id);
+                    // println!("task: {} changes order of columns", self.id);
                     self.action_label_set.insert(ActionLabel::ChangesOrderOfColumns);
                 }
             }
