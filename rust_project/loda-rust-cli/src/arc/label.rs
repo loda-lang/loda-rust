@@ -226,10 +226,6 @@ pub enum ImageLabel {
     PeriodicityY { period: u8 },
 
     // Ideas for more
-    // HistogramNoChangeInDirectionX,
-    // HistogramNoChangeInDirectionY,
-    // HistogramNoChangeInDirectionDiagonalA,
-    // HistogramNoChangeInDirectionDiagonalB,
     // How many times are the pixels stretched out horizontally. Dividing by this scale does not cause dataloss.
     // ScaleX { scale: u8 },
     // How many times are the pixels stretched out vertically. Dividing by this scale does not cause dataloss.
@@ -380,7 +376,14 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageEdge { edge: ImageEdge },
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
+    HistogramSameColorsAndSameCountsForColumns,
+    HistogramSameColorsAndSameCountsForRows,
+    HistogramSameColorsIgnoringCountsForColumns,
+    HistogramSameColorsIgnoringCountsForRows,
+
     // Ideas for more
+    // HistogramNoChangeInDirectionDiagonalA,
+    // HistogramNoChangeInDirectionDiagonalB,
     // Directionality of a pair. Is it up/down/left/right. Then the images will require the corresponding rotation applied and unapplied.
     // OutputSizeIsTheSameAsSplitViewCell,    
     // Preserve image above the split view, and change the image below the separator

@@ -48,6 +48,12 @@ pub struct ImageMeta {
     /// Histogram of the pixels on the border of the image.
     pub histogram_border: Histogram,
 
+    /// Histogram for every row.
+    pub histogram_rows: Vec<Histogram>,
+
+    /// Histogram for every column.
+    pub histogram_columns: Vec<Histogram>,
+
     /// Computed values such as: is symmetric x, is symmetric y.
     pub image_label_set: ImageLabelSet,
 
