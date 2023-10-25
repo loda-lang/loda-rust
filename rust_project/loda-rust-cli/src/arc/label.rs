@@ -234,6 +234,8 @@ pub enum ImageLabel {
     // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsAreMovedByTheSameOffsetWrapAround { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsFromTheInputImagePresentExactlyOnceInTheOutputImageButWithDifferentOffsets,
+    // SecondMostPopularColor { color: u8 },
+    // SecondLeastPopularColor { color: u8 },
     // BorderMostPopularColor { color: u8 },
     // BorderLeastPopularColor { color: u8 },
     // AmbiguousEnumeratedObjects, // Does `PixelConnectivity4` and `PixelConnectivity8` yield different results
@@ -255,6 +257,7 @@ pub enum ImageLabel {
     // UniqueColors { color: Vec<u8> },
     // AspectRatio { width: u8, height: u8 },
     // ContainsOneOrMoreBoxes,
+    // ContainsASnakeLikePattern,
 }
 
 pub type ImageLabelSet = HashSet<ImageLabel>;
