@@ -1,7 +1,7 @@
 use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle, ImageProperty};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
-use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
+use super::{ImageFind, ImageSize, ImageSymmetry, Histogram, ImageRowColumnOrder};
 use std::collections::HashMap;
 
 #[allow(unused_imports)]
@@ -325,6 +325,11 @@ impl arc_work_model::Pair {
                 // println!("task: {} same histogram_columns", self.id);
                 self.action_label_set.insert(ActionLabel::HistogramSameColorsAndSameCountsForColumns);
                 self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForColumns);
+                
+                if self.input.image.is_same_rows_ignoring_order(&self.output.image) {
+                    println!("task: {} changes order of rows", self.id);
+                    self.action_label_set.insert(ActionLabel::ChangesOrderOfRows);
+                }
             }
             if count1 == histogram_columns_len {
                 self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForColumns);
@@ -356,6 +361,11 @@ impl arc_work_model::Pair {
                 // println!("task: {} same histogram_rows", self.id);
                 self.action_label_set.insert(ActionLabel::HistogramSameColorsAndSameCountsForRows);
                 self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForRows);
+                
+                if self.input.image.is_same_columns_ignoring_order(&self.output.image) {
+                    println!("task: {} changes order of columns", self.id);
+                    self.action_label_set.insert(ActionLabel::ChangesOrderOfColumns);
+                }
             }
             if count1 == histogram_rows_len {
                 self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForRows);

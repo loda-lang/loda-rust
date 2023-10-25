@@ -1245,8 +1245,8 @@ impl SolveLogisticRegression {
                 histogram_diagonal_b = None;
             }
 
-            let histogram_columns: Vec<Histogram> = input.histogram_columns();
-            let histogram_rows: Vec<Histogram> = input.histogram_rows();
+            let histogram_columns: Vec<Histogram> = pair.input.image_meta.histogram_columns.clone();
+            let histogram_rows: Vec<Histogram> = pair.input.image_meta.histogram_rows.clone();
 
             let mut image_neighbour = HashMap::<(u8, ImageNeighbourDirection), Image>::new();
             {

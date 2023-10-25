@@ -391,9 +391,13 @@ pub enum ActionLabel {
     HistogramSameCountsIgnoringColorsForColumns,
     HistogramSameCountsIgnoringColorsForRows,
 
+    /// Preserves content, but the ordering of the columns are changed.
+    ChangesOrderOfColumns,
+
+    /// Preserves content, but the ordering of the rows are changed.
+    ChangesOrderOfRows,
+
     // Ideas for more
-    // ChangesOrderOfColumns,
-    // ChangesOrderOfRows,
     // HistogramNoChangeInDirectionDiagonalA,
     // HistogramNoChangeInDirectionDiagonalB,
     // Directionality of a pair. Is it up/down/left/right. Then the images will require the corresponding rotation applied and unapplied.
