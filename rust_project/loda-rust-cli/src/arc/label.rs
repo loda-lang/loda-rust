@@ -398,6 +398,8 @@ pub enum ActionLabel {
     ChangesOrderOfRows,
 
     // Ideas for more
+    // PeriodicityXIgnoringBackgroundColor { period: u8 },
+    // PeriodicityYIgnoringBackgroundColor { period: u8 },
     // HistogramNoChangeInDirectionDiagonalA,
     // HistogramNoChangeInDirectionDiagonalB,
     // Directionality of a pair. Is it up/down/left/right. Then the images will require the corresponding rotation applied and unapplied.
