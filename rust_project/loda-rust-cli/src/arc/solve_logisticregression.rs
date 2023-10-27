@@ -1776,7 +1776,7 @@ impl SolveLogisticRegression {
                         }
                     }
                 }
-                // vertical symmetry is worsening the prediction.
+                // vertical symmetry
                 if let Some(sco) = &pair.input.image_meta.single_color_object {
                     for connectivity in &connectivity_vec {
                         for color in 0..=9 {
@@ -5799,18 +5799,6 @@ impl SolveLogisticRegression {
                     // cell distance from top/bottom/left/right
                     // cell is top/bottom/left/right/center
                     
-                    // These are worsening the predictions.
-                    // input_is_removal_color: u8,
-                    // distance_top: PixelColor,
-                    // distance_bottom: PixelColor,
-                    // distance_left: PixelColor,
-                    // distance_right: PixelColor,
-                    // y mod3: u8,
-                    // x mod3: u8,
-                    // preserve corner: u8,
-                    // x_distance_from_center: i16,
-                    // y_distance_from_center: i16,
-
                     records.push(record);
                 }
             }
