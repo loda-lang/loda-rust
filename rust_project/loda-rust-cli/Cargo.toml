@@ -1,6 +1,6 @@
 [package]
 name = "loda-rust-cli"
-version = "2023.10.22"
+version = "2023.10.23"
 authors = ["Simon Strandgaard <neoneye@gmail.com>"]
 description = "Command line interface for LODA Rust"
 repository = "https://github.com/loda-lang/loda-rust"
@@ -61,6 +61,11 @@ linfa-logistic = { version = "0.7.0", optional = true }
 linfa-preprocessing = { version = "0.7.0", optional = true }
 petgraph = { version = "0.6.3", optional = true }
 rayon = { version = "1.7", optional = true }
+
+# The indirect dependency that has a breaking update. The dependencies are like this: "cached"+"bastion"+"lasso" depends on "hashbrown" depends on "ahash".
+ahash = "0.7.4" 
+hashbrown = "0.11.2"
+lasso = "0.6.0"
 
 [dev-dependencies]
 tempfile = "3.3.0"
