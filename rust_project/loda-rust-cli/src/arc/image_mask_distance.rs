@@ -7,12 +7,16 @@ static MAX_DISTANCE: u8 = 29;
 pub trait ImageMaskDistance {
     /// Measure distance to the nearest pixels with value `1`.
     /// 
+    /// This implementation is buggy. It returns `0` when the input image is all zeros.
+    /// It's supposed to return 255 to indicate there is an infinite distance to the nearest pixel.
+    /// When the input image is all zeros, it means there is nothing to measure distance to.
+    /// 
     /// Returns an image with the same size.
-    fn mask_distance(&self, connectivity: PixelConnectivity) -> anyhow::Result<Image>;
+    fn mask_distance_zerobug(&self, connectivity: PixelConnectivity) -> anyhow::Result<Image>;
 }
 
 impl ImageMaskDistance for Image {
-    fn mask_distance(&self, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
+    fn mask_distance_zerobug(&self, connectivity: PixelConnectivity) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Ok(Image::empty());
         }
@@ -40,7 +44,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_mask_distance4() {
+    fn test_10000_mask_distance_zerobug4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0,
@@ -52,7 +56,7 @@ mod tests {
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
         // Act
-        let actual: Image = input.mask_distance(PixelConnectivity::Connectivity4).expect("image");
+        let actual: Image = input.mask_distance_zerobug(PixelConnectivity::Connectivity4).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -67,7 +71,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_mask_distance8() {
+    fn test_10001_mask_distance_zerobug8() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0,
@@ -79,7 +83,7 @@ mod tests {
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
         // Act
-        let actual: Image = input.mask_distance(PixelConnectivity::Connectivity8).expect("image");
+        let actual: Image = input.mask_distance_zerobug(PixelConnectivity::Connectivity8).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![

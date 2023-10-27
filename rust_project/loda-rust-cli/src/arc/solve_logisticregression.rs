@@ -1441,7 +1441,7 @@ impl SolveLogisticRegression {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
                     let image: Image = input.to_mask_where_color_is_different(color);
-                    let a: Image = match image.mask_distance(connectivity) {
+                    let a: Image = match image.mask_distance_zerobug(connectivity) {
                         Ok(value) => value,
                         Err(_) => continue,
                     };
@@ -1453,7 +1453,7 @@ impl SolveLogisticRegression {
                 let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in connectivity_vec {
                     let image: Image = input.to_mask_where_color_is(color);
-                    let a: Image = match image.mask_distance(connectivity) {
+                    let a: Image = match image.mask_distance_zerobug(connectivity) {
                         Ok(value) => value,
                         Err(_) => continue,
                     };
@@ -1467,7 +1467,7 @@ impl SolveLogisticRegression {
                 for connectivity in connectivity_vec {
                     // let image: Image = input.to_mask_where_color_is_different(color);
                     let image: Image = input.to_mask_where_color_is(color);
-                    let a: Image = match image.mask_distance(connectivity) {
+                    let a: Image = match image.mask_distance_zerobug(connectivity) {
                         Ok(value) => value,
                         Err(_) => continue,
                     };
@@ -1479,7 +1479,7 @@ impl SolveLogisticRegression {
             }
             let mut cluster_distance5 = HashMap::<(u8, PixelConnectivity), Image>::new();
             for ((color, connectivity), image) in &enumerated_clusters {
-                let a: Image = match image.mask_distance(*connectivity) {
+                let a: Image = match image.mask_distance_zerobug(*connectivity) {
                     Ok(value) => value,
                     Err(_) => continue,
                 };
