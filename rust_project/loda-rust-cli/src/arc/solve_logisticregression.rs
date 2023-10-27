@@ -890,6 +890,7 @@ impl SolveLogisticRegression {
         let enable_adjacent_neighbour_same_as_center: bool = false;
         let enable_opposite_neighbour: bool = false;
         let enable_removal_color_center: bool = false;
+        let enable_detect_nonsquare: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1708,19 +1709,21 @@ impl SolveLogisticRegression {
                 }
             }
 
-            // let mut nonsquares = HashMap::<(u8, PixelConnectivity), Image>::new();
-            // if let Some(sco) = &pair.input.image_meta.single_color_object {
-            //     for connectivity in connectivity_vec {
-            //         for color in 0..=9 {
-            //             match sco.non_squares(color, *connectivity) {
-            //                 Ok(image) => {
-            //                     nonsquares.insert((color, *connectivity), image);
-            //                 },
-            //                 Err(_) => {},
-            //             }
-            //         }
-            //     }
-            // }
+            let mut nonsquares = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if enable_detect_nonsquare {
+                if let Some(sco) = &pair.input.image_meta.single_color_object {
+                    for connectivity in &connectivity_vec {
+                        for color in 0..=9 {
+                            match sco.non_squares(color, *connectivity) {
+                                Ok(image) => {
+                                    nonsquares.insert((color, *connectivity), image);
+                                },
+                                Err(_) => {},
+                            }
+                        }
+                    }
+                }
+            }
 
             let mut rectangles = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
@@ -4711,17 +4714,6 @@ impl SolveLogisticRegression {
                                 record.serialize_bool(distance % 2 == 0);
                             }
                         }
-                        for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
-                                let is_square: bool = match squares.get(&(color, *connectivity)) {
-                                    Some(value) => {
-                                        value.get(xx, yy).unwrap_or(0) > 0
-                                    }
-                                    None => false
-                                };
-                                record.serialize_bool(is_square);
-                            }
-                        }
 
                         if enable_largest_interior_rectangle_masks {
                             let mask_value: u8 = match largest_interior_rectangle_masks.get(&center) {
@@ -4733,18 +4725,33 @@ impl SolveLogisticRegression {
                             record.serialize_bool_onehot(mask_value > 0);
                         }
 
-                        // non-squares are worsening the prediction.
-                        // for connectivity in &connectivity_vec {
-                        //     for color in 0..=9 {
-                        //         let is_square: bool = match nonsquares.get(&(color, *connectivity)) {
-                        //             Some(value) => {
-                        //                 value.get(xx, yy).unwrap_or(0) > 0
-                        //             }
-                        //             None => false
-                        //         };
-                        //         record.serialize_bool(is_square);
-                        //     }
-                        // }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_square: bool = match squares.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                record.serialize_bool(is_square);
+                                // record.serialize_bool_onehot(is_square);
+                            }
+                        }
+
+                        if enable_detect_nonsquare {
+                            for connectivity in &connectivity_vec {
+                                for color in 0..=9 {
+                                    let is_nonsquare: bool = match nonsquares.get(&(color, *connectivity)) {
+                                        Some(value) => {
+                                            value.get(xx, yy).unwrap_or(0) > 0
+                                        }
+                                        None => false
+                                    };
+                                    record.serialize_bool(is_nonsquare);
+                                    // record.serialize_bool_onehot(is_nonsquare);
+                                }
+                            }
+                        }
 
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
@@ -4755,6 +4762,7 @@ impl SolveLogisticRegression {
                                     None => false
                                 };
                                 record.serialize_bool(is_rectangle);
+                                // record.serialize_bool_onehot(is_rectangle);
                             }
                         }
                         
@@ -4767,6 +4775,7 @@ impl SolveLogisticRegression {
                                     None => false
                                 };
                                 record.serialize_bool(is_box);
+                                // record.serialize_bool_onehot(is_box);
                             }
                         }
 
