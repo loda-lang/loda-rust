@@ -4207,12 +4207,14 @@ impl SolveLogisticRegression {
                     {
                         // let count: u16 = histogram_columns[x as usize].number_of_counters_greater_than_zero();
                         // record.serialize_bool_onehot(count > 0);
+                        // record.serialize_onehot(count.min(255) as u8, 3);
                         // record.serialize_f64(count as f64);
                         // record.serialize(histogram_columns.num, count)
                     }
                     {
                         // let count: u16 = histogram_rows[y as usize].number_of_counters_greater_than_zero();
                         // record.serialize_bool_onehot(count > 0);
+                        // record.serialize_onehot(count.min(255) as u8, 3);
                         // record.serialize_f64(count as f64);
                         // record.serialize(histogram_columns.num, count)
                     }
@@ -4429,6 +4431,7 @@ impl SolveLogisticRegression {
                                 None => 255
                             };
                             record.serialize_color_complex(neighbour_color, obfuscated_color_offset);
+                            // record.serialize_onehot_discard_overflow(neighbour_color, 10);
                         }
                     }
 
