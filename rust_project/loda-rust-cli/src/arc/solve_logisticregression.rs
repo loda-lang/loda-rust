@@ -889,6 +889,7 @@ impl SolveLogisticRegression {
         let enable_neighbour_color: bool = false;
         let enable_adjacent_neighbour_same_as_center: bool = false;
         let enable_opposite_neighbour: bool = false;
+        let enable_removal_color_center: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1843,17 +1844,9 @@ impl SolveLogisticRegression {
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
             let mut image_neighbour_right: Image = Image::color(width, height, 255);
-            #[allow(unused_variables)]
-            #[allow(unused_assignments)]
             let mut image_neighbour_upleft: Image = Image::color(width, height, 255);
-            #[allow(unused_variables)]
-            #[allow(unused_assignments)]
             let mut image_neighbour_upright: Image = Image::color(width, height, 255);
-            #[allow(unused_variables)]
-            #[allow(unused_assignments)]
             let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
-            #[allow(unused_variables)]
-            #[allow(unused_assignments)]
             let mut image_neighbour_downright: Image = Image::color(width, height, 255);
             if let Some(color) = most_popular_color {
                 let ignore_mask: Image = input.to_mask_where_color_is(color);
@@ -1906,10 +1899,6 @@ impl SolveLogisticRegression {
                     Err(_) => {},
                 }
             }
-            _ = image_neighbour_upleft;
-            _ = image_neighbour_upright;
-            _ = image_neighbour_downleft;
-            _ = image_neighbour_downright;
 
             let mut holes_connectivity4 = HashMap::<u8, Image>::new();
             let mut holes_connectivity8 = HashMap::<u8, Image>::new();
@@ -3879,7 +3868,9 @@ impl SolveLogisticRegression {
                     // for color in 0..=9u8 {
                     //     record.serialize_bool_onehot(task.removal_histogram_intersection.get(color) > 0);
                     // }
-                    // record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
+                    if enable_removal_color_center {
+                        record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
+                    }
 
                     if enable_normalized_coordinates_context_input_size {
                         let fx: f64 = ((xx as f64) + 0.5) / (context_input_size.width.max(1) as f64);
