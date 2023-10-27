@@ -870,6 +870,7 @@ impl SolveLogisticRegression {
         let enable_full_row: bool = false;
         let enable_full_column: bool = false;
 
+        let enable_symmetry_shorter: bool = false;
         let enable_symmetry_masks: bool = false;
         let enable_corner_classification: bool = false;
 
@@ -1022,6 +1023,8 @@ impl SolveLogisticRegression {
                 _ => {}
             }
         }
+
+        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
 
         let mut task_graph = TaskGraph::new();
         match task_graph.populate_with_task(&task) {
@@ -1277,12 +1280,11 @@ impl SolveLogisticRegression {
 
             let mut enumerated_clusters = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.enumerate_clusters(color, connectivity) {
+                        match sco.enumerate_clusters(color, *connectivity) {
                             Ok(image) => {
-                                enumerated_clusters.insert((color, connectivity), image);
+                                enumerated_clusters.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1292,12 +1294,11 @@ impl SolveLogisticRegression {
 
             let mut enumerated_clusters_filled_holes_mask = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.filled_holes_mask(color, connectivity) {
+                        match sco.filled_holes_mask(color, *connectivity) {
                             Ok(image) => {
-                                enumerated_clusters_filled_holes_mask.insert((color, connectivity), image);
+                                enumerated_clusters_filled_holes_mask.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1353,7 +1354,6 @@ impl SolveLogisticRegression {
 
             let mut color_grow_mask1 = HashMap::<(u8, PixelConnectivity), Image>::new();
             if enable_color_grow_mask1 {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in &connectivity_vec {
                     for color in 0..=9 {
                         let mask: Image = input.to_mask_where_color_is(color);
@@ -1461,43 +1461,40 @@ impl SolveLogisticRegression {
 
             let mut cluster_distance1 = HashMap::<(u8, PixelConnectivity), Image>::new();
             for color in 0..=9u8 {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     let image: Image = input.to_mask_where_color_is_different(color);
-                    let a: Image = match image.mask_distance_zerobug(connectivity) {
+                    let a: Image = match image.mask_distance_zerobug(*connectivity) {
                         Ok(value) => value,
                         Err(_) => continue,
                     };
-                    cluster_distance1.insert((color, connectivity), a);
+                    cluster_distance1.insert((color, *connectivity), a);
                 }
             }
             let mut cluster_distance2 = HashMap::<(u8, PixelConnectivity), Image>::new();
             for color in 0..=9u8 {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     let image: Image = input.to_mask_where_color_is(color);
-                    let a: Image = match image.mask_distance_zerobug(connectivity) {
+                    let a: Image = match image.mask_distance_zerobug(*connectivity) {
                         Ok(value) => value,
                         Err(_) => continue,
                     };
-                    cluster_distance2.insert((color, connectivity), a);
+                    cluster_distance2.insert((color, *connectivity), a);
                 }
             }
             let mut cluster_distance3 = HashMap::<(u8, PixelConnectivity), Image>::new();
             let mut cluster_distance4 = HashMap::<(u8, PixelConnectivity), Image>::new();
             for color in 0..=9u8 {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     // let image: Image = input.to_mask_where_color_is_different(color);
                     let image: Image = input.to_mask_where_color_is(color);
-                    let a: Image = match image.mask_distance_zerobug(connectivity) {
+                    let a: Image = match image.mask_distance_zerobug(*connectivity) {
                         Ok(value) => value,
                         Err(_) => continue,
                     };
                     let b: Image = image.select_from_color_and_image(0, &a)?;
-                    cluster_distance3.insert((color, connectivity), b);
+                    cluster_distance3.insert((color, *connectivity), b);
                     let c: Image = image.select_from_image_and_color(&a, 0)?;
-                    cluster_distance4.insert((color, connectivity), c);
+                    cluster_distance4.insert((color, *connectivity), c);
                 }
             }
             let mut cluster_distance5 = HashMap::<(u8, PixelConnectivity), Image>::new();
@@ -1695,12 +1692,11 @@ impl SolveLogisticRegression {
 
             let mut squares = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.squares(color, connectivity) {
+                        match sco.squares(color, *connectivity) {
                             Ok(image) => {
-                                squares.insert((color, connectivity), image);
+                                squares.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1710,12 +1706,11 @@ impl SolveLogisticRegression {
 
             // let mut nonsquares = HashMap::<(u8, PixelConnectivity), Image>::new();
             // if let Some(sco) = &pair.input.image_meta.single_color_object {
-            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
             //     for connectivity in connectivity_vec {
             //         for color in 0..=9 {
-            //             match sco.non_squares(color, connectivity) {
+            //             match sco.non_squares(color, *connectivity) {
             //                 Ok(image) => {
-            //                     nonsquares.insert((color, connectivity), image);
+            //                     nonsquares.insert((color, *connectivity), image);
             //                 },
             //                 Err(_) => {},
             //             }
@@ -1725,12 +1720,11 @@ impl SolveLogisticRegression {
 
             let mut rectangles = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.rectangles(color, connectivity) {
+                        match sco.rectangles(color, *connectivity) {
                             Ok(image) => {
-                                rectangles.insert((color, connectivity), image);
+                                rectangles.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1740,12 +1734,11 @@ impl SolveLogisticRegression {
 
             let mut boxes = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.boxes(color, connectivity) {
+                        match sco.boxes(color, *connectivity) {
                             Ok(image) => {
-                                boxes.insert((color, connectivity), image);
+                                boxes.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1755,12 +1748,11 @@ impl SolveLogisticRegression {
 
             let mut lines = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.lines(color, connectivity) {
+                        match sco.lines(color, *connectivity) {
                             Ok(image) => {
-                                lines.insert((color, connectivity), image);
+                                lines.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1768,37 +1760,81 @@ impl SolveLogisticRegression {
                 }
             }
 
-            // horizontal symmetry is worsening the prediction.
-            // let mut horizontal_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
-            // if let Some(sco) = &pair.input.image_meta.single_color_object {
-            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-            //     for connectivity in connectivity_vec {
-            //         for color in 0..=9 {
-            //             match sco.horizontal_symmetry_mask(color, connectivity) {
-            //                 Ok(image) => {
-            //                     horizontal_symmetry.insert((color, connectivity), image);
-            //                 },
-            //                 Err(_) => {},
-            //             }
-            //         }
-            //     }
-            // }
+            let mut horizontal_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
+            let mut vertical_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if enable_symmetry_shorter {
+                // horizontal symmetry
+                if let Some(sco) = &pair.input.image_meta.single_color_object {
+                    for connectivity in &connectivity_vec {
+                        for color in 0..=9 {
+                            match sco.horizontal_symmetry_mask(color, *connectivity) {
+                                Ok(image) => {
+                                    horizontal_symmetry.insert((color, *connectivity), image);
+                                },
+                                Err(_) => {},
+                            }
+                        }
+                    }
+                }
+                // vertical symmetry is worsening the prediction.
+                if let Some(sco) = &pair.input.image_meta.single_color_object {
+                    for connectivity in &connectivity_vec {
+                        for color in 0..=9 {
+                            match sco.vertical_symmetry_mask(color, *connectivity) {
+                                Ok(image) => {
+                                    vertical_symmetry.insert((color, *connectivity), image);
+                                },
+                                Err(_) => {},
+                            }
+                        }
+                    }
+                }
+            }
 
-            // vertical symmetry is worsening the prediction.
-            // let mut vertical_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
-            // if let Some(sco) = &pair.input.image_meta.single_color_object {
-            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-            //     for connectivity in connectivity_vec {
-            //         for color in 0..=9 {
-            //             match sco.vertical_symmetry_mask(color, connectivity) {
-            //                 Ok(image) => {
-            //                     vertical_symmetry.insert((color, connectivity), image);
-            //                 },
-            //                 Err(_) => {},
-            //             }
-            //         }
-            //     }
-            // }
+            let mut horizontal_symmetry_connectivity4 = HashMap::<u8, Image>::new();
+            let mut horizontal_symmetry_connectivity8 = HashMap::<u8, Image>::new();
+            let mut vertical_symmetry_connectivity4 = HashMap::<u8, Image>::new();
+            let mut vertical_symmetry_connectivity8 = HashMap::<u8, Image>::new();
+            if enable_symmetry_masks {
+                if let Some(sco) = &pair.input.image_meta.single_color_object {
+                    for color in 0..=9 {
+                        let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity4) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        horizontal_symmetry_connectivity4.insert(color, image);
+                    }
+                    for color in 0..=9 {
+                        let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity8) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        horizontal_symmetry_connectivity8.insert(color, image);
+                    }
+                    for color in 0..=9 {
+                        let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity4) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        vertical_symmetry_connectivity4.insert(color, image);
+                    }
+                    for color in 0..=9 {
+                        let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity8) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        vertical_symmetry_connectivity8.insert(color, image);
+                    }
+                }
+            }
 
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
@@ -1928,52 +1964,6 @@ impl SolveLogisticRegression {
                     holecount_connectivity8.insert(color, image);
                 }
             }
-
-            let mut horizontal_symmetry_connectivity4 = HashMap::<u8, Image>::new();
-            let mut horizontal_symmetry_connectivity8 = HashMap::<u8, Image>::new();
-            let mut vertical_symmetry_connectivity4 = HashMap::<u8, Image>::new();
-            let mut vertical_symmetry_connectivity8 = HashMap::<u8, Image>::new();
-            if enable_symmetry_masks {
-                if let Some(sco) = &pair.input.image_meta.single_color_object {
-                    for color in 0..=9 {
-                        let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity4) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                continue;
-                            }
-                        };
-                        horizontal_symmetry_connectivity4.insert(color, image);
-                    }
-                    for color in 0..=9 {
-                        let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity8) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                continue;
-                            }
-                        };
-                        horizontal_symmetry_connectivity8.insert(color, image);
-                    }
-                    for color in 0..=9 {
-                        let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity4) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                continue;
-                            }
-                        };
-                        vertical_symmetry_connectivity4.insert(color, image);
-                    }
-                    for color in 0..=9 {
-                        let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity8) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                continue;
-                            }
-                        };
-                        vertical_symmetry_connectivity8.insert(color, image);
-                    }
-                }
-            }
-
 
             // The outline of each color mask
             let mut outline1_connectivity4 = HashMap::<u8, Image>::new();
@@ -3676,6 +3666,36 @@ impl SolveLogisticRegression {
                         // record.serialize_u8(noise_color_in_outline2_connectivity8); // worsens the prediction
                     }
 
+                    if enable_symmetry_shorter {
+                        // horizontal symmetry
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_symmetric: bool = match horizontal_symmetry.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                // record.serialize_bool(is_symmetric);
+                                record.serialize_bool_onehot(is_symmetric);
+                            }
+                        }
+
+                        // vertical symmetry
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_symmetric: bool = match vertical_symmetry.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                // record.serialize_bool(is_symmetric);
+                                record.serialize_bool_onehot(is_symmetric);
+                            }
+                        }
+                    }
+
                     if enable_symmetry_masks {
                         let mut the_horizontal_symmetry_connectivity4: u8 = 0;
                         if let Some(mask) = horizontal_symmetry_connectivity4.get(&center) {
@@ -4429,7 +4449,6 @@ impl SolveLogisticRegression {
     
                     // Cluster id
                     {
-                        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 let cluster_id: u8 = match enumerated_clusters.get(&(color, *connectivity)) {
@@ -4775,31 +4794,6 @@ impl SolveLogisticRegression {
                             }
                         }
 
-                        // horizontal symmetry is worsening the prediction.
-                        // for connectivity in &connectivity_vec {
-                        //     for color in 0..=9 {
-                        //         let is_symmetric: bool = match horizontal_symmetry.get(&(color, *connectivity)) {
-                        //             Some(value) => {
-                        //                 value.get(xx, yy).unwrap_or(0) > 0
-                        //             }
-                        //             None => false
-                        //         };
-                        //         record.serialize_bool(is_symmetric);
-                        //     }
-                        // }
-
-                        // vertical symmetry is worsening the prediction.
-                        // for connectivity in &connectivity_vec {
-                        //     for color in 0..=9 {
-                        //         let is_symmetric: bool = match vertical_symmetry.get(&(color, *connectivity)) {
-                        //             Some(value) => {
-                        //                 value.get(xx, yy).unwrap_or(0) > 0
-                        //             }
-                        //             None => false
-                        //         };
-                        //         record.serialize_bool(is_symmetric);
-                        //     }
-                        // }
 
                         #[allow(unused_variables)]
                         let directions = [
