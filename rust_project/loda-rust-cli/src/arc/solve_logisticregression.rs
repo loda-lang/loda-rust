@@ -886,6 +886,9 @@ impl SolveLogisticRegression {
         let enable_check_pixel_in_histogram: bool = false;
         let enable_nearest_color: bool = false;
         let enable_colordirection_to_distanceimage: bool = false;
+        let enable_neighbour_color: bool = false;
+        let enable_adjacent_neighbour_same_as_center: bool = false;
+        let enable_opposite_neighbour: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -2920,17 +2923,10 @@ impl SolveLogisticRegression {
                     let neighbour_down: u8 = image_neighbour_down.get(xx, yy).unwrap_or(255);
                     let neighbour_left: u8 = image_neighbour_left.get(xx, yy).unwrap_or(255);
                     let neighbour_right: u8 = image_neighbour_right.get(xx, yy).unwrap_or(255);
-                    // let neighbour_upleft: u8 = image_neighbour_upleft.get(xx, yy).unwrap_or(255);
-                    // let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
-                    // let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
-                    // let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
-
-                    // {
-                    //     record.serialize_bool_onehot(neighbour_up == center);
-                    //     record.serialize_bool_onehot(neighbour_down == center);
-                    //     record.serialize_bool_onehot(neighbour_left == center);
-                    //     record.serialize_bool_onehot(neighbour_right == center);
-                    // }
+                    let neighbour_upleft: u8 = image_neighbour_upleft.get(xx, yy).unwrap_or(255);
+                    let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
+                    let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
+                    let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);    
 
                     let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
                     record.serialize_bool(corners_center == 1);
@@ -3812,27 +3808,30 @@ impl SolveLogisticRegression {
                         }
                     }
 
-                    // {
-                    //     record.serialize_color_complex(neighbour_up, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_down, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_left, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_right, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_upleft, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_upright, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_downleft, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_downright, obfuscated_color_offset);
-                    // }
+                    if enable_neighbour_color {
+                        record.serialize_color_complex(neighbour_up, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_down, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_left, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_right, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_upleft, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_upright, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_downleft, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_downright, obfuscated_color_offset);
+                    }
 
-                    // {
-                    //     record.serialize_bool_onehot(neighbour_up == center);
-                    //     record.serialize_bool_onehot(neighbour_down == center);
-                    //     record.serialize_bool_onehot(neighbour_left == center);
-                    //     record.serialize_bool_onehot(neighbour_right == center);
-                    //     record.serialize_bool_onehot(neighbour_up == neighbour_down);
-                    //     record.serialize_bool_onehot(neighbour_left == neighbour_right);
-                    //     record.serialize_bool_onehot(neighbour_upleft == neighbour_downright);
-                    //     record.serialize_bool_onehot(neighbour_upright == neighbour_downleft);
-                    // }
+                    if enable_adjacent_neighbour_same_as_center {
+                        record.serialize_bool_onehot(neighbour_up == center);
+                        record.serialize_bool_onehot(neighbour_down == center);
+                        record.serialize_bool_onehot(neighbour_left == center);
+                        record.serialize_bool_onehot(neighbour_right == center);
+                    }
+
+                    if enable_opposite_neighbour {
+                        record.serialize_bool_onehot(neighbour_up == neighbour_down);
+                        record.serialize_bool_onehot(neighbour_left == neighbour_right);
+                        record.serialize_bool_onehot(neighbour_upleft == neighbour_downright);
+                        record.serialize_bool_onehot(neighbour_upright == neighbour_downleft);
+                    }
 
                     // {
                     //     record.serialize_onehot_discard_overflow(neighbour_up, shape_type_count);
