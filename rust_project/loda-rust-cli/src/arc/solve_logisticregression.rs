@@ -883,6 +883,7 @@ impl SolveLogisticRegression {
 
         let enable_scale_widthheight: bool = has_different_size_for_input_output;
         let enable_check_pixel_in_histogram: bool = false;
+        let enable_nearest_color: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1509,6 +1510,15 @@ impl SolveLogisticRegression {
                             Err(_) => {},
                         }
                     }
+                }
+            }
+
+            let mut nearest_color4: Image = Image::empty();
+            let mut nearest_color8: Image = Image::empty();
+            if enable_nearest_color {
+                if let Some(color) = most_popular_color {
+                    nearest_color4 = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity4, color)?;
+                    nearest_color8 = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity8, color)?;
                 }
             }
 
@@ -4594,6 +4604,18 @@ impl SolveLogisticRegression {
                                 // record.serialize_onehot(distance, 8);
                             }
                         }
+
+                        if enable_nearest_color {
+                            {
+                                let color: u8 = nearest_color4.get(xx, yy).unwrap_or(255);
+                                record.serialize_color_complex(color, obfuscated_color_offset);
+                            }
+                            {
+                                let color: u8 = nearest_color8.get(xx, yy).unwrap_or(255);
+                                record.serialize_color_complex(color, obfuscated_color_offset);
+                            }
+                        }
+
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 #[allow(unused_variables)]
