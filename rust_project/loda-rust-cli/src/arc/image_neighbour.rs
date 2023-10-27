@@ -1,4 +1,4 @@
-use super::Image;
+use super::{Image, ImageMask, PixelConnectivity, ImageMaskDistance};
 
 #[allow(dead_code)]
 #[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
@@ -139,6 +139,15 @@ pub trait ImageNeighbour {
     /// 
     /// The magic value `255` is used when there is no object visible. Thus the max distance is only `254`.
     fn neighbour_distance(&self, ignore_mask: &Image, direction: ImageNeighbourDirection) -> anyhow::Result<Image>;
+
+    /// Find the nearest color in any direction.
+    /// 
+    /// Only considers the color range `0..=9`.
+    /// 
+    /// When it's ambiguous, then use the magic value `255``.
+    /// 
+    /// Returns an image with the same size as the input image.
+    fn nearest_color_in_any_direction(&self, connectivity: PixelConnectivity, ignore_color: u8) -> anyhow::Result<Image>;
 }
 
 impl ImageNeighbour for Image {
@@ -208,6 +217,70 @@ impl ImageNeighbour for Image {
                 current_color = Some(color_value);
             }
         }
+        Ok(result_image)
+    }
+
+    fn nearest_color_in_any_direction(&self, connectivity: PixelConnectivity, ignore_color: u8) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+
+        // Measure distance for every color
+        let mut distance_images: Vec<Image> = Vec::new();
+        for color in 0..=9u8 {
+            if color == ignore_color {
+                distance_images.push(Image::empty());
+                continue;
+            }
+            let mask: Image = self.to_mask_where_color_is(color);
+            let distance_image: Image = mask.mask_distance_infinite(connectivity)?;
+            // HtmlLog::image(&distance_image);
+            distance_images.push(distance_image);
+        }
+
+        // Loop over all pixels, and find the nearest color
+        let mut result_image: Image = self.clone_color(0);
+        for y in 0..self.height() {
+            for x in 0..self.width() {
+                // Find distance for each color
+                let mut distances: [(u8, u8); 10] = [(255, 255); 10];
+                for color in 0..=9 {
+                    if color == ignore_color {
+                        continue;
+                    }
+                    let distance_image: &Image = &distance_images[color as usize];
+                    let distance: u8 = distance_image.get(x as i32, y as i32).unwrap_or(255);
+                    distances[color as usize] = (distance, color);
+                }
+                distances.sort();
+
+                // Pick the lowest distance, and its corresponding color
+                // If it's ambiguous, then use the color 255.
+                let first_distance: u8 = distances[0].0;
+                let mut found_color: u8 = 255;
+                let mut count_ambiguous: u8 = 0;
+                for (distance, color) in &distances {
+                    if *color == ignore_color {
+                        continue;
+                    }
+                    if *color > 9 {
+                        continue;
+                    }
+                    if *distance != first_distance {
+                        continue;
+                    }
+                    if count_ambiguous > 0 {
+                        found_color = 255;
+                        break;
+                    }
+                    count_ambiguous += 1;
+                    found_color = *color;
+                }
+
+                _ = result_image.set(x as i32, y as i32, found_color);
+            }
+        }
+
         Ok(result_image)
     }
 }
@@ -806,5 +879,84 @@ mod tests {
         ];
         let expected = Image::create_raw(5, 7, expected_pixels);
         assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_40000_nearest_color_in_any_direction_connectivity4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 0, 0, 0, 0,
+            0, 0, 0, 0, 5,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 3, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity4, 0).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            8, 8, 8, 5, 5,
+            8, 8, 5, 5, 5,
+            8, 255, 3, 5, 5,
+            255, 3, 3, 3, 5,
+            3, 3, 3, 3, 3,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40001_nearest_color_in_any_direction_connectivity8() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 0, 0, 0, 0,
+            0, 0, 0, 0, 5,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 3, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity8, 0).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            8, 8, 255, 5, 5, 
+            8, 8, 255, 5, 5, 
+            255, 255, 255, 5, 5, 
+            3, 3, 3, 3, 255, 
+            3, 3, 3, 3, 3, 
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40002_nearest_color_in_any_direction_connectivity4() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 0, 8, 0, 8,
+            0, 8, 0, 8, 0,
+            5, 0, 5, 0, 5,
+            0, 5, 0, 5, 0,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity4, 0).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            8, 8, 8, 8, 8,
+            255, 8, 255, 8, 255,
+            5, 255, 5, 255, 5,
+            5, 5, 5, 5, 5,
+        ];
+        let expected: Image = Image::try_create(5, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
     }
 }

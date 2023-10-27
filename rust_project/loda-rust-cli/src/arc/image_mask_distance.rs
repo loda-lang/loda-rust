@@ -1,5 +1,5 @@
 //! Measure distance to nearest pixel
-use super::{Image, ImageMaskCount, ImageMaskGrow, PixelConnectivity, MixMode, ImageMix, ImageCompare, ImageMask, HtmlLog};
+use super::{Image, ImageMaskCount, ImageMaskGrow, PixelConnectivity, MixMode, ImageMix, ImageCompare, ImageMask};
 
 /// ARC tasks uses images that are max 30x30 pixels.
 static MAX_DISTANCE: u8 = 29;
