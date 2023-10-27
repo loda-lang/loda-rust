@@ -90,6 +90,7 @@ mod tests {
         let instance = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, PixelConnectivity::Connectivity4).expect("ok");
 
         // Assert
+        assert_eq!(instance.color_and_shape_vec.len(), 3);
         {
             let record: &ColorAndShape = instance.color_and_shape_vec.iter().find(|record| record.color == 5 ).expect("some");
             assert_eq!(record.shape_identification.shape_type, ShapeType::L);
@@ -125,6 +126,7 @@ mod tests {
         let instance = ShapeIdentificationFromSingleColorObject::find_shapes(&sco, PixelConnectivity::Connectivity4).expect("ok");
 
         // Assert
+        assert_eq!(instance.color_and_shape_vec.len(), 4);
         {
             let record: &ColorAndShape = instance.color_and_shape_vec.iter().find(|record| record.color == 17 ).expect("some");
             assert_eq!(record.shape_identification.shape_type, ShapeType::Box);
@@ -141,5 +143,7 @@ mod tests {
             assert_eq!(record.position_x_reverse, Some(0));
             assert_eq!(record.position_y_reverse, Some(0));
         }
+        let count0: usize = instance.color_and_shape_vec.iter().filter(|record| record.color == 0 ).count();
+        assert_eq!(count0, 2);
     }
 }

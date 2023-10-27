@@ -1284,7 +1284,7 @@ impl TaskGraph {
                     .context("find_shapetype_changes_between_input_and_output object_nodeindex0")?;
 
                 let object_nodeindex1: NodeIndex = self.get_object_from_pixel(pixel_nodeindex1, connectivity)
-                    .context("find_shapetype_changes_between_input_and_output object_nodeindex0")?;
+                    .context("find_shapetype_changes_between_input_and_output object_nodeindex1")?;
         
                 let value0: usize = object_nodeindex0.index();
                 let value1: usize = object_nodeindex1.index();

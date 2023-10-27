@@ -175,6 +175,12 @@ impl Rectangle {
     pub fn is_right(&self, x: i32, y: i32) -> bool {
         x > self.max_x() && y >= self.min_y() && y <= self.max_y()
     }
+
+    /// Calculate the area of the rectangle, `width` * `height`.
+    #[allow(dead_code)]
+    pub fn area(&self) -> u16 {
+        (self.width as u16) * (self.height as u16)
+    }
 }
 
 #[cfg(test)]
@@ -460,6 +466,18 @@ mod tests {
             assert_eq!(rect.is_right(11, 10), true);
             assert_eq!(rect.is_right(11, 12), true);
             assert_eq!(rect.is_right(11, 13), false);
+        }
+    }
+
+    #[test]
+    fn test_90000_area() {
+        {
+            let rect = Rectangle::new(5, 7, 10, 11);
+            assert_eq!(rect.area(), 110);
+        }
+        {
+            let rect = Rectangle::new(10, 20, 1, 3);
+            assert_eq!(rect.area(), 3);
         }
     }
 }
