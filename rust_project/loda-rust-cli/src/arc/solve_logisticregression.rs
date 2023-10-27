@@ -884,6 +884,7 @@ impl SolveLogisticRegression {
         let enable_scale_widthheight: bool = has_different_size_for_input_output;
         let enable_check_pixel_in_histogram: bool = false;
         let enable_nearest_color: bool = false;
+        let enable_colordirection_to_distanceimage: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1435,6 +1436,27 @@ impl SolveLogisticRegression {
                     Err(_) => continue,
                 };
                 sort2_small_big.insert((*color, *connectivity), a);
+            }
+
+            let direction_vec = vec![
+                ImageNeighbourDirection::Up,
+                ImageNeighbourDirection::Down,
+                ImageNeighbourDirection::Left,
+                ImageNeighbourDirection::Right,
+                ImageNeighbourDirection::UpLeft,
+                ImageNeighbourDirection::UpRight,
+                ImageNeighbourDirection::DownLeft,
+                ImageNeighbourDirection::DownRight,
+            ];
+            let mut colordirection_to_distanceimage = HashMap::<(u8, ImageNeighbourDirection), Image>::new();
+            if enable_colordirection_to_distanceimage {
+                for color in 0..=9u8 {
+                    let ignore_mask: Image = input.to_mask_where_color_is_different(color);
+                    for direction in &direction_vec {
+                        let distance_image: Image = input.neighbour_distance(&ignore_mask, *direction)?;
+                        colordirection_to_distanceimage.insert((color, *direction), distance_image);
+                    }
+                }
             }
 
             let mut cluster_distance1 = HashMap::<(u8, PixelConnectivity), Image>::new();
@@ -4613,6 +4635,18 @@ impl SolveLogisticRegression {
                             {
                                 let color: u8 = nearest_color8.get(xx, yy).unwrap_or(255);
                                 record.serialize_color_complex(color, obfuscated_color_offset);
+                            }
+                        }
+
+                        if enable_colordirection_to_distanceimage {
+                            for color in 0..=9u8 {
+                                for direction in &direction_vec {
+                                    let mut distance: u8 = 255;
+                                    if let Some(image) = &colordirection_to_distanceimage.get(&(color, *direction)) {
+                                        distance = image.get(xx, yy).unwrap_or(255);
+                                    }
+                                    record.serialize_onehot(distance, 5);
+                                }
                             }
                         }
 
