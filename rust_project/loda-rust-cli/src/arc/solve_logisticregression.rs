@@ -48,7 +48,7 @@
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
 use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat};
-use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
+use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode, VerifyPrediction, VerifyPredictionWithTask};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
 use super::human_readable_utc_timestamp;
@@ -360,7 +360,8 @@ impl SolveLogisticRegression {
         let verify_test_output = true;
         let number_of_tasks: u64 = self.tasks.len() as u64;
         println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
-        let count_solved = AtomicUsize::new(0);
+        let count_solved_full = AtomicUsize::new(0);
+        let count_solved_partial = AtomicUsize::new(0);
         let pb = ProgressBar::new(number_of_tasks as u64);
         pb.set_style(ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
@@ -368,11 +369,36 @@ impl SolveLogisticRegression {
         );
         self.tasks.par_iter().for_each(|task| {
             match Self::process_task(task, verify_test_output) {
-                Ok(_predictions) => {
-                    count_solved.fetch_add(1, Ordering::Relaxed);
-                    let count: usize = count_solved.load(Ordering::Relaxed);
-                    pb.set_message(format!("Solved: {}", count));
-                    pb.println(format!("task {} - solved", task.id));
+                Ok(predictions) => {
+                    let mut count_correct: usize = 0;
+                    for prediction in &predictions {
+                        match prediction.verify_prediction(task) {
+                            Ok(verify_prediction) => {
+                                match verify_prediction {
+                                    VerifyPrediction::Correct => {
+                                        count_correct += 1;
+                                    },
+                                    _ => {}
+                                }
+                            },
+                            Err(error) => {
+                                pb.println(format!("task {} - verify_prediction - error: {:?}", task.id, error));
+                            }
+                        }
+                    }
+                    if count_correct == task.count_test() {
+                        count_solved_full.fetch_add(1, Ordering::Relaxed);
+                        pb.println(format!("task {} - solved full", task.id));
+                    } else {
+                        if count_correct >= 1 {
+                            count_solved_partial.fetch_add(1, Ordering::Relaxed);
+                            pb.println(format!("task {} - solved partial", task.id));
+                        }
+                    }
+                    let count_full: usize = count_solved_full.load(Ordering::Relaxed);
+                    let count_partial: usize = count_solved_partial.load(Ordering::Relaxed);
+                    pb.set_message(format!("Solved full: {}, partial: {}", count_full, count_partial));
+
                 },
                 Err(error) => {
                     if verbose {
@@ -383,9 +409,10 @@ impl SolveLogisticRegression {
             pb.inc(1);
         });
         pb.finish_and_clear();
-        let count_solved: usize = count_solved.load(Ordering::Relaxed);
+        let count_full: usize = count_solved_full.load(Ordering::Relaxed);
+        let count_partial: usize = count_solved_partial.load(Ordering::Relaxed);
         println!("{} - run - end", human_readable_utc_timestamp());
-        println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
+        println!("{} - out of {} tasks, fully solved {} and partially solved {}", human_readable_utc_timestamp(), number_of_tasks, count_full, count_partial);
         Ok(())
     }
 
