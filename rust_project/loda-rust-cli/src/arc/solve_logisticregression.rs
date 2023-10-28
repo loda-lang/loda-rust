@@ -336,6 +336,10 @@ impl ProcessTaskContext {
     }
 }
 
+struct ProcessedTask {
+    prediction_vec: Vec<arcathon_solution_coordinator::Prediction>,
+}
+
 pub struct SolveLogisticRegression {
     #[allow(dead_code)]
     tasks: Vec<Task>,
@@ -369,9 +373,9 @@ impl SolveLogisticRegression {
         );
         self.tasks.par_iter().for_each(|task| {
             match Self::process_task(task, verify_test_output) {
-                Ok(predictions) => {
+                Ok(processed_task) => {
                     let mut count_correct: usize = 0;
-                    for prediction in &predictions {
+                    for prediction in &processed_task.prediction_vec {
                         match prediction.verify_prediction(task) {
                             Ok(verify_prediction) => {
                                 match verify_prediction {
@@ -433,7 +437,7 @@ impl SolveLogisticRegression {
         let accumulated = Arc::new(Mutex::new(TaskNameToPredictionVec::new()));
         self.tasks.par_iter().for_each(|task| {
             match Self::process_task(task, verify_test_output) {
-                Ok(predictions) => {
+                Ok(processed_task) => {
                     count_solved.fetch_add(1, Ordering::Relaxed);
                     let count: usize = count_solved.load(Ordering::Relaxed);
                     pb.set_message(format!("Solved: {}", count));
@@ -443,7 +447,7 @@ impl SolveLogisticRegression {
                         Ok(mut map) => {
                             map.entry(task.id.clone())
                                 .or_insert(Vec::new())
-                                .extend(predictions);            
+                                .extend(processed_task.prediction_vec);
                         },
                         Err(error) => {
                             pb.println(format!("run_predictions. Unable to lock accumulated. error: {:?}", error));
@@ -487,7 +491,7 @@ impl SolveLogisticRegression {
     //     result
     // }
 
-    pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
+    fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<ProcessedTask> {
         let count_test: u8 = task.count_test().min(255) as u8;
         if count_test < 1 {
             return Err(anyhow::anyhow!("skipping task: {} because it has no test pairs", task.id));
@@ -582,7 +586,10 @@ impl SolveLogisticRegression {
         if result_predictions.len() != (count_test as usize) {
             return Err(anyhow::anyhow!("task: {} predictions.len() != task.count_test()", task.id));
         }
-        Ok(result_predictions)
+        let instance = ProcessedTask {
+            prediction_vec: result_predictions,
+        };
+        Ok(instance)
     }
 
     fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Image> {
