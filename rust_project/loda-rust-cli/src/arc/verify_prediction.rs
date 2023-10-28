@@ -53,19 +53,6 @@ impl VerifyPrediction {
         };
         Ok(VerifyPrediction::Incorrect { incorrect_data })
     }
-
-    /// Obtain the test pair that corresponds to the prediction index
-    fn pair_for_test_index(task: &Task, test_index: u8) -> anyhow::Result<&Pair> {
-        let found_pair: Option<&Pair> = task.pairs.iter().find(|pair| {
-            pair.test_index == Some(test_index)
-        });
-        match found_pair {
-            Some(value) => Ok(value),
-            None => {
-                Err(anyhow::anyhow!("VerifyPrediction.pair_for_test_index() Task: {} has no pair where test_index corresponds to output_id {}", task.id, test_index))
-            }
-        }
-    }
 }
 
 pub trait VerifyPredictionWithTask {
@@ -75,7 +62,7 @@ pub trait VerifyPredictionWithTask {
 
 impl VerifyPredictionWithTask for arcathon_solution_coordinator::Prediction {
     fn verify_prediction(&self, task: &Task) -> anyhow::Result<VerifyPrediction> {
-        let pair: &Pair = VerifyPrediction::pair_for_test_index(task, self.output_id)?;
+        let pair: &Pair = task.pair_for_test_index(self.output_id)?;
         let expected: &Image = &pair.output.test_image;
         let actual: Image = self.output.to_image().context("arcathon_solution_coordinator::Prediction.verify_prediction to_image")?;
         VerifyPrediction::create(&actual, expected)
@@ -84,7 +71,7 @@ impl VerifyPredictionWithTask for arcathon_solution_coordinator::Prediction {
 
 impl VerifyPredictionWithTask for arcathon_solution_json::Prediction {
     fn verify_prediction(&self, task: &Task) -> anyhow::Result<VerifyPrediction> {
-        let pair: &Pair = VerifyPrediction::pair_for_test_index(task, self.prediction_id)?;
+        let pair: &Pair = task.pair_for_test_index(self.prediction_id)?;
         let expected: &Image = &pair.output.test_image;
         let actual: Image = self.output.to_image().context("arcathon_solution_json::Prediction.verify_prediction to_image")?;
         VerifyPrediction::create(&actual, expected)
