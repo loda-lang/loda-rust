@@ -336,7 +336,14 @@ impl ProcessTaskContext {
     }
 }
 
+/// Returned from `process_task_with_one_test_pair`
+struct ProcessedTaskWithOneTestPair {
+    cropped_image: Image,
+    inspect_internal_image_vec: Vec<Image>,
+}
+
 struct ProcessedTask {
+    ptwotp_vec: Vec<ProcessedTaskWithOneTestPair>,
     prediction_vec: Vec<arcathon_solution_coordinator::Prediction>,
 }
 
@@ -361,7 +368,6 @@ impl SolveLogisticRegression {
     /// This cannot be run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
     pub fn run_and_verify(&self) -> anyhow::Result<()> {
         let verbose = false;
-        let verify_test_output = true;
         let number_of_tasks: u64 = self.tasks.len() as u64;
         println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
         let count_solved_full = AtomicUsize::new(0);
@@ -372,37 +378,72 @@ impl SolveLogisticRegression {
             .progress_chars("#>-")
         );
         self.tasks.par_iter().for_each(|task| {
-            match Self::process_task(task, verify_test_output) {
+            match Self::process_task(task) {
                 Ok(processed_task) => {
                     let mut count_correct: usize = 0;
+                    let mut correct_vec = Vec::<bool>::new();
                     for prediction in &processed_task.prediction_vec {
+                        let mut is_correct = false;
                         match prediction.verify_prediction(task) {
                             Ok(verify_prediction) => {
                                 match verify_prediction {
                                     VerifyPrediction::Correct => {
                                         count_correct += 1;
+                                        is_correct = true;
                                     },
                                     _ => {}
                                 }
                             },
                             Err(error) => {
-                                pb.println(format!("task {} - verify_prediction - error: {:?}", task.id, error));
+                                pb.println(format!("task: {} - output_id: {} - verify_prediction - error: {:?}", task.id, prediction.output_id, error));
                             }
                         }
+                        correct_vec.push(is_correct);
                     }
-                    if count_correct == task.count_test() {
+                    let task_count_test: usize = task.count_test();
+                    if count_correct == task_count_test {
                         count_solved_full.fetch_add(1, Ordering::Relaxed);
-                        pb.println(format!("task {} - solved full", task.id));
+                        pb.println(format!("task {} - solved full, {} test pairs", task.id, count_correct));
                     } else {
                         if count_correct >= 1 {
                             count_solved_partial.fetch_add(1, Ordering::Relaxed);
-                            pb.println(format!("task {} - solved partial", task.id));
+                            pb.println(format!("task {} - solved partial, {} correct of {} test pairs", task.id, count_correct, task_count_test));
                         }
                     }
                     let count_full: usize = count_solved_full.load(Ordering::Relaxed);
                     let count_partial: usize = count_solved_partial.load(Ordering::Relaxed);
                     pb.set_message(format!("Solved full: {}, partial: {}", count_full, count_partial));
 
+                    if WRITE_TO_HTMLLOG {
+                        for (index, ptwotp) in processed_task.ptwotp_vec.iter().enumerate() {
+                            HtmlLog::compare_images(ptwotp.inspect_internal_image_vec.clone());
+                            let is_correct: bool = correct_vec[index];
+                            if is_correct {
+                                if task.occur_in_solutions_csv {
+                                    HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
+                                } else {
+                                    HtmlLog::text(format!("{} - correct - no previous solution", task.id));
+                                }
+                                HtmlLog::image(&ptwotp.cropped_image);
+                            } else {
+                                HtmlLog::text(format!("{} - incorrect", task.id));
+                                let pair: &Pair = match task.pair_for_test_index(index.min(255) as u8) {
+                                    Ok(pair) => pair,
+                                    Err(error) => {
+                                        pb.println(format!("{} - error: {:?}", task.id, error));
+                                        continue;
+                                    }
+                                };
+                                let images: Vec<Image> = vec![
+                                    pair.input.image.clone(),
+                                    pair.output.test_image.clone(),
+                                    ptwotp.cropped_image.clone(),
+                                ];
+                                HtmlLog::compare_images(images);
+                            }
+                        }
+                    }
+    
                 },
                 Err(error) => {
                     if verbose {
@@ -425,7 +466,6 @@ impl SolveLogisticRegression {
     /// This code is intended to run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
     pub fn run_predictions(&self) -> anyhow::Result<TaskNameToPredictionVec> {
         let verbose = false;
-        let verify_test_output = false;
         let number_of_tasks: u64 = self.tasks.len() as u64;
         println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
         let count_solved = AtomicUsize::new(0);
@@ -436,7 +476,7 @@ impl SolveLogisticRegression {
         );
         let accumulated = Arc::new(Mutex::new(TaskNameToPredictionVec::new()));
         self.tasks.par_iter().for_each(|task| {
-            match Self::process_task(task, verify_test_output) {
+            match Self::process_task(task) {
                 Ok(processed_task) => {
                     count_solved.fetch_add(1, Ordering::Relaxed);
                     let count: usize = count_solved.load(Ordering::Relaxed);
@@ -491,7 +531,7 @@ impl SolveLogisticRegression {
     //     result
     // }
 
-    fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<ProcessedTask> {
+    fn process_task(task: &Task) -> anyhow::Result<ProcessedTask> {
         let count_test: u8 = task.count_test().min(255) as u8;
         if count_test < 1 {
             return Err(anyhow::anyhow!("skipping task: {} because it has no test pairs", task.id));
@@ -510,89 +550,39 @@ impl SolveLogisticRegression {
             prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionDifferentSize;
         }
 
-        let mut computed_images = Vec::<Image>::new();
+        let mut ptwotp_vec = Vec::<ProcessedTaskWithOneTestPair>::new();
         for test_index in 0..count_test {
-            // println!("task: {} test_index: {} before", task.id, test_index);
-            let computed_image: Image = match Self::process_task_with_one_test_pair(&context, &task_for_processing, test_index) {
+            let ptwotp: ProcessedTaskWithOneTestPair = match Self::process_task_with_one_test_pair(&context, &task_for_processing, test_index) {
                 Ok(value) => value,
                 Err(error) => {
-                    // println!("task: {} test_index: {} error: {:?}", task.id, test_index, error);
                     return Err(error);
                 }
             };
-            // println!("task: {} test_index: {} after", task.id, test_index);
-            computed_images.push(computed_image);
+            ptwotp_vec.push(ptwotp);
         }
-        // println!("task: {} computed_images.len(): {}", task.id, computed_images.len());
 
-        let mut result_predictions = Vec::<arcathon_solution_coordinator::Prediction>::new();
-        for (test_index, computed_image) in computed_images.iter().enumerate() {
-            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(computed_image);
+        let mut prediction_vec = Vec::<arcathon_solution_coordinator::Prediction>::new();
+        for (test_index, ptwotp) in ptwotp_vec.iter().enumerate() {
+            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&ptwotp.cropped_image);
             let prediction = arcathon_solution_coordinator::Prediction {
                 output_id: test_index.min(255) as u8,
                 output: grid,
                 prediction_type,
             };
-            result_predictions.push(prediction);
-        }
-
-        if verify_test_output {
-            let mut count_correct: usize = 0;
-            let mut count_incorrect: usize = 0;
-            for (test_index, computed_image) in computed_images.iter().enumerate() {
-                let test_index_u8: u8 = test_index.min(255) as u8;
-                let found_pair: Option<&Pair> = task.pairs.iter().find(|pair| pair.test_index == Some(test_index_u8));
-                let pair: &Pair = match found_pair {
-                    Some(pair) => pair,
-                    None => return Err(anyhow::anyhow!("No pair found with test_index: {}", test_index)),
-                };
-                let expected_output: Image = pair.output.test_image.clone();
-                let is_correct: bool = computed_image == &expected_output;
-                if is_correct {
-                    count_correct += 1;
-                } else {
-                    count_incorrect += 1;
-                }
-
-                if WRITE_TO_HTMLLOG {
-                    if is_correct {
-                        if task.occur_in_solutions_csv {
-                            HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
-                        } else {
-                            HtmlLog::text(format!("{} - correct - no previous solution", task.id));
-                        }
-                        HtmlLog::image(computed_image);
-                    } else {
-                        HtmlLog::text(format!("{} - incorrect", task.id));
-                        let images: Vec<Image> = vec![
-                            pair.input.image.clone(),
-                            expected_output,
-                            computed_image.clone(),
-                        ];
-                        HtmlLog::compare_images(images);
-                    }
-                }
-            
-            }
-        
-            if count_correct == 0 {
-                return Err(anyhow::anyhow!("The predicted output doesn't match with the expected output"));
-            }
-            if count_incorrect > 0 {
-                println!("task: {} partial match. correct: {} incorrect: {}", task.id, count_correct, count_incorrect);
-            }
+            prediction_vec.push(prediction);
         }
     
-        if result_predictions.len() != (count_test as usize) {
+        if prediction_vec.len() != (count_test as usize) {
             return Err(anyhow::anyhow!("task: {} predictions.len() != task.count_test()", task.id));
         }
         let instance = ProcessedTask {
-            prediction_vec: result_predictions,
+            ptwotp_vec,
+            prediction_vec,
         };
         Ok(instance)
     }
 
-    fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Image> {
+    fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<ProcessedTaskWithOneTestPair> {
         if context.input_size_vec.len() != task.pairs.len() {
             return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
         }
@@ -627,9 +617,6 @@ impl SolveLogisticRegression {
             last_computed_image = Some(computed_image.clone());
             computed_images.push(computed_image);
         }
-        if WRITE_TO_HTMLLOG {
-            HtmlLog::compare_images(computed_images.clone());
-        }
 
         let computed_image: Image = match last_computed_image {
             Some(value) => value,
@@ -647,7 +634,11 @@ impl SolveLogisticRegression {
             cropped_image = cropped_image.replace_color(color, most_popular_output_color)?;
         }
 
-        Ok(cropped_image)
+        let instance = ProcessedTaskWithOneTestPair {
+            cropped_image,
+            inspect_internal_image_vec: computed_images,
+        };
+        Ok(instance)
     }
 
     #[allow(dead_code)]
