@@ -239,7 +239,7 @@ enum ProcessTaskMode {
 
 #[derive(Clone, Debug)]
 pub struct ProcessTaskContext {
-    #[allow(dead_code)]
+    variant: u8,
     mode: ProcessTaskMode,
     input_size_vec: Vec<ImageSize>,
     output_size_vec: Vec<ImageSize>,
@@ -247,13 +247,14 @@ pub struct ProcessTaskContext {
 }
 
 impl ProcessTaskContext {
-    pub fn new(task: &Task) -> Self {
+    pub fn new(task: &Task, variant: u8) -> Self {
         let mode: ProcessTaskMode = if task.is_output_size_same_as_input_size() { 
             ProcessTaskMode::InputOutputSameSize 
         } else { 
             ProcessTaskMode::InputOutputDifferentSize 
         };
         let mut instance = Self {
+            variant,
             mode,
             input_size_vec: Vec::<ImageSize>::new(),
             output_size_vec: Vec::<ImageSize>::new(),
@@ -336,6 +337,7 @@ impl ProcessTaskContext {
 
 /// Returned from `process_task_with_one_test_pair`
 struct ProcessedTaskWithOneTestPair {
+    test_index: u8,
     cropped_image: Image,
     inspect_internal_image_vec: Vec<Image>,
 }
@@ -378,6 +380,8 @@ impl SolveLogisticRegression {
         self.tasks.par_iter().for_each(|task| {
             pb.inc(1);
 
+            let task_count_test: usize = task.count_test();
+
             // Make predictions
             let processed_task: ProcessedTask = match Self::process_task(task) {
                 Ok(value) => value,
@@ -388,16 +392,18 @@ impl SolveLogisticRegression {
             };
 
             // Verify predictions
-            let mut count_correct: usize = 0;
             let mut correct_vec = Vec::<bool>::new();
+            let mut test_index_to_correct_count = HashMap::<usize, usize>::new();
             for prediction in &processed_task.prediction_vec {
                 let mut is_correct = false;
                 match prediction.verify_prediction(task) {
                     Ok(verify_prediction) => {
                         match verify_prediction {
                             VerifyPrediction::Correct => {
-                                count_correct += 1;
                                 is_correct = true;
+
+                                // Count the number of times each test pair is solved correctly.
+                                test_index_to_correct_count.entry(prediction.output_id as usize).and_modify(|e| *e += 1).or_insert(1);
                             },
                             _ => {}
                         }
@@ -408,14 +414,34 @@ impl SolveLogisticRegression {
                 }
                 correct_vec.push(is_correct);
             }
-            let task_count_test: usize = task.count_test();
-            if count_correct == task_count_test {
+
+            let mut fully_solved_test_pairs = true;
+            let mut number_of_solved_test_pairs: usize = 0;
+            for i in 0..task_count_test {
+                let count: usize = match test_index_to_correct_count.get(&i) {
+                    Some(value) => *value,
+                    None => {
+                        fully_solved_test_pairs = false;
+                        continue;
+                    }
+                };
+                if count == 0 {
+                    fully_solved_test_pairs = false;
+                }
+                if count >= 1 {
+                    number_of_solved_test_pairs += 1;
+                }
+            }
+
+            if fully_solved_test_pairs {
                 count_solved_full.fetch_add(1, Ordering::Relaxed);
-                pb.println(format!("task {} - solved full, {} test pairs", task.id, count_correct));
+                pb.println(format!("task {} - solved full, {} test pairs", task.id, number_of_solved_test_pairs));
+                HtmlLog::text(format!("task {} - solved full, {} test pairs", task.id, number_of_solved_test_pairs));
             } else {
-                if count_correct >= 1 {
+                if number_of_solved_test_pairs >= 1 {
                     count_solved_partial.fetch_add(1, Ordering::Relaxed);
-                    pb.println(format!("task {} - solved partial, {} correct of {} test pairs", task.id, count_correct, task_count_test));
+                    pb.println(format!("task {} - solved partial, {} correct of {} test pairs", task.id, number_of_solved_test_pairs, task_count_test));
+                    HtmlLog::text(format!("task {} - solved partial, {} correct of {} test pairs", task.id, number_of_solved_test_pairs, task_count_test));
                 }
             }
             let count_full: usize = count_solved_full.load(Ordering::Relaxed);
@@ -428,15 +454,11 @@ impl SolveLogisticRegression {
                     HtmlLog::compare_images(ptwotp.inspect_internal_image_vec.clone());
                     let is_correct: bool = correct_vec[index];
                     if is_correct {
-                        if task.occur_in_solutions_csv {
-                            HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
-                        } else {
-                            HtmlLog::text(format!("{} - correct - no previous solution", task.id));
-                        }
+                        HtmlLog::text(format!("{} - test_index: {} - correct", task.id, ptwotp.test_index));
                         HtmlLog::image(&ptwotp.cropped_image);
                     } else {
-                        HtmlLog::text(format!("{} - incorrect", task.id));
-                        let pair: &Pair = match task.pair_for_test_index(index.min(255) as u8) {
+                        HtmlLog::text(format!("{} - test_index: {} - incorrect", task.id, ptwotp.test_index));
+                        let pair: &Pair = match task.pair_for_test_index(ptwotp.test_index) {
                             Ok(pair) => pair,
                             Err(error) => {
                                 pb.println(format!("{} - error: {:?}", task.id, error));
@@ -534,12 +556,31 @@ impl SolveLogisticRegression {
     // }
 
     fn process_task(task: &Task) -> anyhow::Result<ProcessedTask> {
+        let mut accumulated_processed_task = ProcessedTask {
+            ptwotp_vec: vec!(),
+            prediction_vec: vec!(),
+        };
+
+        for variant in 0u8..=1 {
+            let processed_task: ProcessedTask = Self::process_task_item(task, variant)
+                .with_context(|| format!("task: {} Unable to process_task_item() with variant: {}", task.id, variant))?;
+
+            accumulated_processed_task.ptwotp_vec.extend(processed_task.ptwotp_vec);
+            accumulated_processed_task.prediction_vec.extend(processed_task.prediction_vec);
+        }
+        if accumulated_processed_task.prediction_vec.is_empty() || accumulated_processed_task.ptwotp_vec.is_empty() {
+            return Err(anyhow::anyhow!("task: {} prediction_vec.is_empty() or ptwotp_vec.is_empty(). It's supposed to be non-empty.", task.id));
+        }
+        Ok(accumulated_processed_task)
+    }
+
+    fn process_task_item(task: &Task, variant: u8) -> anyhow::Result<ProcessedTask> {
         let count_test: u8 = task.count_test().min(255) as u8;
         if count_test < 1 {
             return Err(anyhow::anyhow!("skipping task: {} because it has no test pairs", task.id));
         }    
 
-        let context = ProcessTaskContext::new(task);
+        let context = ProcessTaskContext::new(task, variant);
 
         let task_for_processing: Task;
         let prediction_type: arcathon_solution_coordinator::PredictionType;
@@ -637,6 +678,7 @@ impl SolveLogisticRegression {
         }
 
         let instance = ProcessedTaskWithOneTestPair {
+            test_index,
             cropped_image,
             inspect_internal_image_vec: computed_images,
         };
@@ -815,6 +857,8 @@ impl SolveLogisticRegression {
             return Err(anyhow::anyhow!("process_task_iteration all the pairs must have same input_size and output_size"));
         }
 
+        let v: usize = context.variant as usize;
+
 
         // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
@@ -829,10 +873,12 @@ impl SolveLogisticRegression {
             ProcessTaskMode::InputOutputSameSize => false,
             ProcessTaskMode::InputOutputDifferentSize => true,
         };
+
+
         
         let enable_total_clustercount: bool = false;
         let enable_color_clustercount: bool = false;
-        let enable_half_context_input_size: bool = true;
+        let enable_half_context_input_size: bool = [true, false][v];
         let enable_half_context_output_size: bool = false;
         let enable_normalized_coordinates_context_input_size: bool = false;
         let enable_normalized_coordinates_context_output_size: bool = false;
@@ -845,8 +891,8 @@ impl SolveLogisticRegression {
         let enable_distance: bool = !has_different_size_for_input_output;
         let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
 
-        let enable_histogram_diagonal_a: bool = false;
-        let enable_histogram_diagonal_b: bool = false;
+        let enable_histogram_diagonal_a: bool = [false, true][v];
+        let enable_histogram_diagonal_b: bool = [false, true][v];
         let enable_histogram_diagonal_c: bool = false;
         let enable_histogram_diagonal_d: bool = false;
         let enable_histogram_diagonal_e: bool = false;
@@ -854,8 +900,8 @@ impl SolveLogisticRegression {
         let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
 
         let enable_center_indicator_a: bool = false;
-        let enable_center_indicator_x: bool = false;
-        let enable_center_indicator_y: bool = false;
+        let enable_center_indicator_x: bool = [false, true][v];
+        let enable_center_indicator_y: bool = [false, true][v];
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         let enable_input_four_xy_pairs: bool = false;
@@ -864,22 +910,22 @@ impl SolveLogisticRegression {
         let enable_output_three_xy_pairs: bool = false;
         let enable_gravity: bool = false;
 
-        let enable_mod2: bool = true;
-        let enable_mod2_reverse_input: bool = true;
+        let enable_mod2: bool = [true, false][v];
+        let enable_mod2_reverse_input: bool = [true, false][v];
         let enable_mod2_reverse_output: bool = false;
 
-        let enable_mod3: bool = false;
-        let enable_mod3_reverse_input: bool = false;
-        let enable_mod3_reverse_output: bool = false;
+        let enable_mod3: bool = [false, true][v];
+        let enable_mod3_reverse_input: bool = [false, true][v];
+        let enable_mod3_reverse_output: bool = [false, has_different_size_for_input_output][v];
 
         let enable_hole_type1: bool = true;
         let enable_color_repair: bool = true;
         
         let enable_shape_transformation_images: bool = false;
-        let enable_noisecolor_in_outline: bool = true;
+        let enable_noisecolor_in_outline: bool = [true, false][v];
         let enable_grid: bool = true;
 
-        let enable_enumerated_clusters_grow_mask3: bool = false;
+        let enable_enumerated_clusters_grow_mask3: bool = [false, true][v];
         let enable_color_grow_mask1: bool = false;
         let enable_color_grow_mask2: bool = false;
         let enable_color_grow_mask3: bool = false;
@@ -888,9 +934,9 @@ impl SolveLogisticRegression {
         let enable_no_change_to_center_color: bool = false;
         let enable_no_change_to_noise_color: bool = false;
         let enable_object_center_same_as_neighbour: bool = false;
-        let enable_edge: bool = false;
+        let enable_edge: bool = [false, true][v];
 
-        let enable_color_inside_bounding_box: bool = true;
+        let enable_color_inside_bounding_box: bool = [true, false][v];
         let enable_object_id_image_connectivity4: bool = false;
         let enable_object_id_image_connectivity8: bool = false;
 
@@ -901,8 +947,8 @@ impl SolveLogisticRegression {
         let enable_full_row_and_column: bool = true;
         let enable_full_row_xor_column: bool = true;
         let enable_full_row_or_column: bool = true;
-        let enable_full_row: bool = false;
-        let enable_full_column: bool = false;
+        let enable_full_row: bool = [false, true][v];
+        let enable_full_column: bool = [false, true][v];
 
         let enable_symmetry_shorter: bool = false;
         let enable_symmetry_masks: bool = false;
@@ -922,7 +968,7 @@ impl SolveLogisticRegression {
         let enable_colordirection_to_distanceimage: bool = false;
         let enable_neighbour_color: bool = false;
         let enable_adjacent_neighbour_same_as_center: bool = false;
-        let enable_opposite_neighbour: bool = false;
+        let enable_opposite_neighbour: bool = [false, true][v];
         let enable_removal_color_center: bool = false;
         let enable_detect_nonsquare: bool = false;
 
