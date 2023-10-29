@@ -561,7 +561,7 @@ impl SolveLogisticRegression {
             prediction_vec: vec!(),
         };
 
-        for variant in 0u8..=1 {
+        for variant in 0u8..=2 {
             let processed_task: ProcessedTask = Self::process_task_item(task, variant)
                 .with_context(|| format!("task: {} Unable to process_task_item() with variant: {}", task.id, variant))?;
 
@@ -878,8 +878,8 @@ impl SolveLogisticRegression {
         
         let enable_total_clustercount: bool = false;
         let enable_color_clustercount: bool = false;
-        let enable_half_context_input_size: bool = [true, false][v];
-        let enable_half_context_output_size: bool = false;
+        let enable_half_context_input_size: bool = [true, false, false][v];
+        let enable_half_context_output_size: bool = [false, false, has_different_size_for_input_output][v];
         let enable_normalized_coordinates_context_input_size: bool = false;
         let enable_normalized_coordinates_context_output_size: bool = false;
 
@@ -891,17 +891,17 @@ impl SolveLogisticRegression {
         let enable_distance: bool = !has_different_size_for_input_output;
         let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
 
-        let enable_histogram_diagonal_a: bool = [false, true][v];
-        let enable_histogram_diagonal_b: bool = [false, true][v];
-        let enable_histogram_diagonal_c: bool = false;
-        let enable_histogram_diagonal_d: bool = false;
+        let enable_histogram_diagonal_a: bool = [false, true, false][v];
+        let enable_histogram_diagonal_b: bool = [false, true, false][v];
+        let enable_histogram_diagonal_c: bool = [false, false, true][v];
+        let enable_histogram_diagonal_d: bool = [false, false, true][v];
         let enable_histogram_diagonal_e: bool = false;
         let enable_histogram_diagonal_f: bool = false;
         let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
 
-        let enable_center_indicator_a: bool = false;
-        let enable_center_indicator_x: bool = [false, true][v];
-        let enable_center_indicator_y: bool = [false, true][v];
+        let enable_center_indicator_a: bool = [false, false, true][v];
+        let enable_center_indicator_x: bool = [false, true, false][v];
+        let enable_center_indicator_y: bool = [false, true, false][v];
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         let enable_input_four_xy_pairs: bool = false;
@@ -910,33 +910,33 @@ impl SolveLogisticRegression {
         let enable_output_three_xy_pairs: bool = false;
         let enable_gravity: bool = false;
 
-        let enable_mod2: bool = [true, false][v];
-        let enable_mod2_reverse_input: bool = [true, false][v];
+        let enable_mod2: bool = [true, false, true][v];
+        let enable_mod2_reverse_input: bool = [true, false, true][v];
         let enable_mod2_reverse_output: bool = false;
 
-        let enable_mod3: bool = [false, true][v];
-        let enable_mod3_reverse_input: bool = [false, true][v];
-        let enable_mod3_reverse_output: bool = [false, has_different_size_for_input_output][v];
+        let enable_mod3: bool = [false, true, false][v];
+        let enable_mod3_reverse_input: bool = [false, true, false][v];
+        let enable_mod3_reverse_output: bool = [false, has_different_size_for_input_output, false][v];
 
         let enable_hole_type1: bool = true;
         let enable_color_repair: bool = true;
         
-        let enable_shape_transformation_images: bool = false;
-        let enable_noisecolor_in_outline: bool = [true, false][v];
+        let enable_shape_transformation_images: bool = [false, false, true][v];
+        let enable_noisecolor_in_outline: bool = [true, false, false][v];
         let enable_grid: bool = true;
 
-        let enable_enumerated_clusters_grow_mask3: bool = [false, true][v];
-        let enable_color_grow_mask1: bool = false;
-        let enable_color_grow_mask2: bool = false;
-        let enable_color_grow_mask3: bool = false;
+        let enable_enumerated_clusters_grow_mask3: bool = [false, true, true][v];
+        let enable_color_grow_mask1: bool = [false, false, true][v];
+        let enable_color_grow_mask2: bool = [false, false, true][v];
+        let enable_color_grow_mask3: bool = [false, false, true][v];
 
         let enable_no_change_to_color: bool = true;
         let enable_no_change_to_center_color: bool = false;
         let enable_no_change_to_noise_color: bool = false;
         let enable_object_center_same_as_neighbour: bool = false;
-        let enable_edge: bool = [false, true][v];
+        let enable_edge: bool = [false, true, false][v];
 
-        let enable_color_inside_bounding_box: bool = [true, false][v];
+        let enable_color_inside_bounding_box: bool = [true, false, false][v];
         let enable_object_id_image_connectivity4: bool = false;
         let enable_object_id_image_connectivity8: bool = false;
 
@@ -947,8 +947,8 @@ impl SolveLogisticRegression {
         let enable_full_row_and_column: bool = true;
         let enable_full_row_xor_column: bool = true;
         let enable_full_row_or_column: bool = true;
-        let enable_full_row: bool = [false, true][v];
-        let enable_full_column: bool = [false, true][v];
+        let enable_full_row: bool = [false, true, false][v];
+        let enable_full_column: bool = [false, true, false][v];
 
         let enable_symmetry_shorter: bool = false;
         let enable_symmetry_masks: bool = false;
@@ -958,7 +958,7 @@ impl SolveLogisticRegression {
         let enable_histogram_columns_rows_lookaround: bool = false;
 
         let enable_exterior_of_clusters: bool = false;
-        let enable_largest_interior_rectangle_masks: bool = false;
+        let enable_largest_interior_rectangle_masks: bool = [false, false, true][v];
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
 
@@ -968,7 +968,7 @@ impl SolveLogisticRegression {
         let enable_colordirection_to_distanceimage: bool = false;
         let enable_neighbour_color: bool = false;
         let enable_adjacent_neighbour_same_as_center: bool = false;
-        let enable_opposite_neighbour: bool = [false, true][v];
+        let enable_opposite_neighbour: bool = [false, true, false][v];
         let enable_removal_color_center: bool = false;
         let enable_detect_nonsquare: bool = false;
 
