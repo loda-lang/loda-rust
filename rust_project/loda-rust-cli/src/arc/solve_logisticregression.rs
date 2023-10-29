@@ -376,78 +376,82 @@ impl SolveLogisticRegression {
             .progress_chars("#>-")
         );
         self.tasks.par_iter().for_each(|task| {
-            match Self::process_task(task) {
-                Ok(processed_task) => {
-                    let mut count_correct: usize = 0;
-                    let mut correct_vec = Vec::<bool>::new();
-                    for prediction in &processed_task.prediction_vec {
-                        let mut is_correct = false;
-                        match prediction.verify_prediction(task) {
-                            Ok(verify_prediction) => {
-                                match verify_prediction {
-                                    VerifyPrediction::Correct => {
-                                        count_correct += 1;
-                                        is_correct = true;
-                                    },
-                                    _ => {}
-                                }
-                            },
-                            Err(error) => {
-                                pb.println(format!("task: {} - output_id: {} - verify_prediction - error: {:?}", task.id, prediction.output_id, error));
-                            }
-                        }
-                        correct_vec.push(is_correct);
-                    }
-                    let task_count_test: usize = task.count_test();
-                    if count_correct == task_count_test {
-                        count_solved_full.fetch_add(1, Ordering::Relaxed);
-                        pb.println(format!("task {} - solved full, {} test pairs", task.id, count_correct));
-                    } else {
-                        if count_correct >= 1 {
-                            count_solved_partial.fetch_add(1, Ordering::Relaxed);
-                            pb.println(format!("task {} - solved partial, {} correct of {} test pairs", task.id, count_correct, task_count_test));
-                        }
-                    }
-                    let count_full: usize = count_solved_full.load(Ordering::Relaxed);
-                    let count_partial: usize = count_solved_partial.load(Ordering::Relaxed);
-                    pb.set_message(format!("Solved full: {}, partial: {}", count_full, count_partial));
+            pb.inc(1);
 
-                    if run_and_verify_htmllog {
-                        for (index, ptwotp) in processed_task.ptwotp_vec.iter().enumerate() {
-                            HtmlLog::compare_images(ptwotp.inspect_internal_image_vec.clone());
-                            let is_correct: bool = correct_vec[index];
-                            if is_correct {
-                                if task.occur_in_solutions_csv {
-                                    HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
-                                } else {
-                                    HtmlLog::text(format!("{} - correct - no previous solution", task.id));
-                                }
-                                HtmlLog::image(&ptwotp.cropped_image);
-                            } else {
-                                HtmlLog::text(format!("{} - incorrect", task.id));
-                                let pair: &Pair = match task.pair_for_test_index(index.min(255) as u8) {
-                                    Ok(pair) => pair,
-                                    Err(error) => {
-                                        pb.println(format!("{} - error: {:?}", task.id, error));
-                                        continue;
-                                    }
-                                };
-                                let images: Vec<Image> = vec![
-                                    pair.input.image.clone(),
-                                    pair.output.test_image.clone(),
-                                    ptwotp.cropped_image.clone(),
-                                ];
-                                HtmlLog::compare_images(images);
-                            }
-                        }
-                    }
-    
-                },
+            // Make predictions
+            let processed_task: ProcessedTask = match Self::process_task(task) {
+                Ok(value) => value,
                 Err(error) => {
                     pb.println(format!("task {} - error: {:?}", task.id, error));
+                    return;
+                }
+            };
+
+            // Verify predictions
+            let mut count_correct: usize = 0;
+            let mut correct_vec = Vec::<bool>::new();
+            for prediction in &processed_task.prediction_vec {
+                let mut is_correct = false;
+                match prediction.verify_prediction(task) {
+                    Ok(verify_prediction) => {
+                        match verify_prediction {
+                            VerifyPrediction::Correct => {
+                                count_correct += 1;
+                                is_correct = true;
+                            },
+                            _ => {}
+                        }
+                    },
+                    Err(error) => {
+                        pb.println(format!("task: {} - output_id: {} - verify_prediction - error: {:?}", task.id, prediction.output_id, error));
+                    }
+                }
+                correct_vec.push(is_correct);
+            }
+            let task_count_test: usize = task.count_test();
+            if count_correct == task_count_test {
+                count_solved_full.fetch_add(1, Ordering::Relaxed);
+                pb.println(format!("task {} - solved full, {} test pairs", task.id, count_correct));
+            } else {
+                if count_correct >= 1 {
+                    count_solved_partial.fetch_add(1, Ordering::Relaxed);
+                    pb.println(format!("task {} - solved partial, {} correct of {} test pairs", task.id, count_correct, task_count_test));
                 }
             }
-            pb.inc(1);
+            let count_full: usize = count_solved_full.load(Ordering::Relaxed);
+            let count_partial: usize = count_solved_partial.load(Ordering::Relaxed);
+            pb.set_message(format!("Solved full: {}, partial: {}", count_full, count_partial));
+
+            // Display the internal computed image to the html log
+            if run_and_verify_htmllog {
+                for (index, ptwotp) in processed_task.ptwotp_vec.iter().enumerate() {
+                    HtmlLog::compare_images(ptwotp.inspect_internal_image_vec.clone());
+                    let is_correct: bool = correct_vec[index];
+                    if is_correct {
+                        if task.occur_in_solutions_csv {
+                            HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
+                        } else {
+                            HtmlLog::text(format!("{} - correct - no previous solution", task.id));
+                        }
+                        HtmlLog::image(&ptwotp.cropped_image);
+                    } else {
+                        HtmlLog::text(format!("{} - incorrect", task.id));
+                        let pair: &Pair = match task.pair_for_test_index(index.min(255) as u8) {
+                            Ok(pair) => pair,
+                            Err(error) => {
+                                pb.println(format!("{} - error: {:?}", task.id, error));
+                                continue;
+                            }
+                        };
+                        let images: Vec<Image> = vec![
+                            pair.input.image.clone(),
+                            pair.output.test_image.clone(),
+                            ptwotp.cropped_image.clone(),
+                        ];
+                        HtmlLog::compare_images(images);
+                    }
+                }
+            }
         });
         pb.finish_and_clear();
         let count_full: usize = count_solved_full.load(Ordering::Relaxed);
