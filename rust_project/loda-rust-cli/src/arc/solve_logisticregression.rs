@@ -987,7 +987,7 @@ impl SolveLogisticRegression {
         let enable_colordirection_to_distanceimage: bool = false;
         let enable_neighbour_color: bool = false;
         let enable_adjacent_neighbour_same_as_center: bool = false;
-        let enable_opposite_neighbour: bool = [false, true, false][v];
+        let enable_opposite_neighbour: bool = [false, true, true][v];
         let enable_removal_color_center: bool = false;
         let enable_detect_nonsquare: bool = false;
 
