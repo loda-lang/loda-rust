@@ -59,7 +59,7 @@ use rand::{SeedableRng, Rng};
 use rand::rngs::StdRng;
 use serde::Serialize;
 use std::borrow::BorrowMut;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use linfa::prelude::*;
 use linfa_logistic::{MultiLogisticRegression, MultiFittedLogisticRegression};
@@ -368,6 +368,7 @@ impl SolveLogisticRegression {
     /// This cannot be run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
     pub fn run_and_verify(&self) -> anyhow::Result<()> {
         let run_and_verify_htmllog = true;
+        let run_and_verify_ignore_already_solved = false;
         let number_of_tasks: u64 = self.tasks.len() as u64;
         println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
         let count_solved_full = AtomicUsize::new(0);
@@ -377,8 +378,26 @@ impl SolveLogisticRegression {
             .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
             .progress_chars("#>-")
         );
+        
+        let already_fully_solved_tasks_ids = [
+            "009d5c81", "00d62c1b", "00dbd492", "0a2355a6", "0d3d703e", "140c817e", "1c0d0a4b", "2072aba6", "21f83797", "2281f1f4",
+            "23581191", "253bf280", "25d8a9c8", "32597951", "332efdb3", "3618c87e", "37d3e8b2", "4258a5f9", "45737921", "4612dd53",
+            "50cb2852", "5168d44c", "5289ad53", "543a7ed5", "5b526a93", "5b6cbef5", "639f5a19", "6455b5f5", "67385a82", "694f12f3",
+            "69889d6e", "6c434453", "6d75e8bb", "6ea4a07e", "6f8cd79b", "810b9b61", "84f2aca1", "868de0fa", "95990924", "a5313dff",
+            "a61f2674", "a65b410d", "a699fb00", "a8d7556c", "a934301b", "a9f96cdd", "aa4ec2a5", "ae58858e", "aedd82e4", "b0c4d837",
+            "b1948b0a", "b2862040", "b60334d2", "b6afb2da", "ba26e723", "bb43febb", "c0f76784", "c8f0f002", "ce039d91", "ce22a75a",
+            "ce9e57f2", "d2abd087", "d364b489", "d37a1ef5", "d406998b", "d5d6de2d", "dbc1a6ce", "dc433765", "ded97339", "e0fb7511",
+            "e872b94a", "e9c9d9a1", "ef135b50"
+        ];
+        let ignore_task_id: HashSet<String> = already_fully_solved_tasks_ids.iter().map(|s| s.to_string()).collect();
+        
         self.tasks.par_iter().for_each(|task| {
             pb.inc(1);
+
+            if run_and_verify_ignore_already_solved && ignore_task_id.contains(&task.id) {
+                // pb.println(format!("ignoring already fully solved task {}", task.id));
+                return;
+            }
 
             let task_count_test: usize = task.count_test();
 
