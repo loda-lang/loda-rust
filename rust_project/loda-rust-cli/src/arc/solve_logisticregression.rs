@@ -465,7 +465,6 @@ impl SolveLogisticRegression {
     /// 
     /// This code is intended to run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
     pub fn run_predictions(&self) -> anyhow::Result<TaskNameToPredictionVec> {
-        let verbose = false;
         let number_of_tasks: u64 = self.tasks.len() as u64;
         println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
         let count_solved = AtomicUsize::new(0);
@@ -476,31 +475,34 @@ impl SolveLogisticRegression {
         );
         let accumulated = Arc::new(Mutex::new(TaskNameToPredictionVec::new()));
         self.tasks.par_iter().for_each(|task| {
-            match Self::process_task(task) {
-                Ok(processed_task) => {
-                    count_solved.fetch_add(1, Ordering::Relaxed);
-                    let count: usize = count_solved.load(Ordering::Relaxed);
-                    pb.set_message(format!("Solved: {}", count));
-                    pb.println(format!("task {} - solved", task.id));
+            pb.inc(1);
 
-                    match accumulated.lock() {
-                        Ok(mut map) => {
-                            map.entry(task.id.clone())
-                                .or_insert(Vec::new())
-                                .extend(processed_task.prediction_vec);
-                        },
-                        Err(error) => {
-                            pb.println(format!("run_predictions. Unable to lock accumulated. error: {:?}", error));
-                        }
-                    };
+            // Make predictions
+            let processed_task: ProcessedTask = match Self::process_task(task) {
+                Ok(value) => value,
+                Err(error) => {
+                    pb.println(format!("task {} - error: {:?}", task.id, error));
+                    return;
+                }
+            };
+
+            // Show progress
+            count_solved.fetch_add(1, Ordering::Relaxed);
+            let count: usize = count_solved.load(Ordering::Relaxed);
+            pb.set_message(format!("Solved: {}", count));
+            pb.println(format!("task {} - solved", task.id));
+
+            // Accumulate the predictions
+            match accumulated.lock() {
+                Ok(mut map) => {
+                    map.entry(task.id.clone())
+                        .or_insert(Vec::new())
+                        .extend(processed_task.prediction_vec);
                 },
                 Err(error) => {
-                    if verbose {
-                        pb.println(format!("task {} - error: {:?}", task.id, error));
-                    }
+                    pb.println(format!("run_predictions. Unable to lock accumulated. error: {:?}", error));
                 }
-            }
-            pb.inc(1);
+            };
         });
         pb.finish_and_clear();
         let count_solved: usize = count_solved.load(Ordering::Relaxed);
