@@ -67,8 +67,6 @@ use ndarray::prelude::*;
 use rayon::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-static WRITE_TO_HTMLLOG: bool = false;
-
 /// The colors 0..9 with an extra `color 10` for the `outside` canvas area.
 #[allow(dead_code)]
 const COUNT_COLORS_PLUS1: u8 = 11;
@@ -367,7 +365,7 @@ impl SolveLogisticRegression {
     /// 
     /// This cannot be run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
     pub fn run_and_verify(&self) -> anyhow::Result<()> {
-        let verbose = false;
+        let run_and_verify_htmllog = true;
         let number_of_tasks: u64 = self.tasks.len() as u64;
         println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
         let count_solved_full = AtomicUsize::new(0);
@@ -414,7 +412,7 @@ impl SolveLogisticRegression {
                     let count_partial: usize = count_solved_partial.load(Ordering::Relaxed);
                     pb.set_message(format!("Solved full: {}, partial: {}", count_full, count_partial));
 
-                    if WRITE_TO_HTMLLOG {
+                    if run_and_verify_htmllog {
                         for (index, ptwotp) in processed_task.ptwotp_vec.iter().enumerate() {
                             HtmlLog::compare_images(ptwotp.inspect_internal_image_vec.clone());
                             let is_correct: bool = correct_vec[index];
@@ -446,9 +444,7 @@ impl SolveLogisticRegression {
     
                 },
                 Err(error) => {
-                    if verbose {
-                        pb.println(format!("task {} - error: {:?}", task.id, error));
-                    }
+                    pb.println(format!("task {} - error: {:?}", task.id, error));
                 }
             }
             pb.inc(1);
