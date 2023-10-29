@@ -13,17 +13,18 @@
 //! 
 //! This current file solves 2 of the tasks from the hidden ARC dataset.
 //!
-//! This solves 64 of the 800 tasks in the public ARC dataset.
+//! This solves 78 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 140c817e, 1c0d0a4b, 2072aba6, 21f83797, 2281f1f4,
-//! 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 45737921, 4612dd53, 50cb2852,
-//! 5168d44c, 5289ad53, 543a7ed5, 5b6cbef5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb,
-//! 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b,
-//! a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784,
-//! c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339,
-//! e0fb7511, e872b94a, e9c9d9a1, ef135b50, 
+//! 23581191, 253bf280, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 45737921, 4612dd53,
+//! 50cb2852, 5168d44c, 5289ad53, 543a7ed5, 54d9e175, 5b526a93, 5b6cbef5, 639f5a19, 6455b5f5, 67385a82,
+//! 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 868de0fa, 90f3ed37,
+//! 95990924, a5313dff, a61f2674, a65b410d, a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e,
+//! aedd82e4, b0c4d837, b1948b0a, b2862040, b60334d2, b6afb2da, ba26e723, bb43febb, bbb1b8b6, c0f76784,
+//! c8f0f002, ce039d91, ce22a75a, ce9e57f2, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dbc1a6ce,
+//! dc433765, de1cd16c, ded97339, e0fb7511, e133d23d, e872b94a, e9c9d9a1, ef135b50, 
 //! 
-//! This partially solves 6 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
-//! 239be575, 27a28665, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3, 
+//! This partially solves 5 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
+//! 239be575, 27a28665, 44f52bb0, 794b24be, da2b0fe3, 
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
