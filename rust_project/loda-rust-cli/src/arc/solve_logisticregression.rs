@@ -957,19 +957,19 @@ impl SolveLogisticRegression {
 
         let enable_color_inside_bounding_box: bool = [true, false, false][v];
         let enable_object_id_image_connectivity4: bool = false;
-        let enable_object_id_image_connectivity8: bool = false;
+        let enable_object_id_image_connectivity8: bool = [false, false, true][v];
 
         let enable_trigram_count_center: bool = false;
         let enable_trigram_count_word1_center: bool = false;
         let enable_trigram_count_word012_center: bool = false;
 
-        let enable_full_row_and_column: bool = true;
-        let enable_full_row_xor_column: bool = true;
-        let enable_full_row_or_column: bool = true;
+        let enable_full_row_and_column: bool = [true, true, false][v];
+        let enable_full_row_xor_column: bool = [true, true, false][v];
+        let enable_full_row_or_column: bool = [true, true, false][v];
         let enable_full_row: bool = [false, true, false][v];
         let enable_full_column: bool = [false, true, false][v];
 
-        let enable_symmetry_shorter: bool = false;
+        let enable_symmetry_shorter: bool = [false, false, true][v];
         let enable_symmetry_masks: bool = false;
         let enable_corner_classification: bool = false;
 
@@ -977,7 +977,7 @@ impl SolveLogisticRegression {
         let enable_histogram_columns_rows_lookaround: bool = false;
 
         let enable_exterior_of_clusters: bool = false;
-        let enable_largest_interior_rectangle_masks: bool = [false, false, true][v];
+        let enable_largest_interior_rectangle_masks: bool = [false, false, false][v];
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
 
