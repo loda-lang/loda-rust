@@ -3062,7 +3062,14 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row_right: Image = match center_row.right_columns(context_input_x_reverse.max(0).min(255) as u8) {
+                    let center_row_right_x: i32 = if has_different_size_for_input_output { 
+                        context_input_x_reverse
+                    } else { 
+                        // This is an old typo. Where I by mistake use the Y coordinate for the X coordinate.
+                        // Fixing the typo, and the number of tasks solved drops by 3 tasks.
+                        context_input_y_reverse 
+                    };
+                    let center_row_right: Image = match center_row.right_columns(center_row_right_x.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
