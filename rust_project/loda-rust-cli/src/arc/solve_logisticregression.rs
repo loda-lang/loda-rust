@@ -13,17 +13,18 @@
 //! 
 //! This current file solves 1 of the tasks from the hidden ARC dataset.
 //!
-//! This solves 64 of the 800 tasks in the public ARC dataset.
+//! This solves 78 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 140c817e, 1c0d0a4b, 2072aba6, 21f83797, 2281f1f4,
-//! 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 45737921, 4612dd53, 50cb2852,
-//! 5168d44c, 5289ad53, 543a7ed5, 5b6cbef5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb,
-//! 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b,
-//! a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784,
-//! c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339,
-//! e0fb7511, e872b94a, e9c9d9a1, ef135b50, 
+//! 23581191, 253bf280, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 45737921, 4612dd53,
+//! 50cb2852, 5168d44c, 5289ad53, 543a7ed5, 54d9e175, 5b526a93, 5b6cbef5, 639f5a19, 6455b5f5, 67385a82,
+//! 694f12f3, 69889d6e, 6c434453, 6d75e8bb, 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 868de0fa, 90f3ed37,
+//! 95990924, a5313dff, a61f2674, a65b410d, a699fb00, a8d7556c, a934301b, a9f96cdd, aa4ec2a5, ae58858e,
+//! aedd82e4, b0c4d837, b1948b0a, b2862040, b60334d2, b6afb2da, ba26e723, bb43febb, bbb1b8b6, c0f76784,
+//! c8f0f002, ce039d91, ce22a75a, ce9e57f2, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dbc1a6ce,
+//! dc433765, de1cd16c, ded97339, e0fb7511, e133d23d, e872b94a, e9c9d9a1, ef135b50, 
 //! 
-//! This partially solves 6 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
-//! 239be575, 27a28665, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3, 
+//! This partially solves 5 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
+//! 239be575, 27a28665, 44f52bb0, 794b24be, da2b0fe3, 
 //! 
 //! Weakness: The tasks that it solves doesn't involve object manipulation. 
 //! It cannot move an object by a few pixels, the object must stay steady in the same position.
@@ -48,7 +49,7 @@
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
 use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat};
-use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
+use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode, VerifyPrediction, VerifyPredictionWithTask};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
 use super::human_readable_utc_timestamp;
@@ -59,15 +60,13 @@ use rand::{SeedableRng, Rng};
 use rand::rngs::StdRng;
 use serde::Serialize;
 use std::borrow::BorrowMut;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use linfa::prelude::*;
 use linfa_logistic::{MultiLogisticRegression, MultiFittedLogisticRegression};
 use ndarray::prelude::*;
 use rayon::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
-
-static WRITE_TO_HTMLLOG: bool = false;
 
 /// The colors 0..9 with an extra `color 10` for the `outside` canvas area.
 #[allow(dead_code)]
@@ -241,7 +240,7 @@ enum ProcessTaskMode {
 
 #[derive(Clone, Debug)]
 pub struct ProcessTaskContext {
-    #[allow(dead_code)]
+    variant: u8,
     mode: ProcessTaskMode,
     input_size_vec: Vec<ImageSize>,
     output_size_vec: Vec<ImageSize>,
@@ -249,13 +248,14 @@ pub struct ProcessTaskContext {
 }
 
 impl ProcessTaskContext {
-    pub fn new(task: &Task) -> Self {
+    pub fn new(task: &Task, variant: u8) -> Self {
         let mode: ProcessTaskMode = if task.is_output_size_same_as_input_size() { 
             ProcessTaskMode::InputOutputSameSize 
         } else { 
             ProcessTaskMode::InputOutputDifferentSize 
         };
         let mut instance = Self {
+            variant,
             mode,
             input_size_vec: Vec::<ImageSize>::new(),
             output_size_vec: Vec::<ImageSize>::new(),
@@ -336,6 +336,18 @@ impl ProcessTaskContext {
     }
 }
 
+/// Returned from `process_task_with_one_test_pair`
+struct ProcessedTaskWithOneTestPair {
+    test_index: u8,
+    cropped_image: Image,
+    inspect_internal_image_vec: Vec<Image>,
+}
+
+struct ProcessedTask {
+    ptwotp_vec: Vec<ProcessedTaskWithOneTestPair>,
+    prediction_vec: Vec<arcathon_solution_coordinator::Prediction>,
+}
+
 pub struct SolveLogisticRegression {
     #[allow(dead_code)]
     tasks: Vec<Task>,
@@ -356,36 +368,138 @@ impl SolveLogisticRegression {
     /// 
     /// This cannot be run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
     pub fn run_and_verify(&self) -> anyhow::Result<()> {
-        let verbose = false;
-        let verify_test_output = true;
+        let run_and_verify_htmllog = true;
+        let run_and_verify_ignore_already_solved = false;
         let number_of_tasks: u64 = self.tasks.len() as u64;
         println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
-        let count_solved = AtomicUsize::new(0);
+        let count_solved_full = AtomicUsize::new(0);
+        let count_solved_partial = AtomicUsize::new(0);
         let pb = ProgressBar::new(number_of_tasks as u64);
         pb.set_style(ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
             .progress_chars("#>-")
         );
+        
+        let already_fully_solved_tasks_ids = [
+            "009d5c81", "00d62c1b", "00dbd492", "0a2355a6", "0d3d703e", "140c817e", "1c0d0a4b", "2072aba6", "21f83797", "2281f1f4",
+            "23581191", "253bf280", "25d8a9c8", "32597951", "332efdb3", "3618c87e", "37d3e8b2", "4258a5f9", "45737921", "4612dd53",
+            "50cb2852", "5168d44c", "5289ad53", "543a7ed5", "5b526a93", "5b6cbef5", "639f5a19", "6455b5f5", "67385a82", "694f12f3",
+            "69889d6e", "6c434453", "6d75e8bb", "6ea4a07e", "6f8cd79b", "810b9b61", "84f2aca1", "868de0fa", "95990924", "a5313dff",
+            "a61f2674", "a65b410d", "a699fb00", "a8d7556c", "a934301b", "a9f96cdd", "aa4ec2a5", "ae58858e", "aedd82e4", "b0c4d837",
+            "b1948b0a", "b2862040", "b60334d2", "b6afb2da", "ba26e723", "bb43febb", "c0f76784", "c8f0f002", "ce039d91", "ce22a75a",
+            "ce9e57f2", "d2abd087", "d364b489", "d37a1ef5", "d406998b", "d5d6de2d", "dbc1a6ce", "dc433765", "ded97339", "e0fb7511",
+            "e872b94a", "e9c9d9a1", "ef135b50"
+        ];
+        let ignore_task_id: HashSet<String> = already_fully_solved_tasks_ids.iter().map(|s| s.to_string()).collect();
+        
         self.tasks.par_iter().for_each(|task| {
-            match Self::process_task(task, verify_test_output) {
-                Ok(_predictions) => {
-                    count_solved.fetch_add(1, Ordering::Relaxed);
-                    let count: usize = count_solved.load(Ordering::Relaxed);
-                    pb.set_message(format!("Solved: {}", count));
-                    pb.println(format!("task {} - solved", task.id));
-                },
+            pb.inc(1);
+
+            if run_and_verify_ignore_already_solved && ignore_task_id.contains(&task.id) {
+                // pb.println(format!("ignoring already fully solved task {}", task.id));
+                return;
+            }
+
+            let task_count_test: usize = task.count_test();
+
+            // Make predictions
+            let processed_task: ProcessedTask = match Self::process_task(task) {
+                Ok(value) => value,
                 Err(error) => {
-                    if verbose {
-                        pb.println(format!("task {} - error: {:?}", task.id, error));
+                    pb.println(format!("task {} - error: {:?}", task.id, error));
+                    return;
+                }
+            };
+
+            // Verify predictions
+            let mut correct_vec = Vec::<bool>::new();
+            let mut test_index_to_correct_count = HashMap::<usize, usize>::new();
+            for prediction in &processed_task.prediction_vec {
+                let mut is_correct = false;
+                match prediction.verify_prediction(task) {
+                    Ok(verify_prediction) => {
+                        match verify_prediction {
+                            VerifyPrediction::Correct => {
+                                is_correct = true;
+
+                                // Count the number of times each test pair is solved correctly.
+                                test_index_to_correct_count.entry(prediction.output_id as usize).and_modify(|e| *e += 1).or_insert(1);
+                            },
+                            _ => {}
+                        }
+                    },
+                    Err(error) => {
+                        pb.println(format!("task: {} - output_id: {} - verify_prediction - error: {:?}", task.id, prediction.output_id, error));
+                    }
+                }
+                correct_vec.push(is_correct);
+            }
+
+            let mut fully_solved_test_pairs = true;
+            let mut number_of_solved_test_pairs: usize = 0;
+            for i in 0..task_count_test {
+                let count: usize = match test_index_to_correct_count.get(&i) {
+                    Some(value) => *value,
+                    None => {
+                        fully_solved_test_pairs = false;
+                        continue;
+                    }
+                };
+                if count == 0 {
+                    fully_solved_test_pairs = false;
+                }
+                if count >= 1 {
+                    number_of_solved_test_pairs += 1;
+                }
+            }
+
+            if fully_solved_test_pairs {
+                count_solved_full.fetch_add(1, Ordering::Relaxed);
+                pb.println(format!("task {} - solved full, {} test pairs", task.id, number_of_solved_test_pairs));
+                HtmlLog::text(format!("task {} - solved full, {} test pairs", task.id, number_of_solved_test_pairs));
+            } else {
+                if number_of_solved_test_pairs >= 1 {
+                    count_solved_partial.fetch_add(1, Ordering::Relaxed);
+                    pb.println(format!("task {} - solved partial, {} correct of {} test pairs", task.id, number_of_solved_test_pairs, task_count_test));
+                    HtmlLog::text(format!("task {} - solved partial, {} correct of {} test pairs", task.id, number_of_solved_test_pairs, task_count_test));
+                }
+            }
+            let count_full: usize = count_solved_full.load(Ordering::Relaxed);
+            let count_partial: usize = count_solved_partial.load(Ordering::Relaxed);
+            pb.set_message(format!("Solved full: {}, partial: {}", count_full, count_partial));
+
+            // Display the internal computed image to the html log
+            if run_and_verify_htmllog {
+                for (index, ptwotp) in processed_task.ptwotp_vec.iter().enumerate() {
+                    HtmlLog::compare_images(ptwotp.inspect_internal_image_vec.clone());
+                    let is_correct: bool = correct_vec[index];
+                    if is_correct {
+                        HtmlLog::text(format!("{} - test_index: {} - correct", task.id, ptwotp.test_index));
+                        HtmlLog::image(&ptwotp.cropped_image);
+                    } else {
+                        HtmlLog::text(format!("{} - test_index: {} - incorrect", task.id, ptwotp.test_index));
+                        let pair: &Pair = match task.pair_for_test_index(ptwotp.test_index) {
+                            Ok(pair) => pair,
+                            Err(error) => {
+                                pb.println(format!("{} - error: {:?}", task.id, error));
+                                continue;
+                            }
+                        };
+                        let images: Vec<Image> = vec![
+                            pair.input.image.clone(),
+                            pair.output.test_image.clone(),
+                            ptwotp.cropped_image.clone(),
+                        ];
+                        HtmlLog::compare_images(images);
                     }
                 }
             }
-            pb.inc(1);
         });
         pb.finish_and_clear();
-        let count_solved: usize = count_solved.load(Ordering::Relaxed);
+        let count_full: usize = count_solved_full.load(Ordering::Relaxed);
+        let count_partial: usize = count_solved_partial.load(Ordering::Relaxed);
         println!("{} - run - end", human_readable_utc_timestamp());
-        println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
+        println!("{} - out of {} tasks, fully solved {} and partially solved {}", human_readable_utc_timestamp(), number_of_tasks, count_full, count_partial);
         Ok(())
     }
 
@@ -393,8 +507,6 @@ impl SolveLogisticRegression {
     /// 
     /// This code is intended to run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
     pub fn run_predictions(&self) -> anyhow::Result<TaskNameToPredictionVec> {
-        let verbose = false;
-        let verify_test_output = false;
         let number_of_tasks: u64 = self.tasks.len() as u64;
         println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
         let count_solved = AtomicUsize::new(0);
@@ -405,31 +517,34 @@ impl SolveLogisticRegression {
         );
         let accumulated = Arc::new(Mutex::new(TaskNameToPredictionVec::new()));
         self.tasks.par_iter().for_each(|task| {
-            match Self::process_task(task, verify_test_output) {
-                Ok(predictions) => {
-                    count_solved.fetch_add(1, Ordering::Relaxed);
-                    let count: usize = count_solved.load(Ordering::Relaxed);
-                    pb.set_message(format!("Solved: {}", count));
-                    pb.println(format!("task {} - solved", task.id));
+            pb.inc(1);
 
-                    match accumulated.lock() {
-                        Ok(mut map) => {
-                            map.entry(task.id.clone())
-                                .or_insert(Vec::new())
-                                .extend(predictions);            
-                        },
-                        Err(error) => {
-                            pb.println(format!("run_predictions. Unable to lock accumulated. error: {:?}", error));
-                        }
-                    };
+            // Make predictions
+            let processed_task: ProcessedTask = match Self::process_task(task) {
+                Ok(value) => value,
+                Err(error) => {
+                    pb.println(format!("task {} - error: {:?}", task.id, error));
+                    return;
+                }
+            };
+
+            // Show progress
+            count_solved.fetch_add(1, Ordering::Relaxed);
+            let count: usize = count_solved.load(Ordering::Relaxed);
+            pb.set_message(format!("Solved: {}", count));
+            pb.println(format!("task {} - solved", task.id));
+
+            // Accumulate the predictions
+            match accumulated.lock() {
+                Ok(mut map) => {
+                    map.entry(task.id.clone())
+                        .or_insert(Vec::new())
+                        .extend(processed_task.prediction_vec);
                 },
                 Err(error) => {
-                    if verbose {
-                        pb.println(format!("task {} - error: {:?}", task.id, error));
-                    }
+                    pb.println(format!("run_predictions. Unable to lock accumulated. error: {:?}", error));
                 }
-            }
-            pb.inc(1);
+            };
         });
         pb.finish_and_clear();
         let count_solved: usize = count_solved.load(Ordering::Relaxed);
@@ -460,13 +575,32 @@ impl SolveLogisticRegression {
     //     result
     // }
 
-    pub fn process_task(task: &Task, verify_test_output: bool) -> anyhow::Result<Vec::<arcathon_solution_coordinator::Prediction>> {
+    fn process_task(task: &Task) -> anyhow::Result<ProcessedTask> {
+        let mut accumulated_processed_task = ProcessedTask {
+            ptwotp_vec: vec!(),
+            prediction_vec: vec!(),
+        };
+
+        for variant in 0u8..=2 {
+            let processed_task: ProcessedTask = Self::process_task_item(task, variant)
+                .with_context(|| format!("task: {} Unable to process_task_item() with variant: {}", task.id, variant))?;
+
+            accumulated_processed_task.ptwotp_vec.extend(processed_task.ptwotp_vec);
+            accumulated_processed_task.prediction_vec.extend(processed_task.prediction_vec);
+        }
+        if accumulated_processed_task.prediction_vec.is_empty() || accumulated_processed_task.ptwotp_vec.is_empty() {
+            return Err(anyhow::anyhow!("task: {} prediction_vec.is_empty() or ptwotp_vec.is_empty(). It's supposed to be non-empty.", task.id));
+        }
+        Ok(accumulated_processed_task)
+    }
+
+    fn process_task_item(task: &Task, variant: u8) -> anyhow::Result<ProcessedTask> {
         let count_test: u8 = task.count_test().min(255) as u8;
         if count_test < 1 {
             return Err(anyhow::anyhow!("skipping task: {} because it has no test pairs", task.id));
         }    
 
-        let context = ProcessTaskContext::new(task);
+        let context = ProcessTaskContext::new(task, variant);
 
         let task_for_processing: Task;
         let prediction_type: arcathon_solution_coordinator::PredictionType;
@@ -479,86 +613,39 @@ impl SolveLogisticRegression {
             prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionDifferentSize;
         }
 
-        let mut computed_images = Vec::<Image>::new();
+        let mut ptwotp_vec = Vec::<ProcessedTaskWithOneTestPair>::new();
         for test_index in 0..count_test {
-            // println!("task: {} test_index: {} before", task.id, test_index);
-            let computed_image: Image = match Self::process_task_with_one_test_pair(&context, &task_for_processing, test_index) {
+            let ptwotp: ProcessedTaskWithOneTestPair = match Self::process_task_with_one_test_pair(&context, &task_for_processing, test_index) {
                 Ok(value) => value,
                 Err(error) => {
-                    // println!("task: {} test_index: {} error: {:?}", task.id, test_index, error);
                     return Err(error);
                 }
             };
-            // println!("task: {} test_index: {} after", task.id, test_index);
-            computed_images.push(computed_image);
+            ptwotp_vec.push(ptwotp);
         }
-        // println!("task: {} computed_images.len(): {}", task.id, computed_images.len());
 
-        let mut result_predictions = Vec::<arcathon_solution_coordinator::Prediction>::new();
-        for (test_index, computed_image) in computed_images.iter().enumerate() {
-            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(computed_image);
+        let mut prediction_vec = Vec::<arcathon_solution_coordinator::Prediction>::new();
+        for (test_index, ptwotp) in ptwotp_vec.iter().enumerate() {
+            let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&ptwotp.cropped_image);
             let prediction = arcathon_solution_coordinator::Prediction {
                 output_id: test_index.min(255) as u8,
                 output: grid,
                 prediction_type,
             };
-            result_predictions.push(prediction);
-        }
-
-        if verify_test_output {
-            let mut count_correct: usize = 0;
-            let mut count_incorrect: usize = 0;
-            for (test_index, computed_image) in computed_images.iter().enumerate() {
-                let test_index_u8: u8 = test_index.min(255) as u8;
-                let found_pair: Option<&Pair> = task.pairs.iter().find(|pair| pair.test_index == Some(test_index_u8));
-                let pair: &Pair = match found_pair {
-                    Some(pair) => pair,
-                    None => return Err(anyhow::anyhow!("No pair found with test_index: {}", test_index)),
-                };
-                let expected_output: Image = pair.output.test_image.clone();
-                let is_correct: bool = computed_image == &expected_output;
-                if is_correct {
-                    count_correct += 1;
-                } else {
-                    count_incorrect += 1;
-                }
-
-                if WRITE_TO_HTMLLOG {
-                    if is_correct {
-                        if task.occur_in_solutions_csv {
-                            HtmlLog::text(format!("{} - correct - already solved in asm", task.id));
-                        } else {
-                            HtmlLog::text(format!("{} - correct - no previous solution", task.id));
-                        }
-                        HtmlLog::image(computed_image);
-                    } else {
-                        HtmlLog::text(format!("{} - incorrect", task.id));
-                        let images: Vec<Image> = vec![
-                            pair.input.image.clone(),
-                            expected_output,
-                            computed_image.clone(),
-                        ];
-                        HtmlLog::compare_images(images);
-                    }
-                }
-            
-            }
-        
-            if count_correct == 0 {
-                return Err(anyhow::anyhow!("The predicted output doesn't match with the expected output"));
-            }
-            if count_incorrect > 0 {
-                println!("task: {} partial match. correct: {} incorrect: {}", task.id, count_correct, count_incorrect);
-            }
+            prediction_vec.push(prediction);
         }
     
-        if result_predictions.len() != (count_test as usize) {
+        if prediction_vec.len() != (count_test as usize) {
             return Err(anyhow::anyhow!("task: {} predictions.len() != task.count_test()", task.id));
         }
-        Ok(result_predictions)
+        let instance = ProcessedTask {
+            ptwotp_vec,
+            prediction_vec,
+        };
+        Ok(instance)
     }
 
-    fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Image> {
+    fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<ProcessedTaskWithOneTestPair> {
         if context.input_size_vec.len() != task.pairs.len() {
             return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
         }
@@ -593,9 +680,6 @@ impl SolveLogisticRegression {
             last_computed_image = Some(computed_image.clone());
             computed_images.push(computed_image);
         }
-        if WRITE_TO_HTMLLOG {
-            HtmlLog::compare_images(computed_images.clone());
-        }
 
         let computed_image: Image = match last_computed_image {
             Some(value) => value,
@@ -613,7 +697,12 @@ impl SolveLogisticRegression {
             cropped_image = cropped_image.replace_color(color, most_popular_output_color)?;
         }
 
-        Ok(cropped_image)
+        let instance = ProcessedTaskWithOneTestPair {
+            test_index,
+            cropped_image,
+            inspect_internal_image_vec: computed_images,
+        };
+        Ok(instance)
     }
 
     #[allow(dead_code)]
@@ -788,6 +877,8 @@ impl SolveLogisticRegression {
             return Err(anyhow::anyhow!("process_task_iteration all the pairs must have same input_size and output_size"));
         }
 
+        let v: usize = context.variant as usize;
+
 
         // let obfuscated_color_offset: f64 = 0.2;
         let obfuscated_color_offset: f64 = (process_task_iteration_index as f64 * 0.7333 + 0.2) % 1.0;
@@ -802,11 +893,13 @@ impl SolveLogisticRegression {
             ProcessTaskMode::InputOutputSameSize => false,
             ProcessTaskMode::InputOutputDifferentSize => true,
         };
+
+
         
         let enable_total_clustercount: bool = false;
         let enable_color_clustercount: bool = false;
-        let enable_half_context_input_size: bool = true;
-        let enable_half_context_output_size: bool = false;
+        let enable_half_context_input_size: bool = [true, false, false][v];
+        let enable_half_context_output_size: bool = [false, false, has_different_size_for_input_output][v];
         let enable_normalized_coordinates_context_input_size: bool = false;
         let enable_normalized_coordinates_context_output_size: bool = false;
 
@@ -818,17 +911,17 @@ impl SolveLogisticRegression {
         let enable_distance: bool = !has_different_size_for_input_output;
         let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
 
-        let enable_histogram_diagonal_a: bool = false;
-        let enable_histogram_diagonal_b: bool = false;
-        let enable_histogram_diagonal_c: bool = false;
-        let enable_histogram_diagonal_d: bool = false;
+        let enable_histogram_diagonal_a: bool = [false, true, false][v];
+        let enable_histogram_diagonal_b: bool = [false, true, false][v];
+        let enable_histogram_diagonal_c: bool = [false, false, true][v];
+        let enable_histogram_diagonal_d: bool = [false, false, true][v];
         let enable_histogram_diagonal_e: bool = false;
         let enable_histogram_diagonal_f: bool = false;
         let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
 
-        let enable_center_indicator_a: bool = false;
-        let enable_center_indicator_x: bool = false;
-        let enable_center_indicator_y: bool = false;
+        let enable_center_indicator_a: bool = [false, false, true][v];
+        let enable_center_indicator_x: bool = [false, true, false][v];
+        let enable_center_indicator_y: bool = [false, true, false][v];
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         let enable_input_four_xy_pairs: bool = false;
@@ -837,47 +930,47 @@ impl SolveLogisticRegression {
         let enable_output_three_xy_pairs: bool = false;
         let enable_gravity: bool = false;
 
-        let enable_mod2: bool = true;
-        let enable_mod2_reverse_input: bool = true;
+        let enable_mod2: bool = [true, false, true][v];
+        let enable_mod2_reverse_input: bool = [true, false, true][v];
         let enable_mod2_reverse_output: bool = false;
 
-        let enable_mod3: bool = false;
-        let enable_mod3_reverse_input: bool = false;
-        let enable_mod3_reverse_output: bool = false;
+        let enable_mod3: bool = [false, true, false][v];
+        let enable_mod3_reverse_input: bool = [false, true, false][v];
+        let enable_mod3_reverse_output: bool = [false, has_different_size_for_input_output, false][v];
 
         let enable_hole_type1: bool = true;
         let enable_color_repair: bool = true;
         
-        let enable_shape_transformation_images: bool = false;
-        let enable_noisecolor_in_outline: bool = true;
+        let enable_shape_transformation_images: bool = [false, false, true][v];
+        let enable_noisecolor_in_outline: bool = [true, false, false][v];
         let enable_grid: bool = true;
 
-        let enable_enumerated_clusters_grow_mask3: bool = false;
-        let enable_color_grow_mask1: bool = false;
-        let enable_color_grow_mask2: bool = false;
-        let enable_color_grow_mask3: bool = false;
+        let enable_enumerated_clusters_grow_mask3: bool = [false, true, true][v];
+        let enable_color_grow_mask1: bool = [false, false, true][v];
+        let enable_color_grow_mask2: bool = [false, false, true][v];
+        let enable_color_grow_mask3: bool = [false, false, true][v];
 
         let enable_no_change_to_color: bool = true;
         let enable_no_change_to_center_color: bool = false;
         let enable_no_change_to_noise_color: bool = false;
         let enable_object_center_same_as_neighbour: bool = false;
-        let enable_edge: bool = false;
+        let enable_edge: bool = [false, true, false][v];
 
-        let enable_color_inside_bounding_box: bool = true;
+        let enable_color_inside_bounding_box: bool = [true, false, false][v];
         let enable_object_id_image_connectivity4: bool = false;
-        let enable_object_id_image_connectivity8: bool = false;
+        let enable_object_id_image_connectivity8: bool = [false, false, true][v];
 
         let enable_trigram_count_center: bool = false;
         let enable_trigram_count_word1_center: bool = false;
         let enable_trigram_count_word012_center: bool = false;
 
-        let enable_full_row_and_column: bool = true;
-        let enable_full_row_xor_column: bool = true;
-        let enable_full_row_or_column: bool = true;
-        let enable_full_row: bool = false;
-        let enable_full_column: bool = false;
+        let enable_full_row_and_column: bool = [true, true, false][v];
+        let enable_full_row_xor_column: bool = [true, true, false][v];
+        let enable_full_row_or_column: bool = [true, true, false][v];
+        let enable_full_row: bool = [false, true, false][v];
+        let enable_full_column: bool = [false, true, false][v];
 
-        let enable_symmetry_shorter: bool = false;
+        let enable_symmetry_shorter: bool = [false, false, true][v];
         let enable_symmetry_masks: bool = false;
         let enable_corner_classification: bool = false;
 
@@ -885,7 +978,7 @@ impl SolveLogisticRegression {
         let enable_histogram_columns_rows_lookaround: bool = false;
 
         let enable_exterior_of_clusters: bool = false;
-        let enable_largest_interior_rectangle_masks: bool = false;
+        let enable_largest_interior_rectangle_masks: bool = [false, false, false][v];
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
 
@@ -895,7 +988,7 @@ impl SolveLogisticRegression {
         let enable_colordirection_to_distanceimage: bool = false;
         let enable_neighbour_color: bool = false;
         let enable_adjacent_neighbour_same_as_center: bool = false;
-        let enable_opposite_neighbour: bool = false;
+        let enable_opposite_neighbour: bool = [false, true, true][v];
         let enable_removal_color_center: bool = false;
         let enable_detect_nonsquare: bool = false;
 

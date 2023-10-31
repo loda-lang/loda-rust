@@ -156,6 +156,7 @@ mod test_convert;
 mod time_util;
 mod trace_path;
 mod traverse_programs_and_models;
+mod verify_prediction;
 
 pub use action_label_util::ActionLabelUtil;
 pub use arc_json_model_to_html::ModelToHTML;
@@ -292,3 +293,4 @@ pub use symmetry_to_label::SymmetryToLabel;
 pub use task_graph::*;
 pub use time_util::*;
 pub use traverse_programs_and_models::TraverseProgramsAndModels;
+pub use verify_prediction::{VerifyPrediction, VerifyPredictionIncorrectData, VerifyPredictionWithTask};

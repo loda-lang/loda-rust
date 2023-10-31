@@ -2697,4 +2697,41 @@ impl arc_work_model::Task {
             _ => None
         }   
     }
+
+    /// Obtain the test pair that corresponds to the prediction index
+    pub fn pair_for_test_index(&self, test_index: u8) -> anyhow::Result<&Pair> {
+        let found_pair: Option<&Pair> = self.pairs.iter().find(|pair| {
+            pair.test_index == Some(test_index)
+        });
+        match found_pair {
+            Some(value) => Ok(value),
+            None => {
+                Err(anyhow::anyhow!("Task.pair_for_test_index() Task: {} has no pair where test_index corresponds to output_id {}", self.id, test_index))
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::arc::arc_json_model;
+    use crate::arc::arc_work_model;
+
+    fn task_with_testdata(name: &str) -> anyhow::Result<arc_work_model::Task> {
+        let json_task: arc_json_model::Task = arc_json_model::Task::load_testdata(name)?;
+        arc_work_model::Task::try_from(&json_task)
+    }
+
+    #[test]
+    fn test_100000_pair_for_test_index() {
+        // Arrange
+        let task: arc_work_model::Task = task_with_testdata("3428a4f5").expect("ok");
+
+        // Act + Assert
+        assert_eq!(task.pair_for_test_index(0).is_ok(), true);
+        assert_eq!(task.pair_for_test_index(1).is_ok(), true);
+        // This task has 2 test pairs, so the following are expected to fail.
+        assert_eq!(task.pair_for_test_index(2).is_err(), true);
+        assert_eq!(task.pair_for_test_index(3).is_err(), true);
+    }
 }
