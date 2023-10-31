@@ -226,6 +226,7 @@ pub enum ImageLabel {
     PeriodicityY { period: u8 },
 
     // Ideas for more
+    // DiagonalLinesWithColor { color: u8 },
     // How many times are the pixels stretched out horizontally. Dividing by this scale does not cause dataloss.
     // ScaleX { scale: u8 },
     // How many times are the pixels stretched out vertically. Dividing by this scale does not cause dataloss.
@@ -396,8 +397,9 @@ pub enum ActionLabel {
 
     /// Preserves content, but the ordering of the rows are changed.
     ChangesOrderOfRows,
-
+    
     // Ideas for more
+    // ChangesOrderOfColumnsOrRows,
     // PeriodicityXIgnoringBackgroundColor { period: u8 },
     // PeriodicityYIgnoringBackgroundColor { period: u8 },
     // HistogramNoChangeInDirectionDiagonalA,
