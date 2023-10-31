@@ -11,7 +11,7 @@
 //! https://github.com/loda-lang/loda-rust/commit/430f3d4b1182a40058230e54564b8e6c482e1509
 //!
 //! 
-//! This current file solves 2 of the tasks from the hidden ARC dataset.
+//! This current file solves 1 of the tasks from the hidden ARC dataset.
 //!
 //! This solves 64 of the 800 tasks in the public ARC dataset.
 //! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 140c817e, 1c0d0a4b, 2072aba6, 21f83797, 2281f1f4,
