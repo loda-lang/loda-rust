@@ -234,6 +234,8 @@ pub enum ImageLabel {
     // AllObjectsAreMovedByTheSameOffsetNoWrap { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsAreMovedByTheSameOffsetWrapAround { offset_x: i32, offset_y: i32, background_color: u8 },
     // AllObjectsFromTheInputImagePresentExactlyOnceInTheOutputImageButWithDifferentOffsets,
+    // SecondMostPopularColor { color: u8 },
+    // SecondLeastPopularColor { color: u8 },
     // BorderMostPopularColor { color: u8 },
     // BorderLeastPopularColor { color: u8 },
     // AmbiguousEnumeratedObjects, // Does `PixelConnectivity4` and `PixelConnectivity8` yield different results
@@ -255,6 +257,7 @@ pub enum ImageLabel {
     // UniqueColors { color: Vec<u8> },
     // AspectRatio { width: u8, height: u8 },
     // ContainsOneOrMoreBoxes,
+    // ContainsASnakeLikePattern,
 }
 
 pub type ImageLabelSet = HashSet<ImageLabel>;
@@ -376,7 +379,29 @@ pub enum ActionLabel {
     OutputImagePreserveInputImageEdge { edge: ImageEdge },
     OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
+    /// The input histogram is the same colors and counters as the output histogram, in a particular direction.
+    HistogramSameColorsAndSameCountsForColumns,
+    HistogramSameColorsAndSameCountsForRows,
+
+    /// The input histogram have the same colors (may have different counters) as the output histogram, in a particular direction.
+    HistogramSameColorsIgnoringCountsForColumns,
+    HistogramSameColorsIgnoringCountsForRows,
+
+    /// The input histogram have the same counters (may have different colors) as the output histogram, in a particular direction.
+    HistogramSameCountsIgnoringColorsForColumns,
+    HistogramSameCountsIgnoringColorsForRows,
+
+    /// Preserves content, but the ordering of the columns are changed.
+    ChangesOrderOfColumns,
+
+    /// Preserves content, but the ordering of the rows are changed.
+    ChangesOrderOfRows,
+
     // Ideas for more
+    // PeriodicityXIgnoringBackgroundColor { period: u8 },
+    // PeriodicityYIgnoringBackgroundColor { period: u8 },
+    // HistogramNoChangeInDirectionDiagonalA,
+    // HistogramNoChangeInDirectionDiagonalB,
     // Directionality of a pair. Is it up/down/left/right. Then the images will require the corresponding rotation applied and unapplied.
     // OutputSizeIsTheSameAsSplitViewCell,    
     // Preserve image above the split view, and change the image below the separator

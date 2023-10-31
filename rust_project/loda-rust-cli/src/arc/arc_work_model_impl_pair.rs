@@ -1,7 +1,7 @@
 use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle, ImageProperty};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
-use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
+use super::{ImageFind, ImageSize, ImageSymmetry, Histogram, ImageRowColumnOrder};
 use std::collections::HashMap;
 
 #[allow(unused_imports)]
@@ -292,6 +292,7 @@ impl arc_work_model::Pair {
             }
         }
 
+        _ = self.analyze_histogram_rowcolumn_sameness();
         _ = self.analyze_preservation_of_corners();
         _ = self.analyze_preservation_of_edges();
         _ = self.analyze_3x3_structure();
@@ -300,6 +301,82 @@ impl arc_work_model::Pair {
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
         _ = self.analyze_output_colors();
         _ = self.analyze_input_output_color_relationship();
+    }
+
+    fn analyze_histogram_rowcolumn_sameness(&mut self) -> anyhow::Result<()> {
+        // Compare columns
+        let histogram_columns_len: usize = self.input.image_meta.histogram_columns.len();
+        if histogram_columns_len == self.output.image_meta.histogram_columns.len() {
+            let mut count0: usize = 0;
+            let mut count1: usize = 0;
+            let mut count2: usize = 0;
+            for (a, b) in self.input.image_meta.histogram_columns.iter().zip(self.output.image_meta.histogram_columns.iter()) {
+                if a.is_same_color_and_count(&b) {
+                    count0 += 1;
+                }
+                if a.is_same_color_but_ignore_count(&b) {
+                    count1 += 1;
+                }
+                if a.is_same_count_but_ignore_color(&b) {
+                    count2 += 1;
+                }
+            }
+            if count0 == histogram_columns_len {
+                // println!("task: {} same histogram_columns", self.id);
+                self.action_label_set.insert(ActionLabel::HistogramSameColorsAndSameCountsForColumns);
+                self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForColumns);
+                
+                if self.input.image.is_same_rows_ignoring_order(&self.output.image) {
+                    // println!("task: {} changes order of rows", self.id);
+                    self.action_label_set.insert(ActionLabel::ChangesOrderOfRows);
+                }
+            }
+            if count1 == histogram_columns_len {
+                self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForColumns);
+            }
+            if count2 == histogram_columns_len {
+                // println!("task: {} same counters in histogram_columns", self.id);
+                self.action_label_set.insert(ActionLabel::HistogramSameCountsIgnoringColorsForColumns);
+            }
+        }
+
+        // Compare rows
+        let histogram_rows_len: usize = self.input.image_meta.histogram_rows.len();
+        if histogram_rows_len == self.output.image_meta.histogram_rows.len() {
+            let mut count0: usize = 0;
+            let mut count1: usize = 0;
+            let mut count2: usize = 0;
+            for (a, b) in self.input.image_meta.histogram_rows.iter().zip(self.output.image_meta.histogram_rows.iter()) {
+                if a.is_same_color_and_count(&b) {
+                    count0 += 1;
+                }
+                if a.is_same_color_but_ignore_count(&b) {
+                    count1 += 1;
+                }
+                if a.is_same_count_but_ignore_color(&b) {
+                    count2 += 1;
+                }
+            }
+            if count0 == histogram_rows_len {
+                // println!("task: {} same histogram_rows", self.id);
+                self.action_label_set.insert(ActionLabel::HistogramSameColorsAndSameCountsForRows);
+                self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForRows);
+                
+                if self.input.image.is_same_columns_ignoring_order(&self.output.image) {
+                    // println!("task: {} changes order of columns", self.id);
+                    self.action_label_set.insert(ActionLabel::ChangesOrderOfColumns);
+                }
+            }
+            if count1 == histogram_rows_len {
+                self.action_label_set.insert(ActionLabel::HistogramSameColorsIgnoringCountsForRows);
+            }
+            if count2 == histogram_rows_len {
+                // println!("task: {} same counters in histogram_rows", self.id);
+                self.action_label_set.insert(ActionLabel::HistogramSameCountsIgnoringColorsForRows);
+            }
+        }
+
+        Ok(())
     }
 
     fn analyze_preservation_of_corners(&mut self) -> anyhow::Result<()> {

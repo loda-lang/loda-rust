@@ -11,16 +11,16 @@
 //! https://github.com/loda-lang/loda-rust/commit/430f3d4b1182a40058230e54564b8e6c482e1509
 //!
 //! 
-//! This current file solves 2 of the tasks from the hidden ARC dataset.
+//! This current file solves 1 of the tasks from the hidden ARC dataset.
 //!
-//! This solves 65 of the 800 tasks in the public ARC dataset.
-//! 009d5c81, 00d62c1b, 00dbd492, 08ed6ac7, 0a2355a6, 0d3d703e, 140c817e, 178fcbfb, 1c0d0a4b, 21f83797,
-//! 2281f1f4, 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 44d8ac46, 45737921,
-//! 4612dd53, 50cb2852, 5289ad53, 543a7ed5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb,
+//! This solves 64 of the 800 tasks in the public ARC dataset.
+//! 009d5c81, 00d62c1b, 00dbd492, 0a2355a6, 0d3d703e, 140c817e, 1c0d0a4b, 2072aba6, 21f83797, 2281f1f4,
+//! 23581191, 25d8a9c8, 32597951, 332efdb3, 3618c87e, 37d3e8b2, 4258a5f9, 45737921, 4612dd53, 50cb2852,
+//! 5168d44c, 5289ad53, 543a7ed5, 5b6cbef5, 6455b5f5, 67385a82, 694f12f3, 69889d6e, 6c434453, 6d75e8bb,
 //! 6ea4a07e, 6f8cd79b, 810b9b61, 84f2aca1, 95990924, a5313dff, a61f2674, a699fb00, a8d7556c, a934301b,
 //! a9f96cdd, aa4ec2a5, ae58858e, aedd82e4, b1948b0a, b2862040, b60334d2, b6afb2da, bb43febb, c0f76784,
 //! c8f0f002, ce039d91, ce22a75a, d2abd087, d364b489, d37a1ef5, d406998b, d5d6de2d, dc433765, ded97339,
-//! e0fb7511, e7dd8335, e872b94a, e9c9d9a1, ef135b50, 
+//! e0fb7511, e872b94a, e9c9d9a1, ef135b50, 
 //! 
 //! This partially solves 6 of the 800 tasks in the public ARC dataset. Where one ore more `test` pairs is solved, but not all of the `test` pairs gets solved.
 //! 239be575, 27a28665, 44f52bb0, 794b24be, bbb1b8b6, da2b0fe3, 
@@ -47,7 +47,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -245,6 +245,7 @@ pub struct ProcessTaskContext {
     mode: ProcessTaskMode,
     input_size_vec: Vec<ImageSize>,
     output_size_vec: Vec<ImageSize>,
+    scale_widthheight: Option<(u8, u8)>,
 }
 
 impl ProcessTaskContext {
@@ -258,9 +259,11 @@ impl ProcessTaskContext {
             mode,
             input_size_vec: Vec::<ImageSize>::new(),
             output_size_vec: Vec::<ImageSize>::new(),
+            scale_widthheight: None,
         };
         instance.populate_input_size_vec(task);
         instance.populate_output_size_vec(task);
+        instance.populate_scale_factor(task);
         instance
     }
 
@@ -286,6 +289,47 @@ impl ProcessTaskContext {
                         the_size = size;
                     }
                     self.output_size_vec.push(the_size);
+                }
+            }
+        }
+    }
+
+    fn populate_scale_factor(&mut self, task: &Task) {
+        let mut scale_width_factor: Option<u8> = None;
+        let mut scale_height_factor: Option<u8> = None;
+        for action_label in &task.action_label_set_intersection {
+            match action_label {
+                ActionLabel::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
+                    match (output, input) {
+                        (PropertyOutput::OutputWidth, ImageProperty::Width) => {
+                            scale_width_factor = Some(*scale);
+                        },
+                        (PropertyOutput::OutputHeight, ImageProperty::Height) => {
+                            scale_height_factor = Some(*scale);
+                        },
+                        _ => {}
+                    }
+                },
+                ActionLabel::OutputPropertyIsEqualToInputProperty { output, input } => {
+                    match (output, input) {
+                        (PropertyOutput::OutputWidth, ImageProperty::Width) => {
+                            scale_width_factor = Some(1);
+                        },
+                        (PropertyOutput::OutputHeight, ImageProperty::Height) => {
+                            scale_height_factor = Some(1);
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+        if let Some(scale_x) = scale_width_factor {
+            if let Some(scale_y) = scale_height_factor {
+                if scale_x > 0 && scale_y > 0 && scale_x <= 6 && scale_y <= 6 {
+                    if scale_x != 1 && scale_y != 1 {
+                        self.scale_widthheight = Some((scale_x, scale_y));
+                    }
                 }
             }
         }
@@ -787,6 +831,10 @@ impl SolveLogisticRegression {
         let enable_center_indicator_y: bool = false;
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
+        let enable_input_four_xy_pairs: bool = false;
+        let enable_output_four_xy_pairs: bool = false;
+        let enable_input_three_xy_pairs: bool = false;
+        let enable_output_three_xy_pairs: bool = false;
         let enable_gravity: bool = false;
 
         let enable_mod2: bool = true;
@@ -829,6 +877,7 @@ impl SolveLogisticRegression {
         let enable_full_row: bool = false;
         let enable_full_column: bool = false;
 
+        let enable_symmetry_shorter: bool = false;
         let enable_symmetry_masks: bool = false;
         let enable_corner_classification: bool = false;
 
@@ -839,6 +888,16 @@ impl SolveLogisticRegression {
         let enable_largest_interior_rectangle_masks: bool = false;
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
+
+        let enable_scale_widthheight: bool = has_different_size_for_input_output;
+        let enable_check_pixel_in_histogram: bool = false;
+        let enable_nearest_color: bool = false;
+        let enable_colordirection_to_distanceimage: bool = false;
+        let enable_neighbour_color: bool = false;
+        let enable_adjacent_neighbour_same_as_center: bool = false;
+        let enable_opposite_neighbour: bool = false;
+        let enable_removal_color_center: bool = false;
+        let enable_detect_nonsquare: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -977,6 +1036,8 @@ impl SolveLogisticRegression {
             }
         }
 
+        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
+
         let mut task_graph = TaskGraph::new();
         match task_graph.populate_with_task(&task) {
             Ok(()) => {},
@@ -1018,6 +1079,31 @@ impl SolveLogisticRegression {
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
             let output: Image = background.overlay_with_position(&original_output, 0, 0)?;
 
+            let mut resized_input_image: Option<Image> = None;
+            let mut repeated_input_image: Option<Image> = None;
+            if enable_scale_widthheight {
+                if let Some((scale_width, scale_height)) = context.scale_widthheight {
+                    let cropped_input: Image = original_input.crop_outside(0, 0, context_input_size.width, context_input_size.height, 255)?;
+                    let new_width: u16 = (cropped_input.width() as u16) * (scale_width as u16);
+                    let new_height: u16 = (cropped_input.height() as u16) * (scale_height as u16);
+    
+                    if new_width <= 30 && new_height <= 30 {
+                        match cropped_input.resize(new_width as u8, new_height as u8) {
+                            Ok(image) => {
+                                resized_input_image = Some(image);
+                            },
+                            Err(_error) => {}
+                        }
+                        match cropped_input.repeat_by_count(scale_width, scale_height) {
+                            Ok(image) => {
+                                repeated_input_image = Some(image);
+                            },
+                            Err(_error) => {}
+                        }
+                    }
+                }
+            }
+
             // let mut histogram_predicted_palette = Histogram::new();
             // if all_pairs_has_predicted_palette {
             //     for label in &pair.prediction_set {
@@ -1030,10 +1116,16 @@ impl SolveLogisticRegression {
             //     }
             // }
 
+            let input_histogram: Histogram = pair.input.image_meta.histogram_all.clone();
+            let task_input_histogram_intersection: Histogram = task.input_histogram_intersection.clone();
+            let task_output_histogram_intersection: Histogram = task.output_histogram_intersection.clone();
+            let task_insert_histogram_intersection: Histogram = task.insert_histogram_intersection.clone();
+            let task_removal_histogram_intersection: Histogram = task.removal_histogram_intersection.clone();
+
             let mut largest_interior_rectangle_masks = HashMap::<u8, Image>::new();
             if enable_largest_interior_rectangle_masks {
                 for color in 0..=9u8 {
-                    if pair.input.image_meta.histogram_all.get(color) == 0 {
+                    if input_histogram.get(color) == 0 {
                         continue;
                     }
                     let mask: Image = input.to_mask_where_color_is(color);
@@ -1170,8 +1262,8 @@ impl SolveLogisticRegression {
                 histogram_diagonal_b = None;
             }
 
-            let histogram_columns: Vec<Histogram> = input.histogram_columns();
-            let histogram_rows: Vec<Histogram> = input.histogram_rows();
+            let histogram_columns: Vec<Histogram> = pair.input.image_meta.histogram_columns.clone();
+            let histogram_rows: Vec<Histogram> = pair.input.image_meta.histogram_rows.clone();
 
             let mut image_neighbour = HashMap::<(u8, ImageNeighbourDirection), Image>::new();
             {
@@ -1200,12 +1292,11 @@ impl SolveLogisticRegression {
 
             let mut enumerated_clusters = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.enumerate_clusters(color, connectivity) {
+                        match sco.enumerate_clusters(color, *connectivity) {
                             Ok(image) => {
-                                enumerated_clusters.insert((color, connectivity), image);
+                                enumerated_clusters.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1215,12 +1306,11 @@ impl SolveLogisticRegression {
 
             let mut enumerated_clusters_filled_holes_mask = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.filled_holes_mask(color, connectivity) {
+                        match sco.filled_holes_mask(color, *connectivity) {
                             Ok(image) => {
-                                enumerated_clusters_filled_holes_mask.insert((color, connectivity), image);
+                                enumerated_clusters_filled_holes_mask.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1276,7 +1366,6 @@ impl SolveLogisticRegression {
 
             let mut color_grow_mask1 = HashMap::<(u8, PixelConnectivity), Image>::new();
             if enable_color_grow_mask1 {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                 for connectivity in &connectivity_vec {
                     for color in 0..=9 {
                         let mask: Image = input.to_mask_where_color_is(color);
@@ -1361,50 +1450,68 @@ impl SolveLogisticRegression {
                 sort2_small_big.insert((*color, *connectivity), a);
             }
 
+            let direction_vec = vec![
+                ImageNeighbourDirection::Up,
+                ImageNeighbourDirection::Down,
+                ImageNeighbourDirection::Left,
+                ImageNeighbourDirection::Right,
+                ImageNeighbourDirection::UpLeft,
+                ImageNeighbourDirection::UpRight,
+                ImageNeighbourDirection::DownLeft,
+                ImageNeighbourDirection::DownRight,
+            ];
+            let mut colordirection_to_distanceimage = HashMap::<(u8, ImageNeighbourDirection), Image>::new();
+            if enable_colordirection_to_distanceimage {
+                for color in 0..=9u8 {
+                    let ignore_mask: Image = input.to_mask_where_color_is_different(color);
+                    for direction in &direction_vec {
+                        let distance_image: Image = input.neighbour_distance(&ignore_mask, *direction)?;
+                        colordirection_to_distanceimage.insert((color, *direction), distance_image);
+                    }
+                }
+            }
+
             let mut cluster_distance1 = HashMap::<(u8, PixelConnectivity), Image>::new();
             for color in 0..=9u8 {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     let image: Image = input.to_mask_where_color_is_different(color);
-                    let a: Image = match image.mask_distance(connectivity) {
+                    let a: Image = match image.mask_distance_zerobug(*connectivity) {
                         Ok(value) => value,
                         Err(_) => continue,
                     };
-                    cluster_distance1.insert((color, connectivity), a);
+                    cluster_distance1.insert((color, *connectivity), a);
                 }
             }
             let mut cluster_distance2 = HashMap::<(u8, PixelConnectivity), Image>::new();
             for color in 0..=9u8 {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     let image: Image = input.to_mask_where_color_is(color);
-                    let a: Image = match image.mask_distance(connectivity) {
+                    let a: Image = match image.mask_distance_zerobug(*connectivity) {
                         Ok(value) => value,
                         Err(_) => continue,
                     };
-                    cluster_distance2.insert((color, connectivity), a);
+                    cluster_distance2.insert((color, *connectivity), a);
                 }
             }
             let mut cluster_distance3 = HashMap::<(u8, PixelConnectivity), Image>::new();
             let mut cluster_distance4 = HashMap::<(u8, PixelConnectivity), Image>::new();
             for color in 0..=9u8 {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     // let image: Image = input.to_mask_where_color_is_different(color);
                     let image: Image = input.to_mask_where_color_is(color);
-                    let a: Image = match image.mask_distance(connectivity) {
+                    let a: Image = match image.mask_distance_zerobug(*connectivity) {
                         Ok(value) => value,
                         Err(_) => continue,
                     };
                     let b: Image = image.select_from_color_and_image(0, &a)?;
-                    cluster_distance3.insert((color, connectivity), b);
+                    cluster_distance3.insert((color, *connectivity), b);
                     let c: Image = image.select_from_image_and_color(&a, 0)?;
-                    cluster_distance4.insert((color, connectivity), c);
+                    cluster_distance4.insert((color, *connectivity), c);
                 }
             }
             let mut cluster_distance5 = HashMap::<(u8, PixelConnectivity), Image>::new();
             for ((color, connectivity), image) in &enumerated_clusters {
-                let a: Image = match image.mask_distance(*connectivity) {
+                let a: Image = match image.mask_distance_zerobug(*connectivity) {
                     Ok(value) => value,
                     Err(_) => continue,
                 };
@@ -1434,6 +1541,15 @@ impl SolveLogisticRegression {
                             Err(_) => {},
                         }
                     }
+                }
+            }
+
+            let mut nearest_color4: Image = Image::empty();
+            let mut nearest_color8: Image = Image::empty();
+            if enable_nearest_color {
+                if let Some(color) = most_popular_color {
+                    nearest_color4 = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity4, color)?;
+                    nearest_color8 = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity8, color)?;
                 }
             }
 
@@ -1588,12 +1704,11 @@ impl SolveLogisticRegression {
 
             let mut squares = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.squares(color, connectivity) {
+                        match sco.squares(color, *connectivity) {
                             Ok(image) => {
-                                squares.insert((color, connectivity), image);
+                                squares.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1601,29 +1716,29 @@ impl SolveLogisticRegression {
                 }
             }
 
-            // let mut nonsquares = HashMap::<(u8, PixelConnectivity), Image>::new();
-            // if let Some(sco) = &pair.input.image_meta.single_color_object {
-            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-            //     for connectivity in connectivity_vec {
-            //         for color in 0..=9 {
-            //             match sco.non_squares(color, connectivity) {
-            //                 Ok(image) => {
-            //                     nonsquares.insert((color, connectivity), image);
-            //                 },
-            //                 Err(_) => {},
-            //             }
-            //         }
-            //     }
-            // }
+            let mut nonsquares = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if enable_detect_nonsquare {
+                if let Some(sco) = &pair.input.image_meta.single_color_object {
+                    for connectivity in &connectivity_vec {
+                        for color in 0..=9 {
+                            match sco.non_squares(color, *connectivity) {
+                                Ok(image) => {
+                                    nonsquares.insert((color, *connectivity), image);
+                                },
+                                Err(_) => {},
+                            }
+                        }
+                    }
+                }
+            }
 
             let mut rectangles = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.rectangles(color, connectivity) {
+                        match sco.rectangles(color, *connectivity) {
                             Ok(image) => {
-                                rectangles.insert((color, connectivity), image);
+                                rectangles.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1633,12 +1748,11 @@ impl SolveLogisticRegression {
 
             let mut boxes = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.boxes(color, connectivity) {
+                        match sco.boxes(color, *connectivity) {
                             Ok(image) => {
-                                boxes.insert((color, connectivity), image);
+                                boxes.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1648,12 +1762,11 @@ impl SolveLogisticRegression {
 
             let mut lines = HashMap::<(u8, PixelConnectivity), Image>::new();
             if let Some(sco) = &pair.input.image_meta.single_color_object {
-                let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-                for connectivity in connectivity_vec {
+                for connectivity in &connectivity_vec {
                     for color in 0..=9 {
-                        match sco.lines(color, connectivity) {
+                        match sco.lines(color, *connectivity) {
                             Ok(image) => {
-                                lines.insert((color, connectivity), image);
+                                lines.insert((color, *connectivity), image);
                             },
                             Err(_) => {},
                         }
@@ -1661,53 +1774,89 @@ impl SolveLogisticRegression {
                 }
             }
 
-            // horizontal symmetry is worsening the prediction.
-            // let mut horizontal_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
-            // if let Some(sco) = &pair.input.image_meta.single_color_object {
-            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-            //     for connectivity in connectivity_vec {
-            //         for color in 0..=9 {
-            //             match sco.horizontal_symmetry_mask(color, connectivity) {
-            //                 Ok(image) => {
-            //                     horizontal_symmetry.insert((color, connectivity), image);
-            //                 },
-            //                 Err(_) => {},
-            //             }
-            //         }
-            //     }
-            // }
+            let mut horizontal_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
+            let mut vertical_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
+            if enable_symmetry_shorter {
+                // horizontal symmetry
+                if let Some(sco) = &pair.input.image_meta.single_color_object {
+                    for connectivity in &connectivity_vec {
+                        for color in 0..=9 {
+                            match sco.horizontal_symmetry_mask(color, *connectivity) {
+                                Ok(image) => {
+                                    horizontal_symmetry.insert((color, *connectivity), image);
+                                },
+                                Err(_) => {},
+                            }
+                        }
+                    }
+                }
+                // vertical symmetry
+                if let Some(sco) = &pair.input.image_meta.single_color_object {
+                    for connectivity in &connectivity_vec {
+                        for color in 0..=9 {
+                            match sco.vertical_symmetry_mask(color, *connectivity) {
+                                Ok(image) => {
+                                    vertical_symmetry.insert((color, *connectivity), image);
+                                },
+                                Err(_) => {},
+                            }
+                        }
+                    }
+                }
+            }
 
-            // vertical symmetry is worsening the prediction.
-            // let mut vertical_symmetry = HashMap::<(u8, PixelConnectivity), Image>::new();
-            // if let Some(sco) = &pair.input.image_meta.single_color_object {
-            //     let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
-            //     for connectivity in connectivity_vec {
-            //         for color in 0..=9 {
-            //             match sco.vertical_symmetry_mask(color, connectivity) {
-            //                 Ok(image) => {
-            //                     vertical_symmetry.insert((color, connectivity), image);
-            //                 },
-            //                 Err(_) => {},
-            //             }
-            //         }
-            //     }
-            // }
+            let mut horizontal_symmetry_connectivity4 = HashMap::<u8, Image>::new();
+            let mut horizontal_symmetry_connectivity8 = HashMap::<u8, Image>::new();
+            let mut vertical_symmetry_connectivity4 = HashMap::<u8, Image>::new();
+            let mut vertical_symmetry_connectivity8 = HashMap::<u8, Image>::new();
+            if enable_symmetry_masks {
+                if let Some(sco) = &pair.input.image_meta.single_color_object {
+                    for color in 0..=9 {
+                        let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity4) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        horizontal_symmetry_connectivity4.insert(color, image);
+                    }
+                    for color in 0..=9 {
+                        let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity8) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        horizontal_symmetry_connectivity8.insert(color, image);
+                    }
+                    for color in 0..=9 {
+                        let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity4) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        vertical_symmetry_connectivity4.insert(color, image);
+                    }
+                    for color in 0..=9 {
+                        let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity8) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                continue;
+                            }
+                        };
+                        vertical_symmetry_connectivity8.insert(color, image);
+                    }
+                }
+            }
 
             let mut image_neighbour_up: Image = Image::color(width, height, 255);
             let mut image_neighbour_down: Image = Image::color(width, height, 255);
             let mut image_neighbour_left: Image = Image::color(width, height, 255);
             let mut image_neighbour_right: Image = Image::color(width, height, 255);
-            #[allow(unused_variables)]
-            #[allow(unused_assignments)]
             let mut image_neighbour_upleft: Image = Image::color(width, height, 255);
-            #[allow(unused_variables)]
-            #[allow(unused_assignments)]
             let mut image_neighbour_upright: Image = Image::color(width, height, 255);
-            #[allow(unused_variables)]
-            #[allow(unused_assignments)]
             let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
-            #[allow(unused_variables)]
-            #[allow(unused_assignments)]
             let mut image_neighbour_downright: Image = Image::color(width, height, 255);
             if let Some(color) = most_popular_color {
                 let ignore_mask: Image = input.to_mask_where_color_is(color);
@@ -1760,10 +1909,6 @@ impl SolveLogisticRegression {
                     Err(_) => {},
                 }
             }
-            _ = image_neighbour_upleft;
-            _ = image_neighbour_upright;
-            _ = image_neighbour_downleft;
-            _ = image_neighbour_downright;
 
             let mut holes_connectivity4 = HashMap::<u8, Image>::new();
             let mut holes_connectivity8 = HashMap::<u8, Image>::new();
@@ -1821,52 +1966,6 @@ impl SolveLogisticRegression {
                     holecount_connectivity8.insert(color, image);
                 }
             }
-
-            let mut horizontal_symmetry_connectivity4 = HashMap::<u8, Image>::new();
-            let mut horizontal_symmetry_connectivity8 = HashMap::<u8, Image>::new();
-            let mut vertical_symmetry_connectivity4 = HashMap::<u8, Image>::new();
-            let mut vertical_symmetry_connectivity8 = HashMap::<u8, Image>::new();
-            if enable_symmetry_masks {
-                if let Some(sco) = &pair.input.image_meta.single_color_object {
-                    for color in 0..=9 {
-                        let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity4) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                continue;
-                            }
-                        };
-                        horizontal_symmetry_connectivity4.insert(color, image);
-                    }
-                    for color in 0..=9 {
-                        let image: Image = match sco.horizontal_symmetry_mask(color, PixelConnectivity::Connectivity8) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                continue;
-                            }
-                        };
-                        horizontal_symmetry_connectivity8.insert(color, image);
-                    }
-                    for color in 0..=9 {
-                        let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity4) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                continue;
-                            }
-                        };
-                        vertical_symmetry_connectivity4.insert(color, image);
-                    }
-                    for color in 0..=9 {
-                        let image: Image = match sco.vertical_symmetry_mask(color, PixelConnectivity::Connectivity8) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                continue;
-                            }
-                        };
-                        vertical_symmetry_connectivity8.insert(color, image);
-                    }
-                }
-            }
-
 
             // The outline of each color mask
             let mut outline1_connectivity4 = HashMap::<u8, Image>::new();
@@ -2222,11 +2321,261 @@ impl SolveLogisticRegression {
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
 
+                    let area5x5_output: Image;
+                    if let Some(image) = &earlier_prediction_image {
+                        area5x5_output = image.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
+                    } else {
+                        area5x5_output = Image::empty();
+                    }
+                    let center_output: u8 = area5x5_output.get(2, 2).unwrap_or(255);
+
+                    if enable_scale_widthheight {
+                        if let Some((scale_x, scale_y)) = context.scale_widthheight {
+                            let mut pixel_resized: u8 = 255;
+                            let mut pixel_repeated: u8 = 255;
+                            if let Some(image) = &resized_input_image {
+                                pixel_resized = image.get(xx, yy).unwrap_or(255);
+                            }
+                            record.serialize_onehot_discard_overflow(pixel_resized, 10);
+                            if let Some(image) = &repeated_input_image {
+                                pixel_repeated = image.get(xx, yy).unwrap_or(255);
+                            }
+                            record.serialize_onehot_discard_overflow(pixel_repeated, 10);
+
+                            {
+                                let bits0: u16 = 1 << (pixel_resized.min(10) as u16);
+                                let bits1: u16 = 1 << (pixel_repeated.min(10) as u16);
+                                record.serialize_bitmask_as_onehot(bits0 ^ bits1, 10);
+                                record.serialize_bitmask_as_onehot(bits0 | bits1, 10);
+                                record.serialize_bitmask_as_onehot(bits0 & bits1, 10);
+                            }
+
+                            {
+                                let value0: bool = pixel_resized == most_popular_color.unwrap_or(255);
+                                let value1: bool = pixel_repeated == most_popular_color.unwrap_or(255);
+                                record.serialize_bool_onehot(value0 ^ value1);
+                                record.serialize_bool_onehot(value0 | value1);
+                                record.serialize_bool_onehot(value0 & value1);
+                            }
+
+                            record.serialize_bool_onehot(pixel_resized == center);
+                            record.serialize_bool_onehot(pixel_repeated == center);
+                            record.serialize_bool_onehot(pixel_resized == center_output);
+                            record.serialize_bool_onehot(pixel_repeated == center_output);
+                            record.serialize_bool_onehot(pixel_resized == most_popular_color.unwrap_or(255));
+                            record.serialize_bool_onehot(pixel_repeated == most_popular_color.unwrap_or(255));
+
+                            {
+                                let tx: u8 = x / scale_x.max(1);
+                                let ty: u8 = y / scale_y.max(1);
+                                let sum: u8 = tx + ty;
+                                record.serialize_bool_onehot(sum % 2 == 0);
+                                // record.serialize_u8(sum);
+                                // record.serialize_u8(tx);
+                                // record.serialize_u8(ty);
+                                record.serialize_onehot_discard_overflow(tx, 4);
+                                record.serialize_onehot_discard_overflow(ty, 4);
+                            }
+                            {
+                                let tx: u8 = x % scale_x.max(1);
+                                let ty: u8 = y % scale_y.max(1);
+                                let sum: u8 = tx + ty;
+                                record.serialize_bool_onehot(sum % 2 == 0);
+                                // record.serialize_u8(sum);
+                                // record.serialize_u8(tx);
+                                // record.serialize_u8(ty);
+                                record.serialize_onehot_discard_overflow(tx, 4);
+                                record.serialize_onehot_discard_overflow(ty, 4);
+                            }
+                            {
+                                let tx: u8 = x / context_input_size.width.max(1);
+                                let ty: u8 = y / context_input_size.height.max(1);
+                                let sum: u8 = tx + ty;
+                                record.serialize_bool_onehot(sum % 2 == 0);
+                                // record.serialize_u8(sum);
+                                // record.serialize_u8(tx);
+                                // record.serialize_u8(ty);
+                                record.serialize_onehot_discard_overflow(tx, 4);
+                                record.serialize_onehot_discard_overflow(ty, 4);
+                            }
+                            {
+                                let tx: u8 = x % context_input_size.width.max(1);
+                                let ty: u8 = y % context_input_size.height.max(1);
+                                let sum: u8 = tx + ty;
+                                record.serialize_bool_onehot(sum % 2 == 0);
+                                // record.serialize_u8(sum);
+                                // record.serialize_u8(tx);
+                                // record.serialize_u8(ty);
+                                record.serialize_onehot_discard_overflow(tx, 4);
+                                record.serialize_onehot_discard_overflow(ty, 4);
+                            }
+                        }
+                    }
+
+                    if enable_check_pixel_in_histogram {
+                        record.serialize_bool_onehot(input_histogram.get(center_output) > 0);
+                        record.serialize_bool_onehot(task_input_histogram_intersection.get(center_output) > 0);
+                        record.serialize_bool_onehot(task_output_histogram_intersection.get(center_output) > 0);
+                        record.serialize_bool_onehot(task_insert_histogram_intersection.get(center_output) > 0);
+                        record.serialize_bool_onehot(task_removal_histogram_intersection.get(center_output) > 0);
+                        record.serialize_bool_onehot(task_removal_histogram_intersection.get(center) > 0);
+                    }
+
                     if enable_gravity {
                         let images = [&gravity_up, &gravity_down, &gravity_left, &gravity_right];
                         for image in images {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             record.serialize_color_complex(pixel, obfuscated_color_offset);
+                        }
+                    }
+
+                    if enable_input_four_xy_pairs {
+                        let four_xy_pairs: Vec<[i32; 8]> = vec![
+                            [0, -2, 0, -1, 0, 1, 0, 2],
+                            [-2, 0, -1, 0, 1, 0, 2, 0],
+                            [-2, -2, -1, -1, 1, 1, 2, 2],
+                            [-2, 2, -1, 1, 1, -1, 2, -2],
+                            [-1, -2, 2, -1, 1, 2, -2, 1],
+                            [-2, -1, -1, 2, 2, 1, 1, -2],
+                            [-2, -1, -1, -2, 2, 1, 1, 2],
+                            [-2, -1, 1, 2, 2, 1, -1, -2],
+                        ];
+                        let area5x5_center_offset: i32 = 2;
+                        for xy_pair in &four_xy_pairs {
+                            let ax: i32 = xy_pair[0] + area5x5_center_offset;
+                            let ay: i32 = xy_pair[1] + area5x5_center_offset;
+                            let bx: i32 = xy_pair[2] + area5x5_center_offset;
+                            let by: i32 = xy_pair[3] + area5x5_center_offset;
+                            let cx: i32 = xy_pair[4] + area5x5_center_offset;
+                            let cy: i32 = xy_pair[5] + area5x5_center_offset;
+                            let dx: i32 = xy_pair[6] + area5x5_center_offset;
+                            let dy: i32 = xy_pair[7] + area5x5_center_offset;
+                            let a: u8 = area5x5.get(ax, ay).unwrap_or(255);
+                            let b: u8 = area5x5.get(bx, by).unwrap_or(255);
+                            let c: u8 = area5x5.get(cx, cy).unwrap_or(255);
+                            let d: u8 = area5x5.get(dx, dy).unwrap_or(255);
+                            let all_same: bool = a == b && b == c && c == d;
+                            let all_different: bool = a != b && b != c && c != d && a != c && a != d && b != d;
+                            let same_reversed: bool = a == d && b == c;
+                            let same_ab_different_cd: bool = a == b && c != d;
+                            let same_cd_different_ab: bool = a != b && c == d;
+                            let same_ad_different_bc: bool = a == d && b != c;
+                            let same_bc_different_ad: bool = a != d && b == c;
+                            record.serialize_bool(all_same);
+                            record.serialize_bool(all_different);
+                            record.serialize_bool(same_reversed);
+                            record.serialize_bool(same_ab_different_cd);
+                            record.serialize_bool(same_cd_different_ab);
+                            record.serialize_bool(same_ad_different_bc);
+                            record.serialize_bool(same_bc_different_ad);
+                        }
+                    }
+
+                    if enable_output_four_xy_pairs {
+                        let four_xy_pairs: Vec<[i32; 8]> = vec![
+                            [0, -2, 0, -1, 0, 1, 0, 2],
+                            [-2, 0, -1, 0, 1, 0, 2, 0],
+                            [-2, -2, -1, -1, 1, 1, 2, 2],
+                            [-2, 2, -1, 1, 1, -1, 2, -2],
+                            [-1, -2, 2, -1, 1, 2, -2, 1],
+                            [-2, -1, -1, 2, 2, 1, 1, -2],
+                            [-2, -1, -1, -2, 2, 1, 1, 2],
+                            [-2, -1, 1, 2, 2, 1, -1, -2],
+                        ];
+                        let area5x5_center_offset: i32 = 2;
+                        for xy_pair in &four_xy_pairs {
+                            let ax: i32 = xy_pair[0] + area5x5_center_offset;
+                            let ay: i32 = xy_pair[1] + area5x5_center_offset;
+                            let bx: i32 = xy_pair[2] + area5x5_center_offset;
+                            let by: i32 = xy_pair[3] + area5x5_center_offset;
+                            let cx: i32 = xy_pair[4] + area5x5_center_offset;
+                            let cy: i32 = xy_pair[5] + area5x5_center_offset;
+                            let dx: i32 = xy_pair[6] + area5x5_center_offset;
+                            let dy: i32 = xy_pair[7] + area5x5_center_offset;
+                            let a: u8 = area5x5_output.get(ax, ay).unwrap_or(255);
+                            let b: u8 = area5x5_output.get(bx, by).unwrap_or(255);
+                            let c: u8 = area5x5_output.get(cx, cy).unwrap_or(255);
+                            let d: u8 = area5x5_output.get(dx, dy).unwrap_or(255);
+                            let all_same: bool = a == b && b == c && c == d;
+                            let all_different: bool = a != b && b != c && c != d && a != c && a != d && b != d;
+                            let same_reversed: bool = a == d && b == c;
+                            let same_ab_different_cd: bool = a == b && c != d;
+                            let same_cd_different_ab: bool = a != b && c == d;
+                            let same_ad_different_bc: bool = a == d && b != c;
+                            let same_bc_different_ad: bool = a != d && b == c;
+                            record.serialize_bool(all_same);
+                            record.serialize_bool(all_different);
+                            record.serialize_bool(same_reversed);
+                            record.serialize_bool(same_ab_different_cd);
+                            record.serialize_bool(same_cd_different_ab);
+                            record.serialize_bool(same_ad_different_bc);
+                            record.serialize_bool(same_bc_different_ad);
+                        }
+                    }
+
+                    if enable_input_three_xy_pairs {
+                        let four_xy_pairs: Vec<[i32; 6]> = vec![
+                            [-1, -1, -1, 1, 1, 0],
+                            [-1, 0, 1, -1, 1, 1],
+                            [0, -1, -1, 1, 1, 1],
+                            [0, 1, -1, -1, 1, -1],
+                            [-2, 0, 0, -1, 2, 0],
+                            [-2, 0, 0, 1, 2, 0],
+                            [0, -2, -1, 0, 0, 2],
+                            [0, -2, 1, 0, 0, 2],
+                        ];
+                        let area5x5_center_offset: i32 = 2;
+                        for xy_pair in &four_xy_pairs {
+                            let ax: i32 = xy_pair[0] + area5x5_center_offset;
+                            let ay: i32 = xy_pair[1] + area5x5_center_offset;
+                            let bx: i32 = xy_pair[2] + area5x5_center_offset;
+                            let by: i32 = xy_pair[3] + area5x5_center_offset;
+                            let cx: i32 = xy_pair[4] + area5x5_center_offset;
+                            let cy: i32 = xy_pair[5] + area5x5_center_offset;
+                            let a: u8 = area5x5.get(ax, ay).unwrap_or(255);
+                            let b: u8 = area5x5.get(bx, by).unwrap_or(255);
+                            let c: u8 = area5x5.get(cx, cy).unwrap_or(255);
+                            let all_same: bool = a == b && b == c;
+                            let all_different: bool = a != b && b != c && a != c;
+                            let same_as_center: bool = a == center && b == center && c == center;
+                            let different_than_center: bool = a != center && b != center && c != center;
+                            record.serialize_bool(all_same);
+                            record.serialize_bool(all_different);
+                            record.serialize_bool(same_as_center);
+                            record.serialize_bool(different_than_center);
+                        }
+                    }
+
+                    if enable_output_three_xy_pairs {
+                        let four_xy_pairs: Vec<[i32; 6]> = vec![
+                            [-1, -1, -1, 1, 1, 0],
+                            [-1, 0, 1, -1, 1, 1],
+                            [0, -1, -1, 1, 1, 1],
+                            [0, 1, -1, -1, 1, -1],
+                            [-2, 0, 0, -1, 2, 0],
+                            [-2, 0, 0, 1, 2, 0],
+                            [0, -2, -1, 0, 0, 2],
+                            [0, -2, 1, 0, 0, 2],
+                        ];
+                        let area5x5_center_offset: i32 = 2;
+                        for xy_pair in &four_xy_pairs {
+                            let ax: i32 = xy_pair[0] + area5x5_center_offset;
+                            let ay: i32 = xy_pair[1] + area5x5_center_offset;
+                            let bx: i32 = xy_pair[2] + area5x5_center_offset;
+                            let by: i32 = xy_pair[3] + area5x5_center_offset;
+                            let cx: i32 = xy_pair[4] + area5x5_center_offset;
+                            let cy: i32 = xy_pair[5] + area5x5_center_offset;
+                            let a: u8 = area5x5_output.get(ax, ay).unwrap_or(255);
+                            let b: u8 = area5x5_output.get(bx, by).unwrap_or(255);
+                            let c: u8 = area5x5_output.get(cx, cy).unwrap_or(255);
+                            let all_same: bool = a == b && b == c;
+                            let all_different: bool = a != b && b != c && a != c;
+                            let same_as_center: bool = a == center && b == center && c == center;
+                            let different_than_center: bool = a != center && b != center && c != center;
+                            record.serialize_bool(all_same);
+                            record.serialize_bool(all_different);
+                            record.serialize_bool(same_as_center);
+                            record.serialize_bool(different_than_center);
                         }
                     }
 
@@ -2573,17 +2922,10 @@ impl SolveLogisticRegression {
                     let neighbour_down: u8 = image_neighbour_down.get(xx, yy).unwrap_or(255);
                     let neighbour_left: u8 = image_neighbour_left.get(xx, yy).unwrap_or(255);
                     let neighbour_right: u8 = image_neighbour_right.get(xx, yy).unwrap_or(255);
-                    // let neighbour_upleft: u8 = image_neighbour_upleft.get(xx, yy).unwrap_or(255);
-                    // let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
-                    // let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
-                    // let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);
-
-                    // {
-                    //     record.serialize_bool_onehot(neighbour_up == center);
-                    //     record.serialize_bool_onehot(neighbour_down == center);
-                    //     record.serialize_bool_onehot(neighbour_left == center);
-                    //     record.serialize_bool_onehot(neighbour_right == center);
-                    // }
+                    let neighbour_upleft: u8 = image_neighbour_upleft.get(xx, yy).unwrap_or(255);
+                    let neighbour_upright: u8 = image_neighbour_upright.get(xx, yy).unwrap_or(255);
+                    let neighbour_downleft: u8 = image_neighbour_downleft.get(xx, yy).unwrap_or(255);
+                    let neighbour_downright: u8 = image_neighbour_downright.get(xx, yy).unwrap_or(255);    
 
                     let corners_center: u8 = corners.get(xx, yy).unwrap_or(255);
                     record.serialize_bool(corners_center == 1);
@@ -2627,14 +2969,7 @@ impl SolveLogisticRegression {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
-                    let center_row_right_x: i32 = if has_different_size_for_input_output { 
-                        context_input_x_reverse
-                    } else { 
-                        // This is an old typo. Where I by mistake use the Y coordinate for the X coordinate.
-                        // Fixing the typo, and the number of tasks solved drops by 3 tasks.
-                        context_input_y_reverse 
-                    };
-                    let center_row_right: Image = match center_row.right_columns(center_row_right_x.max(0).min(255) as u8) {
+                    let center_row_right: Image = match center_row.right_columns(context_input_x_reverse.max(0).min(255) as u8) {
                         Ok(value) => value,
                         Err(_) => Image::empty()
                     };
@@ -3319,6 +3654,36 @@ impl SolveLogisticRegression {
                         // record.serialize_u8(noise_color_in_outline2_connectivity8); // worsens the prediction
                     }
 
+                    if enable_symmetry_shorter {
+                        // horizontal symmetry
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_symmetric: bool = match horizontal_symmetry.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                // record.serialize_bool(is_symmetric);
+                                record.serialize_bool_onehot(is_symmetric);
+                            }
+                        }
+
+                        // vertical symmetry
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_symmetric: bool = match vertical_symmetry.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                // record.serialize_bool(is_symmetric);
+                                record.serialize_bool_onehot(is_symmetric);
+                            }
+                        }
+                    }
+
                     if enable_symmetry_masks {
                         let mut the_horizontal_symmetry_connectivity4: u8 = 0;
                         if let Some(mask) = horizontal_symmetry_connectivity4.get(&center) {
@@ -3435,27 +3800,30 @@ impl SolveLogisticRegression {
                         }
                     }
 
-                    // {
-                    //     record.serialize_color_complex(neighbour_up, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_down, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_left, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_right, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_upleft, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_upright, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_downleft, obfuscated_color_offset);
-                    //     record.serialize_color_complex(neighbour_downright, obfuscated_color_offset);
-                    // }
+                    if enable_neighbour_color {
+                        record.serialize_color_complex(neighbour_up, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_down, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_left, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_right, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_upleft, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_upright, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_downleft, obfuscated_color_offset);
+                        record.serialize_color_complex(neighbour_downright, obfuscated_color_offset);
+                    }
 
-                    // {
-                    //     record.serialize_bool_onehot(neighbour_up == center);
-                    //     record.serialize_bool_onehot(neighbour_down == center);
-                    //     record.serialize_bool_onehot(neighbour_left == center);
-                    //     record.serialize_bool_onehot(neighbour_right == center);
-                    //     record.serialize_bool_onehot(neighbour_up == neighbour_down);
-                    //     record.serialize_bool_onehot(neighbour_left == neighbour_right);
-                    //     record.serialize_bool_onehot(neighbour_upleft == neighbour_downright);
-                    //     record.serialize_bool_onehot(neighbour_upright == neighbour_downleft);
-                    // }
+                    if enable_adjacent_neighbour_same_as_center {
+                        record.serialize_bool_onehot(neighbour_up == center);
+                        record.serialize_bool_onehot(neighbour_down == center);
+                        record.serialize_bool_onehot(neighbour_left == center);
+                        record.serialize_bool_onehot(neighbour_right == center);
+                    }
+
+                    if enable_opposite_neighbour {
+                        record.serialize_bool_onehot(neighbour_up == neighbour_down);
+                        record.serialize_bool_onehot(neighbour_left == neighbour_right);
+                        record.serialize_bool_onehot(neighbour_upleft == neighbour_downright);
+                        record.serialize_bool_onehot(neighbour_upright == neighbour_downleft);
+                    }
 
                     // {
                     //     record.serialize_onehot_discard_overflow(neighbour_up, shape_type_count);
@@ -3503,7 +3871,9 @@ impl SolveLogisticRegression {
                     // for color in 0..=9u8 {
                     //     record.serialize_bool_onehot(task.removal_histogram_intersection.get(color) > 0);
                     // }
-                    // record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
+                    if enable_removal_color_center {
+                        record.serialize_bool_onehot(task.removal_histogram_intersection.get(center) > 0);
+                    }
 
                     if enable_normalized_coordinates_context_input_size {
                         let fx: f64 = ((xx as f64) + 0.5) / (context_input_size.width.max(1) as f64);
@@ -3840,12 +4210,14 @@ impl SolveLogisticRegression {
                     {
                         // let count: u16 = histogram_columns[x as usize].number_of_counters_greater_than_zero();
                         // record.serialize_bool_onehot(count > 0);
+                        // record.serialize_onehot(count.min(255) as u8, 3);
                         // record.serialize_f64(count as f64);
                         // record.serialize(histogram_columns.num, count)
                     }
                     {
                         // let count: u16 = histogram_rows[y as usize].number_of_counters_greater_than_zero();
                         // record.serialize_bool_onehot(count > 0);
+                        // record.serialize_onehot(count.min(255) as u8, 3);
                         // record.serialize_f64(count as f64);
                         // record.serialize(histogram_columns.num, count)
                     }
@@ -4062,6 +4434,7 @@ impl SolveLogisticRegression {
                                 None => 255
                             };
                             record.serialize_color_complex(neighbour_color, obfuscated_color_offset);
+                            // record.serialize_onehot_discard_overflow(neighbour_color, 10);
                         }
                     }
 
@@ -4072,7 +4445,6 @@ impl SolveLogisticRegression {
     
                     // Cluster id
                     {
-                        let connectivity_vec = vec![PixelConnectivity::Connectivity4, PixelConnectivity::Connectivity8];
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 let cluster_id: u8 = match enumerated_clusters.get(&(color, *connectivity)) {
@@ -4269,6 +4641,30 @@ impl SolveLogisticRegression {
                                 // record.serialize_onehot(distance, 8);
                             }
                         }
+
+                        if enable_nearest_color {
+                            {
+                                let color: u8 = nearest_color4.get(xx, yy).unwrap_or(255);
+                                record.serialize_color_complex(color, obfuscated_color_offset);
+                            }
+                            {
+                                let color: u8 = nearest_color8.get(xx, yy).unwrap_or(255);
+                                record.serialize_color_complex(color, obfuscated_color_offset);
+                            }
+                        }
+
+                        if enable_colordirection_to_distanceimage {
+                            for color in 0..=9u8 {
+                                for direction in &direction_vec {
+                                    let mut distance: u8 = 255;
+                                    if let Some(image) = &colordirection_to_distanceimage.get(&(color, *direction)) {
+                                        distance = image.get(xx, yy).unwrap_or(255);
+                                    }
+                                    record.serialize_onehot(distance, 5);
+                                }
+                            }
+                        }
+
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
                                 #[allow(unused_variables)]
@@ -4318,17 +4714,6 @@ impl SolveLogisticRegression {
                                 record.serialize_bool(distance % 2 == 0);
                             }
                         }
-                        for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
-                                let is_square: bool = match squares.get(&(color, *connectivity)) {
-                                    Some(value) => {
-                                        value.get(xx, yy).unwrap_or(0) > 0
-                                    }
-                                    None => false
-                                };
-                                record.serialize_bool(is_square);
-                            }
-                        }
 
                         if enable_largest_interior_rectangle_masks {
                             let mask_value: u8 = match largest_interior_rectangle_masks.get(&center) {
@@ -4340,18 +4725,33 @@ impl SolveLogisticRegression {
                             record.serialize_bool_onehot(mask_value > 0);
                         }
 
-                        // non-squares are worsening the prediction.
-                        // for connectivity in &connectivity_vec {
-                        //     for color in 0..=9 {
-                        //         let is_square: bool = match nonsquares.get(&(color, *connectivity)) {
-                        //             Some(value) => {
-                        //                 value.get(xx, yy).unwrap_or(0) > 0
-                        //             }
-                        //             None => false
-                        //         };
-                        //         record.serialize_bool(is_square);
-                        //     }
-                        // }
+                        for connectivity in &connectivity_vec {
+                            for color in 0..=9 {
+                                let is_square: bool = match squares.get(&(color, *connectivity)) {
+                                    Some(value) => {
+                                        value.get(xx, yy).unwrap_or(0) > 0
+                                    }
+                                    None => false
+                                };
+                                record.serialize_bool(is_square);
+                                // record.serialize_bool_onehot(is_square);
+                            }
+                        }
+
+                        if enable_detect_nonsquare {
+                            for connectivity in &connectivity_vec {
+                                for color in 0..=9 {
+                                    let is_nonsquare: bool = match nonsquares.get(&(color, *connectivity)) {
+                                        Some(value) => {
+                                            value.get(xx, yy).unwrap_or(0) > 0
+                                        }
+                                        None => false
+                                    };
+                                    record.serialize_bool(is_nonsquare);
+                                    // record.serialize_bool_onehot(is_nonsquare);
+                                }
+                            }
+                        }
 
                         for connectivity in &connectivity_vec {
                             for color in 0..=9 {
@@ -4362,6 +4762,7 @@ impl SolveLogisticRegression {
                                     None => false
                                 };
                                 record.serialize_bool(is_rectangle);
+                                // record.serialize_bool_onehot(is_rectangle);
                             }
                         }
                         
@@ -4374,6 +4775,7 @@ impl SolveLogisticRegression {
                                     None => false
                                 };
                                 record.serialize_bool(is_box);
+                                // record.serialize_bool_onehot(is_box);
                             }
                         }
 
@@ -4394,31 +4796,6 @@ impl SolveLogisticRegression {
                             }
                         }
 
-                        // horizontal symmetry is worsening the prediction.
-                        // for connectivity in &connectivity_vec {
-                        //     for color in 0..=9 {
-                        //         let is_symmetric: bool = match horizontal_symmetry.get(&(color, *connectivity)) {
-                        //             Some(value) => {
-                        //                 value.get(xx, yy).unwrap_or(0) > 0
-                        //             }
-                        //             None => false
-                        //         };
-                        //         record.serialize_bool(is_symmetric);
-                        //     }
-                        // }
-
-                        // vertical symmetry is worsening the prediction.
-                        // for connectivity in &connectivity_vec {
-                        //     for color in 0..=9 {
-                        //         let is_symmetric: bool = match vertical_symmetry.get(&(color, *connectivity)) {
-                        //             Some(value) => {
-                        //                 value.get(xx, yy).unwrap_or(0) > 0
-                        //             }
-                        //             None => false
-                        //         };
-                        //         record.serialize_bool(is_symmetric);
-                        //     }
-                        // }
 
                         #[allow(unused_variables)]
                         let directions = [
@@ -5424,18 +5801,6 @@ impl SolveLogisticRegression {
                     // cell distance from top/bottom/left/right
                     // cell is top/bottom/left/right/center
                     
-                    // These are worsening the predictions.
-                    // input_is_removal_color: u8,
-                    // distance_top: PixelColor,
-                    // distance_bottom: PixelColor,
-                    // distance_left: PixelColor,
-                    // distance_right: PixelColor,
-                    // y mod3: u8,
-                    // x mod3: u8,
-                    // preserve corner: u8,
-                    // x_distance_from_center: i16,
-                    // y_distance_from_center: i16,
-
                     records.push(record);
                 }
             }

@@ -8,7 +8,7 @@ COPY ./loda-rust-cli loda-rust-cli
 COPY ./loda-rust-web loda-rust-web
 COPY ./Cargo.toml Cargo.toml
 COPY ./Cargo.lock Cargo.lock
-RUN cargo build --locked --config net.git-fetch-with-cli=true --release -p loda-rust-cli
+RUN cargo build -vv --locked --config net.git-fetch-with-cli=true --release -p loda-rust-cli
 
 ####################################################################################################
 ## Final image

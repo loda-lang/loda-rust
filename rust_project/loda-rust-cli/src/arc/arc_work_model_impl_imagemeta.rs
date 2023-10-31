@@ -9,6 +9,8 @@ impl arc_work_model::ImageMeta {
         Self {
             histogram_all: Histogram::new(),
             histogram_border: Histogram::new(),
+            histogram_rows: vec!(),
+            histogram_columns: vec!(),
             image_properties: HashMap::new(),
             image_label_set: HashSet::new(),
             split: None,
@@ -22,6 +24,8 @@ impl arc_work_model::ImageMeta {
     pub fn analyze(&mut self, image: &Image) -> anyhow::Result<()> {
         self.histogram_all = image.histogram_all();
         self.histogram_border = image.histogram_border();
+        self.histogram_rows = image.histogram_rows();
+        self.histogram_columns = image.histogram_columns();
         self.update_image_properties(image);
         self.assign_periodicity(image)?;
         self.assign_split(image)?;
