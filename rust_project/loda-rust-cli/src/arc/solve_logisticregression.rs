@@ -593,7 +593,7 @@ impl SolveLogisticRegression {
             prediction_vec: vec!(),
         };
 
-        for variant in 0u8..=2 {
+        for variant in 0u8..=0 {
             let processed_task: ProcessedTask = Self::process_task_item(task, variant)
                 .with_context(|| format!("task: {} Unable to process_task_item() with variant: {}", task.id, variant))?;
 
