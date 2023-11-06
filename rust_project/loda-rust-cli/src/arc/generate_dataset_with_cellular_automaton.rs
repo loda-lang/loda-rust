@@ -1,9 +1,10 @@
 use super::{CellularAutomaton, cellular_automaton::rule};
 use super::{Image, ImageSize, RandomImage};
+use super::HtmlLog;
+use bloomfilter::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use rand::seq::SliceRandom;
-use crate::arc::HtmlLog;
 
 struct GenerateDataset;
 
@@ -16,6 +17,10 @@ impl GenerateDataset {
             10, 20, 30, 40, 50, 60, 70, 80, 90
         ];
 
+        let bloom_items_count = 1000;
+        let false_positive_rate = 0.01;
+        let mut bloom = Bloom::<Image>::new_for_fp_rate(bloom_items_count, false_positive_rate);
+
         for i in 0..100 {
             let mut rng = StdRng::seed_from_u64(i);
             let width: u8 = *sizes.choose(&mut rng).unwrap();
@@ -24,10 +29,17 @@ impl GenerateDataset {
 
             let size = ImageSize::new(width, height);
             let step0: Image = RandomImage::two_colors(&mut rng, size, 0, 1, temperature)?;
+
+            if bloom.check(&step0) {
+                debug!("skipping duplicate");
+                continue;
+            }
+            bloom.set(&step0);
+
             let mut images = Vec::<Image>::new();
             images.push(step0.clone());
             let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0);
-            for _ in 0..2 {
+            for _ in 0..5 {
                 ca.step_once();
                 images.push(ca.image().clone());
             }
