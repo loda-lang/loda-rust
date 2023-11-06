@@ -67,6 +67,17 @@ impl<R: CARule> CellularAutomaton<R> {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn images_for_n_steps(&mut self, count: u8) -> Vec<Image> {
+        let mut images = Vec::<Image>::new();
+        images.push(self.current.clone());
+        for _ in 0..count {
+            self.step_once();
+            images.push(self.current.clone());
+        }
+        images
+    }
+
     pub fn step_once(&mut self) {
         for y in 0..self.current.height() {
             for x in 0..self.current.width() {

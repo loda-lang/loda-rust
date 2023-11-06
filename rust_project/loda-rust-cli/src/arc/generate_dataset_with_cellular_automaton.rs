@@ -36,14 +36,21 @@ impl GenerateDataset {
             }
             bloom.set(&step0);
 
-            let mut images = Vec::<Image>::new();
-            images.push(step0.clone());
-            let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0, None);
-            for _ in 0..5 {
-                ca.step_once();
-                images.push(ca.image().clone());
+            let mut ca_nowrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0, Some(0));
+            let images_nowrap: Vec<Image> = ca_nowrap.images_for_n_steps(5);
+
+            let mut ca_wrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0, None);
+            let images_wrap: Vec<Image> = ca_wrap.images_for_n_steps(5);
+
+            if images_wrap == images_nowrap {
+                HtmlLog::text("identical for wrap and nowrap");
+                HtmlLog::compare_images(images_wrap);
+                continue;
             }
-            HtmlLog::compare_images(images);
+            HtmlLog::text("nowrap");
+            HtmlLog::compare_images(images_nowrap);
+            HtmlLog::text("wrap");
+            HtmlLog::compare_images(images_wrap);
         }
         Ok(())
     }
