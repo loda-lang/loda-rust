@@ -175,6 +175,33 @@ impl CARule for HighLife {
     }
 }
 
+/// https://en.wikipedia.org/wiki/Wireworld
+/// 
+/// 0 = empty
+/// 1 = electron head
+/// 2 = electron tail
+/// 3 = conductor
+struct Wireworld;
+
+impl CARule for Wireworld {
+    fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+        if center == 1 { // electron head
+            return 2; // electron tail
+        }
+
+        if center == 2 { // electron tail
+            return 3; // conductor
+        }
+        
+        let electron_head_count: usize = neighbors.iter().filter(|&&value| value == 1).count();
+        if center == 3 && (electron_head_count == 1 || electron_head_count == 2) { // conductor with 1 or 2 electron heads
+            return 1; // electron head
+        }
+
+        center
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -241,7 +268,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_gameoflife_extra() {
+    fn test_20000_gameoflife_extra_glider() {
         // Act
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0,
@@ -272,7 +299,38 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_highlife_predecessor_replicator() {
+    fn test_20001_gameoflife_extra_glider() {
+        // Act
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0,
+            0, 0, 2, 3, 0, 0,
+            0, 3, 0, 1, 2, 0,
+            0, 0, 1, 1, 0, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 6, pixels).expect("image");
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<GameOfLifeExtra>::with_image(&input);
+
+        // Act
+        ca.step_once();
+        let actual: Image = ca.current;
+        
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0,
+            0, 0, 3, 2, 0, 0,
+            0, 0, 0, 3, 1, 0,
+            0, 0, 1, 1, 2, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(6, 6, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_highlife_predecessor_replicator() {
         // Act
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0,
@@ -299,6 +357,64 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(6, 6, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40000_wireworld_diode() {
+        // Act
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 3, 3, 0, 0, 0,
+            3, 2, 1, 0, 3, 3, 3, 3,
+            0, 0, 0, 3, 3, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(8, 5, pixels).expect("image");
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<Wireworld>::with_image(&input);
+
+        // Act
+        ca.step_once();
+        let actual: Image = ca.current;
+        
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 3, 0, 0, 0,
+            3, 3, 2, 0, 3, 3, 3, 3,
+            0, 0, 0, 1, 3, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40001_wireworld_diode() {
+        // Act
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 3, 3, 0, 0, 0,
+            3, 2, 1, 3, 0, 3, 3, 3,
+            0, 0, 0, 3, 3, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(8, 5, pixels).expect("image");
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<Wireworld>::with_image(&input);
+
+        // Act
+        ca.step_once();
+        let actual: Image = ca.current;
+        
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 3, 0, 0, 0,
+            3, 3, 2, 1, 0, 3, 3, 3,
+            0, 0, 0, 1, 3, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
