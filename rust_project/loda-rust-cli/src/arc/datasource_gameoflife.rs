@@ -57,30 +57,46 @@ impl GameOfLife {
     pub fn step_once(&mut self) {
         for y in 0..self.current.height() {
             for x in 0..self.current.width() {
-                let mut count: u8 = 0;
-                // count live neighbors
+
+                // Obtain the 8 neighbor values
+                let mut neighbors: [u8; 8] = [0; 8];
+                let mut index: usize = 0;
                 for i in -1..=1 {
                     for j in -1..=1 {
                         if i == 0 && j == 0 {
                             continue;
                         }
                         let value: u8 = self.current.get_wrap(x as i32 + i, y as i32 + j).unwrap_or(0);
-                        if value > 0 {
-                            count += 1;
-                        }
+                        neighbors[index] = value;
+                        index += 1;
                     }
                 }
-                let value: u8 = self.current.get(x as i32, y as i32).unwrap_or(0);
-                let set_value: u8 = match (value, count) {
-                    (0, 3) => 1,
-                    (1, 2) => 1,
-                    (1, 3) => 1,
-                    _ => 0,
-                };
+
+                // Get center value
+                let center: u8 = self.current.get(x as i32, y as i32).unwrap_or(0);
+
+                // Apply the rules
+                let set_value: u8 = Self::callback(center, &neighbors);
+
                 _ = self.next.set(x as i32, y as i32, set_value);
             }
         }
         std::mem::swap(&mut self.current, &mut self.next);
+    }
+
+    fn callback(center: u8, neighbors: &[u8; 8]) -> u8 {
+        let mut alive_count: u8 = 0;
+        for value in neighbors {
+            if *value > 0 {
+                alive_count += 1;
+            }
+        }
+        match (center, alive_count) {
+            (0, 3) => 1,
+            (1, 2) => 1,
+            (1, 3) => 1,
+            _ => 0,
+        }
     }
 }
 
