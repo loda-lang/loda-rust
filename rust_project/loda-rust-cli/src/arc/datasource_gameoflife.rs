@@ -140,13 +140,14 @@ mod tests {
     fn test_10000_gameoflife_glider() {
         // Act
         let pixels: Vec<u8> = vec![
-            0, 1, 0, 0, 0,
-            0, 0, 1, 0, 0,
-            1, 1, 1, 0, 0,
-            0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 0, 0,
+            0, 1, 0, 1, 0, 0,
+            0, 0, 1, 1, 0, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
         ];
-        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+        let input: Image = Image::try_create(6, 6, pixels).expect("image");
         let mut ca: CellularAutomaton<_> = CellularAutomaton::<GameOfLife>::with_image(&input);
 
         // Act
@@ -155,13 +156,14 @@ mod tests {
         
         // Assert
         let expected_pixels: Vec<u8> = vec![
-            0, 0, 0, 0, 0,
-            1, 0, 1, 0, 0,
-            0, 1, 1, 0, 0,
-            0, 1, 0, 0, 0,
-            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 1, 0, 0, 0,
+            0, 0, 0, 1, 1, 0,
+            0, 0, 1, 1, 0, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
         ];
-        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        let expected: Image = Image::try_create(6, 6, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 
