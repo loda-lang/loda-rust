@@ -92,139 +92,147 @@ impl<R: CARule> CellularAutomaton<R> {
         }
         std::mem::swap(&mut self.current, &mut self.next);
     }
-}
 
-/// https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
-/// 
-/// - Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-/// - Any live cell with two or three live neighbours lives on to the next generation.
-/// - Any live cell with more than three live neighbours dies, as if by overpopulation.
-/// - Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-/// 
-/// These rules, which compare the behavior of the automaton to real life, can be condensed into the following:
-/// 
-/// - Any live cell with two or three live neighbours survives.
-/// - Any dead cell with three live neighbours becomes a live cell.
-/// - All other live cells die in the next generation. Similarly, all other dead cells stay dead.
-struct GameOfLife;
-
-impl CARule for GameOfLife {
-    fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
-        let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
-        match (center, alive_count) {
-            (0, 3) => 1,
-            (1, 2) => 1,
-            (1, 3) => 1,
-            _ => 0,
-        }
+    #[allow(dead_code)]
+    pub fn image(&self) -> &Image {
+        &self.current
     }
 }
 
-/// GameOfLife with extra states
-/// 
-/// 0 = dead
-/// 1 = alive
-/// 2 = just born
-/// 3 = just dead
-struct GameOfLifeExtra;
+pub mod rule {
+    /// https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
+    /// 
+    /// - Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+    /// - Any live cell with two or three live neighbours lives on to the next generation.
+    /// - Any live cell with more than three live neighbours dies, as if by overpopulation.
+    /// - Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+    /// 
+    /// These rules, which compare the behavior of the automaton to real life, can be condensed into the following:
+    /// 
+    /// - Any live cell with two or three live neighbours survives.
+    /// - Any dead cell with three live neighbours becomes a live cell.
+    /// - All other live cells die in the next generation. Similarly, all other dead cells stay dead.
+    pub struct GameOfLife;
 
-impl CARule for GameOfLifeExtra {
-    fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
-        let alive_count = neighbors.iter().filter(|&&state| state == 1 || state == 2).count();
-
-        if (center == 1 || center == 2) && (alive_count < 2 || alive_count > 3) {
-            // Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-            // Any live cell with more than three live neighbours dies, as if by overpopulation.
-            return 3; // just dead
-        }
-
-        if (center == 1 || center == 2) && (alive_count == 2 || alive_count == 3) {
-            // Any live cell with two or three live neighbours lives on to the next generation.
-            return 1; // alive
-        }    
-
-        if (center == 0 || center == 3) && (alive_count == 3) {
-            // Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-            return 2; // just born
-        }
-
-        if center == 0 {
-            // dead stays dead
-            return 0; // dead
-        }
-
-        if center == 3 {
-            // "just dead" becomes fully dead
-            return 0; // dead
-        }
-
-        // anything else becomes "just dead"
-        3 // just dead
-    }
-}
-
-
-/// https://conwaylife.com/wiki/OCA:HighLife
-/// 
-/// Cells survive from one generation to the next if they have 2 or 3 neighbours, and are born if they have 3 or 6 neighbours.
-struct HighLife;
-
-impl CARule for HighLife {
-    fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
-        let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
-        match (center, alive_count) {
-            // A dead cell with exactly three or six neighbors becomes a live cell
-            (0, 3) | (0, 6) => 1,
-            // A live cell with two or three neighbors stays alive
-            (1, 2) | (1, 3) => 1,
-            // In all other cases, the cell dies or remains dead
-            _ => 0,
+    impl super::CARule for GameOfLife {
+        fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+            let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
+            match (center, alive_count) {
+                (0, 3) => 1,
+                (1, 2) => 1,
+                (1, 3) => 1,
+                _ => 0,
+            }
         }
     }
-}
 
-/// https://en.wikipedia.org/wiki/Wireworld
-/// 
-/// 0 = empty
-/// 1 = electron head
-/// 2 = electron tail
-/// 3 = conductor
-struct Wireworld;
+    /// GameOfLife with extra states
+    /// 
+    /// 0 = dead
+    /// 1 = alive
+    /// 2 = just born
+    /// 3 = just dead
+    pub struct GameOfLifeExtra;
 
-impl CARule for Wireworld {
-    fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
-        if center == 1 { // electron head
-            return 2; // electron tail
+    impl super::CARule for GameOfLifeExtra {
+        fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+            let alive_count = neighbors.iter().filter(|&&state| state == 1 || state == 2).count();
+
+            if (center == 1 || center == 2) && (alive_count < 2 || alive_count > 3) {
+                // Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+                // Any live cell with more than three live neighbours dies, as if by overpopulation.
+                return 3; // just dead
+            }
+
+            if (center == 1 || center == 2) && (alive_count == 2 || alive_count == 3) {
+                // Any live cell with two or three live neighbours lives on to the next generation.
+                return 1; // alive
+            }    
+
+            if (center == 0 || center == 3) && (alive_count == 3) {
+                // Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+                return 2; // just born
+            }
+
+            if center == 0 {
+                // dead stays dead
+                return 0; // dead
+            }
+
+            if center == 3 {
+                // "just dead" becomes fully dead
+                return 0; // dead
+            }
+
+            // anything else becomes "just dead"
+            3 // just dead
         }
-
-        if center == 2 { // electron tail
-            return 3; // conductor
-        }
-        
-        let electron_head_count: usize = neighbors.iter().filter(|&&value| value == 1).count();
-        if center == 3 && (electron_head_count == 1 || electron_head_count == 2) { // conductor with 1 or 2 electron heads
-            return 1; // electron head
-        }
-
-        center
     }
-}
 
-/// https://conwaylife.com/wiki/OCA:Serviettes
-/// also known as "Persian rugs"
-struct Serviettes;
 
-impl CARule for Serviettes {
-    fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
-        let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
-        match (center, alive_count) {
-            // A dead cell with 2, 3, 4 becomes alive
-            (0, 2) | (0, 3) | (0, 4) => 1,
-            // In all other cases, the cell dies or remains dead
-            _ => 0,
+    /// https://conwaylife.com/wiki/OCA:HighLife
+    /// 
+    /// Cells survive from one generation to the next if they have 2 or 3 neighbours, and are born if they have 3 or 6 neighbours.
+    pub struct HighLife;
+
+    impl super::CARule for HighLife {
+        fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+            let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
+            match (center, alive_count) {
+                // A dead cell with exactly three or six neighbors becomes a live cell
+                (0, 3) | (0, 6) => 1,
+                // A live cell with two or three neighbors stays alive
+                (1, 2) | (1, 3) => 1,
+                // In all other cases, the cell dies or remains dead
+                _ => 0,
+            }
         }
     }
-}
+
+    /// https://en.wikipedia.org/wiki/Wireworld
+    /// 
+    /// 0 = empty
+    /// 1 = electron head
+    /// 2 = electron tail
+    /// 3 = conductor
+    pub struct Wireworld;
+
+    impl super::CARule for Wireworld {
+        fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+            if center == 1 { // electron head
+                return 2; // electron tail
+            }
+
+            if center == 2 { // electron tail
+                return 3; // conductor
+            }
+            
+            let electron_head_count: usize = neighbors.iter().filter(|&&value| value == 1).count();
+            if center == 3 && (electron_head_count == 1 || electron_head_count == 2) { // conductor with 1 or 2 electron heads
+                return 1; // electron head
+            }
+
+            center
+        }
+    }
+
+    /// https://conwaylife.com/wiki/OCA:Serviettes
+    /// also known as "Persian rugs"
+    pub struct Serviettes;
+
+    impl super::CARule for Serviettes {
+        fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+            let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
+            match (center, alive_count) {
+                // A dead cell with 2, 3, 4 becomes alive
+                (0, 2) | (0, 3) | (0, 4) => 1,
+                // In all other cases, the cell dies or remains dead
+                _ => 0,
+            }
+        }
+    }
+
+} // mod rule
 
 
 #[cfg(test)]
@@ -244,7 +252,7 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<GameOfLife>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input);
 
         // Act
         ca.step_once();
@@ -274,7 +282,7 @@ mod tests {
             1, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<GameOfLife>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input);
 
         // Act
         ca.step_once();
@@ -304,7 +312,7 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<GameOfLifeExtra>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLifeExtra>::with_image(&input);
 
         // Act
         ca.step_once();
@@ -335,7 +343,7 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<GameOfLifeExtra>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLifeExtra>::with_image(&input);
 
         // Act
         ca.step_once();
@@ -366,7 +374,7 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<HighLife>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::HighLife>::with_image(&input);
 
         // Act
         ca.step_once();
@@ -396,7 +404,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 5, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<Wireworld>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Wireworld>::with_image(&input);
 
         // Act
         ca.step_once();
@@ -425,7 +433,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 5, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<Wireworld>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Wireworld>::with_image(&input);
 
         // Act
         ca.step_once();
@@ -455,7 +463,7 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<Serviettes>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Serviettes>::with_image(&input);
 
         // Act
         ca.step_once();
