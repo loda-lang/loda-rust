@@ -2,6 +2,7 @@
 //! 
 //! https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
 use super::{Image, ImageSize, HtmlLog};
+use std::marker::PhantomData;
 
 /// `CARule` is a trait that defines the behavior of a single cell within a cellular automaton
 /// based on its current state and the states of its eight neighboring cells.
@@ -16,27 +17,25 @@ pub trait CARule {
 pub struct CellularAutomaton<R: CARule> {
     current: Image,
     next: Image,
-
-    #[allow(dead_code)]
-    rule: R,
+    _rule: PhantomData<R>,
 }
 
 impl<R: CARule> CellularAutomaton<R> {
     #[allow(dead_code)]
-    pub fn new(size: ImageSize, rule: R) -> Self {
+    pub fn new(size: ImageSize) -> Self {
         Self {
             current: Image::zero(size.width, size.height),
             next: Image::zero(size.width, size.height),
-            rule,
+            _rule: PhantomData,
         }
     }
 
     #[allow(dead_code)]
-    pub fn with_image(image: &Image, rule: R) -> Self {
+    pub fn with_image(image: &Image) -> Self {
         Self {
             current: image.clone(),
             next: image.clone_zero(),
-            rule,
+            _rule: PhantomData,
         }
     }
 
@@ -99,9 +98,9 @@ impl<R: CARule> CellularAutomaton<R> {
 /// - Any live cell with two or three live neighbours survives.
 /// - Any dead cell with three live neighbours becomes a live cell.
 /// - All other live cells die in the next generation. Similarly, all other dead cells stay dead.
-struct ConwaysGameOfLife;
+struct GameOfLife;
 
-impl CARule for ConwaysGameOfLife {
+impl CARule for GameOfLife {
     fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
         let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
         match (center, alive_count) {
@@ -113,13 +112,32 @@ impl CARule for ConwaysGameOfLife {
     }
 }
 
+/// https://conwaylife.com/wiki/OCA:HighLife
+/// 
+/// Cells survive from one generation to the next if they have 2 or 3 neighbours, and are born if they have 3 or 6 neighbours.
+struct HighLife;
+
+impl CARule for HighLife {
+    fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+        let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
+        match (center, alive_count) {
+            // A dead cell with exactly three or six neighbors becomes a live cell
+            (0, 3) | (0, 6) => 1,
+            // A live cell with two or three neighbors stays alive
+            (1, 2) | (1, 3) => 1,
+            // In all other cases, the cell dies or remains dead
+            _ => 0,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_glider() {
+    fn test_10000_gameoflife_glider() {
         // Act
         let pixels: Vec<u8> = vec![
             0, 1, 0, 0, 0,
@@ -129,8 +147,7 @@ mod tests {
             0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
-
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::with_image(&input, ConwaysGameOfLife);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<GameOfLife>::with_image(&input);
 
         // Act
         ca.step_once();
@@ -149,7 +166,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_glider_wraparound() {
+    fn test_10001_gameoflife_glider_wraparound() {
         // Act
         let pixels: Vec<u8> = vec![
             0, 1, 0, 0, 0,
@@ -159,8 +176,7 @@ mod tests {
             1, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
-
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::with_image(&input, ConwaysGameOfLife);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<GameOfLife>::with_image(&input);
 
         // Act
         ca.step_once();
@@ -175,6 +191,37 @@ mod tests {
             0, 0, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20000_highlife_predecessor_replicator() {
+        // Act
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0,
+            0, 0, 1, 1, 1, 0,
+            0, 1, 0, 0, 0, 0,
+            0, 1, 0, 0, 0, 0,
+            0, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 6, pixels).expect("image");
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<HighLife>::with_image(&input);
+
+        // Act
+        ca.step_once();
+        let actual: Image = ca.current;
+        
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 1, 0, 0,
+            0, 0, 1, 1, 0, 0,
+            0, 1, 0, 1, 0, 0,
+            1, 1, 1, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(6, 6, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
