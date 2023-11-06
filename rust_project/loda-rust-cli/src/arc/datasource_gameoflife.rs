@@ -1,6 +1,13 @@
 //! Conway's Game of Life
 //! 
 //! https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
+//! 
+//! Ideas for more cellular automata:
+//! https://en.wikipedia.org/wiki/Langton%27s_ant
+//! https://conwaylife.com/wiki/OCA:Maze
+//! https://conwaylife.com/wiki/OCA:Life_without_death
+//! https://conwaylife.com/wiki/OCA:Seeds
+//! https://en.wikipedia.org/wiki/Brian's_Brain
 use super::{Image, ImageSize, HtmlLog};
 use std::marker::PhantomData;
 
@@ -201,6 +208,23 @@ impl CARule for Wireworld {
         center
     }
 }
+
+/// https://conwaylife.com/wiki/OCA:Serviettes
+/// also known as "Persian rugs"
+struct Serviettes;
+
+impl CARule for Serviettes {
+    fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+        let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
+        match (center, alive_count) {
+            // A dead cell with 2, 3, 4 becomes alive
+            (0, 2) | (0, 3) | (0, 4) => 1,
+            // In all other cases, the cell dies or remains dead
+            _ => 0,
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -415,6 +439,37 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(8, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_50000_serviettes() {
+        // Act
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 1, 1, 0, 0,
+            0, 0, 1, 1, 0, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 6, pixels).expect("image");
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<Serviettes>::with_image(&input);
+
+        // Act
+        ca.step_once();
+        let actual: Image = ca.current;
+        
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0,
+            0, 0, 1, 1, 0, 0,
+            0, 1, 0, 0, 1, 0,
+            0, 1, 0, 0, 1, 0,
+            0, 0, 1, 1, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(6, 6, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
