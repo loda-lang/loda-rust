@@ -59,6 +59,24 @@ mod tests {
 
     // #[test]
     fn test_10001_do_something() {
+        for i in 0..20u64 {
+            let size = ImageSize::new(10, 8);
+            let step0: Image = RandomImage::two_colors(&mut StdRng::seed_from_u64(i), size, 0, 1, 35).expect("ok");
+            let step1: Image = RandomImage::draw_dots(&mut StdRng::seed_from_u64(i+5), &step0, 2, 5).expect("ok");
+            let step2: Image = RandomImage::draw_dots(&mut StdRng::seed_from_u64(i+8), &step1, 3, 5).expect("ok");
+            let mut images = Vec::<Image>::new();
+            images.push(step2.clone());
+            let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLifeExtra>::with_image(&step0);
+            for _ in 0..4 {
+                ca.step_once();
+                images.push(ca.image().clone());
+            }
+            HtmlLog::compare_images(images);
+        }
+    }
+
+    // #[test]
+    fn test_10002_do_something() {
         GenerateDataset::curriculum_easy().expect("ok");
     }
 }
