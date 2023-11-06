@@ -24,6 +24,7 @@ mod convolution3x3_with_mask;
 mod convolution5x5_special;
 mod convolution_with_program;
 mod create_task_with_same_size;
+mod datasource_gameoflife;
 mod diagonal_histogram;
 mod experiment_with_convolution;
 mod export_tasks;
