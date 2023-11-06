@@ -1,4 +1,5 @@
 //! Cellular Automaton (singular) and Cellular Automata (plural)
+//! https://en.wikipedia.org/wiki/Cellular_automaton
 //! 
 //! Conway's Game of Life is one cellular automaton.
 //! https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
