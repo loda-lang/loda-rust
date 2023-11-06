@@ -38,7 +38,7 @@ impl GenerateDataset {
 
             let mut images = Vec::<Image>::new();
             images.push(step0.clone());
-            let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0);
+            let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0, None);
             for _ in 0..5 {
                 ca.step_once();
                 images.push(ca.image().clone());
@@ -60,7 +60,7 @@ mod tests {
             let step0: Image = RandomImage::two_colors(&mut StdRng::seed_from_u64(i), size, 0, 1, 25).expect("ok");
             let mut images = Vec::<Image>::new();
             images.push(step0.clone());
-            let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0);
+            let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0, None);
             for _ in 0..2 {
                 ca.step_once();
                 images.push(ca.image().clone());
@@ -78,7 +78,7 @@ mod tests {
             let step2: Image = RandomImage::draw_dots(&mut StdRng::seed_from_u64(i+8), &step1, 3, 5).expect("ok");
             let mut images = Vec::<Image>::new();
             images.push(step2.clone());
-            let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLifeExtra>::with_image(&step0);
+            let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLifeExtra>::with_image(&step0, None);
             for _ in 0..4 {
                 ca.step_once();
                 images.push(ca.image().clone());

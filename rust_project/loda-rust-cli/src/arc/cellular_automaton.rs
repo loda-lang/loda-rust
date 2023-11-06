@@ -26,24 +26,27 @@ pub trait CARule {
 pub struct CellularAutomaton<R: CARule> {
     current: Image,
     next: Image,
+    outside_color: Option<u8>,
     _rule: PhantomData<R>,
 }
 
 impl<R: CARule> CellularAutomaton<R> {
     #[allow(dead_code)]
-    pub fn new(size: ImageSize) -> Self {
+    pub fn new(size: ImageSize, outside_color: Option<u8>) -> Self {
         Self {
             current: Image::zero(size.width, size.height),
             next: Image::zero(size.width, size.height),
+            outside_color,
             _rule: PhantomData,
         }
     }
 
     #[allow(dead_code)]
-    pub fn with_image(image: &Image) -> Self {
+    pub fn with_image(image: &Image, outside_color: Option<u8>) -> Self {
         Self {
             current: image.clone(),
             next: image.clone_zero(),
+            outside_color,
             _rule: PhantomData,
         }
     }
@@ -76,7 +79,11 @@ impl<R: CARule> CellularAutomaton<R> {
                         if i == 0 && j == 0 {
                             continue;
                         }
-                        let value: u8 = self.current.get_wrap(x as i32 + i, y as i32 + j).unwrap_or(0);
+                        let value: u8 = if let Some(outside_color) = self.outside_color {
+                            self.current.get(x as i32 + i, y as i32 + j).unwrap_or(outside_color)
+                        } else {
+                            self.current.get_wrap(x as i32 + i, y as i32 + j).unwrap_or(0)
+                        };
                         neighbors[index] = value;
                         index += 1;
                     }
@@ -253,7 +260,7 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, None);
 
         // Act
         ca.step_once();
@@ -283,7 +290,7 @@ mod tests {
             1, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, None);
 
         // Act
         ca.step_once();
@@ -294,6 +301,35 @@ mod tests {
             0, 1, 0, 0, 1,
             1, 1, 0, 0, 0,
             1, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10002_gameoflife_glider_use_outside_color() {
+        // Act
+        let pixels: Vec<u8> = vec![
+            0, 1, 0, 0, 0,
+            1, 1, 0, 0, 1,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, Some(0));
+
+        // Act
+        ca.step_once();
+        let actual: Image = ca.current;
+        
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 0,
+            1, 1, 0, 0, 0,
+            0, 0, 0, 0, 0,
             0, 0, 0, 0, 0,
             0, 0, 0, 0, 0,
         ];
@@ -313,7 +349,7 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLifeExtra>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLifeExtra>::with_image(&input, None);
 
         // Act
         ca.step_once();
@@ -344,7 +380,7 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLifeExtra>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLifeExtra>::with_image(&input, None);
 
         // Act
         ca.step_once();
@@ -375,7 +411,7 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::HighLife>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::HighLife>::with_image(&input, None);
 
         // Act
         ca.step_once();
@@ -405,7 +441,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 5, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Wireworld>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Wireworld>::with_image(&input, None);
 
         // Act
         ca.step_once();
@@ -434,7 +470,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(8, 5, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Wireworld>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Wireworld>::with_image(&input, None);
 
         // Act
         ca.step_once();
@@ -464,7 +500,7 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
-        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Serviettes>::with_image(&input);
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Serviettes>::with_image(&input, None);
 
         // Act
         ca.step_once();
