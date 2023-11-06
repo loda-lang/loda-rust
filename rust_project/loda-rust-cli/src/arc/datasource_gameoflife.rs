@@ -112,6 +112,50 @@ impl CARule for GameOfLife {
     }
 }
 
+/// GameOfLife with extra states
+/// 
+/// 0 = dead
+/// 1 = alive
+/// 2 = just born
+/// 3 = just dead
+struct GameOfLifeExtra;
+
+impl CARule for GameOfLifeExtra {
+    fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+        let alive_count = neighbors.iter().filter(|&&state| state == 1 || state == 2).count();
+
+        if (center == 1 || center == 2) && (alive_count < 2 || alive_count > 3) {
+            // Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+            // Any live cell with more than three live neighbours dies, as if by overpopulation.
+            return 3; // just dead
+        }
+
+        if (center == 1 || center == 2) && (alive_count == 2 || alive_count == 3) {
+            // Any live cell with two or three live neighbours lives on to the next generation.
+            return 1; // alive
+        }    
+
+        if (center == 0 || center == 3) && (alive_count == 3) {
+            // Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+            return 2; // just born
+        }
+
+        if center == 0 {
+            // dead stays dead
+            return 0; // dead
+        }
+
+        if center == 3 {
+            // "just dead" becomes fully dead
+            return 0; // dead
+        }
+
+        // anything else becomes "just dead"
+        3 // just dead
+    }
+}
+
+
 /// https://conwaylife.com/wiki/OCA:HighLife
 /// 
 /// Cells survive from one generation to the next if they have 2 or 3 neighbours, and are born if they have 3 or 6 neighbours.
@@ -193,6 +237,37 @@ mod tests {
             0, 0, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10002_gameoflife_extra() {
+        // Act
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 0, 0,
+            0, 1, 0, 1, 0, 0,
+            0, 0, 1, 1, 0, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 6, pixels).expect("image");
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<GameOfLifeExtra>::with_image(&input);
+
+        // Act
+        ca.step_once();
+        let actual: Image = ca.current;
+        
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0,
+            0, 0, 2, 3, 0, 0,
+            0, 3, 0, 1, 2, 0,
+            0, 0, 1, 1, 0, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(6, 6, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 
