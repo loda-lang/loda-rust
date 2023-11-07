@@ -51,7 +51,10 @@ impl GenerateDataset {
         let mut count_input_one_cell_empty: usize = 0;
         let mut count_input_one_cell_alive: usize = 0;
 
-        for i in 0..100 {
+        for i in 0..10000 {
+            if dataset_row_vec.len() >= 100 {
+                break;
+            }
             let mut rng = StdRng::seed_from_u64(i);
             let width: u8 = *sizes.choose(&mut rng).unwrap();
             let height: u8 = *sizes.choose(&mut rng).unwrap();
@@ -185,13 +188,14 @@ impl GenerateDataset {
         }
 
         let mut jsonl_rows = Vec::<String>::new();
-        for dataset_row in dataset_row_vec {
-            let jsonl_row: String = serde_json::to_string(&dataset_row)?;
+        for dataset_row in &dataset_row_vec {
+            let jsonl_row: String = serde_json::to_string(dataset_row)?;
             jsonl_rows.push(jsonl_row);
         }
         let jsonl_data: String = jsonl_rows.join("\n");
 
-        println!("jsonl size: {}", jsonl_data.len());
+        println!("dataset number of rows: {}", dataset_row_vec.len());
+        println!("dataset jsonl bytes: {}", jsonl_data.len());
         // println!("jsonl:\n\n{}\n\n", jsonl_data);
 
         Ok(())
