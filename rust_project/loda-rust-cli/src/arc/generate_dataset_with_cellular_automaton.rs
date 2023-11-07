@@ -40,6 +40,8 @@ impl GenerateDataset {
 
         let mut count_input_all_empty: usize = 0;
         let mut count_input_all_alive: usize = 0;
+        let mut count_input_one_cell_empty: usize = 0;
+        let mut count_input_one_cell_alive: usize = 0;
 
         for i in 0..100 {
             let mut rng = StdRng::seed_from_u64(i);
@@ -79,16 +81,34 @@ impl GenerateDataset {
             let (input_count0, input_count1, _count_other) = input.mask_count();
             let is_input_all_empty: bool = input_count1 == 0;
             let is_input_all_alive: bool = input_count0 == 0;
+            let is_input_one_cell_empty: bool = input_count0 == 1;
+            let is_input_one_cell_alive: bool = input_count1 == 1;
 
             if is_input_all_empty {
                 count_input_all_empty += 1;
                 if count_input_all_empty > 3 {
+                    debug!("ignoring input with all empty");
                     continue;
                 }
             }
             if is_input_all_alive {
                 count_input_all_alive += 1;
                 if count_input_all_alive > 3 {
+                    debug!("ignoring input with all alive");
+                    continue;
+                }
+            }
+            if is_input_one_cell_empty {
+                count_input_one_cell_empty += 1;
+                if count_input_one_cell_empty > 3 {
+                    debug!("ignoring input with one cell empty");
+                    continue;
+                }
+            }
+            if is_input_one_cell_alive {
+                count_input_one_cell_alive += 1;
+                if count_input_one_cell_alive > 3 {
+                    debug!("ignoring input with one cell alive");
                     continue;
                 }
             }
@@ -154,14 +174,20 @@ impl GenerateDataset {
     }
 
     fn caption_for_input_output_image(markdown: &mut String, image: &Image) {
-        let (count0, count1, _count_other) = image.mask_count();
-        let is_all_empty: bool = count1 == 0;
-        let is_all_alive: bool = count0 == 0;
-        if is_all_empty {
+        let (count_empty, count_alive, _count_other) = image.mask_count();
+        if count_alive == 0 {
             markdown.push_str("All cells are empty.\n");
         }
-        if is_all_alive {
+        if count_empty == 0 {
             markdown.push_str("All cells are alive.\n");
+        }
+        if count_alive == 1 {
+            HtmlLog::text("Only one cell is alive.");
+            markdown.push_str("Only one cell is alive.\n");
+        }
+        if count_empty == 1 {
+            HtmlLog::text("Only one cell is empty.");
+            markdown.push_str("Only one cell is empty.\n");
         }
     }
 
