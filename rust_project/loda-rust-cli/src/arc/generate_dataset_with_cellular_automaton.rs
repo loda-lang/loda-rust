@@ -54,14 +54,51 @@ impl GenerateDataset {
         }
         Ok(())
     }
+
+    fn image_to_string(image: &Image) -> String {
+        let mut result = String::new();
+        for y in 0..image.height() {
+            if y > 0 {
+                result.push('\n');
+            }
+            for x in 0..image.width() {
+                let value: u8 = image.get(x as i32, y as i32).unwrap_or(0);
+                let character: char = match value {
+                    0 => '.',
+                    1 => '*',
+                    _ => '?',
+                };
+                result.push(character);
+            }
+        }
+        result
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arc::ImageTryCreate;
+
+    #[test]
+    fn test_10000_image_to_string() {
+        // Act
+        let pixels: Vec<u8> = vec![
+            1, 0, 0,
+            0, 1, 1,
+            1, 1, 255,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: String = GenerateDataset::image_to_string(&input);
+        
+        // Assert
+        assert_eq!(actual, "*..\n.**\n**?");
+    }
 
     // #[test]
-    fn test_10000_do_something() {
+    fn test_20000_do_something() {
         for i in 0..10u64 {
             let size = ImageSize::new(6, 5);
             let step0: Image = RandomImage::two_colors(&mut StdRng::seed_from_u64(i), size, 0, 1, 25).expect("ok");
@@ -77,7 +114,7 @@ mod tests {
     }
 
     // #[test]
-    fn test_10001_do_something() {
+    fn test_20001_do_something() {
         for i in 0..20u64 {
             let size = ImageSize::new(10, 8);
             let step0: Image = RandomImage::two_colors(&mut StdRng::seed_from_u64(i), size, 0, 1, 35).expect("ok");
@@ -95,7 +132,7 @@ mod tests {
     }
 
     // #[test]
-    fn test_10002_do_something() {
+    fn test_20002_do_something() {
         GenerateDataset::curriculum_easy().expect("ok");
     }
 }
