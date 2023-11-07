@@ -34,7 +34,7 @@ enum Curriculum {
 #[derive(Debug, Serialize)]
 struct DatasetItem {
     curriculum: Curriculum,
-    markdown: String,
+    text: String,
 }
 
 #[allow(dead_code)]
@@ -258,7 +258,7 @@ impl GenerateDataset {
 
             let dataset_item = DatasetItem {
                 curriculum,
-                markdown,
+                text: markdown,
             };
             self.dataset_items.push(dataset_item);
             number_of_items_created += 1;
