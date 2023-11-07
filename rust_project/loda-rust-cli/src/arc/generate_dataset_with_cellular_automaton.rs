@@ -8,11 +8,13 @@ use rand::seq::SliceRandom;
 use serde::Serialize;
 use std::io::Write;
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct DatasetItem {
     markdown: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 enum Strategy {
     DoNothing,
@@ -27,6 +29,7 @@ struct GenerateDataset {
 }
 
 impl GenerateDataset {
+    #[allow(dead_code)]
     fn populate(number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<Self> {
         let step_count: u8 = 1;
 
@@ -45,7 +48,7 @@ impl GenerateDataset {
             Strategy::HighLifeTwoSteps,
         ];
 
-        let mut dataset_row_vec = Vec::<DatasetItem>::new();
+        let mut dataset_items = Vec::<DatasetItem>::new();
 
         let bloom_items_count = 1000;
         let false_positive_rate = 0.01;
@@ -58,7 +61,7 @@ impl GenerateDataset {
 
         let upper_bound: u64 = (number_of_items * 2) as u64;
         for i in 0..upper_bound {
-            if dataset_row_vec.len() >= (number_of_items as usize) {
+            if dataset_items.len() >= (number_of_items as usize) {
                 break;
             }
             let mut rng = StdRng::seed_from_u64(i);
@@ -192,14 +195,14 @@ impl GenerateDataset {
             }
             markdown.push_str("\n\n");
 
-            let dataset_row = DatasetItem {
+            let dataset_item = DatasetItem {
                 markdown,
             };
-            dataset_row_vec.push(dataset_row);
+            dataset_items.push(dataset_item);
         }
 
         Ok(Self {
-            dataset_items: dataset_row_vec,
+            dataset_items,
         })
     }
 
