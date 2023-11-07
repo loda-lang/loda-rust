@@ -9,7 +9,7 @@ use serde::Serialize;
 use std::io::Write;
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize)]
 enum Curriculum {
     // Easy
     StepOneSizeSmall,
@@ -25,6 +25,7 @@ enum Curriculum {
 #[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct DatasetItem {
+    curriculum: Curriculum,
     markdown: String,
 }
 
@@ -238,6 +239,7 @@ impl GenerateDataset {
             markdown.push_str("\n\n");
 
             let dataset_item = DatasetItem {
+                curriculum,
                 markdown,
             };
             self.dataset_items.push(dataset_item);
