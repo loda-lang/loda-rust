@@ -191,11 +191,11 @@ impl GenerateDataset {
         }
 
         if count_alive > 0 && count_empty > 0 {
-            if image.is_vertical_lines().unwrap_or(false) {
+            if image.is_repeated_row().unwrap_or(false) {
                 HtmlLog::text("The rows are identical.");
                 markdown.push_str("The rows are identical.\n");
             }
-            if image.is_horizontal_lines().unwrap_or(false) {
+            if image.is_repeated_column().unwrap_or(false) {
                 HtmlLog::text("The columns are identical.");
                 markdown.push_str("The columns are identical.\n");
             }
