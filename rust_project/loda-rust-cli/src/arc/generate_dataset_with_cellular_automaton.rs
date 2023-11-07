@@ -25,12 +25,23 @@ enum Strategy {
 }
 
 struct GenerateDataset {
+    // bloom is for preventing duplicates
+    bloom: Bloom<Image>,
     dataset_items: Vec<DatasetItem>,
 }
 
 impl GenerateDataset {
+    fn new() -> Self {
+        let bloom_items_count = 10000;
+        let false_positive_rate = 0.01;
+        Self {
+            bloom: Bloom::<Image>::new_for_fp_rate(bloom_items_count, false_positive_rate),
+            dataset_items: vec!(),
+        }
+    }
+
     #[allow(dead_code)]
-    fn populate(number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<Self> {
+    fn populate(&mut self, number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
         let step_count: u8 = 1;
 
         let sizes: [u8; 4] = [
@@ -48,20 +59,15 @@ impl GenerateDataset {
             Strategy::HighLifeTwoSteps,
         ];
 
-        let mut dataset_items = Vec::<DatasetItem>::new();
-
-        let bloom_items_count = 1000;
-        let false_positive_rate = 0.01;
-        let mut bloom = Bloom::<Image>::new_for_fp_rate(bloom_items_count, false_positive_rate);
-
         let mut count_input_all_empty: usize = 0;
         let mut count_input_all_alive: usize = 0;
         let mut count_input_one_cell_empty: usize = 0;
         let mut count_input_one_cell_alive: usize = 0;
 
         let upper_bound: u64 = (number_of_items * 2) as u64;
+        let mut number_of_items_created: u32 = 0;
         for i in 0..upper_bound {
-            if dataset_items.len() >= (number_of_items as usize) {
+            if number_of_items_created >= number_of_items {
                 break;
             }
             let mut rng = StdRng::seed_from_u64(i);
@@ -133,11 +139,11 @@ impl GenerateDataset {
                 }
             }
             
-            if bloom.check(&input) {
+            if self.bloom.check(&input) {
                 debug!("skipping duplicate");
                 continue;
             }
-            bloom.set(&input);
+            self.bloom.set(&input);
             
             let mut ca_nowrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, Some(0));
             ca_nowrap.step(step_count);
@@ -147,13 +153,13 @@ impl GenerateDataset {
             ca_wrap.step(step_count);
             let output_with_wrap: Image = ca_wrap.image().clone();
 
-            let compare_images: Vec<Image> = vec![
-                input.clone(),
-                output_without_wrap.clone(),
-                output_with_wrap.clone(),
-            ];
             let same_output_for_wrap_and_nowrap: bool = output_without_wrap == output_with_wrap;
             if print_to_htmllog {
+                let compare_images: Vec<Image> = vec![
+                    input.clone(),
+                    output_without_wrap.clone(),
+                    output_with_wrap.clone(),
+                ];
                 if same_output_for_wrap_and_nowrap {
                     HtmlLog::text("wrap is identical to nowrap");
                     HtmlLog::compare_images(compare_images);
@@ -198,12 +204,11 @@ impl GenerateDataset {
             let dataset_item = DatasetItem {
                 markdown,
             };
-            dataset_items.push(dataset_item);
+            self.dataset_items.push(dataset_item);
+            number_of_items_created += 1;
         }
 
-        Ok(Self {
-            dataset_items,
-        })
+        Ok(())
     }
 
     fn caption_for_input_output_image(markdown: &mut String, image: &Image) {
@@ -348,7 +353,8 @@ mod tests {
     // #[test]
     fn test_20002_do_something() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/gameoflife.jsonl");
-        let generator: GenerateDataset = GenerateDataset::populate(100, true).expect("ok");
+        let mut generator = GenerateDataset::new();
+        generator.populate(100, true).expect("ok");
         generator.save(&path).expect("ok");
     }
 }
