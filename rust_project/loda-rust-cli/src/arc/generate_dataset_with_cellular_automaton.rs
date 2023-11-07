@@ -1,4 +1,8 @@
 //! Cellular automaton - dataset for curriculum learning with increasing complexity.
+//! 
+//! Future experiments:
+//! Game of life: check for oscillators
+//! Game of life: recognize shapes.
 use super::{CellularAutomaton, cellular_automaton::rule};
 use super::{Image, ImageSize, RandomImage, ImageMaskCount, ImageHistogram};
 use super::HtmlLog;
