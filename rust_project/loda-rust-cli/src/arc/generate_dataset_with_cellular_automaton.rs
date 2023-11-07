@@ -1,5 +1,5 @@
 use super::{CellularAutomaton, cellular_automaton::rule};
-use super::{Image, ImageSize, RandomImage, ImageMaskCount};
+use super::{Image, ImageSize, RandomImage, ImageMaskCount, ImageHistogram};
 use super::HtmlLog;
 use bloomfilter::*;
 use rand::rngs::StdRng;
@@ -188,6 +188,17 @@ impl GenerateDataset {
         if count_empty == 1 {
             HtmlLog::text("Only one cell is empty.");
             markdown.push_str("Only one cell is empty.\n");
+        }
+
+        if count_alive > 0 && count_empty > 0 {
+            if image.is_vertical_lines().unwrap_or(false) {
+                HtmlLog::text("The rows are identical.");
+                markdown.push_str("The rows are identical.\n");
+            }
+            if image.is_horizontal_lines().unwrap_or(false) {
+                HtmlLog::text("The columns are identical.");
+                markdown.push_str("The columns are identical.\n");
+            }
         }
     }
 
