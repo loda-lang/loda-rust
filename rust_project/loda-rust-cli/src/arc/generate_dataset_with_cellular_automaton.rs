@@ -5,6 +5,12 @@ use bloomfilter::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use rand::seq::SliceRandom;
+use serde::Serialize;
+
+#[derive(Debug, Serialize)]
+struct DatasetRow {
+    markdown: String,
+}
 
 #[derive(Debug, Clone, Copy)]
 enum Strategy {
@@ -33,6 +39,8 @@ impl GenerateDataset {
             Strategy::HighLifeOneStep,
             Strategy::HighLifeTwoSteps,
         ];
+
+        let mut dataset_row_vec = Vec::<DatasetRow>::new();
 
         let bloom_items_count = 1000;
         let false_positive_rate = 0.01;
@@ -169,7 +177,23 @@ impl GenerateDataset {
             }
             markdown.push_str("\n\n");
             println!("{}---\n\n", markdown);
+
+            let dataset_row = DatasetRow {
+                markdown,
+            };
+            dataset_row_vec.push(dataset_row);
         }
+
+        let mut jsonl_rows = Vec::<String>::new();
+        for dataset_row in dataset_row_vec {
+            let jsonl_row: String = serde_json::to_string(&dataset_row)?;
+            jsonl_rows.push(jsonl_row);
+        }
+        let jsonl_data: String = jsonl_rows.join("\n");
+
+        println!("jsonl size: {}", jsonl_data.len());
+        // println!("jsonl:\n\n{}\n\n", jsonl_data);
+
         Ok(())
     }
 
