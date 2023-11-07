@@ -1,5 +1,5 @@
 use super::{CellularAutomaton, cellular_automaton::rule};
-use super::{Image, ImageSize, RandomImage};
+use super::{Image, ImageSize, RandomImage, ImageMaskCount};
 use super::HtmlLog;
 use bloomfilter::*;
 use rand::rngs::StdRng;
@@ -28,7 +28,23 @@ impl GenerateDataset {
             let temperature: u8 = *temperatures.choose(&mut rng).unwrap();
 
             let size = ImageSize::new(width, height);
-            let step0: Image = RandomImage::two_colors(&mut rng, size, 0, 1, temperature)?;
+            let mut step0: Image = RandomImage::two_colors(&mut rng, size, 0, 1, temperature)?;
+
+            // {
+            //     let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Serviettes>::with_image(&step0, None);
+            //     ca.step_once();
+            //     step0 = ca.image().clone();
+            // }
+
+            {
+                let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::HighLife>::with_image(&step0, None);
+                ca.step(2);
+                step0 = ca.image().clone();
+            }
+
+            let (count0, count1, _count_other) = step0.mask_count();
+            let is_input_all_empty: bool = count1 == 0;
+            let is_input_all_alive: bool = count0 == 0;
 
             if bloom.check(&step0) {
                 debug!("skipping duplicate");
@@ -37,22 +53,55 @@ impl GenerateDataset {
             bloom.set(&step0);
 
             let mut ca_nowrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0, Some(0));
-            let images_nowrap: Vec<Image> = ca_nowrap.images_for_n_steps(5);
+            let images_nowrap: Vec<Image> = ca_nowrap.images_for_n_steps(1);
 
             let mut ca_wrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0, None);
-            let images_wrap: Vec<Image> = ca_wrap.images_for_n_steps(5);
+            let images_wrap: Vec<Image> = ca_wrap.images_for_n_steps(1);
 
-            if images_wrap == images_nowrap {
+            let same_output_for_wrap_and_nowrap: bool = images_nowrap == images_wrap;
+            if same_output_for_wrap_and_nowrap {
                 HtmlLog::text("identical for wrap and nowrap");
-                HtmlLog::compare_images(images_wrap);
-                continue;
+                HtmlLog::compare_images(images_wrap.clone());
+            } else {
+                HtmlLog::text("nowrap");
+                HtmlLog::compare_images(images_nowrap.clone());
+                HtmlLog::text("wrap");
+                HtmlLog::compare_images(images_wrap.clone());
             }
-            HtmlLog::text("nowrap");
-            HtmlLog::compare_images(images_nowrap);
-            HtmlLog::text("wrap");
-            HtmlLog::compare_images(images_wrap);
+
+            let mut markdown = String::new();
+            markdown.push_str("# Conway's Game of Life\n\n");
+            markdown.push_str("Perform 1 step.\n\n");
+            markdown.push_str("## Input\n\n");
+            markdown.push_str(&Self::image_to_markdown_fenced_code_block(&step0));
+            markdown.push_str("\n");
+            if is_input_all_empty {
+                markdown.push_str("\nAll input cells are empty.\n");
+            }
+            if is_input_all_alive {
+                markdown.push_str("\nAll input cells are alive.\n");
+            }
+            markdown.push_str("\n");
+            markdown.push_str("## Output without wrap\n\n");
+            markdown.push_str(&Self::image_to_markdown_fenced_code_block(&images_nowrap[1]));
+            markdown.push_str("\n\n");
+            markdown.push_str("## Output with wrap\n\n");
+            markdown.push_str(&Self::image_to_markdown_fenced_code_block(&images_wrap[1]));
+            markdown.push_str("\n\n");
+            markdown.push_str("## Status\n\n");
+            if same_output_for_wrap_and_nowrap {
+                markdown.push_str("Identical outputs\n");
+            } else {
+                markdown.push_str("Different outputs\n");
+            }
+            markdown.push_str("\n\n");
+            println!("{}---\n\n", markdown);
         }
         Ok(())
+    }
+
+    fn image_to_markdown_fenced_code_block(image: &Image) -> String {
+        format!("```\n{}\n```", GenerateDataset::image_to_string(image))
     }
 
     fn image_to_string(image: &Image) -> String {
