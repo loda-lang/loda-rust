@@ -27,7 +27,7 @@ struct GenerateDataset {
 }
 
 impl GenerateDataset {
-    fn populate() -> anyhow::Result<Self> {
+    fn populate(number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<Self> {
         let step_count: u8 = 1;
 
         let sizes: [u8; 4] = [
@@ -56,8 +56,9 @@ impl GenerateDataset {
         let mut count_input_one_cell_empty: usize = 0;
         let mut count_input_one_cell_alive: usize = 0;
 
-        for i in 0..10000 {
-            if dataset_row_vec.len() >= 100 {
+        let upper_bound: u64 = (number_of_items * 2) as u64;
+        for i in 0..upper_bound {
+            if dataset_row_vec.len() >= (number_of_items as usize) {
                 break;
             }
             let mut rng = StdRng::seed_from_u64(i);
@@ -149,12 +150,14 @@ impl GenerateDataset {
                 output_with_wrap.clone(),
             ];
             let same_output_for_wrap_and_nowrap: bool = output_without_wrap == output_with_wrap;
-            if same_output_for_wrap_and_nowrap {
-                HtmlLog::text("wrap is identical to nowrap");
-                HtmlLog::compare_images(compare_images);
-            } else {
-                HtmlLog::text("wrap is different than nowrap");
-                HtmlLog::compare_images(compare_images);
+            if print_to_htmllog {
+                if same_output_for_wrap_and_nowrap {
+                    HtmlLog::text("wrap is identical to nowrap");
+                    HtmlLog::compare_images(compare_images);
+                } else {
+                    HtmlLog::text("wrap is different than nowrap");
+                    HtmlLog::compare_images(compare_images);
+                }
             }
 
             let mut markdown = String::new();
@@ -209,21 +212,17 @@ impl GenerateDataset {
             markdown.push_str("All cells are alive.\n");
         }
         if count_alive == 1 {
-            HtmlLog::text("Only one cell is alive.");
             markdown.push_str("Only one cell is alive.\n");
         }
         if count_empty == 1 {
-            HtmlLog::text("Only one cell is empty.");
             markdown.push_str("Only one cell is empty.\n");
         }
 
         if count_alive > 0 && count_empty > 0 {
             if image.is_repeated_row().unwrap_or(false) {
-                HtmlLog::text("The rows are identical.");
                 markdown.push_str("The rows are identical.\n");
             }
             if image.is_repeated_column().unwrap_or(false) {
-                HtmlLog::text("The columns are identical.");
                 markdown.push_str("The columns are identical.\n");
             }
         }
@@ -235,7 +234,6 @@ impl GenerateDataset {
             let (count0, count1, _count_other) = input.mask_count();
             if count0 > 0 && count1 > 0 && step_count == 1 {
                 markdown.push_str("Still life.\n");
-                HtmlLog::text("Still life.");
             }
         } else {
             markdown.push_str("This output is different than the input.\n");
@@ -347,7 +345,7 @@ mod tests {
     // #[test]
     fn test_20002_do_something() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/gameoflife.jsonl");
-        let generator: GenerateDataset = GenerateDataset::populate().expect("ok");
+        let generator: GenerateDataset = GenerateDataset::populate(100, true).expect("ok");
         generator.save(&path).expect("ok");
     }
 }
