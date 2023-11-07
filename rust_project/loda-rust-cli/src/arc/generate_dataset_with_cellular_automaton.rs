@@ -73,9 +73,9 @@ impl GenerateDataset {
                 },
             }
 
-            let (count0, count1, _count_other) = input.mask_count();
-            let is_input_all_empty: bool = count1 == 0;
-            let is_input_all_alive: bool = count0 == 0;
+            let (input_count0, input_count1, _count_other) = input.mask_count();
+            let is_input_all_empty: bool = input_count1 == 0;
+            let is_input_all_alive: bool = input_count0 == 0;
 
             if bloom.check(&input) {
                 debug!("skipping duplicate");
@@ -84,20 +84,25 @@ impl GenerateDataset {
             bloom.set(&input);
 
             let mut ca_nowrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, Some(0));
-            let images_nowrap: Vec<Image> = ca_nowrap.images_for_n_steps(1);
+            ca_nowrap.step_once();
+            let output_without_wrap: Image = ca_nowrap.image().clone();
 
             let mut ca_wrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, None);
-            let images_wrap: Vec<Image> = ca_wrap.images_for_n_steps(1);
+            ca_wrap.step_once();
+            let output_with_wrap: Image = ca_wrap.image().clone();
 
-            let same_output_for_wrap_and_nowrap: bool = images_nowrap == images_wrap;
+            let compare_images: Vec<Image> = vec![
+                input.clone(),
+                output_without_wrap.clone(),
+                output_with_wrap.clone(),
+            ];
+            let same_output_for_wrap_and_nowrap: bool = output_without_wrap == output_with_wrap;
             if same_output_for_wrap_and_nowrap {
-                HtmlLog::text("identical for wrap and nowrap");
-                HtmlLog::compare_images(images_wrap.clone());
+                HtmlLog::text("wrap is identical to nowrap");
+                HtmlLog::compare_images(compare_images);
             } else {
-                HtmlLog::text("nowrap");
-                HtmlLog::compare_images(images_nowrap.clone());
-                HtmlLog::text("wrap");
-                HtmlLog::compare_images(images_wrap.clone());
+                HtmlLog::text("wrap is different than nowrap");
+                HtmlLog::compare_images(compare_images);
             }
 
             let mut markdown = String::new();
@@ -105,20 +110,19 @@ impl GenerateDataset {
             markdown.push_str("Perform 1 step.\n\n");
             markdown.push_str("## Input\n\n");
             markdown.push_str(&Self::image_to_markdown_fenced_code_block(&input));
-            markdown.push_str("\n");
-            if is_input_all_empty {
-                markdown.push_str("\nAll input cells are empty.\n");
-            }
-            if is_input_all_alive {
-                markdown.push_str("\nAll input cells are alive.\n");
-            }
+            markdown.push_str("\n\n");
+            Self::caption_for_input_output_image(&mut markdown, &input);
             markdown.push_str("\n");
             markdown.push_str("## Output without wrap\n\n");
-            markdown.push_str(&Self::image_to_markdown_fenced_code_block(&images_nowrap[1]));
+            markdown.push_str(&Self::image_to_markdown_fenced_code_block(&output_without_wrap));
             markdown.push_str("\n\n");
+            Self::caption_for_input_output_image(&mut markdown, &output_without_wrap);
+            markdown.push_str("\n");
             markdown.push_str("## Output with wrap\n\n");
-            markdown.push_str(&Self::image_to_markdown_fenced_code_block(&images_wrap[1]));
+            markdown.push_str(&Self::image_to_markdown_fenced_code_block(&output_with_wrap));
             markdown.push_str("\n\n");
+            Self::caption_for_input_output_image(&mut markdown, &output_with_wrap);
+            markdown.push_str("\n");
             markdown.push_str("## Status\n\n");
             if same_output_for_wrap_and_nowrap {
                 markdown.push_str("Identical outputs\n");
@@ -129,6 +133,18 @@ impl GenerateDataset {
             println!("{}---\n\n", markdown);
         }
         Ok(())
+    }
+
+    fn caption_for_input_output_image(markdown: &mut String, image: &Image) {
+        let (count0, count1, _count_other) = image.mask_count();
+        let is_all_empty: bool = count1 == 0;
+        let is_all_alive: bool = count0 == 0;
+        if is_all_empty {
+            markdown.push_str("All cells are empty.\n");
+        }
+        if is_all_alive {
+            markdown.push_str("All cells are alive.\n");
+        }
     }
 
     fn image_to_markdown_fenced_code_block(image: &Image) -> String {
