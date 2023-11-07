@@ -6,9 +6,10 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 use rand::seq::SliceRandom;
 use serde::Serialize;
+use std::io::Write;
 
 #[derive(Debug, Serialize)]
-struct DatasetRow {
+struct DatasetItem {
     markdown: String,
 }
 
@@ -21,10 +22,12 @@ enum Strategy {
     HighLifeTwoSteps,
 }
 
-struct GenerateDataset;
+struct GenerateDataset {
+    dataset_items: Vec<DatasetItem>,
+}
 
 impl GenerateDataset {
-    fn curriculum_easy() -> anyhow::Result<()> {
+    fn populate() -> anyhow::Result<Self> {
         let step_count: u8 = 1;
 
         let sizes: [u8; 4] = [
@@ -42,7 +45,7 @@ impl GenerateDataset {
             Strategy::HighLifeTwoSteps,
         ];
 
-        let mut dataset_row_vec = Vec::<DatasetRow>::new();
+        let mut dataset_row_vec = Vec::<DatasetItem>::new();
 
         let bloom_items_count = 1000;
         let false_positive_rate = 0.01;
@@ -185,26 +188,16 @@ impl GenerateDataset {
                 markdown.push_str("The outputs are different.\n");
             }
             markdown.push_str("\n\n");
-            println!("{}---\n\n", markdown);
 
-            let dataset_row = DatasetRow {
+            let dataset_row = DatasetItem {
                 markdown,
             };
             dataset_row_vec.push(dataset_row);
         }
 
-        let mut jsonl_rows = Vec::<String>::new();
-        for dataset_row in &dataset_row_vec {
-            let jsonl_row: String = serde_json::to_string(dataset_row)?;
-            jsonl_rows.push(jsonl_row);
-        }
-        let jsonl_data: String = jsonl_rows.join("\n");
-
-        println!("dataset number of rows: {}", dataset_row_vec.len());
-        println!("dataset jsonl bytes: {}", jsonl_data.len());
-        // println!("jsonl:\n\n{}\n\n", jsonl_data);
-
-        Ok(())
+        Ok(Self {
+            dataset_items: dataset_row_vec,
+        })
     }
 
     fn caption_for_input_output_image(markdown: &mut String, image: &Image) {
@@ -271,12 +264,34 @@ impl GenerateDataset {
         }
         result
     }
+
+    fn dataset_to_jsonl(dataset_items: &Vec<DatasetItem>) -> anyhow::Result<String> {
+        let mut jsonl_rows = Vec::<String>::new();
+        for dataset_item in dataset_items {
+            let jsonl_row: String = serde_json::to_string(dataset_item)?;
+            jsonl_rows.push(jsonl_row);
+        }
+        let jsonl_data: String = jsonl_rows.join("\n");
+        Ok(jsonl_data)
+    }
+
+    #[allow(dead_code)]
+    fn save(&self, path: &std::path::Path) -> anyhow::Result<()> {
+        let s: String = Self::dataset_to_jsonl(&self.dataset_items)?;
+        println!("dataset number of rows: {}", self.dataset_items.len());
+        println!("dataset jsonl bytes: {}", s.len());
+
+        let mut file = std::fs::File::create(path)?;
+        file.write_all(s.as_bytes())?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
+    use std::path::PathBuf;
 
     #[test]
     fn test_10000_image_to_string() {
@@ -331,6 +346,8 @@ mod tests {
 
     // #[test]
     fn test_20002_do_something() {
-        GenerateDataset::curriculum_easy().expect("ok");
+        let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/gameoflife.jsonl");
+        let generator: GenerateDataset = GenerateDataset::populate().expect("ok");
+        generator.save(&path).expect("ok");
     }
 }
