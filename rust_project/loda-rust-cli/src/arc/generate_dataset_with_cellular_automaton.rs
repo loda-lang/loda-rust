@@ -354,22 +354,21 @@ mod tests {
         assert_eq!(actual, "*..\n.**\n**?");
     }
 
+    #[allow(dead_code)]
     // #[test]
-    fn test_20000_do_something() {
-        for i in 0..10u64 {
-            let size = ImageSize::new(6, 5);
-            let step0: Image = RandomImage::two_colors(&mut StdRng::seed_from_u64(i), size, 0, 1, 25).expect("ok");
-            let mut images = Vec::<Image>::new();
-            images.push(step0.clone());
-            let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0, None);
-            for _ in 0..2 {
-                ca.step_once();
-                images.push(ca.image().clone());
-            }
-            HtmlLog::compare_images(images);
-        }
+    fn test_20000_generate_and_save() {
+        let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/gameoflife.jsonl");
+        let mut generator = GenerateDataset::new();
+        generator.populate(Curriculum::StepOneSizeSmall, 100, false).expect("ok");
+        generator.populate(Curriculum::StepOneSizeSmallMedium, 200, false).expect("ok");
+        generator.populate(Curriculum::StepOneSizeSmallMediumBig, 400, false).expect("ok");
+        generator.populate(Curriculum::StepTwoSizeSmall, 100, false).expect("ok");
+        generator.populate(Curriculum::StepTwoSizeSmallMedium, 200, false).expect("ok");
+        generator.populate(Curriculum::StepTwoSizeSmallMediumBig, 400, false).expect("ok");
+        generator.save(&path).expect("ok");
     }
 
+    #[allow(dead_code)]
     // #[test]
     fn test_20001_do_something() {
         for i in 0..20u64 {
@@ -386,18 +385,5 @@ mod tests {
             }
             HtmlLog::compare_images(images);
         }
-    }
-
-    // #[test]
-    fn test_20002_do_something() {
-        let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/gameoflife.jsonl");
-        let mut generator = GenerateDataset::new();
-        generator.populate(Curriculum::StepOneSizeSmall, 100, true).expect("ok");
-        generator.populate(Curriculum::StepOneSizeSmallMedium, 100, false).expect("ok");
-        generator.populate(Curriculum::StepOneSizeSmallMediumBig, 100, false).expect("ok");
-        generator.populate(Curriculum::StepTwoSizeSmall, 100, false).expect("ok");
-        generator.populate(Curriculum::StepTwoSizeSmallMedium, 100, false).expect("ok");
-        generator.populate(Curriculum::StepTwoSizeSmallMediumBig, 100, false).expect("ok");
-        generator.save(&path).expect("ok");
     }
 }
