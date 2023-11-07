@@ -6,15 +6,32 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 use rand::seq::SliceRandom;
 
+#[derive(Debug, Clone, Copy)]
+enum Strategy {
+    DoNothing,
+    ServiettesOneStep,
+    ServiettesTwoSteps,
+    HighLifeOneStep,
+    HighLifeTwoSteps,
+}
+
 struct GenerateDataset;
 
 impl GenerateDataset {
     fn curriculum_easy() -> anyhow::Result<()> {
         let sizes: [u8; 4] = [
             3, 4, 5, 6
+            // 7, 8, 9, 10
         ];
         let temperatures: [u8; 9] = [
             10, 20, 30, 40, 50, 60, 70, 80, 90
+        ];
+        let strategies: [Strategy; 5] = [
+            Strategy::DoNothing,
+            Strategy::ServiettesOneStep,
+            Strategy::ServiettesTwoSteps,
+            Strategy::HighLifeOneStep,
+            Strategy::HighLifeTwoSteps,
         ];
 
         let bloom_items_count = 1000;
@@ -26,36 +43,50 @@ impl GenerateDataset {
             let width: u8 = *sizes.choose(&mut rng).unwrap();
             let height: u8 = *sizes.choose(&mut rng).unwrap();
             let temperature: u8 = *temperatures.choose(&mut rng).unwrap();
+            let strategy: Strategy = *strategies.choose(&mut rng).unwrap();
 
             let size = ImageSize::new(width, height);
-            let mut step0: Image = RandomImage::two_colors(&mut rng, size, 0, 1, temperature)?;
+            let mut input: Image = RandomImage::two_colors(&mut rng, size, 0, 1, temperature)?;
 
-            // {
-            //     let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Serviettes>::with_image(&step0, None);
-            //     ca.step_once();
-            //     step0 = ca.image().clone();
-            // }
-
-            {
-                let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::HighLife>::with_image(&step0, None);
-                ca.step(2);
-                step0 = ca.image().clone();
+            // Mutate the input image, to get different distributions
+            match strategy {
+                Strategy::DoNothing => {},
+                Strategy::HighLifeOneStep => {
+                    let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::HighLife>::with_image(&input, None);
+                    ca.step(1);
+                    input = ca.image().clone();
+                },
+                Strategy::HighLifeTwoSteps => {
+                    let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::HighLife>::with_image(&input, None);
+                    ca.step(2);
+                    input = ca.image().clone();
+                },
+                Strategy::ServiettesOneStep => {
+                    let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Serviettes>::with_image(&input, None);
+                    ca.step(1);
+                    input = ca.image().clone();
+                },
+                Strategy::ServiettesTwoSteps => {
+                    let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Serviettes>::with_image(&input, None);
+                    ca.step(2);
+                    input = ca.image().clone();
+                },
             }
 
-            let (count0, count1, _count_other) = step0.mask_count();
+            let (count0, count1, _count_other) = input.mask_count();
             let is_input_all_empty: bool = count1 == 0;
             let is_input_all_alive: bool = count0 == 0;
 
-            if bloom.check(&step0) {
+            if bloom.check(&input) {
                 debug!("skipping duplicate");
                 continue;
             }
-            bloom.set(&step0);
+            bloom.set(&input);
 
-            let mut ca_nowrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0, Some(0));
+            let mut ca_nowrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, Some(0));
             let images_nowrap: Vec<Image> = ca_nowrap.images_for_n_steps(1);
 
-            let mut ca_wrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&step0, None);
+            let mut ca_wrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, None);
             let images_wrap: Vec<Image> = ca_wrap.images_for_n_steps(1);
 
             let same_output_for_wrap_and_nowrap: bool = images_nowrap == images_wrap;
@@ -73,7 +104,7 @@ impl GenerateDataset {
             markdown.push_str("# Conway's Game of Life\n\n");
             markdown.push_str("Perform 1 step.\n\n");
             markdown.push_str("## Input\n\n");
-            markdown.push_str(&Self::image_to_markdown_fenced_code_block(&step0));
+            markdown.push_str(&Self::image_to_markdown_fenced_code_block(&input));
             markdown.push_str("\n");
             if is_input_all_empty {
                 markdown.push_str("\nAll input cells are empty.\n");
