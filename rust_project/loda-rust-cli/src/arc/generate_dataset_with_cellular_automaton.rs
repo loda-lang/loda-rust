@@ -19,8 +19,11 @@ enum Curriculum {
 
     // Hard
     StepTwoSizeSmall,
+    StepOneTwoSizeSmall,
     StepTwoSizeSmallMedium,
+    StepOneTwoSizeSmallMedium,
     StepTwoSizeSmallMediumBig,
+    StepOneTwoSizeSmallMediumBig,
 }
 
 #[allow(dead_code)]
@@ -59,13 +62,16 @@ impl GenerateDataset {
 
     #[allow(dead_code)]
     fn populate(&mut self, curriculum: Curriculum, number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
-        let step_count: u8 = match curriculum {
-            Curriculum::StepOneSizeSmall => 1,
-            Curriculum::StepOneSizeSmallMedium => 1,
-            Curriculum::StepOneSizeSmallMediumBig => 1,
-            Curriculum::StepTwoSizeSmall => 2,
-            Curriculum::StepTwoSizeSmallMedium => 2,
-            Curriculum::StepTwoSizeSmallMediumBig => 2,
+        let step_counts: Vec<u8> = match curriculum {
+            Curriculum::StepOneSizeSmall => vec![1],
+            Curriculum::StepOneSizeSmallMedium => vec![1],
+            Curriculum::StepOneSizeSmallMediumBig => vec![1],
+            Curriculum::StepTwoSizeSmall => vec![2],
+            Curriculum::StepOneTwoSizeSmall => vec![1, 2],
+            Curriculum::StepTwoSizeSmallMedium => vec![2],
+            Curriculum::StepOneTwoSizeSmallMedium => vec![1, 2],
+            Curriculum::StepTwoSizeSmallMediumBig => vec![2],
+            Curriculum::StepOneTwoSizeSmallMediumBig => vec![1, 2],
         };
 
         let random_seed: u64 = match curriculum {
@@ -73,17 +79,23 @@ impl GenerateDataset {
             Curriculum::StepOneSizeSmallMedium => 1000000,
             Curriculum::StepOneSizeSmallMediumBig => 2000000,
             Curriculum::StepTwoSizeSmall => 3000000,
-            Curriculum::StepTwoSizeSmallMedium => 4000000,
-            Curriculum::StepTwoSizeSmallMediumBig => 5000000,
+            Curriculum::StepOneTwoSizeSmall => 4000000,
+            Curriculum::StepTwoSizeSmallMedium => 5000000,
+            Curriculum::StepOneTwoSizeSmallMedium => 6000000,
+            Curriculum::StepTwoSizeSmallMediumBig => 7000000,
+            Curriculum::StepOneTwoSizeSmallMediumBig => 8000000,
         };
 
-        let sizes: Vec::<u8> = match curriculum {
+        let sizes: Vec<u8> = match curriculum {
             Curriculum::StepOneSizeSmall => vec![3, 4, 5, 6],
             Curriculum::StepOneSizeSmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
             Curriculum::StepOneSizeSmallMediumBig => vec![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
             Curriculum::StepTwoSizeSmall => vec![3, 4, 5, 6],
+            Curriculum::StepOneTwoSizeSmall => vec![3, 4, 5, 6],
             Curriculum::StepTwoSizeSmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
+            Curriculum::StepOneTwoSizeSmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
             Curriculum::StepTwoSizeSmallMediumBig => vec![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+            Curriculum::StepOneTwoSizeSmallMediumBig => vec![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
         };
 
         let temperatures: [u8; 9] = [
@@ -109,6 +121,7 @@ impl GenerateDataset {
                 break;
             }
             let mut rng = StdRng::seed_from_u64(random_seed + i);
+            let step_count: u8 = *step_counts.choose(&mut rng).unwrap();
             let width: u8 = *sizes.choose(&mut rng).unwrap();
             let height: u8 = *sizes.choose(&mut rng).unwrap();
             let temperature: u8 = *temperatures.choose(&mut rng).unwrap();
@@ -192,20 +205,6 @@ impl GenerateDataset {
             let output_with_wrap: Image = ca_wrap.image().clone();
 
             let same_output_for_wrap_and_nowrap: bool = output_without_wrap == output_with_wrap;
-            if print_to_htmllog {
-                let compare_images: Vec<Image> = vec![
-                    input.clone(),
-                    output_without_wrap.clone(),
-                    output_with_wrap.clone(),
-                ];
-                if same_output_for_wrap_and_nowrap {
-                    HtmlLog::text("wrap is identical to nowrap");
-                    HtmlLog::compare_images(compare_images);
-                } else {
-                    HtmlLog::text("wrap is different than nowrap");
-                    HtmlLog::compare_images(compare_images);
-                }
-            }
 
             let mut markdown = String::new();
             markdown.push_str("# Conway's Game of Life\n\n");
@@ -236,6 +235,21 @@ impl GenerateDataset {
                 markdown.push_str("The outputs are identical.");
             } else {
                 markdown.push_str("The outputs are different.");
+            }
+
+            if print_to_htmllog {
+                let compare_images: Vec<Image> = vec![
+                    input.clone(),
+                    output_without_wrap.clone(),
+                    output_with_wrap.clone(),
+                ];
+                // if same_output_for_wrap_and_nowrap {
+                //     HtmlLog::text("wrap is identical to nowrap");
+                // } else {
+                //     HtmlLog::text("wrap is different than nowrap");
+                // }
+                HtmlLog::text(markdown.clone());
+                HtmlLog::compare_images(compare_images);
             }
 
             let dataset_item = DatasetItem {
@@ -363,8 +377,11 @@ mod tests {
         generator.populate(Curriculum::StepOneSizeSmallMedium, 200, false).expect("ok");
         generator.populate(Curriculum::StepOneSizeSmallMediumBig, 400, false).expect("ok");
         generator.populate(Curriculum::StepTwoSizeSmall, 100, false).expect("ok");
+        generator.populate(Curriculum::StepOneTwoSizeSmall, 100, false).expect("ok");
         generator.populate(Curriculum::StepTwoSizeSmallMedium, 200, false).expect("ok");
+        generator.populate(Curriculum::StepOneTwoSizeSmallMedium, 200, false).expect("ok");
         generator.populate(Curriculum::StepTwoSizeSmallMediumBig, 400, false).expect("ok");
+        generator.populate(Curriculum::StepOneTwoSizeSmallMediumBig, 400, false).expect("ok");
         generator.save(&path).expect("ok");
     }
 
