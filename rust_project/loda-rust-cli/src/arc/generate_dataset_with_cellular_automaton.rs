@@ -1,3 +1,4 @@
+//! Cellular automaton - dataset for curriculum learning with increasing complexity.
 use super::{CellularAutomaton, cellular_automaton::rule};
 use super::{Image, ImageSize, RandomImage, ImageMaskCount, ImageHistogram};
 use super::HtmlLog;
@@ -232,11 +233,10 @@ impl GenerateDataset {
             markdown.push_str("\n");
             markdown.push_str("## Status\n\n");
             if same_output_for_wrap_and_nowrap {
-                markdown.push_str("The outputs are identical.\n");
+                markdown.push_str("The outputs are identical.");
             } else {
-                markdown.push_str("The outputs are different.\n");
+                markdown.push_str("The outputs are different.");
             }
-            markdown.push_str("\n\n");
 
             let dataset_item = DatasetItem {
                 curriculum,
