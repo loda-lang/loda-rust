@@ -25,6 +25,8 @@ struct GenerateDataset;
 
 impl GenerateDataset {
     fn curriculum_easy() -> anyhow::Result<()> {
+        let step_count: u8 = 1;
+
         let sizes: [u8; 4] = [
             3, 4, 5, 6
             // 7, 8, 9, 10
@@ -131,11 +133,11 @@ impl GenerateDataset {
             bloom.set(&input);
             
             let mut ca_nowrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, Some(0));
-            ca_nowrap.step_once();
+            ca_nowrap.step(step_count);
             let output_without_wrap: Image = ca_nowrap.image().clone();
 
             let mut ca_wrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, None);
-            ca_wrap.step_once();
+            ca_wrap.step(step_count);
             let output_with_wrap: Image = ca_wrap.image().clone();
 
             let compare_images: Vec<Image> = vec![
@@ -154,7 +156,11 @@ impl GenerateDataset {
 
             let mut markdown = String::new();
             markdown.push_str("# Conway's Game of Life\n\n");
-            markdown.push_str("Perform 1 step.\n\n");
+            if step_count == 1 {
+                markdown.push_str("Perform 1 step.\n\n");
+            } else {
+                markdown.push_str(&format!("Perform {} steps.\n\n", step_count));
+            }
             markdown.push_str("## Input\n\n");
             markdown.push_str(&Self::image_to_markdown_fenced_code_block(&input));
             markdown.push_str("\n\n");
@@ -164,13 +170,13 @@ impl GenerateDataset {
             markdown.push_str(&Self::image_to_markdown_fenced_code_block(&output_without_wrap));
             markdown.push_str("\n\n");
             Self::caption_for_input_output_image(&mut markdown, &output_without_wrap);
-            Self::caption_for_output_compared_to_input(&mut markdown, &output_without_wrap, &input);
+            Self::caption_for_output_compared_to_input(&mut markdown, &output_without_wrap, &input, step_count);
             markdown.push_str("\n");
             markdown.push_str("## Output with wrap\n\n");
             markdown.push_str(&Self::image_to_markdown_fenced_code_block(&output_with_wrap));
             markdown.push_str("\n\n");
             Self::caption_for_input_output_image(&mut markdown, &output_with_wrap);
-            Self::caption_for_output_compared_to_input(&mut markdown, &output_with_wrap, &input);
+            Self::caption_for_output_compared_to_input(&mut markdown, &output_with_wrap, &input, step_count);
             markdown.push_str("\n");
             markdown.push_str("## Status\n\n");
             if same_output_for_wrap_and_nowrap {
@@ -230,11 +236,11 @@ impl GenerateDataset {
         }
     }
 
-    fn caption_for_output_compared_to_input(markdown: &mut String, output: &Image, input: &Image) {
+    fn caption_for_output_compared_to_input(markdown: &mut String, output: &Image, input: &Image, step_count: u8) {
         if output == input {
             markdown.push_str("This output is identical to the input.\n");
             let (count0, count1, _count_other) = input.mask_count();
-            if count0 > 0 && count1 > 0 {
+            if count0 > 0 && count1 > 0 && step_count == 1 {
                 markdown.push_str("Still life.\n");
                 HtmlLog::text("Still life.");
             }
