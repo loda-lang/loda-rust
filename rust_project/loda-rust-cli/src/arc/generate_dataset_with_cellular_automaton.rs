@@ -9,6 +9,20 @@ use serde::Serialize;
 use std::io::Write;
 
 #[allow(dead_code)]
+#[derive(Debug, Clone, Copy)]
+enum Curriculum {
+    // Easy
+    StepOneSizeSmall,
+    StepOneSizeSmallMedium,
+    StepOneSizeSmallMediumBig,
+
+    // Hard
+    StepTwoSizeSmall,
+    StepTwoSizeSmallMedium,
+    StepTwoSizeSmallMediumBig,
+}
+
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct DatasetItem {
     markdown: String,
@@ -31,6 +45,7 @@ struct GenerateDataset {
 }
 
 impl GenerateDataset {
+    #[allow(dead_code)]
     fn new() -> Self {
         let bloom_items_count = 10000;
         let false_positive_rate = 0.01;
@@ -41,13 +56,34 @@ impl GenerateDataset {
     }
 
     #[allow(dead_code)]
-    fn populate(&mut self, number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
-        let step_count: u8 = 1;
+    fn populate(&mut self, curriculum: Curriculum, number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
+        let step_count: u8 = match curriculum {
+            Curriculum::StepOneSizeSmall => 1,
+            Curriculum::StepOneSizeSmallMedium => 1,
+            Curriculum::StepOneSizeSmallMediumBig => 1,
+            Curriculum::StepTwoSizeSmall => 2,
+            Curriculum::StepTwoSizeSmallMedium => 2,
+            Curriculum::StepTwoSizeSmallMediumBig => 2,
+        };
 
-        let sizes: [u8; 4] = [
-            3, 4, 5, 6
-            // 7, 8, 9, 10
-        ];
+        let random_seed: u64 = match curriculum {
+            Curriculum::StepOneSizeSmall => 0,
+            Curriculum::StepOneSizeSmallMedium => 1000000,
+            Curriculum::StepOneSizeSmallMediumBig => 2000000,
+            Curriculum::StepTwoSizeSmall => 3000000,
+            Curriculum::StepTwoSizeSmallMedium => 4000000,
+            Curriculum::StepTwoSizeSmallMediumBig => 5000000,
+        };
+
+        let sizes: Vec::<u8> = match curriculum {
+            Curriculum::StepOneSizeSmall => vec![3, 4, 5, 6],
+            Curriculum::StepOneSizeSmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
+            Curriculum::StepOneSizeSmallMediumBig => vec![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+            Curriculum::StepTwoSizeSmall => vec![3, 4, 5, 6],
+            Curriculum::StepTwoSizeSmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
+            Curriculum::StepTwoSizeSmallMediumBig => vec![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+        };
+
         let temperatures: [u8; 9] = [
             10, 20, 30, 40, 50, 60, 70, 80, 90
         ];
@@ -70,7 +106,7 @@ impl GenerateDataset {
             if number_of_items_created >= number_of_items {
                 break;
             }
-            let mut rng = StdRng::seed_from_u64(i);
+            let mut rng = StdRng::seed_from_u64(random_seed + i);
             let width: u8 = *sizes.choose(&mut rng).unwrap();
             let height: u8 = *sizes.choose(&mut rng).unwrap();
             let temperature: u8 = *temperatures.choose(&mut rng).unwrap();
@@ -354,7 +390,12 @@ mod tests {
     fn test_20002_do_something() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/gameoflife.jsonl");
         let mut generator = GenerateDataset::new();
-        generator.populate(100, true).expect("ok");
+        generator.populate(Curriculum::StepOneSizeSmall, 100, true).expect("ok");
+        generator.populate(Curriculum::StepOneSizeSmallMedium, 100, false).expect("ok");
+        generator.populate(Curriculum::StepOneSizeSmallMediumBig, 100, false).expect("ok");
+        generator.populate(Curriculum::StepTwoSizeSmall, 100, false).expect("ok");
+        generator.populate(Curriculum::StepTwoSizeSmallMedium, 100, false).expect("ok");
+        generator.populate(Curriculum::StepTwoSizeSmallMediumBig, 100, false).expect("ok");
         generator.save(&path).expect("ok");
     }
 }
