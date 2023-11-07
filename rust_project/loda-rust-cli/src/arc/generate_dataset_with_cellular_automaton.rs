@@ -38,6 +38,9 @@ impl GenerateDataset {
         let false_positive_rate = 0.01;
         let mut bloom = Bloom::<Image>::new_for_fp_rate(bloom_items_count, false_positive_rate);
 
+        let mut count_input_all_empty: usize = 0;
+        let mut count_input_all_alive: usize = 0;
+
         for i in 0..100 {
             let mut rng = StdRng::seed_from_u64(i);
             let width: u8 = *sizes.choose(&mut rng).unwrap();
@@ -77,12 +80,25 @@ impl GenerateDataset {
             let is_input_all_empty: bool = input_count1 == 0;
             let is_input_all_alive: bool = input_count0 == 0;
 
+            if is_input_all_empty {
+                count_input_all_empty += 1;
+                if count_input_all_empty > 3 {
+                    continue;
+                }
+            }
+            if is_input_all_alive {
+                count_input_all_alive += 1;
+                if count_input_all_alive > 3 {
+                    continue;
+                }
+            }
+            
             if bloom.check(&input) {
                 debug!("skipping duplicate");
                 continue;
             }
             bloom.set(&input);
-
+            
             let mut ca_nowrap: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&input, Some(0));
             ca_nowrap.step_once();
             let output_without_wrap: Image = ca_nowrap.image().clone();
@@ -117,17 +133,19 @@ impl GenerateDataset {
             markdown.push_str(&Self::image_to_markdown_fenced_code_block(&output_without_wrap));
             markdown.push_str("\n\n");
             Self::caption_for_input_output_image(&mut markdown, &output_without_wrap);
+            Self::caption_for_output_compared_to_input(&mut markdown, &output_without_wrap, &input);
             markdown.push_str("\n");
             markdown.push_str("## Output with wrap\n\n");
             markdown.push_str(&Self::image_to_markdown_fenced_code_block(&output_with_wrap));
             markdown.push_str("\n\n");
             Self::caption_for_input_output_image(&mut markdown, &output_with_wrap);
+            Self::caption_for_output_compared_to_input(&mut markdown, &output_with_wrap, &input);
             markdown.push_str("\n");
             markdown.push_str("## Status\n\n");
             if same_output_for_wrap_and_nowrap {
-                markdown.push_str("Identical outputs\n");
+                markdown.push_str("The outputs are identical.\n");
             } else {
-                markdown.push_str("Different outputs\n");
+                markdown.push_str("The outputs are different.\n");
             }
             markdown.push_str("\n\n");
             println!("{}---\n\n", markdown);
@@ -144,6 +162,19 @@ impl GenerateDataset {
         }
         if is_all_alive {
             markdown.push_str("All cells are alive.\n");
+        }
+    }
+
+    fn caption_for_output_compared_to_input(markdown: &mut String, output: &Image, input: &Image) {
+        if output == input {
+            markdown.push_str("This output is identical to the input.\n");
+            let (count0, count1, _count_other) = input.mask_count();
+            if count0 > 0 && count1 > 0 {
+                markdown.push_str("Still life.\n");
+                HtmlLog::text("Still life.");
+            }
+        } else {
+            markdown.push_str("This output is different than the input.\n");
         }
     }
 
