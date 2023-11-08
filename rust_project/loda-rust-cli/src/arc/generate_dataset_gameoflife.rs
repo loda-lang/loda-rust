@@ -66,6 +66,9 @@ impl GenerateDataset {
 
     #[allow(dead_code)]
     fn populate(&mut self, curriculum: Curriculum, number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
+        // Prevent too many DatasetItem's with both outputs are all empty
+        let max_items_where_both_outputs_all_empty: usize = ((number_of_items as usize) * 5) / 100;
+
         let step_counts: Vec<u8> = match curriculum {
             Curriculum::StepOneSizeSmall => vec![1],
             Curriculum::StepOneSizeSmallMedium => vec![1],
@@ -117,6 +120,7 @@ impl GenerateDataset {
         let mut count_input_all_alive: usize = 0;
         let mut count_input_one_cell_empty: usize = 0;
         let mut count_input_one_cell_alive: usize = 0;
+        let mut count_both_outputs_all_empty: usize = 0;
 
         let upper_bound: u64 = (number_of_items * 4) as u64;
         let mut number_of_items_created: u32 = 0;
@@ -210,6 +214,16 @@ impl GenerateDataset {
 
             let same_output_for_wrap_and_nowrap: bool = output_without_wrap == output_with_wrap;
 
+            if same_output_for_wrap_and_nowrap {
+                if output_without_wrap.mask_count_nonzero() == 0 {
+                    count_both_outputs_all_empty += 1;
+                    if count_both_outputs_all_empty > max_items_where_both_outputs_all_empty {
+                        debug!("ignoring dataset item where both outputs are all empty");
+                        continue;
+                    }
+                }
+            }
+
             let mut markdown = String::new();
             markdown.push_str("# Conway's Game of Life\n\n");
             if step_count == 1 {
@@ -263,6 +277,8 @@ impl GenerateDataset {
             self.dataset_items.push(dataset_item);
             number_of_items_created += 1;
         }
+
+        debug!("count_both_outputs_all_empty: {}", count_both_outputs_all_empty);
 
         Ok(())
     }
