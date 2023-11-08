@@ -338,6 +338,12 @@ impl GenerateDataset {
     }
 
     #[allow(dead_code)]
+    fn shuffle(&mut self) {
+        let mut rng = StdRng::seed_from_u64(0);
+        self.dataset_items.shuffle(&mut rng);
+    }
+
+    #[allow(dead_code)]
     fn save(&self, path: &std::path::Path) -> anyhow::Result<()> {
         let s: String = Self::dataset_to_jsonl(&self.dataset_items)?;
         println!("dataset number of rows: {}", self.dataset_items.len());
@@ -386,6 +392,7 @@ mod tests {
         generator.populate(Curriculum::StepOneTwoSizeSmallMedium, 200, false).expect("ok");
         generator.populate(Curriculum::StepTwoSizeSmallMediumBig, 400, false).expect("ok");
         generator.populate(Curriculum::StepOneTwoSizeSmallMediumBig, 400, false).expect("ok");
+        generator.shuffle();
         generator.save(&path).expect("ok");
     }
 
