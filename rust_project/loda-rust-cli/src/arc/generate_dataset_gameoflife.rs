@@ -56,7 +56,7 @@ struct GenerateDataset {
 impl GenerateDataset {
     #[allow(dead_code)]
     fn new() -> Self {
-        let bloom_items_count = 10000;
+        let bloom_items_count = 100000;
         let false_positive_rate = 0.01;
         Self {
             bloom: Bloom::<Image>::new_for_fp_rate(bloom_items_count, false_positive_rate),
@@ -118,7 +118,7 @@ impl GenerateDataset {
         let mut count_input_one_cell_empty: usize = 0;
         let mut count_input_one_cell_alive: usize = 0;
 
-        let upper_bound: u64 = (number_of_items * 2) as u64;
+        let upper_bound: u64 = (number_of_items * 4) as u64;
         let mut number_of_items_created: u32 = 0;
         for i in 0..upper_bound {
             if number_of_items_created >= number_of_items {
@@ -383,15 +383,16 @@ mod tests {
     fn test_20000_generate_and_save() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/gameoflife.jsonl");
         let mut generator = GenerateDataset::new();
-        generator.populate(Curriculum::StepOneSizeSmall, 100, false).expect("ok");
-        generator.populate(Curriculum::StepOneSizeSmallMedium, 200, false).expect("ok");
-        generator.populate(Curriculum::StepOneSizeSmallMediumBig, 400, false).expect("ok");
-        generator.populate(Curriculum::StepTwoSizeSmall, 100, false).expect("ok");
-        generator.populate(Curriculum::StepOneTwoSizeSmall, 100, false).expect("ok");
-        generator.populate(Curriculum::StepTwoSizeSmallMedium, 200, false).expect("ok");
-        generator.populate(Curriculum::StepOneTwoSizeSmallMedium, 200, false).expect("ok");
-        generator.populate(Curriculum::StepTwoSizeSmallMediumBig, 400, false).expect("ok");
-        generator.populate(Curriculum::StepOneTwoSizeSmallMediumBig, 400, false).expect("ok");
+        let number_of_items: u32 = 4700;
+        generator.populate(Curriculum::StepOneSizeSmall, number_of_items, false).expect("ok");
+        generator.populate(Curriculum::StepOneSizeSmallMedium, number_of_items, false).expect("ok");
+        generator.populate(Curriculum::StepOneSizeSmallMediumBig, number_of_items, false).expect("ok");
+        generator.populate(Curriculum::StepTwoSizeSmall, number_of_items, false).expect("ok");
+        generator.populate(Curriculum::StepOneTwoSizeSmall, number_of_items, false).expect("ok");
+        generator.populate(Curriculum::StepTwoSizeSmallMedium, number_of_items, false).expect("ok");
+        generator.populate(Curriculum::StepOneTwoSizeSmallMedium, number_of_items, false).expect("ok");
+        generator.populate(Curriculum::StepTwoSizeSmallMediumBig, number_of_items, false).expect("ok");
+        generator.populate(Curriculum::StepOneTwoSizeSmallMediumBig, number_of_items, false).expect("ok");
         generator.shuffle();
         generator.save(&path).expect("ok");
     }
