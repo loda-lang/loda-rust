@@ -12,13 +12,28 @@ enum Classification {
 #[allow(dead_code)]
 struct AnalyzeDirection {
     direction_horizontal: Image,
+    direction_vertical: Image,
 }
 
 impl AnalyzeDirection {
     #[allow(dead_code)]
     fn analyze(image: &Image) -> anyhow::Result<Self> {
 
-        let mut direction_horizontal_image: Image = image.clone_zero();
+        let direction_horizontal: Image = Self::process(image)?;
+        
+        let image_rotated: Image = image.rotate_cw()?;
+        let direction_image: Image = Self::process(&image_rotated)?;
+        let direction_vertical: Image = direction_image.rotate_ccw()?;
+
+        let instance = Self {
+            direction_horizontal,
+            direction_vertical,
+        };
+        Ok(instance)
+    }
+
+    fn process(image: &Image) -> anyhow::Result<Image> {
+        let mut direction_horizontal: Image = image.clone_zero();
 
         let outside_color: u8 = 255;
         for y in 0..image.height() {
@@ -36,14 +51,10 @@ impl AnalyzeDirection {
                     Classification::TrueWeak => 1,
                     Classification::False => 0,
                 };
-                _ = direction_horizontal_image.set(x as i32, y as i32, set_value);
+                _ = direction_horizontal.set(x as i32, y as i32, set_value);
             }
         }
-
-        let instance = Self {
-            direction_horizontal: direction_horizontal_image,
-        };
-        Ok(instance)
+        Ok(direction_horizontal)
     }
 
     fn classify_row(image: &Image) -> anyhow::Result<Classification> {
@@ -177,5 +188,34 @@ mod tests {
         ];
         let expected: Image = Image::try_create(7, 6, expected_pixels).expect("image");
         assert_eq!(actual.direction_horizontal, expected);
+    }
+
+    #[test]
+    fn test_30000_direction_vertical() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9,
+            2, 3, 4, 9, 2, 3, 4,
+            3, 4, 5, 9, 1, 2, 3,
+            4, 5, 6, 9, 0, 1, 2,
+            9, 9, 9, 9, 9, 9, 9,
+        ];
+        let input: Image = Image::try_create(7, 6, pixels).expect("image");
+
+        // Act
+        let actual: AnalyzeDirection = AnalyzeDirection::analyze(&input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(7, 6, expected_pixels).expect("image");
+        assert_eq!(actual.direction_vertical, expected);
     }
 }
