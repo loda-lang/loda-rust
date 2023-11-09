@@ -39,8 +39,8 @@ impl AnalyzeDirection {
         for y in 0..image.height() {
             for x in 0..image.width() {
 
-                let area: Image = image.crop_outside((x as i32) - 2, (y as i32) - 2, 5, 5, outside_color)?;
                 // if x == 2 && y == 0 {
+                let area: Image = image.crop_outside((x as i32) - 3, (y as i32) - 2, 7, 5, outside_color)?;
                 //     HtmlLog::image(&area);
                 // }
 
@@ -58,30 +58,41 @@ impl AnalyzeDirection {
     }
 
     fn classify_row(image: &Image) -> anyhow::Result<Classification> {
-        let center: u8 = image.get(2, 2).unwrap_or(255);
+        let center: u8 = image.get(3, 2).unwrap_or(255);
 
         let histograms: Vec<Histogram> = image.histogram_rows();
 
         let mut number_of_times_center_color_detected_outside: usize = 0;
         let mut all_pixels_have_same_value: bool = false;
         let mut center_row_outside_count: u32 = 0;
+        // let mut center_row_same_center_color_count: u32 = 0;
         for (index, histogram) in histograms.iter().enumerate() {
             if index != 2 {
                 number_of_times_center_color_detected_outside += histogram.get(center) as usize;
             }
             if index == 2 {
+                // center_row_same_center_color_count = histogram.get(center);
                 center_row_outside_count = histogram.get(255);
-                if histogram.get(center) == 5 {
+                if histogram.get(center) == 7 {
                     all_pixels_have_same_value = true;
                 }
-                if histogram.get(center) == 4 && histogram.get(255) == 1 {
+                if histogram.get(center) == 6 && histogram.get(255) == 1 {
                     all_pixels_have_same_value = true;
                 }
-                if histogram.get(center) == 3 && histogram.get(255) == 2 {
+                if histogram.get(center) == 5 && histogram.get(255) == 2 {
+                    all_pixels_have_same_value = true;
+                }
+                if histogram.get(center) == 4 && histogram.get(255) == 3 {
                     all_pixels_have_same_value = true;
                 }
             }
         }
+
+        // println!("histograms: {:?}", histograms);
+        // println!("all_pixels_have_same_value: {}", all_pixels_have_same_value);
+        // println!("number_of_times_center_color_detected_outside: {}", number_of_times_center_color_detected_outside);
+        // println!("center_row_outside_count: {}", center_row_outside_count);
+        // println!("center_row_same_center_color_count: {}", center_row_same_center_color_count);
 
         if all_pixels_have_same_value && number_of_times_center_color_detected_outside == 0 && center_row_outside_count == 0 {
             return Ok(Classification::TrueStrong);
@@ -91,7 +102,7 @@ impl AnalyzeDirection {
             return Ok(Classification::TrueWeak);
         }
 
-        if all_pixels_have_same_value && number_of_times_center_color_detected_outside > 0 {
+        if all_pixels_have_same_value {
             return Ok(Classification::TrueWeak);
         }
 
@@ -108,13 +119,13 @@ mod tests {
     fn test_10000_classify_row_truestrong() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7,
-            3, 3, 3, 3, 3,
-            7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7,
+            3, 3, 3, 3, 3, 3, 3,
+            7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7,
         ];
-        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+        let input: Image = Image::try_create(7, 5, pixels).expect("image");
 
         // Act
         let actual: Classification = AnalyzeDirection::classify_row(&input).expect("ok");
@@ -127,13 +138,13 @@ mod tests {
     fn test_10001_classify_row_trueweak() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            7, 7, 7, 7, 7,
-            7, 7, 3, 7, 7,
-            3, 3, 3, 3, 3,
-            7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 3, 7, 7, 7,
+            3, 3, 3, 3, 3, 3, 3,
+            7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7,
         ];
-        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+        let input: Image = Image::try_create(7, 5, pixels).expect("image");
 
         // Act
         let actual: Classification = AnalyzeDirection::classify_row(&input).expect("ok");
@@ -143,16 +154,35 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_classify_row_false() {
+    fn test_10002_classify_row_trueweak_corner_topleft() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            7, 7, 3, 7, 7,
-            7, 7, 3, 7, 7,
-            7, 7, 3, 7, 7,
-            7, 7, 3, 7, 7,
-            7, 7, 3, 7, 7,
+            255, 255, 255, 255, 255, 255, 255,
+            255, 255, 255, 255, 255, 255, 255,
+            255, 255, 255, 3, 3, 3, 3,
+            255, 255, 255, 7, 7, 7, 7,
+            255, 255, 255, 7, 7, 7, 7,
         ];
-        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+        let input: Image = Image::try_create(7, 5, pixels).expect("image");
+
+        // Act
+        let actual: Classification = AnalyzeDirection::classify_row(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual, Classification::TrueWeak);
+    }
+
+    #[test]
+    fn test_10003_classify_row_false() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 3, 7, 7, 7,
+            7, 7, 7, 3, 7, 7, 7,
+            7, 7, 7, 3, 7, 7, 7,
+            7, 7, 7, 3, 7, 7, 7,
+            7, 7, 7, 3, 7, 7, 7,
+        ];
+        let input: Image = Image::try_create(7, 5, pixels).expect("image");
 
         // Act
         let actual: Classification = AnalyzeDirection::classify_row(&input).expect("ok");
