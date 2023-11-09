@@ -1,5 +1,6 @@
 //! Experiments with Abstraction and Reasoning Corpus (ARC)
 mod action_label_util;
+mod analyze_direction;
 mod arc_json_model;
 mod arc_json_model_to_html;
 mod arc_puzzles;
