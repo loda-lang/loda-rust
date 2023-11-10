@@ -798,7 +798,7 @@ mod tests {
     fn test_50001_pairs_descending() {
         // Arrange
         let mut h = Histogram::new();
-        let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
+        let values: [u8; 12] = [3, 1, 1, 42, 7, 42, 7, 3, 2, 3, 4, 5];
         for value in values {
             h.increment(value);
         }
@@ -807,7 +807,7 @@ mod tests {
         let pairs: Vec<(u32, u8)> = h.pairs_descending();
 
         // Assert
-        let expected: Vec<(u32, u8)> = vec![(3, 3), (2, 42), (1, 5), (1, 4), (1, 2)];
+        let expected: Vec<(u32, u8)> = vec![(3, 3), (2, 42), (2, 7), (2, 1), (1, 5), (1, 4), (1, 2)];
         assert_eq!(pairs, expected);
     }
 
@@ -815,7 +815,7 @@ mod tests {
     fn test_50002_pairs_ascending() {
         // Arrange
         let mut h = Histogram::new();
-        let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
+        let values: [u8; 12] = [3, 1, 1, 42, 7, 42, 7, 3, 2, 3, 4, 5];
         for value in values {
             h.increment(value);
         }
@@ -824,7 +824,7 @@ mod tests {
         let pairs: Vec<(u32, u8)> = h.pairs_ascending();
 
         // Assert
-        let expected: Vec<(u32, u8)> = vec![(1, 2), (1, 4), (1, 5), (2, 42), (3, 3)];
+        let expected: Vec<(u32, u8)> = vec![(1, 2), (1, 4), (1, 5), (2, 1), (2, 7), (2, 42), (3, 3)];
         assert_eq!(pairs, expected);
     }
 
