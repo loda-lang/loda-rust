@@ -57,8 +57,8 @@ impl GenerateDataset {
     fn generate() -> anyhow::Result<()> {
         let missing_symbol: &str = "missing";
         // let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_special);
-        // let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_0_255);
-        let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z);
+        let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_0_255);
+        // let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z);
 
         let mut rng = StdRng::seed_from_u64(0);
 
@@ -66,8 +66,8 @@ impl GenerateDataset {
         let mut item_vec = Vec::<ComparisionItem>::new();
         for _ in 0..item_count {
             let size = ImageSize::new(20, 1);
-            let image_left: Image = RandomImage::uniform_colors(&mut rng, size, 255)?;
-            let image_right: Image = RandomImage::uniform_colors(&mut rng, size, 255)?;
+            let image_left: Image = RandomImage::uniform_colors(&mut rng, size, 9)?;
+            let image_right: Image = RandomImage::uniform_colors(&mut rng, size, 9)?;
     
             let item: ComparisionItem = ComparisionItem::create(&image_left, &image_right)?;
             item_vec.push(item);
@@ -82,6 +82,71 @@ impl GenerateDataset {
     
             Self::markdown_for_comparison_item(&mut markdown, &item, &symbol_names, missing_symbol)?;
     
+            markdown.push_str("\n\n");
+        }
+        
+        markdown.push_str("## Summary\n\n");
+
+        let mut union_histogram_left: Histogram = Histogram::new();
+        let mut union_histogram_right: Histogram = Histogram::new();
+        let mut intersection_histogram_left: Histogram = Histogram::new();
+        let mut intersection_histogram_right: Histogram = Histogram::new();
+        let mut intersection_histogram_left_only: Histogram = Histogram::new();
+        let mut intersection_histogram_right_only: Histogram = Histogram::new();
+
+        for (item_index, item) in item_vec.iter().enumerate() {
+            union_histogram_left.add_histogram(&item.histogram_left);
+            union_histogram_right.add_histogram(&item.histogram_right);
+            if item_index == 0 {
+                intersection_histogram_left = item.histogram_left.clone();
+                intersection_histogram_right = item.histogram_right.clone();
+                intersection_histogram_left_only = item.histogram_left_only.clone();
+                intersection_histogram_right_only = item.histogram_right_only.clone();
+            } else {
+                intersection_histogram_left.intersection_histogram(&item.histogram_left);
+                intersection_histogram_right.intersection_histogram(&item.histogram_right);
+                intersection_histogram_left_only.intersection_histogram(&item.histogram_left_only);
+                intersection_histogram_right_only.intersection_histogram(&item.histogram_right_only);
+            }
+        }
+
+        intersection_histogram_left.clamp01();
+        intersection_histogram_left.multiply_histogram(&union_histogram_left);
+        intersection_histogram_right.clamp01();
+        intersection_histogram_right.multiply_histogram(&union_histogram_right);
+
+        {
+            let image_union_histogram_left: Image = union_histogram_left.color_image()?;
+            let image_union_histogram_right: Image = union_histogram_right.color_image()?;
+            let image_intersection_histogram_left: Image = intersection_histogram_left.color_image()?;
+            let image_intersection_histogram_right: Image = intersection_histogram_right.color_image()?;
+            let image_intersection_histogram_left_only: Image = intersection_histogram_left_only.color_image()?;
+            let image_intersection_histogram_right_only: Image = intersection_histogram_right_only.color_image()?;
+    
+            let body_union_histogram_left: String = Self::image_to_string(&image_union_histogram_left, &symbol_names, missing_symbol);
+            let body_union_histogram_right: String = Self::image_to_string(&image_union_histogram_right, &symbol_names, missing_symbol);
+            let body_image_intersection_histogram_left: String = Self::image_to_string(&image_intersection_histogram_left, &symbol_names, missing_symbol);
+            let body_image_intersection_histogram_right: String = Self::image_to_string(&image_intersection_histogram_right, &symbol_names, missing_symbol);
+            let body_image_intersection_histogram_left_only: String = Self::image_to_string(&image_intersection_histogram_left_only, &symbol_names, missing_symbol);
+            let body_image_intersection_histogram_right_only: String = Self::image_to_string(&image_intersection_histogram_right_only, &symbol_names, missing_symbol);
+    
+            markdown.push_str("Union left histograms: ");
+            markdown.push_str(&Self::markdown_code(&body_union_histogram_left));
+            markdown.push_str("\n\n");
+            markdown.push_str("Union right histograms: ");
+            markdown.push_str(&Self::markdown_code(&body_union_histogram_right));
+            markdown.push_str("\n\n");
+            markdown.push_str("Intersection left histograms: ");
+            markdown.push_str(&Self::markdown_code(&body_image_intersection_histogram_left));
+            markdown.push_str("\n\n");
+            markdown.push_str("Intersection right histograms: ");
+            markdown.push_str(&Self::markdown_code(&body_image_intersection_histogram_right));
+            markdown.push_str("\n\n");
+            markdown.push_str("Intersection left-only histograms: ");
+            markdown.push_str(&Self::markdown_code(&body_image_intersection_histogram_left_only));
+            markdown.push_str("\n\n");
+            markdown.push_str("Intersection right-only histograms: ");
+            markdown.push_str(&Self::markdown_code(&body_image_intersection_histogram_right_only));
             markdown.push_str("\n\n");
         }
 
