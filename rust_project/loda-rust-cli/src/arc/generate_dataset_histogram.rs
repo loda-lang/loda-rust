@@ -1,5 +1,5 @@
 use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram};
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{rngs::StdRng, SeedableRng, Rng};
 use std::collections::HashMap;
 
 type SymbolNameCallback = fn(u8) -> String;
@@ -149,11 +149,11 @@ impl GenerateDataset {
         let mut s = String::new();
         for y in 0..image.height() {
             if y > 0 {
-                s.push_str("\n");
+                s.push('\n');
             }
             for x in 0..image.width() {
                 if x > 0 {
-                    s.push_str(",");
+                    s.push(',');
                 }
                 let color: u8 = image.get(x as i32, y as i32).unwrap_or(255);
                 if let Some(name) = symbol_names.get(&color) {
@@ -162,6 +162,39 @@ impl GenerateDataset {
                     s.push_str(missing_symbol);
                 }
             }
+        }
+        s
+    }
+
+    fn image_to_string_with_random_wrap(rng: &mut StdRng, image: &Image, symbol_names: &HashMap<u8, String>, missing_symbol: &str) -> String {
+        let mut items = Vec::<String>::new();
+        for y in 0..image.height() {
+            for x in 0..image.width() {
+                let color: u8 = image.get(x as i32, y as i32).unwrap_or(255);
+                if let Some(name) = symbol_names.get(&color) {
+                    items.push(name.clone());
+                } else {
+                    items.push(missing_symbol.to_string());
+                }
+            }
+        }
+        let mut s = String::new();
+        for _ in 0..items.len() {
+            let count: usize = rng.gen_range(5..=20);
+            for _ in 0..count {
+                if items.is_empty() {
+                    break;
+                }
+                let item = items.remove(0);
+                s.push_str(&item);
+                if !items.is_empty() {
+                    s.push(',');
+                }
+            }
+            if items.is_empty() {
+                break;
+            }
+            s.push('\n');
         }
         s
     }
@@ -194,6 +227,32 @@ mod tests {
 
         // Assert
         let expected = "b1,c2,d3\na0,?,a0\nb1,c2,d3";
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10001_image_to_string_with_random_wrap() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            255, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 254,
+        ];
+        let image: Image = Image::try_create(9, 4, pixels).expect("image");
+
+        let symbol_names: HashMap<u8, String> = GenerateDataset::generate_symbol_names_with_callback(GenerateDataset::symbol_name_0_255);
+
+        // Act
+        let actual: String = GenerateDataset::image_to_string_with_random_wrap(
+            &mut StdRng::seed_from_u64(0), 
+            &image, 
+            &symbol_names, 
+            "?"
+        );
+
+        // Assert
+        let expected = "255,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,\n9,1,2,3,4,\n5,6,7,8,9,1,2,3,4,5,6,7,8,254";
         assert_eq!(actual, expected);
     }
 
