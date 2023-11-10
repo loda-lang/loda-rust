@@ -4,6 +4,49 @@ use std::collections::HashMap;
 
 type SymbolNameCallback = fn(u8) -> String;
 
+struct ComparisionItem {
+    image_left: Image,
+    image_right: Image,
+    histogram_left: Histogram,
+    histogram_right: Histogram,
+    histogram_left_only: Histogram,
+    histogram_right_only: Histogram,
+    histogram_union: Histogram,
+    histogram_intersection: Histogram,
+}
+
+impl ComparisionItem {
+    fn create(image_left: &Image, image_right: &Image) -> anyhow::Result<Self> {
+        let histogram_left: Histogram = image_left.histogram_all();
+
+        let histogram_right: Histogram = image_right.histogram_all();
+
+        let mut histogram_left_only: Histogram = histogram_left.clone();
+        histogram_left_only.subtract_histogram(&histogram_right);
+
+        let mut histogram_right_only: Histogram = histogram_right.clone();
+        histogram_right_only.subtract_histogram(&histogram_left);
+
+        let mut histogram_union: Histogram = histogram_left.clone();
+        histogram_union.add_histogram(&histogram_right);
+
+        let mut histogram_intersection: Histogram = histogram_left.clone();
+        histogram_intersection.intersection_histogram(&histogram_right);
+
+        let instance = Self {
+            image_left: image_left.clone(),
+            image_right: image_right.clone(),
+            histogram_left,
+            histogram_right,
+            histogram_left_only,
+            histogram_right_only,
+            histogram_union,
+            histogram_intersection,
+        };
+        Ok(instance)
+    }
+}
+
 #[allow(dead_code)]
 struct GenerateDataset;
 
@@ -20,41 +63,38 @@ impl GenerateDataset {
         let image_left: Image = RandomImage::uniform_colors(&mut rng, size, 255)?;
         let image_right: Image = RandomImage::uniform_colors(&mut rng, size, 255)?;
 
-        let histogram_left: Histogram = image_left.histogram_all();
-        let image_histogram_left: Image = histogram_left.color_image()?;
-
-        let histogram_right: Histogram = image_right.histogram_all();
-        let image_histogram_right: Image = histogram_right.color_image()?;
-
-        let mut histogram_left_only: Histogram = histogram_left.clone();
-        histogram_left_only.subtract_histogram(&histogram_right);
-        let image_histogram_left_only: Image = histogram_left_only.color_image()?;
-
-        let mut histogram_right_only: Histogram = histogram_right.clone();
-        histogram_right_only.subtract_histogram(&histogram_left);
-        let image_histogram_right_only: Image = histogram_right_only.color_image()?;
-
-        let mut histogram_union: Histogram = histogram_left.clone();
-        histogram_union.add_histogram(&histogram_right);
-        let image_histogram_union: Image = histogram_union.color_image()?;
-
-        let mut histogram_intersection: Histogram = histogram_left.clone();
-        histogram_intersection.intersection_histogram(&histogram_right);
-        let image_histogram_intersection: Image = histogram_intersection.color_image()?;
-
-        let body_data_left: String = Self::image_to_string(&image_left, &symbol_names, missing_symbol);
-        let body_data_right: String = Self::image_to_string(&image_right, &symbol_names, missing_symbol);
-        let body_union_left_right: String = Self::image_to_string(&image_histogram_union, &symbol_names, missing_symbol);
-        let body_intersection_left_right: String = Self::image_to_string(&image_histogram_intersection, &symbol_names, missing_symbol);
-        let body_only_left: String = Self::image_to_string(&image_histogram_left_only, &symbol_names, missing_symbol);
-        let body_only_right: String = Self::image_to_string(&image_histogram_right_only, &symbol_names, missing_symbol);
-        let body_histogram_left: String = Self::image_to_string(&image_histogram_left, &symbol_names, missing_symbol);
-        let body_histogram_right: String = Self::image_to_string(&image_histogram_right, &symbol_names, missing_symbol);
+        let item: ComparisionItem = ComparisionItem::create(&image_left, &image_right)?;
 
         let mut markdown = String::new();
         markdown.push_str("# Histogram comparisons with summary\n\n");
 
         markdown.push_str("## Comparison A\n\n");
+
+        Self::markdown_for_comparison_item(&mut markdown, &item, &symbol_names, missing_symbol)?;
+
+        markdown.push_str("\n\n");
+
+        println!("{}", markdown);
+
+        Ok(())
+    }
+
+    fn markdown_for_comparison_item(markdown: &mut String, item: &ComparisionItem, symbol_names: &HashMap<u8, String>, missing_symbol: &str) -> anyhow::Result<()> {
+        let image_histogram_left: Image = item.histogram_left.color_image()?;
+        let image_histogram_right: Image = item.histogram_right.color_image()?;
+        let image_histogram_left_only: Image = item.histogram_left_only.color_image()?;
+        let image_histogram_right_only: Image = item.histogram_right_only.color_image()?;
+        let image_histogram_union: Image = item.histogram_union.color_image()?;
+        let image_histogram_intersection: Image = item.histogram_intersection.color_image()?;
+
+        let body_data_left: String = Self::image_to_string(&item.image_left, symbol_names, missing_symbol);
+        let body_data_right: String = Self::image_to_string(&item.image_right, symbol_names, missing_symbol);
+        let body_union_left_right: String = Self::image_to_string(&image_histogram_union, symbol_names, missing_symbol);
+        let body_intersection_left_right: String = Self::image_to_string(&image_histogram_intersection, symbol_names, missing_symbol);
+        let body_only_left: String = Self::image_to_string(&image_histogram_left_only, symbol_names, missing_symbol);
+        let body_only_right: String = Self::image_to_string(&image_histogram_right_only, symbol_names, missing_symbol);
+        let body_histogram_left: String = Self::image_to_string(&image_histogram_left, symbol_names, missing_symbol);
+        let body_histogram_right: String = Self::image_to_string(&image_histogram_right, symbol_names, missing_symbol);
 
         markdown.push_str("### Data left\n\n");
         markdown.push_str(&Self::markdown_fenced_code_block(&body_data_left));
@@ -82,9 +122,6 @@ impl GenerateDataset {
         markdown.push_str("\n\n");
         markdown.push_str("Only right: ");
         markdown.push_str(&Self::markdown_code(&body_only_right));
-        markdown.push_str("\n\n");
-
-        println!("{}", markdown);
 
         Ok(())
     }
