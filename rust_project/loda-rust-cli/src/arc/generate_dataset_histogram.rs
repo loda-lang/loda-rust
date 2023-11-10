@@ -1,10 +1,11 @@
-use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram};
+use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog};
 use rand::prelude::Distribution;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
 use rand::distributions::WeightedIndex;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::io::Write;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -61,24 +62,54 @@ impl ComparisionItem {
 }
 
 #[allow(dead_code)]
-struct GenerateDataset;
+#[derive(Debug, Serialize)]
+struct DatasetItem {
+    curriculum: Curriculum,
+    text: String,
+}
+
+#[allow(dead_code)]
+struct GenerateDataset {
+    dataset_items: Vec<DatasetItem>,
+}
 
 impl GenerateDataset {
     #[allow(dead_code)]
-    fn generate() -> anyhow::Result<()> {
+    fn new() -> Self {
+        Self {
+            dataset_items: vec!(),
+        }
+    }
+
+    #[allow(dead_code)]
+    fn populate(&mut self, curriculum: Curriculum, number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
+
+        for i in 0..number_of_items {
+            if print_to_htmllog {
+                HtmlLog::text(format!("iteration: {}", i));
+            }
+            let random_seed: u64 = i as u64;
+            let dataset_item: DatasetItem = Self::generate(curriculum, random_seed, print_to_htmllog)?;
+            self.dataset_items.push(dataset_item);
+        }
+
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn generate(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let missing_symbol: &str = "missing";
         // let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_special);
         let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_0_255);
         // let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z);
 
-        let curriculum = Curriculum::Small;
         let sizes: Vec<u8> = match curriculum {
             Curriculum::Small => vec![3, 4, 5, 6],
             Curriculum::SmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
             Curriculum::SmallMediumBig => vec![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
         };
 
-        let mut rng = StdRng::seed_from_u64(0);
+        let mut rng = StdRng::seed_from_u64(random_seed);
 
         let item_count: usize = Self::number_of_comparison_items_to_generate(&mut rng);
         let mut item_vec = Vec::<ComparisionItem>::new();
@@ -92,6 +123,10 @@ impl GenerateDataset {
             let size1 = ImageSize::new(width1, height1);
             let image_left: Image = RandomImage::uniform_colors(&mut rng, size0, 9)?;
             let image_right: Image = RandomImage::uniform_colors(&mut rng, size1, 9)?;
+
+            if print_to_htmllog {
+                HtmlLog::compare_images(vec![image_left.clone(), image_right.clone()]);
+            }
     
             let item: ComparisionItem = ComparisionItem::create(&image_left, &image_right)?;
             item_vec.push(item);
@@ -171,12 +206,17 @@ impl GenerateDataset {
             markdown.push_str("\n\n");
             markdown.push_str("Intersection right-only histograms: ");
             markdown.push_str(&Self::markdown_code(&body_image_intersection_histogram_right_only));
-            markdown.push_str("\n\n");
         }
 
-        println!("{}", markdown);
+        if print_to_htmllog {
+            println!("{}", markdown);
+        }
 
-        Ok(())
+        let dataset_item = DatasetItem {
+            curriculum,
+            text: markdown,
+        };
+        Ok(dataset_item)
     }
 
     fn number_of_comparison_items_to_generate(rng: &mut StdRng) -> usize {
@@ -343,10 +383,39 @@ impl GenerateDataset {
         }
         s
     }
+
+    fn dataset_to_jsonl(dataset_items: &Vec<DatasetItem>) -> anyhow::Result<String> {
+        let mut jsonl_rows = Vec::<String>::new();
+        for dataset_item in dataset_items {
+            let jsonl_row: String = serde_json::to_string(dataset_item)?;
+            jsonl_rows.push(jsonl_row);
+        }
+        let jsonl_data: String = jsonl_rows.join("\n");
+        Ok(jsonl_data)
+    }
+
+    #[allow(dead_code)]
+    fn shuffle(&mut self) {
+        let mut rng = StdRng::seed_from_u64(0);
+        self.dataset_items.shuffle(&mut rng);
+    }
+
+    #[allow(dead_code)]
+    fn save(&self, path: &std::path::Path) -> anyhow::Result<()> {
+        let s: String = Self::dataset_to_jsonl(&self.dataset_items)?;
+        println!("dataset number of rows: {}", self.dataset_items.len());
+        println!("dataset jsonl bytes: {}", s.len());
+
+        let mut file = std::fs::File::create(path)?;
+        file.write_all(s.as_bytes())?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
     use crate::arc::ImageTryCreate;
 
@@ -468,7 +537,11 @@ mod tests {
 
     // #[test]
     fn test_40000_generate() {
-        // Arrange
-        GenerateDataset::generate().expect("ok");
+        let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histograms.jsonl");
+        let mut generator = GenerateDataset::new();
+        let number_of_items: u32 = 8;
+        generator.populate(Curriculum::Small, number_of_items, true).expect("ok");
+        generator.shuffle();
+        generator.save(&path).expect("ok");
     }
 }
