@@ -99,9 +99,6 @@ impl GenerateDataset {
     #[allow(dead_code)]
     fn generate(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let missing_symbol: &str = "missing";
-        // let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_special);
-        let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_0_255);
-        // let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z);
 
         let sizes: Vec<u8> = match curriculum {
             Curriculum::Small => vec![3, 4, 5, 6],
@@ -110,6 +107,16 @@ impl GenerateDataset {
         };
 
         let mut rng = StdRng::seed_from_u64(random_seed);
+
+        // Generate symbol names that fits with this curriculum
+        let symbol_name_id: usize = Self::choose_symbol_name_id(&mut rng, curriculum);
+        let symbol_names: HashMap<u8, String> = match symbol_name_id {
+            1 => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_hex),
+            2 => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_a_z),
+            3 => Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z),
+            4 => Self::generate_symbol_names_with_callback(Self::symbol_name_special),
+            _ => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
+        };
 
         let randomize_newlines_in_images: bool = rng.gen_bool(0.5); // 50% chance
 
@@ -225,6 +232,17 @@ impl GenerateDataset {
         let items: [usize; 5] = [2, 3, 4, 5, 6];
         let weights: [u8; 5] = [1, 2, 2, 2, 2];
         // We don't want `2` to occur as often as the other values, so a lower weight is used.
+        let dist = WeightedIndex::new(&weights).unwrap();
+        items[dist.sample(rng)]
+    }
+
+    fn choose_symbol_name_id(rng: &mut StdRng, curriculum: Curriculum) -> usize {
+        let items: [usize; 5] = [0, 1, 2, 3, 4];
+        let weights: [u8; 5] = match curriculum {
+            Curriculum::Small => [1, 0, 0, 0, 0],
+            Curriculum::SmallMedium => [1, 1, 1, 0, 0],
+            Curriculum::SmallMediumBig => [1, 1, 1, 1, 1],
+        };
         let dist = WeightedIndex::new(&weights).unwrap();
         items[dist.sample(rng)]
     }
