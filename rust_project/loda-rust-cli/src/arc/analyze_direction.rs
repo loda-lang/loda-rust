@@ -6,6 +6,7 @@ use super::{Image, ImageCrop, ImageHistogram, Histogram, ImageRotate90, HtmlLog}
 enum Classification {
     TrueStrong,
     TrueWeak,
+    TrueWeakStripeDot,
     False,
 }
 
@@ -39,8 +40,8 @@ impl AnalyzeDirection {
         for y in 0..image.height() {
             for x in 0..image.width() {
 
-                // if x == 2 && y == 0 {
                 let area: Image = image.crop_outside((x as i32) - 3, (y as i32) - 2, 7, 5, outside_color)?;
+                // if x == 2 && y == 0 {
                 //     HtmlLog::image(&area);
                 // }
 
@@ -49,6 +50,7 @@ impl AnalyzeDirection {
                 let set_value: u8 = match is_row {
                     Classification::TrueStrong => 1,
                     Classification::TrueWeak => 1,
+                    Classification::TrueWeakStripeDot => 1,
                     Classification::False => 0,
                 };
                 _ = direction_horizontal.set(x as i32, y as i32, set_value);
@@ -58,12 +60,21 @@ impl AnalyzeDirection {
     }
 
     fn classify_row(image: &Image) -> anyhow::Result<Classification> {
+        let center_minus1: u8 = image.get(2, 2).unwrap_or(255);
         let center: u8 = image.get(3, 2).unwrap_or(255);
+        let center_plus1: u8 = image.get(4, 2).unwrap_or(255);
+
+        let mut histogram_left = Histogram::new();
+        let mut histogram_right = Histogram::new();
+        for i in 1..=3 {
+            histogram_left.increment_pixel(image, 3 - i, 2);
+            histogram_right.increment_pixel(image, 3 + i, 2);
+        }
 
         let histograms: Vec<Histogram> = image.histogram_rows();
 
         let mut number_of_times_center_color_detected_outside: usize = 0;
-        let mut all_pixels_have_same_value: bool = false;
+        let mut all_pixels_have_same_value_as_center: bool = false;
         let mut center_row_outside_count: u32 = 0;
         // let mut center_row_same_center_color_count: u32 = 0;
         for (index, histogram) in histograms.iter().enumerate() {
@@ -74,16 +85,16 @@ impl AnalyzeDirection {
                 // center_row_same_center_color_count = histogram.get(center);
                 center_row_outside_count = histogram.get(255);
                 if histogram.get(center) == 7 {
-                    all_pixels_have_same_value = true;
+                    all_pixels_have_same_value_as_center = true;
                 }
                 if histogram.get(center) == 6 && histogram.get(255) == 1 {
-                    all_pixels_have_same_value = true;
+                    all_pixels_have_same_value_as_center = true;
                 }
                 if histogram.get(center) == 5 && histogram.get(255) == 2 {
-                    all_pixels_have_same_value = true;
+                    all_pixels_have_same_value_as_center = true;
                 }
                 if histogram.get(center) == 4 && histogram.get(255) == 3 {
-                    all_pixels_have_same_value = true;
+                    all_pixels_have_same_value_as_center = true;
                 }
             }
         }
@@ -94,16 +105,22 @@ impl AnalyzeDirection {
         // println!("center_row_outside_count: {}", center_row_outside_count);
         // println!("center_row_same_center_color_count: {}", center_row_same_center_color_count);
 
-        if all_pixels_have_same_value && number_of_times_center_color_detected_outside == 0 && center_row_outside_count == 0 {
+        if all_pixels_have_same_value_as_center && number_of_times_center_color_detected_outside == 0 && center_row_outside_count == 0 {
             return Ok(Classification::TrueStrong);
         }
 
-        if all_pixels_have_same_value && number_of_times_center_color_detected_outside == 0 && center_row_outside_count > 0 {
+        if all_pixels_have_same_value_as_center && number_of_times_center_color_detected_outside == 0 && center_row_outside_count > 0 {
             return Ok(Classification::TrueWeak);
         }
 
-        if all_pixels_have_same_value {
+        if all_pixels_have_same_value_as_center {
             return Ok(Classification::TrueWeak);
+        }
+
+        if histogram_left.get(center) > 0 && histogram_right.get(center) > 0 && center_minus1 == center_plus1 {
+            // The center color is present to the left side, at the center to the right side. The center color occurs 3 or more times.
+            // This may be a striped line with holes in it.
+            return Ok(Classification::TrueWeakStripeDot);
         }
 
         Ok(Classification::False)
@@ -173,7 +190,26 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_classify_row_false() {
+    fn test_10003_classify_row_trueweak_stripedot() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7,
+            7, 3, 7, 3, 7, 3, 7,
+            7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7,
+        ];
+        let input: Image = Image::try_create(7, 5, pixels).expect("image");
+
+        // Act
+        let actual: Classification = AnalyzeDirection::classify_row(&input).expect("ok");
+
+        // Assert
+        assert_eq!(actual, Classification::TrueWeakStripeDot);
+    }
+
+    #[test]
+    fn test_10004_classify_row_false() {
         // Arrange
         let pixels: Vec<u8> = vec![
             7, 7, 7, 3, 7, 7, 7,
