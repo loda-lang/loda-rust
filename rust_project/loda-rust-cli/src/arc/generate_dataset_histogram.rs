@@ -2,40 +2,53 @@ use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram};
 use rand::{rngs::StdRng, SeedableRng};
 use std::collections::HashMap;
 
+type SymbolNameCallback = fn(u8) -> String;
+
 #[allow(dead_code)]
 struct GenerateDataset;
 
 impl GenerateDataset {
     #[allow(dead_code)]
     fn generate() -> anyhow::Result<()> {
+        // let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_special);
+        // let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_0_255);
+        let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z);
+
         let mut rng = StdRng::seed_from_u64(0);
-        let size = ImageSize::new(3, 1);
+        let size = ImageSize::new(20, 1);
         let image_left: Image = RandomImage::uniform_colors(&mut rng, size, 255)?;
         let image_right: Image = RandomImage::uniform_colors(&mut rng, size, 255)?;
 
         let histogram_left: Histogram = image_left.histogram_all();
+        let image_histogram_left: Image = histogram_left.color_image()?;
+
         let histogram_right: Histogram = image_right.histogram_all();
+        let image_histogram_right: Image = histogram_right.color_image()?;
 
         let mut histogram_left_only: Histogram = histogram_left.clone();
         histogram_left_only.subtract_histogram(&histogram_right);
+        let image_histogram_left_only: Image = histogram_left_only.color_image()?;
 
         let mut histogram_right_only: Histogram = histogram_right.clone();
         histogram_right_only.subtract_histogram(&histogram_left);
+        let image_histogram_right_only: Image = histogram_right_only.color_image()?;
 
         let mut histogram_union: Histogram = histogram_left.clone();
         histogram_union.add_histogram(&histogram_right);
+        let image_histogram_union: Image = histogram_union.color_image()?;
 
         let mut histogram_intersection: Histogram = histogram_left.clone();
         histogram_intersection.intersection_histogram(&histogram_right);
+        let image_histogram_intersection: Image = histogram_intersection.color_image()?;
 
-        let body_left_data: String = image_left.human_readable();
-        let body_right_data: String = image_right.human_readable();
-        let body_union_left_right: String = histogram_union.color_image()?.human_readable();
-        let body_intersection_left_right: String = histogram_intersection.color_image()?.human_readable();
-        let body_left_only: String = histogram_left_only.color_image()?.human_readable();
-        let body_right_only: String = histogram_right_only.color_image()?.human_readable();
-        let body_left_histogram: String = histogram_left.color_image()?.human_readable();
-        let body_right_histogram: String = histogram_right.color_image()?.human_readable();
+        let body_left_data: String = Self::image_to_string(&image_left, &symbol_names, "missing");
+        let body_right_data: String = Self::image_to_string(&image_right, &symbol_names, "missing");
+        let body_union_left_right: String = Self::image_to_string(&image_histogram_union, &symbol_names, "missing");
+        let body_intersection_left_right: String = Self::image_to_string(&image_histogram_intersection, &symbol_names, "missing");
+        let body_left_only: String = Self::image_to_string(&image_histogram_left_only, &symbol_names, "missing");
+        let body_right_only: String = Self::image_to_string(&image_histogram_right_only, &symbol_names, "missing");
+        let body_left_histogram: String = Self::image_to_string(&image_histogram_left, &symbol_names, "missing");
+        let body_right_histogram: String = Self::image_to_string(&image_histogram_right, &symbol_names, "missing");
 
         let mut markdown = String::new();
         markdown.push_str("# Histogram comparisons with summary\n\n");
@@ -81,6 +94,15 @@ impl GenerateDataset {
 
     fn markdown_fenced_code_block(body: &String) -> String {
         format!("```\n{}\n```", body)
+    }
+
+    fn generate_symbol_names_with_callback(callback: SymbolNameCallback) -> HashMap<u8, String> {
+        let mut names = HashMap::<u8, String>::new();
+        for i in 0..=255 {
+            let name: String = callback(i);
+            names.insert(i, name);
+        }
+        names
     }
 
     /// Variable number of digits in the range 0-9.
