@@ -348,10 +348,13 @@ impl GenerateDataset {
         format!("{}{}", char1, char0)
     }
 
-    /// Two digits with special symbols.
+    /// 1 or 2 digits with special symbols.
+    /// 
+    /// If the value is between `0..=15`, then it's yield 1 digit.
+    /// If the value is between `16..=255``, then it's yields 2 digits.
     fn symbol_name_special(value: u8) -> String {
         let strings_char0: [&str; 16] = [".", "*", "=", ":", ";", "@", "+", "-", "±", "$", "!", "?", "^", "|", "■", "□"];
-        let strings_char1: [&str; 16] = ["◯", "▙", "▛", "▜", "▟", "░", "╬", "⛝", "←", "↑", "→", "↓", "⊕", "⊗", "⌦", "⌫"];
+        let strings_char1: [&str; 16] = ["", "▙", "▛", "▜", "▟", "░", "╬", "⛝", "←", "↑", "→", "↓", "⊕", "⊗", "⌦", "⌫"];
         let value0: u8 = value % 16;
         let value1: u8 = value / 16;
         let char0 = strings_char0[value0 as usize];
@@ -540,7 +543,9 @@ mod tests {
 
     #[test]
     fn test_20004_symbol_name_special() {
-        assert_eq!(GenerateDataset::symbol_name_special(0), "◯.");
+        assert_eq!(GenerateDataset::symbol_name_special(0), ".");
+        assert_eq!(GenerateDataset::symbol_name_special(15), "□");
+        assert_eq!(GenerateDataset::symbol_name_special(16), "▙.");
         assert_eq!(GenerateDataset::symbol_name_special(16 + 1), "▙*");
         assert_eq!(GenerateDataset::symbol_name_special(2 * 16 + 2), "▛=");
         assert_eq!(GenerateDataset::symbol_name_special(3 * 16 + 3), "▜:");
@@ -564,6 +569,7 @@ mod tests {
         assert_eq!(GenerateDataset::number_of_comparison_items_to_generate(&mut StdRng::seed_from_u64(2)), 2);
     }
 
+    #[allow(dead_code)]
     // #[test]
     fn test_40000_generate() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histograms.jsonl");
