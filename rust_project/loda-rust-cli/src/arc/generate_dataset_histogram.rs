@@ -1,8 +1,19 @@
 use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram};
 use rand::prelude::Distribution;
+use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
 use rand::distributions::WeightedIndex;
+use serde::Serialize;
 use std::collections::HashMap;
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Serialize)]
+enum Curriculum {
+    Small,
+    SmallMedium,
+    SmallMediumBig,
+}
+
 
 type SymbolNameCallback = fn(u8) -> String;
 
@@ -60,14 +71,27 @@ impl GenerateDataset {
         let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_0_255);
         // let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z);
 
+        let curriculum = Curriculum::Small;
+        let sizes: Vec<u8> = match curriculum {
+            Curriculum::Small => vec![3, 4, 5, 6],
+            Curriculum::SmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
+            Curriculum::SmallMediumBig => vec![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+        };
+
         let mut rng = StdRng::seed_from_u64(0);
 
         let item_count: usize = Self::number_of_comparison_items_to_generate(&mut rng);
         let mut item_vec = Vec::<ComparisionItem>::new();
         for _ in 0..item_count {
-            let size = ImageSize::new(20, 1);
-            let image_left: Image = RandomImage::uniform_colors(&mut rng, size, 9)?;
-            let image_right: Image = RandomImage::uniform_colors(&mut rng, size, 9)?;
+            let width0: u8 = *sizes.choose(&mut rng).unwrap();
+            let height0: u8 = *sizes.choose(&mut rng).unwrap();
+            let width1: u8 = *sizes.choose(&mut rng).unwrap();
+            let height1: u8 = *sizes.choose(&mut rng).unwrap();
+
+            let size0 = ImageSize::new(width0, height0);
+            let size1 = ImageSize::new(width1, height1);
+            let image_left: Image = RandomImage::uniform_colors(&mut rng, size0, 9)?;
+            let image_right: Image = RandomImage::uniform_colors(&mut rng, size1, 9)?;
     
             let item: ComparisionItem = ComparisionItem::create(&image_left, &image_right)?;
             item_vec.push(item);
