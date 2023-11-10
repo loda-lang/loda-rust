@@ -294,6 +294,25 @@ mod tests {
     fn test_60000_is_repeated_column() {
         // Arrange
         let pixels: Vec<u8> = vec![
+            5, 5,
+            3, 3,
+            3, 3,
+            9, 9,
+            5, 5,
+        ];
+        let input: Image = Image::try_create(2, 5, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_column();
+
+        // Assert
+        assert_eq!(actual, Some(true));
+    }
+
+    #[test]
+    fn test_60001_is_repeated_column() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
             5, 5, 5,
             3, 3, 3,
             3, 3, 3,
@@ -310,7 +329,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60001_is_repeated_column() {
+    fn test_60002_is_repeated_column() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5,
@@ -329,7 +348,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60002_is_repeated_column() {
+    fn test_60003_is_repeated_column() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5,
@@ -346,7 +365,42 @@ mod tests {
     }
 
     #[test]
+    fn test_60004_is_repeated_column() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 3,
+            5, 3, 3,
+            3, 3, 9,
+            3, 9, 5,
+            9, 5, 5,
+        ];
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_column();
+
+        // Assert
+        assert_eq!(actual, Some(false));
+    }
+
+    #[test]
     fn test_70000_is_repeated_row() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 3, 3, 9, 5,
+            5, 3, 3, 9, 5,
+        ];
+        let input: Image = Image::try_create(5, 2, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_row();
+
+        // Assert
+        assert_eq!(actual, Some(true));
+    }
+
+    #[test]
+    fn test_70001_is_repeated_row() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 3, 3, 9, 5,
@@ -363,7 +417,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70001_is_repeated_row() {
+    fn test_70003_is_repeated_row() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 3, 3, 9, 5,
@@ -380,7 +434,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70002_is_repeated_row() {
+    fn test_70004_is_repeated_row() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 3, 2,
@@ -392,5 +446,22 @@ mod tests {
 
         // Assert
         assert_eq!(actual, None);
+    }
+
+    #[test]
+    fn test_70005_is_repeated_row() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            3, 3, 9, 5, 5,
+            5, 3, 3, 9, 5,
+            5, 5, 3, 3, 9,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_row();
+
+        // Assert
+        assert_eq!(actual, Some(false));
     }
 }
