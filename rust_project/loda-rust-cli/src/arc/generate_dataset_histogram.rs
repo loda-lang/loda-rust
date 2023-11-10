@@ -1,5 +1,7 @@
 use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram};
+use rand::prelude::Distribution;
 use rand::{rngs::StdRng, SeedableRng, Rng};
+use rand::distributions::WeightedIndex;
 use std::collections::HashMap;
 
 type SymbolNameCallback = fn(u8) -> String;
@@ -59,24 +61,41 @@ impl GenerateDataset {
         let symbol_names: HashMap<u8, String> = Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z);
 
         let mut rng = StdRng::seed_from_u64(0);
-        let size = ImageSize::new(20, 1);
-        let image_left: Image = RandomImage::uniform_colors(&mut rng, size, 255)?;
-        let image_right: Image = RandomImage::uniform_colors(&mut rng, size, 255)?;
 
-        let item: ComparisionItem = ComparisionItem::create(&image_left, &image_right)?;
+        let item_count: usize = Self::number_of_comparison_items_to_generate(&mut rng);
+        let mut item_vec = Vec::<ComparisionItem>::new();
+        for _ in 0..item_count {
+            let size = ImageSize::new(20, 1);
+            let image_left: Image = RandomImage::uniform_colors(&mut rng, size, 255)?;
+            let image_right: Image = RandomImage::uniform_colors(&mut rng, size, 255)?;
+    
+            let item: ComparisionItem = ComparisionItem::create(&image_left, &image_right)?;
+            item_vec.push(item);
+        }
 
         let mut markdown = String::new();
         markdown.push_str("# Histogram comparisons with summary\n\n");
 
-        markdown.push_str("## Comparison A\n\n");
-
-        Self::markdown_for_comparison_item(&mut markdown, &item, &symbol_names, missing_symbol)?;
-
-        markdown.push_str("\n\n");
+        for (item_index, item) in item_vec.iter().enumerate() {
+            let name: char = ('A' as u8 + item_index as u8) as char;
+            markdown.push_str(&format!("## Comparison {}\n\n", name));
+    
+            Self::markdown_for_comparison_item(&mut markdown, &item, &symbol_names, missing_symbol)?;
+    
+            markdown.push_str("\n\n");
+        }
 
         println!("{}", markdown);
 
         Ok(())
+    }
+
+    fn number_of_comparison_items_to_generate(rng: &mut StdRng) -> usize {
+        let items: [usize; 5] = [2, 3, 4, 5, 6];
+        let weights: [u8; 5] = [1, 2, 2, 2, 2];
+        // We don't want `2` to occur as often as the other values, so a lower weight is used.
+        let dist = WeightedIndex::new(&weights).unwrap();
+        items[dist.sample(rng)]
     }
 
     fn markdown_for_comparison_item(markdown: &mut String, item: &ComparisionItem, symbol_names: &HashMap<u8, String>, missing_symbol: &str) -> anyhow::Result<()> {
@@ -352,8 +371,14 @@ mod tests {
         assert_eq!(GenerateDataset::symbol_name_special(15 * 16 + 15), "⌫□");
     }
 
+    #[test]
+    fn test_30000_number_of_items_to_generate() {
+        assert_eq!(GenerateDataset::number_of_comparison_items_to_generate(&mut StdRng::seed_from_u64(0)), 6);
+        assert_eq!(GenerateDataset::number_of_comparison_items_to_generate(&mut StdRng::seed_from_u64(2)), 2);
+    }
+
     // #[test]
-    fn test_20000_generate() {
+    fn test_40000_generate() {
         // Arrange
         GenerateDataset::generate().expect("ok");
     }
