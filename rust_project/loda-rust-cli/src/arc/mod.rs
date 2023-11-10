@@ -32,6 +32,7 @@ mod export_tasks;
 mod generate_dataset_for_texttransformer;
 mod generate_dataset_for_visitiontransformer;
 mod generate_dataset_gameoflife;
+mod generate_dataset_histogram;
 mod generate_pattern;
 mod grid;
 mod grid_to_label;
