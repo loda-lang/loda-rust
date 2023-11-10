@@ -1,5 +1,5 @@
 //! Determine local directionality in an image.
-use super::{Image, ImageCrop, ImageHistogram, Histogram, ImageRotate90, ImageTrim, HtmlLog};
+use super::{Image, ImageCrop, ImageHistogram, Histogram, ImageRotate90, ImageTrim};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
