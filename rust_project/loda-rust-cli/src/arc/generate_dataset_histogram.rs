@@ -29,23 +29,23 @@ impl GenerateDataset {
 
         let body_left_data: String = image_left.human_readable();
         let body_right_data: String = image_right.human_readable();
-        let body_union: String = histogram_union.to_image()?.human_readable();
-        let body_intersection: String = histogram_intersection.to_image()?.human_readable();
-        let body_left_only: String = histogram_left_only.to_image()?.human_readable();
-        let body_right_only: String = histogram_right_only.to_image()?.human_readable();
-        let body_left_histogram: String = histogram_left.to_image()?.human_readable();
-        let body_right_histogram: String = histogram_right.to_image()?.human_readable();
+        let body_union_left_right: String = histogram_union.color_image()?.human_readable();
+        let body_intersection_left_right: String = histogram_intersection.color_image()?.human_readable();
+        let body_left_only: String = histogram_left_only.color_image()?.human_readable();
+        let body_right_only: String = histogram_right_only.color_image()?.human_readable();
+        let body_left_histogram: String = histogram_left.color_image()?.human_readable();
+        let body_right_histogram: String = histogram_right.color_image()?.human_readable();
 
         let mut markdown = String::new();
         markdown.push_str("# Histogram comparisons with summary\n\n");
 
         markdown.push_str("## Comparison A\n\n");
 
-        markdown.push_str("### Left\n\n");
+        markdown.push_str("### Left data\n\n");
         markdown.push_str(&Self::markdown_fenced_code_block(&body_left_data));
         markdown.push_str("\n\n");
         
-        markdown.push_str("### Right\n\n");
+        markdown.push_str("### Right data\n\n");
         markdown.push_str(&Self::markdown_fenced_code_block(&body_right_data));
         markdown.push_str("\n\n");
 
@@ -56,11 +56,11 @@ impl GenerateDataset {
         markdown.push_str("Right histogram: ");
         markdown.push_str(&Self::markdown_code(&body_right_histogram));
         markdown.push_str("\n\n");
-        markdown.push_str("Union: ");
-        markdown.push_str(&Self::markdown_code(&body_union));
+        markdown.push_str("Union left right: ");
+        markdown.push_str(&Self::markdown_code(&body_union_left_right));
         markdown.push_str("\n\n");
-        markdown.push_str("Intersection: ");
-        markdown.push_str(&Self::markdown_code(&body_intersection));
+        markdown.push_str("Intersection left right: ");
+        markdown.push_str(&Self::markdown_code(&body_intersection_left_right));
         markdown.push_str("\n\n");
         markdown.push_str("Left only: ");
         markdown.push_str(&Self::markdown_code(&body_left_only));
