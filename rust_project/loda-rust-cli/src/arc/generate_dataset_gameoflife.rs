@@ -1,5 +1,8 @@
 //! Cellular automaton - dataset for curriculum learning with increasing complexity.
 //! 
+//! This dataset is available here:
+//! https://huggingface.co/datasets/neoneye/gameoflife-v1
+//! 
 //! Future experiments:
 //! Game of life: check for oscillators
 //! Game of life: recognize shapes.
@@ -379,7 +382,7 @@ mod tests {
 
     #[test]
     fn test_10000_image_to_string() {
-        // Act
+        // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0,
             0, 1, 1,
