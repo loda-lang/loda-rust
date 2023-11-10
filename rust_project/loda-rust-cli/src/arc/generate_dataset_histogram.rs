@@ -1,5 +1,6 @@
 use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram};
 use rand::{rngs::StdRng, SeedableRng};
+use std::collections::HashMap;
 
 #[allow(dead_code)]
 struct GenerateDataset;
@@ -81,14 +82,61 @@ impl GenerateDataset {
     fn markdown_fenced_code_block(body: &String) -> String {
         format!("```\n{}\n```", body)
     }
+
+    fn image_to_string(image: &Image, symbol_names: &HashMap<u8, String>, missing_symbol: &str) -> String {
+        let mut s = String::new();
+        for y in 0..image.height() {
+            if y > 0 {
+                s.push_str("\n");
+            }
+            for x in 0..image.width() {
+                if x > 0 {
+                    s.push_str(",");
+                }
+                let color: u8 = image.get(x as i32, y as i32).unwrap_or(255);
+                if let Some(name) = symbol_names.get(&color) {
+                    s.push_str(name);
+                } else {
+                    s.push_str(missing_symbol);
+                }
+            }
+        }
+        s
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arc::ImageTryCreate;
+
+    #[test]
+    fn test_10000_image_to_string() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3,
+            0, 255, 0,
+            1, 2, 3,
+        ];
+        let image: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let mapping: HashMap<u8, String> = [
+            (0, String::from("a0")),
+            (1, String::from("b1")),
+            (2, String::from("c2")),
+            (3, String::from("d3")),
+        ].iter().cloned().collect();
+
+        // Act
+        let actual: String = GenerateDataset::image_to_string(&image, &mapping, "?");
+
+        // Assert
+        let expected = "b1,c2,d3\na0,?,a0\nb1,c2,d3";
+        assert_eq!(actual, expected);
+    }
 
     // #[test]
-    fn test_10000_generate() {
+    fn test_20000_generate() {
         // Arrange
         GenerateDataset::generate().expect("ok");
     }
