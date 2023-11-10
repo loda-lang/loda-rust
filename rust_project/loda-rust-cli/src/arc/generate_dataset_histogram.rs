@@ -83,6 +83,45 @@ impl GenerateDataset {
         format!("```\n{}\n```", body)
     }
 
+    /// Variable number of digits in the range 0-9.
+    fn symbol_name_0_255(value: u8) -> String {
+        format!("{}", value)
+    }
+
+    /// Two hex digits in the range 0-9a-f.
+    fn symbol_name_lowercase_hex(value: u8) -> String {
+        format!("{:02x}", value)
+    }
+
+    /// Two lowercase characters in the range a..z.
+    fn symbol_name_lowercase_a_z(value: u8) -> String {
+        let value0: u8 = value % 26;
+        let value1: u8 = value / 26;
+        let char0 = (b'a' + value0) as char;
+        let char1 = (b'a' + value1) as char;
+        format!("{}{}", char1, char0)
+    }
+
+    /// Two uppercase characters in the range A..Z.
+    fn symbol_name_uppercase_a_z(value: u8) -> String {
+        let value0: u8 = value % 26;
+        let value1: u8 = value / 26;
+        let char0 = (b'A' + value0) as char;
+        let char1 = (b'A' + value1) as char;
+        format!("{}{}", char1, char0)
+    }
+
+    /// Two digits with special symbols.
+    fn symbol_name_special(value: u8) -> String {
+        let strings_char0: [&str; 16] = [".", "*", "=", ":", ";", "@", "+", "-", "±", "$", "!", "?", "^", "|", "■", "□"];
+        let strings_char1: [&str; 16] = ["◯", "▙", "▛", "▜", "▟", "░", "╬", "⛝", "←", "↑", "→", "↓", "⊕", "⊗", "⌦", "⌫"];
+        let value0: u8 = value % 16;
+        let value1: u8 = value / 16;
+        let char0 = strings_char0[value0 as usize];
+        let char1 = strings_char1[value1 as usize];
+        format!("{}{}", char1, char0)
+    }
+
     fn image_to_string(image: &Image, symbol_names: &HashMap<u8, String>, missing_symbol: &str) -> String {
         let mut s = String::new();
         for y in 0..image.height() {
@@ -133,6 +172,65 @@ mod tests {
         // Assert
         let expected = "b1,c2,d3\na0,?,a0\nb1,c2,d3";
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20000_symbol_name_0_255() {
+        assert_eq!(GenerateDataset::symbol_name_0_255(0), "0");
+        assert_eq!(GenerateDataset::symbol_name_0_255(9), "9");
+        assert_eq!(GenerateDataset::symbol_name_0_255(10), "10");
+        assert_eq!(GenerateDataset::symbol_name_0_255(255), "255");
+    }
+
+    #[test]
+    fn test_20001_symbol_name_lowercase_hex() {
+        assert_eq!(GenerateDataset::symbol_name_lowercase_hex(0), "00");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_hex(9), "09");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_hex(10), "0a");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_hex(16), "10");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_hex(255), "ff");
+    }
+
+    #[test]
+    fn test_20002_symbol_name_lowercase_a_z() {
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(0), "aa");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(9), "aj");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(10), "ak");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(25), "az");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(26), "ba");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(254), "ju");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(255), "jv");
+    }
+
+    #[test]
+    fn test_20003_symbol_name_uppercase_a_z() {
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(0), "AA");
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(9), "AJ");
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(10), "AK");
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(25), "AZ");
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(26), "BA");
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(254), "JU");
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(255), "JV");
+    }
+
+    #[test]
+    fn test_20004_symbol_name_special() {
+        assert_eq!(GenerateDataset::symbol_name_special(0), "◯.");
+        assert_eq!(GenerateDataset::symbol_name_special(16 + 1), "▙*");
+        assert_eq!(GenerateDataset::symbol_name_special(2 * 16 + 2), "▛=");
+        assert_eq!(GenerateDataset::symbol_name_special(3 * 16 + 3), "▜:");
+        assert_eq!(GenerateDataset::symbol_name_special(4 * 16 + 4), "▟;");
+        assert_eq!(GenerateDataset::symbol_name_special(5 * 16 + 5), "░@");
+        assert_eq!(GenerateDataset::symbol_name_special(6 * 16 + 6), "╬+");
+        assert_eq!(GenerateDataset::symbol_name_special(7 * 16 + 7), "⛝-");
+        assert_eq!(GenerateDataset::symbol_name_special(8 * 16 + 8), "←±");
+        assert_eq!(GenerateDataset::symbol_name_special(9 * 16 + 9), "↑$");
+        assert_eq!(GenerateDataset::symbol_name_special(10 * 16 + 10), "→!");
+        assert_eq!(GenerateDataset::symbol_name_special(11 * 16 + 11), "↓?");
+        assert_eq!(GenerateDataset::symbol_name_special(12 * 16 + 12), "⊕^");
+        assert_eq!(GenerateDataset::symbol_name_special(13 * 16 + 13), "⊗|");
+        assert_eq!(GenerateDataset::symbol_name_special(14 * 16 + 14), "⌦■");
+        assert_eq!(GenerateDataset::symbol_name_special(15 * 16 + 15), "⌫□");
     }
 
     // #[test]
