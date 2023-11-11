@@ -114,7 +114,7 @@ impl GenerateDataset {
             1 => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_hex),
             2 => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_a_z),
             3 => Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z),
-            4 => Self::generate_symbol_names_with_callback(Self::symbol_name_special),
+            4 => Self::generate_symbol_names_with_callback(Self::symbol_name_special_ascii),
             _ => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
         };
 
@@ -362,11 +362,34 @@ impl GenerateDataset {
         }
     }
 
-    /// 1 or 2 digits with special symbols.
+    /// 1 or 2 digits with special ascii symbols. The characters are sorted by their ascii value.
+    /// 
+    /// Cherry picked characters, so there is no interfering with the markdown syntax.
+    /// And aren't any backslashes.
     /// 
     /// If the value is between `0..=15`, then it's yield 1 digit.
     /// If the value is between `16..=255``, then it's yields 2 digits.
-    fn symbol_name_special(value: u8) -> String {
+    fn symbol_name_special_ascii(value: u8) -> String {
+        let strings_char: [&str; 16] = ["!", "$", "%", "&", "*", "+", "-", ".", "/", ":", ";", "?", "@", "_", "|", "~"];
+        let value0: u8 = value % 16;
+        let value1: u8 = value / 16;
+        let char0 = strings_char[value0 as usize];
+        let char1 = strings_char[value1 as usize];
+        if value1 == 0 {
+            format!("{}", char0)
+        } else {
+            format!("{}{}", char1, char0)
+        }
+    }
+
+    /// 1 or 2 digits with special unicode symbols. The characters are not sorted by their unicode value.
+    /// 
+    /// I'm no fan about this one. The characters are not sorted by their unicode value.
+    /// 
+    /// If the value is between `0..=15`, then it's yield 1 digit.
+    /// If the value is between `16..=255``, then it's yields 2 digits.
+    #[allow(dead_code)]
+    fn symbol_name_special_unicode(value: u8) -> String {
         let strings_char0: [&str; 16] = [".", "*", "=", ":", ";", "@", "+", "-", "±", "$", "!", "?", "^", "|", "■", "□"];
         let strings_char1: [&str; 16] = ["", "▙", "▛", "▜", "▟", "░", "╬", "⛝", "←", "↑", "→", "↓", "⊕", "⊗", "⌦", "⌫"];
         let value0: u8 = value % 16;
@@ -556,25 +579,47 @@ mod tests {
     }
 
     #[test]
-    fn test_20004_symbol_name_special() {
-        assert_eq!(GenerateDataset::symbol_name_special(0), ".");
-        assert_eq!(GenerateDataset::symbol_name_special(15), "□");
-        assert_eq!(GenerateDataset::symbol_name_special(16), "▙.");
-        assert_eq!(GenerateDataset::symbol_name_special(16 + 1), "▙*");
-        assert_eq!(GenerateDataset::symbol_name_special(2 * 16 + 2), "▛=");
-        assert_eq!(GenerateDataset::symbol_name_special(3 * 16 + 3), "▜:");
-        assert_eq!(GenerateDataset::symbol_name_special(4 * 16 + 4), "▟;");
-        assert_eq!(GenerateDataset::symbol_name_special(5 * 16 + 5), "░@");
-        assert_eq!(GenerateDataset::symbol_name_special(6 * 16 + 6), "╬+");
-        assert_eq!(GenerateDataset::symbol_name_special(7 * 16 + 7), "⛝-");
-        assert_eq!(GenerateDataset::symbol_name_special(8 * 16 + 8), "←±");
-        assert_eq!(GenerateDataset::symbol_name_special(9 * 16 + 9), "↑$");
-        assert_eq!(GenerateDataset::symbol_name_special(10 * 16 + 10), "→!");
-        assert_eq!(GenerateDataset::symbol_name_special(11 * 16 + 11), "↓?");
-        assert_eq!(GenerateDataset::symbol_name_special(12 * 16 + 12), "⊕^");
-        assert_eq!(GenerateDataset::symbol_name_special(13 * 16 + 13), "⊗|");
-        assert_eq!(GenerateDataset::symbol_name_special(14 * 16 + 14), "⌦■");
-        assert_eq!(GenerateDataset::symbol_name_special(15 * 16 + 15), "⌫□");
+    fn test_20004_symbol_name_special_ascii() {
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(0), "!");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(15), "~");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(16), "$!");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(16 + 1), "$$");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(2 * 16 + 2), "%%");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(3 * 16 + 3), "&&");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(4 * 16 + 4), "**");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(5 * 16 + 5), "++");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(6 * 16 + 6), "--");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(7 * 16 + 7), "..");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(8 * 16 + 8), "//");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(9 * 16 + 9), "::");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(10 * 16 + 10), ";;");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(11 * 16 + 11), "??");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(12 * 16 + 12), "@@");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(13 * 16 + 13), "__");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(14 * 16 + 14), "||");
+        assert_eq!(GenerateDataset::symbol_name_special_ascii(15 * 16 + 15), "~~");
+    }
+
+    #[test]
+    fn test_20005_symbol_name_special_unicode() {
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(0), ".");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(15), "□");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(16), "▙.");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(16 + 1), "▙*");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(2 * 16 + 2), "▛=");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(3 * 16 + 3), "▜:");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(4 * 16 + 4), "▟;");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(5 * 16 + 5), "░@");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(6 * 16 + 6), "╬+");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(7 * 16 + 7), "⛝-");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(8 * 16 + 8), "←±");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(9 * 16 + 9), "↑$");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(10 * 16 + 10), "→!");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(11 * 16 + 11), "↓?");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(12 * 16 + 12), "⊕^");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(13 * 16 + 13), "⊗|");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(14 * 16 + 14), "⌦■");
+        assert_eq!(GenerateDataset::symbol_name_special_unicode(15 * 16 + 15), "⌫□");
     }
 
     #[test]
@@ -584,14 +629,15 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    // #[test]
+    #[test]
     fn test_40000_generate() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histograms.jsonl");
         let mut generator = GenerateDataset::new();
-        let number_of_items: u32 = 8;
-        generator.populate(Curriculum::Small, number_of_items, true).expect("ok");
-        generator.populate(Curriculum::SmallMedium, number_of_items, false).expect("ok");
-        generator.populate(Curriculum::SmallMediumBig, number_of_items, false).expect("ok");
+        let number_of_items: u32 = 10;
+        // generator.populate(Curriculum::Small, number_of_items, false).expect("ok");
+        // generator.populate(Curriculum::SmallMedium, number_of_items, false).expect("ok");
+        // generator.populate(Curriculum::SmallMediumBig, number_of_items, false).expect("ok");
+        generator.populate(Curriculum::SmallMediumBig, number_of_items, true).expect("ok");
         generator.shuffle();
         generator.save(&path).expect("ok");
     }
