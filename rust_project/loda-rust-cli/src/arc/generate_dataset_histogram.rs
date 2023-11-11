@@ -330,22 +330,36 @@ impl GenerateDataset {
         format!("{:02x}", value)
     }
 
-    /// Two lowercase characters in the range a..z.
+    /// 1 or 2 digits with lowercase characters in the range a..z.
+    /// 
+    /// If the value is between `0..=25`, then it's yield 1 digit.
+    /// If the value is between `26..=255``, then it's yields 2 digits.
     fn symbol_name_lowercase_a_z(value: u8) -> String {
         let value0: u8 = value % 26;
         let value1: u8 = value / 26;
         let char0 = (b'a' + value0) as char;
         let char1 = (b'a' + value1) as char;
-        format!("{}{}", char1, char0)
+        if value1 == 0 {
+            format!("{}", char0)
+        } else {
+            format!("{}{}", char1, char0)
+        }
     }
 
-    /// Two uppercase characters in the range A..Z.
+    /// 1 or 2 digits with uppercase characters in the range A..Z.
+    /// 
+    /// If the value is between `0..=25`, then it's yield 1 digit.
+    /// If the value is between `26..=255``, then it's yields 2 digits.
     fn symbol_name_uppercase_a_z(value: u8) -> String {
         let value0: u8 = value % 26;
         let value1: u8 = value / 26;
         let char0 = (b'A' + value0) as char;
         let char1 = (b'A' + value1) as char;
-        format!("{}{}", char1, char0)
+        if value1 == 0 {
+            format!("{}", char0)
+        } else {
+            format!("{}{}", char1, char0)
+        }
     }
 
     /// 1 or 2 digits with special symbols.
@@ -521,10 +535,10 @@ mod tests {
 
     #[test]
     fn test_20002_symbol_name_lowercase_a_z() {
-        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(0), "aa");
-        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(9), "aj");
-        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(10), "ak");
-        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(25), "az");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(0), "a");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(9), "j");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(10), "k");
+        assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(25), "z");
         assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(26), "ba");
         assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(254), "ju");
         assert_eq!(GenerateDataset::symbol_name_lowercase_a_z(255), "jv");
@@ -532,10 +546,10 @@ mod tests {
 
     #[test]
     fn test_20003_symbol_name_uppercase_a_z() {
-        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(0), "AA");
-        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(9), "AJ");
-        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(10), "AK");
-        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(25), "AZ");
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(0), "A");
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(9), "J");
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(10), "K");
+        assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(25), "Z");
         assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(26), "BA");
         assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(254), "JU");
         assert_eq!(GenerateDataset::symbol_name_uppercase_a_z(255), "JV");
