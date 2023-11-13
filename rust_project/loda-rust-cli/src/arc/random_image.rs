@@ -1,4 +1,4 @@
-use super::{ImageSize, Image, ImageMask};
+use super::{ImageSize, Image, ImageMask, ImageTryCreate};
 use rand::Rng;
 use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
@@ -112,13 +112,24 @@ impl RandomImage {
         }
         Ok(image)
     }
+
+    /// Move pixels around. Preserving the histogram or the original image.
+    #[allow(dead_code)]
+    pub fn shuffle_pixels(rng: &mut StdRng, image: &Image) -> anyhow::Result<Image> {
+        if image.is_empty() {
+            return Err(anyhow::anyhow!("size is empty. Must be 1x1 or bigger."));
+        }
+        let mut pixels: Vec<u8> = image.pixels().clone();
+        pixels.shuffle(rng);
+        let result_image = Image::try_create(image.width(), image.height(), pixels)?;
+        Ok(result_image)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use rand::SeedableRng;
-    use crate::arc::ImageTryCreate;
 
     #[test]
     fn test_10000_one_dot() {
@@ -224,6 +235,27 @@ mod tests {
     fn test_40002_uniform_colors() {
         let actual: Image = RandomImage::uniform_colors(&mut StdRng::seed_from_u64(0), ImageSize::new(2, 4), 4, 6).expect("ok");
         let expected = Image::try_create(2, 4, vec![6, 6, 5, 6, 6, 4, 6, 5]).expect("ok");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_50000_shuffle_pixels() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+        ];
+        let input: Image = Image::try_create(4, 2, pixels).expect("image");
+
+        // Act
+        let actual: Image = RandomImage::shuffle_pixels(&mut StdRng::seed_from_u64(0), &input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            8, 2, 3, 1,
+            5, 4, 6, 7,
+        ];
+        let expected: Image = Image::try_create(4, 2, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
