@@ -175,6 +175,8 @@ impl GenerateDataset {
             let size0 = ImageSize::new(width0, height0);
             let size1 = ImageSize::new(width1, height1);
 
+            let mut min_color_value0: u8 = 0;
+            let mut min_color_value1: u8 = 0;
             let mut max_color_value0: u8 = rng.gen_range(2..=max_color_value);
             let mut max_color_value1: u8 = rng.gen_range(2..=max_color_value);
 
@@ -200,13 +202,27 @@ impl GenerateDataset {
                         max_color_value0 = max_color_value1 + 1;
                     }
                 },
+                4 => {
+                    // split the color space into 2 parts, so there is no overlap between colors in left image and right image
+                    if max_color_value1 > 4 {
+                        // HtmlLog::text("split");
+                        min_color_value0 = 0;
+                        max_color_value0 = max_color_value1 / 2;
+                        min_color_value1 = max_color_value1 / 2 + 1;
+                        max_color_value1 = max_color_value1;
+                        if min_color_value0 == max_color_value0 || min_color_value1 == max_color_value1 {
+                            error!("split. Identical colors");
+                            continue;
+                        }
+                    }
+                },
                 _ => {
                     // do nothing, use uniform colors for left image and right image
                 },
             }
 
-            let random_image_left: Image = RandomImage::uniform_colors(&mut rng, size0, 0, max_color_value0)?;
-            let random_image_right: Image = RandomImage::uniform_colors(&mut rng, size1, 0, max_color_value1)?;
+            let random_image_left: Image = RandomImage::uniform_colors(&mut rng, size0, min_color_value0, max_color_value0)?;
+            let random_image_right: Image = RandomImage::uniform_colors(&mut rng, size1, min_color_value1, max_color_value1)?;
 
             // Change color range from `0..color_count` to the shuffled colors
             let image_left: Image = random_image_left.replace_colors_with_hashmap(&shuffled_color_replacements)?;
@@ -317,8 +333,8 @@ impl GenerateDataset {
     }
 
     fn color_strategy_id(rng: &mut StdRng) -> usize {
-        let items: [usize; 4] = [0, 1, 2, 3];
-        let weights: [u8; 4] = [1, 1, 1, 1];
+        let items: [usize; 5] = [0, 1, 2, 3, 4];
+        let weights: [u8; 5] = [1, 1, 1, 1, 100];
         let dist = WeightedIndex::new(&weights).unwrap();
         items[dist.sample(rng)]
     }
