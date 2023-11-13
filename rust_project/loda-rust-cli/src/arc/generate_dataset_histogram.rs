@@ -1,5 +1,8 @@
 //! Generate a dataset with histogram comparisons and a summary.
 //! 
+//! This dataset is available here:
+//! https://huggingface.co/datasets/neoneye/histogram-comparisons-v1
+//! 
 //! The primary goal is to deal with different symbols systems, and still be able to predict correct histograms.
 //!
 //! The goal is not to mimic ARC's patterns. Maybe a secondary goal in the future, but for now it's not a goal.
@@ -806,16 +809,14 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    #[test]
+    // #[test]
     fn test_40000_generate() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histograms.jsonl");
         let mut generator = GenerateDataset::new();
-        let number_of_items: u32 = 100;
+        let number_of_items: u32 = 10000;
         generator.populate(Curriculum::Small, number_of_items, false).expect("ok");
         generator.populate(Curriculum::SmallMedium, number_of_items, false).expect("ok");
         generator.populate(Curriculum::SmallMediumBig, number_of_items, false).expect("ok");
-        // generator.populate(Curriculum::Small, number_of_items, true).expect("ok");
-        // generator.populate(Curriculum::SmallMediumBig, number_of_items, true).expect("ok");
         generator.shuffle();
         generator.save(&path).expect("ok");
     }
