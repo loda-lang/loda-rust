@@ -438,6 +438,17 @@ impl GenerateDataset {
         markdown.push_str("Histogram right: ");
         markdown.push_str(&Self::markdown_code(&body_histogram_right));
         markdown.push_str("\n\n");
+        if item.histogram_left.is_same_color_and_count(&item.histogram_right) {
+            markdown.push_str("Histogram left and right are identical\n\n");
+        } else {
+            if item.histogram_left.is_same_color_but_ignore_count(&item.histogram_right) {
+                markdown.push_str("Histogram left and right have same colors, but different counters\n\n");
+            } else {
+                if item.histogram_left.is_same_count_but_ignore_color(&item.histogram_right) {
+                    markdown.push_str("Histogram left and right have same counters, but different colors\n\n");
+                }
+            }
+        }
         markdown.push_str("Union left right: ");
         markdown.push_str(&Self::markdown_code(&body_union_left_right));
         markdown.push_str("\n\n");
