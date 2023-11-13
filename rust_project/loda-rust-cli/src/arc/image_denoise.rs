@@ -5,8 +5,6 @@ pub trait ImageDenoise {
     fn denoise_type2(&self, noise_color: u8) -> anyhow::Result<Image>;
     fn denoise_type3(&self, repair_iterations: u8) -> anyhow::Result<Image>;
     fn denoise_type4(&self, noise_color: u8, background_color: u8) -> anyhow::Result<Image>;
-
-    #[allow(dead_code)]
     fn denoise_type5(&self) -> anyhow::Result<Image>;
 }
 

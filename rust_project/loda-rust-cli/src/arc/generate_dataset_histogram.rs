@@ -16,7 +16,7 @@
 //! Non-ARC ideas:
 //! Variable number of colors, that exercises rarely used values in the color space a-z, where the values is towards `z`.
 //! Variable number of colors, that exercises rarely used values in the color space ascii symbols.
-use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor};
+use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise};
 use rand::prelude::Distribution;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
@@ -138,10 +138,10 @@ impl GenerateDataset {
 
         // The symbol names to pick from
         let symbols_to_use: Vec<u8> = match symbol_name_id {
-            1 => (0..=255).collect(), // 00-ff, 2 digits
-            2 => (0..=25).collect(), // a-z, only 1 digit
-            3 => (0..=25).collect(), // A-Z, only 1 digit
-            4 => (0..=15).collect(), // Special ascii, only 1 digit
+            1 => (0..=12).collect(), // 00-ff, 2 digits
+            2 => (0..=12).collect(), // a-z, only 1 digit
+            3 => (0..=12).collect(), // A-Z, only 1 digit
+            4 => (0..=12).collect(), // Special ascii, only 1 digit
             _ => (0..=9).collect(), // 0-9, only 1 digit
         };
         let mut shuffled_symbols_to_use: Vec<u8> = symbols_to_use.clone();
@@ -246,8 +246,13 @@ impl GenerateDataset {
                 },
             }
 
-            let random_image_left: Image = RandomImage::uniform_colors(&mut rng, size0, min_color_value0, max_color_value0)?;
-            let random_image_right: Image = RandomImage::uniform_colors(&mut rng, size1, min_color_value1, max_color_value1)?;
+            // All noise
+            let noise_image_left: Image = RandomImage::uniform_colors(&mut rng, size0, min_color_value0, max_color_value0)?;
+            let noise_image_right: Image = RandomImage::uniform_colors(&mut rng, size1, min_color_value1, max_color_value1)?;
+
+            // Denoised, and the images have some 2d structure, resembling ARC tasks
+            let random_image_left: Image = noise_image_left.denoise_type5()?;
+            let random_image_right: Image = noise_image_right.denoise_type5()?;
 
             // Change color range from `0..color_count` to the shuffled colors
             let image_left: Image = random_image_left.replace_colors_with_hashmap(&shuffled_color_replacements)?;
