@@ -27,6 +27,7 @@ use rand::distributions::WeightedIndex;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::io::Write;
+use std::path::Path;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -90,7 +91,7 @@ struct DatasetItem {
 }
 
 #[allow(dead_code)]
-struct GenerateDataset {
+pub struct GenerateDataset {
     dataset_items: Vec<DatasetItem>,
 }
 
@@ -108,6 +109,9 @@ impl GenerateDataset {
         for i in 0..number_of_items {
             if print_to_htmllog {
                 HtmlLog::text(format!("iteration: {}", i));
+            }
+            if i % 100000 == 0 {
+                println!("iteration: {} number_of_items: {} curriculum: {:?}", i, number_of_items, curriculum);
             }
             let random_seed: u64 = i as u64;
             let dataset_item: DatasetItem = Self::generate(curriculum, random_seed, print_to_htmllog)?;
@@ -293,7 +297,7 @@ impl GenerateDataset {
             let name: char = ('A' as u8 + item_index as u8) as char;
             markdown.push_str(&format!("## Comparison {}\n\n", name));
     
-            Self::markdown_for_comparison_item(&mut markdown, &item, &symbol_names, missing_symbol, randomize_newlines_in_images)?;
+            Self::markdown_for_comparison_item(&mut markdown, &item, &symbol_names, missing_symbol)?;
     
             markdown.push_str("\n\n");
         }
@@ -449,7 +453,7 @@ impl GenerateDataset {
         Ok(())
     }
 
-    fn markdown_for_comparison_item(markdown: &mut String, item: &ComparisionItem, symbol_names: &HashMap<u8, String>, missing_symbol: &str, randomize_newlines_in_images: bool) -> anyhow::Result<()> {
+    fn markdown_for_comparison_item(markdown: &mut String, item: &ComparisionItem, symbol_names: &HashMap<u8, String>, missing_symbol: &str) -> anyhow::Result<()> {
         let image_histogram_left: Image = item.histogram_left.color_image()?;
         let image_histogram_right: Image = item.histogram_right.color_image()?;
         let image_histogram_left_only: Image = item.histogram_left_only.color_image()?;
@@ -663,13 +667,25 @@ impl GenerateDataset {
     }
 
     #[allow(dead_code)]
-    fn save(&self, path: &std::path::Path) -> anyhow::Result<()> {
+    fn save(&self, path: &Path) -> anyhow::Result<()> {
         let s: String = Self::dataset_to_jsonl(&self.dataset_items)?;
         println!("dataset number of rows: {}", self.dataset_items.len());
         println!("dataset jsonl bytes: {}", s.len());
 
         let mut file = std::fs::File::create(path)?;
         file.write_all(s.as_bytes())?;
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub fn generate_fulldataset(path: &Path) -> anyhow::Result<()> {
+        let mut generator = GenerateDataset::new();
+        let number_of_items: u32 = 1000000;
+        generator.populate(Curriculum::Small, number_of_items, false)?;
+        generator.populate(Curriculum::SmallMedium, number_of_items, false)?;
+        generator.populate(Curriculum::SmallMediumBig, number_of_items, false)?;
+        generator.shuffle();
+        generator.save(&path)?;
         Ok(())
     }
 }

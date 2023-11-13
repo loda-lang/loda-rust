@@ -181,6 +181,7 @@ pub use diagonal_histogram::DiagonalHistogram;
 pub use experiment_with_convolution::ExperimentWithConvolution;
 pub use export_tasks::ExportTasks;
 pub use generate_pattern::GeneratePattern;
+pub use generate_dataset_histogram::GenerateDataset;
 pub use grid::{Grid, GridPattern};
 pub use grid_to_label::GridToLabel;
 pub use histogram::{Histogram, HistogramPair};
