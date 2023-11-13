@@ -5,6 +5,9 @@ pub trait ImageDenoise {
     fn denoise_type2(&self, noise_color: u8) -> anyhow::Result<Image>;
     fn denoise_type3(&self, repair_iterations: u8) -> anyhow::Result<Image>;
     fn denoise_type4(&self, noise_color: u8, background_color: u8) -> anyhow::Result<Image>;
+
+    #[allow(dead_code)]
+    fn denoise_type5(&self) -> anyhow::Result<Image>;
 }
 
 impl ImageDenoise for Image {
@@ -152,6 +155,26 @@ impl ImageDenoise for Image {
             Ok(color)
         })?;
         Ok(output)
+    }
+
+    fn denoise_type5(&self) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        let padding: Image = self.padding_with_color(1, 255)?;
+        let image: Image = convolution3x3(&padding, conv3x3_most_popular_ignore255)?;
+        Ok(image)
+    }
+}
+
+fn conv3x3_most_popular_ignore255(image: &Image) -> anyhow::Result<u8> {
+    let mut histogram: Histogram = image.histogram_all();
+    histogram.set_counter_to_zero(255);
+    if let Some(color) = histogram.most_popular_color() {
+        Ok(color)
+    } else {
+        let center: u8 = image.get(1, 1).unwrap_or(255);
+        Ok(center)
     }
 }
 
@@ -410,6 +433,31 @@ mod tests {
             0, 7, 7, 7, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(7, 6, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_50000_denoise_type5() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3, 4,
+            5, 5, 3, 3,
+            1, 5, 4, 3,
+            4, 1, 3, 5,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.denoise_type5().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 3, 3, 3,
+            5, 5, 3, 3,
+            5, 5, 3, 3,
+            1, 1, 3, 3,
+        ];
+        let expected: Image = Image::try_create(4, 4, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
