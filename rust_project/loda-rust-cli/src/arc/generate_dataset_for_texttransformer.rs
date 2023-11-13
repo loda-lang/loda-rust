@@ -98,6 +98,7 @@ impl GenerateRandomImage {
                 RandomImage::uniform_colors(
                     rng,
                     size, 
+                    0,
                     max_color,
                 )?
             },

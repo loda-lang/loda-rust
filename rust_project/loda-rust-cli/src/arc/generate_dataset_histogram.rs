@@ -205,8 +205,8 @@ impl GenerateDataset {
                 },
             }
 
-            let random_image_left: Image = RandomImage::uniform_colors(&mut rng, size0, max_color_value0)?;
-            let random_image_right: Image = RandomImage::uniform_colors(&mut rng, size1, max_color_value1)?;
+            let random_image_left: Image = RandomImage::uniform_colors(&mut rng, size0, 0, max_color_value0)?;
+            let random_image_right: Image = RandomImage::uniform_colors(&mut rng, size1, 0, max_color_value1)?;
 
             // Change color range from `0..color_count` to the shuffled colors
             let image_left: Image = random_image_left.replace_colors_with_hashmap(&shuffled_color_replacements)?;
