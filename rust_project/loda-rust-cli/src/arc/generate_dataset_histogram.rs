@@ -16,7 +16,7 @@
 //! Non-ARC ideas:
 //! Variable number of colors, that exercises rarely used values in the color space a-z, where the values is towards `z`.
 //! Variable number of colors, that exercises rarely used values in the color space ascii symbols.
-use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog};
+use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor};
 use rand::prelude::Distribution;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
@@ -136,23 +136,85 @@ impl GenerateDataset {
             _ => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
         };
 
+        // The symbol names to pick from
+        let symbols_to_use: Vec<u8> = match symbol_name_id {
+            1 => (0..=255).collect(), // 00-ff, 2 digits
+            2 => (0..=25).collect(), // a-z, only 1 digit
+            3 => (0..=25).collect(), // A-Z, only 1 digit
+            4 => (0..=15).collect(), // Special ascii, only 1 digit
+            _ => (0..=9).collect(), // 0-9, only 1 digit
+        };
+        let mut shuffled_symbols_to_use: Vec<u8> = symbols_to_use.clone();
+        shuffled_symbols_to_use.shuffle(&mut rng);
+
+        let max_color_value: u8 = (symbols_to_use.len().max(1) - 1).min(255) as u8;
+
+        let mut shuffled_color_replacements = HashMap::<u8, u8>::new();
+        for source_color in 0..=max_color_value {
+            let destination_color: u8 = shuffled_symbols_to_use[source_color as usize];
+            shuffled_color_replacements.insert(source_color, destination_color);
+        }
+
+        let overall_max_color_value0: u8 = rng.gen_range(2..=max_color_value);
+        let overall_max_color_value1: u8 = rng.gen_range(2..=max_color_value);
+
+        let use_overall_max_color_value: bool = rng.gen_bool(0.1); // 10% chance
+
         let randomize_newlines_in_images: bool = rng.gen_bool(0.5); // 50% chance
+
+        let color_strategy_id: usize = Self::color_strategy_id(&mut rng);
 
         let item_count: usize = Self::number_of_comparison_items_to_generate(&mut rng);
         let mut item_vec = Vec::<ComparisionItem>::new();
         for _ in 0..item_count {
+            // Size of the image
             let width0: u8 = *sizes.choose(&mut rng).unwrap();
             let height0: u8 = *sizes.choose(&mut rng).unwrap();
             let width1: u8 = *sizes.choose(&mut rng).unwrap();
             let height1: u8 = *sizes.choose(&mut rng).unwrap();
-
             let size0 = ImageSize::new(width0, height0);
             let size1 = ImageSize::new(width1, height1);
-            let image_left: Image = RandomImage::uniform_colors(&mut rng, size0, 9)?;
-            let image_right: Image = RandomImage::uniform_colors(&mut rng, size1, 9)?;
+
+            let mut max_color_value0: u8 = rng.gen_range(2..=max_color_value);
+            let mut max_color_value1: u8 = rng.gen_range(2..=max_color_value);
+
+            if use_overall_max_color_value {
+                max_color_value0 = overall_max_color_value0;
+                max_color_value1 = overall_max_color_value1;
+            }
+
+            match color_strategy_id {
+                1 => {
+                    // same number of colors for left image and right image
+                    max_color_value1 = max_color_value0;
+                },
+                2 => {
+                    // one more color for the right image
+                    if max_color_value0 < max_color_value {
+                        max_color_value1 = max_color_value0 + 1;
+                    }
+                },
+                3 => {
+                    // one more color for the left image
+                    if max_color_value1 < max_color_value {
+                        max_color_value0 = max_color_value1 + 1;
+                    }
+                },
+                _ => {
+                    // do nothing, use uniform colors for left image and right image
+                },
+            }
+
+            let random_image_left: Image = RandomImage::uniform_colors(&mut rng, size0, max_color_value0)?;
+            let random_image_right: Image = RandomImage::uniform_colors(&mut rng, size1, max_color_value1)?;
+
+            // Change color range from `0..color_count` to the shuffled colors
+            let image_left: Image = random_image_left.replace_colors_with_hashmap(&shuffled_color_replacements)?;
+            let image_right: Image = random_image_right.replace_colors_with_hashmap(&shuffled_color_replacements)?;
 
             if print_to_htmllog {
-                HtmlLog::compare_images(vec![image_left.clone(), image_right.clone()]);
+                HtmlLog::compare_images(vec![random_image_left.clone(), random_image_right.clone()]);
+                // HtmlLog::compare_images(vec![image_left.clone(), image_right.clone()]);
             }
     
             let item: ComparisionItem = ComparisionItem::create(&image_left, &image_right)?;
@@ -250,6 +312,13 @@ impl GenerateDataset {
         let items: [usize; 5] = [2, 3, 4, 5, 6];
         let weights: [u8; 5] = [1, 2, 2, 2, 2];
         // We don't want `2` to occur as often as the other values, so a lower weight is used.
+        let dist = WeightedIndex::new(&weights).unwrap();
+        items[dist.sample(rng)]
+    }
+
+    fn color_strategy_id(rng: &mut StdRng) -> usize {
+        let items: [usize; 4] = [0, 1, 2, 3];
+        let weights: [u8; 4] = [1, 1, 1, 1];
         let dist = WeightedIndex::new(&weights).unwrap();
         items[dist.sample(rng)]
     }
@@ -655,6 +724,7 @@ mod tests {
         // generator.populate(Curriculum::Small, number_of_items, false).expect("ok");
         // generator.populate(Curriculum::SmallMedium, number_of_items, false).expect("ok");
         // generator.populate(Curriculum::SmallMediumBig, number_of_items, false).expect("ok");
+        // generator.populate(Curriculum::Small, number_of_items, true).expect("ok");
         generator.populate(Curriculum::SmallMediumBig, number_of_items, true).expect("ok");
         generator.shuffle();
         generator.save(&path).expect("ok");
