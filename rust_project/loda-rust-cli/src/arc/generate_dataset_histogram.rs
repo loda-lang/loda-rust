@@ -161,6 +161,7 @@ impl GenerateDataset {
         let use_overall_max_color_value: bool = rng.gen_bool(0.2); // 20% chance
 
         let randomize_newlines_in_images: bool = rng.gen_bool(0.5); // 50% chance
+        let same_left_right_histograms_with_shuffled_pixels: bool = rng.gen_bool(0.05); // 5% chance
 
         let color_strategy_id: usize = Self::color_strategy_id(&mut rng);
 
@@ -251,8 +252,12 @@ impl GenerateDataset {
             let noise_image_right: Image = RandomImage::uniform_colors(&mut rng, size1, min_color_value1, max_color_value1)?;
 
             // Denoised, and the images have some 2d structure, resembling ARC tasks
-            let random_image_left: Image = noise_image_left.denoise_type5()?;
+            let mut random_image_left: Image = noise_image_left.denoise_type5()?;
             let random_image_right: Image = noise_image_right.denoise_type5()?;
+
+            if same_left_right_histograms_with_shuffled_pixels {
+                random_image_left = RandomImage::shuffle_pixels(&mut rng, &random_image_right)?;
+            }
 
             // Change color range from `0..color_count` to the shuffled colors
             let image_left: Image = random_image_left.replace_colors_with_hashmap(&shuffled_color_replacements)?;
