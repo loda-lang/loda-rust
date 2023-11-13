@@ -350,6 +350,17 @@ impl GenerateDataset {
             markdown.push_str("Intersection right histograms: ");
             markdown.push_str(&Self::markdown_code(&body_image_intersection_histogram_right));
             markdown.push_str("\n\n");
+            if intersection_histogram_left.is_same_color_and_count(&intersection_histogram_right) {
+                markdown.push_str("Intersection of left and right histograms are identical, same symbols and same counters.\n\n");
+            } else {
+                if intersection_histogram_left.is_same_color_but_ignore_count(&intersection_histogram_right) {
+                    markdown.push_str("Intersection of left and right histograms have same symbols, but different counters\n\n");
+                } else {
+                    if intersection_histogram_left.is_same_count_but_ignore_color(&intersection_histogram_right) {
+                        markdown.push_str("Intersection of left and right histograms have same counters, but different symbols\n\n");
+                    }
+                }
+            }    
             markdown.push_str("Intersection left-only histograms: ");
             markdown.push_str(&Self::markdown_code(&body_image_intersection_histogram_left_only));
             markdown.push_str("\n\n");
@@ -439,13 +450,13 @@ impl GenerateDataset {
         markdown.push_str(&Self::markdown_code(&body_histogram_right));
         markdown.push_str("\n\n");
         if item.histogram_left.is_same_color_and_count(&item.histogram_right) {
-            markdown.push_str("Histogram left and right are identical\n\n");
+            markdown.push_str("Histogram left and right are identical, same symbols and same counters.\n\n");
         } else {
             if item.histogram_left.is_same_color_but_ignore_count(&item.histogram_right) {
-                markdown.push_str("Histogram left and right have same colors, but different counters\n\n");
+                markdown.push_str("Histogram left and right have same symbols, but different counters\n\n");
             } else {
                 if item.histogram_left.is_same_count_but_ignore_color(&item.histogram_right) {
-                    markdown.push_str("Histogram left and right have same counters, but different colors\n\n");
+                    markdown.push_str("Histogram left and right have same counters, but different symbols\n\n");
                 }
             }
         }
