@@ -143,6 +143,9 @@ impl GenerateDataset {
             _ => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
         };
 
+        let is_symbol_name_special_ascii: bool = symbol_name_id == 4;
+        let (data_separator_column, data_separator_row) = Self::random_data_separator_column_and_row(&mut rng, is_symbol_name_special_ascii);
+
         // The symbol names to pick from
         let symbols_to_use: Vec<u8> = match symbol_name_id {
             1 => (0..=12).collect(), // 00-ff, 2 digits
@@ -171,9 +174,6 @@ impl GenerateDataset {
         let same_left_right_histograms_with_shuffled_pixels: bool = rng.gen_bool(0.05); // 5% chance
 
         let color_strategy_id: usize = Self::color_strategy_id(&mut rng);
-
-        let data_separator_column: &str = ",";
-        let data_separator_row: &str = "\n";
 
         let item_count: usize = Self::number_of_comparison_items_to_generate(&mut rng);
         let mut item_vec = Vec::<ComparisionItem>::new();
@@ -289,7 +289,7 @@ impl GenerateDataset {
             let name: char = ('A' as u8 + item_index as u8) as char;
             markdown.push_str(&format!("## Data {}\n\n", name));
     
-            Self::markdown_for_data_item(&mut rng, &mut markdown, &item, &symbol_names, missing_symbol, data_separator_column, data_separator_row, randomize_newlines_in_images)?;
+            Self::markdown_for_data_item(&mut rng, &mut markdown, &item, &symbol_names, missing_symbol, &data_separator_column, &data_separator_row, randomize_newlines_in_images)?;
     
             markdown.push_str("\n\n");
         }
@@ -425,9 +425,21 @@ impl GenerateDataset {
         items[dist.sample(rng)]
     }
 
-    fn random_data_separator_column_and_row(rng: &mut StdRng) -> (String, String) {
-        let separator_id: u8 = rng.gen_range(0..=5);
+    fn random_data_separator_column_and_row(rng: &mut StdRng, is_ascii_special: bool) -> (String, String) {
+        let separator_id: u8 = Self::id_data_separator_column_and_row(rng, is_ascii_special);
         Self::data_separator_column_and_row(separator_id)
+    }
+
+    fn id_data_separator_column_and_row(rng: &mut StdRng, is_ascii_special: bool) -> u8 {
+        let indexes: Vec<u8> = match is_ascii_special {
+            false => vec![0, 1, 2, 3, 4, 5],
+            true => {
+                // To prevent clashes when it's `symbol_name_special_ascii` then avoid using special characters for the separators.
+                vec![0, 1, 2, 3]
+            },
+        };
+        let separator_id: u8 = *indexes.choose(rng).unwrap();
+        separator_id
     }
 
     fn data_separator_column_and_row(separator_id: u8) -> (String, String) {
@@ -1049,7 +1061,35 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_data_separator_column_and_row() {
+    fn test_40000_id_data_separator_column_and_row_false() {
+        let mut min_value: u8 = 255;
+        let mut max_value: u8 = 0;
+        let mut rng = StdRng::seed_from_u64(0);
+        for _ in 0..20 {
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, false);
+            min_value = min_value.min(value);
+            max_value = max_value.max(value);
+        }
+        assert_eq!(min_value, 0);
+        assert_eq!(max_value, 5);
+    }
+
+    #[test]
+    fn test_40001_id_data_separator_column_and_row_true() {
+        let mut min_value: u8 = 255;
+        let mut max_value: u8 = 0;
+        let mut rng = StdRng::seed_from_u64(0);
+        for _ in 0..20 {
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, true);
+            min_value = min_value.min(value);
+            max_value = max_value.max(value);
+        }
+        assert_eq!(min_value, 0);
+        assert_eq!(max_value, 3);
+    }
+
+    #[test]
+    fn test_40002_data_separator_column_and_row() {
         {
             let (col, row) = GenerateDataset::data_separator_column_and_row(0);
             assert_eq!(col, ",");
