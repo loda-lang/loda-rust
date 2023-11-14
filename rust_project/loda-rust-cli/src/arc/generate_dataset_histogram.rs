@@ -441,8 +441,8 @@ impl GenerateDataset {
         let body_data_right: String;
         if randomize_newlines_in_images {
             // Insert newlines random places
-            body_data_left = Self::image_to_string_with_random_wrap(rng, &item.image_left, symbol_names, missing_symbol, separator_column);
-            body_data_right = Self::image_to_string_with_random_wrap(rng, &item.image_right, symbol_names, missing_symbol, separator_column);
+            body_data_left = Self::image_to_string_with_random_wrap(rng, &item.image_left, symbol_names, missing_symbol, separator_column, separator_row);
+            body_data_right = Self::image_to_string_with_random_wrap(rng, &item.image_right, symbol_names, missing_symbol, separator_column, separator_row);
         } else {
             // Insert newlines after each row
             body_data_left = Self::image_to_string(&item.image_left, symbol_names, missing_symbol, separator_column, separator_row);
@@ -625,7 +625,7 @@ impl GenerateDataset {
         s
     }
 
-    fn image_to_string_with_random_wrap(rng: &mut StdRng, image: &Image, symbol_names: &HashMap<u8, String>, missing_symbol: &str, separator_column: &str) -> String {
+    fn image_to_string_with_random_wrap(rng: &mut StdRng, image: &Image, symbol_names: &HashMap<u8, String>, missing_symbol: &str, separator_column: &str, separator_row: &str) -> String {
         let mut items = Vec::<String>::new();
         for y in 0..image.height() {
             for x in 0..image.width() {
@@ -653,7 +653,7 @@ impl GenerateDataset {
             if items.is_empty() {
                 break;
             }
-            s.push('\n');
+            s.push_str(separator_row);
         }
         s
     }
@@ -786,7 +786,8 @@ mod tests {
             &image, 
             &symbol_names, 
             "?",
-            ","
+            ",",
+            "\n",
         );
 
         // Assert
@@ -813,7 +814,8 @@ mod tests {
             &image, 
             &symbol_names, 
             "?",
-            "|"
+            "|",
+            "\n",
         );
 
         // Assert
