@@ -704,10 +704,9 @@ impl GenerateDataset {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use super::*;
     use crate::arc::ImageTryCreate;
+    use std::path::PathBuf;
 
     #[test]
     fn test_10000_image_to_string_separator_comma_newline() {
@@ -772,7 +771,69 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_image_to_string_with_random_wrap_separator_comma() {
+    fn test_10002_image_to_string_separator_none_space() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3,
+            0, 255, 0,
+            1, 2, 3,
+        ];
+        let image: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let mapping: HashMap<u8, String> = [
+            (0, String::from("a")),
+            (1, String::from("b")),
+            (2, String::from("c")),
+            (3, String::from("d")),
+        ].iter().cloned().collect();
+
+        // Act
+        let actual: String = GenerateDataset::image_to_string(
+            &image, 
+            &mapping, 
+            "?",
+            "",
+            " ",
+        );
+
+        // Assert
+        let expected = "bcd a?a bcd";
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10003_image_to_string_oneliner() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3,
+            0, 255, 0,
+            1, 2, 3,
+        ];
+        let image: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let mapping: HashMap<u8, String> = [
+            (0, String::from("a")),
+            (1, String::from("b")),
+            (2, String::from("c")),
+            (3, String::from("d")),
+        ].iter().cloned().collect();
+
+        // Act
+        let actual: String = GenerateDataset::image_to_string(
+            &image, 
+            &mapping, 
+            "?",
+            "",
+            "",
+        );
+
+        // Assert
+        let expected = "bcda?abcd";
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10004_image_to_string_with_random_wrap_separator_comma() {
         // Arrange
         let pixels: Vec<u8> = vec![
             255, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -800,7 +861,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_image_to_string_with_random_wrap_separator_pipe() {
+    fn test_10005_image_to_string_with_random_wrap_separator_pipe() {
         // Arrange
         let pixels: Vec<u8> = vec![
             255, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -824,6 +885,34 @@ mod tests {
 
         // Assert
         let expected = "255|2|3|4|5|6|7|8|9|1|2|3|4|5|6|7|8\n9|1|2|3|4\n5|6|7|8|9|1|2|3|4|5|6|7|8|254";
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10006_image_to_string_with_random_wrap_separator_none() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 0,
+        ];
+        let image: Image = Image::try_create(9, 4, pixels).expect("image");
+
+        let symbol_names: HashMap<u8, String> = GenerateDataset::generate_symbol_names_with_callback(GenerateDataset::symbol_name_0_255);
+
+        // Act
+        let actual: String = GenerateDataset::image_to_string_with_random_wrap(
+            &mut StdRng::seed_from_u64(0), 
+            &image, 
+            &symbol_names, 
+            "?",
+            "",
+            ",",
+        );
+
+        // Assert
+        let expected = "02345678912345678,91234,56789123456780";
         assert_eq!(actual, expected);
     }
 
