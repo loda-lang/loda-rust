@@ -29,6 +29,11 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::path::Path;
 
+const SYMBOL_NAME_LOWERCASE_HEX: usize = 1;
+const SYMBOL_NAME_LOWERCASE_AZ: usize = 2;
+const SYMBOL_NAME_UPPERCASE_AZ: usize = 3;
+const SYMBOL_NAME_SPECIAL_ASCII: usize = 4;
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Serialize)]
 enum Curriculum {
@@ -136,28 +141,44 @@ impl GenerateDataset {
         // Generate symbol names that fits with this curriculum
         let symbol_name_id: usize = Self::choose_symbol_name_id(&mut rng, curriculum);
         let symbol_names: HashMap<u8, String> = match symbol_name_id {
-            1 => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_hex),
-            2 => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_a_z),
-            3 => Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z),
-            4 => Self::generate_symbol_names_with_callback(Self::symbol_name_special_ascii),
+            SYMBOL_NAME_LOWERCASE_HEX => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_hex),
+            SYMBOL_NAME_LOWERCASE_AZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_a_z),
+            SYMBOL_NAME_UPPERCASE_AZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z),
+            SYMBOL_NAME_SPECIAL_ASCII => Self::generate_symbol_names_with_callback(Self::symbol_name_special_ascii),
             _ => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
         };
 
-        let is_symbol_name_special_ascii: bool = symbol_name_id == 4;
-        let (data_separator_column, data_separator_row) = Self::random_data_separator_column_and_row(&mut rng, is_symbol_name_special_ascii);
+        let is_symbol_name_special_ascii: bool = symbol_name_id == SYMBOL_NAME_SPECIAL_ASCII;
+        let (data_separator_column, data_separator_row) = Self::random_data_separator_column_and_row(&mut rng, symbol_name_id);
+
+        // println!("data_separator_column: {:?}", data_separator_column);
+        // println!("data_separator_row: {:?}", data_separator_row);
 
         // The symbol names to pick from
-        let symbols_to_use: Vec<u8> = match symbol_name_id {
-            1 => (0..=12).collect(), // 00-ff, 2 digits
-            2 => (0..=12).collect(), // a-z, only 1 digit
-            3 => (0..=12).collect(), // A-Z, only 1 digit
-            4 => (0..=12).collect(), // Special ascii, only 1 digit
+        let symbols_available: Vec<u8> = match symbol_name_id {
+            SYMBOL_NAME_LOWERCASE_HEX => (0..=255).collect(), // 00-ff, 2 digits
+            SYMBOL_NAME_LOWERCASE_AZ  => (0..=25).collect(), // a-z, only 1 digit
+            SYMBOL_NAME_UPPERCASE_AZ  => (0..=25).collect(), // A-Z, only 1 digit
+            SYMBOL_NAME_SPECIAL_ASCII => (0..=15).collect(), // Special ascii, only 1 digit
             _ => (0..=9).collect(), // 0-9, only 1 digit
         };
-        let mut shuffled_symbols_to_use: Vec<u8> = symbols_to_use.clone();
-        shuffled_symbols_to_use.shuffle(&mut rng);
+        let mut shuffled_symbols_available: Vec<u8> = symbols_available.clone();
+        shuffled_symbols_available.shuffle(&mut rng);
 
-        let max_color_value: u8 = (symbols_to_use.len().max(1) - 1).min(255) as u8;
+        // Taken N symbols from the symbols to use
+        let use_number_of_symbols: usize = match symbol_name_id {
+            SYMBOL_NAME_LOWERCASE_HEX => 14, // 00-ff, 2 digits
+            SYMBOL_NAME_LOWERCASE_AZ  => 12, // a-z, only 1 digit
+            SYMBOL_NAME_UPPERCASE_AZ  => 12, // A-Z, only 1 digit
+            SYMBOL_NAME_SPECIAL_ASCII => 12, // Special ascii, only 1 digit
+            _ => 10, // 0-9, only 1 digit
+        };
+
+        // Take N random symbols from the available symbols.
+        let mut shuffled_symbols_to_use: Vec<u8> = shuffled_symbols_available.clone();
+        shuffled_symbols_to_use.truncate(use_number_of_symbols);
+
+        let max_color_value: u8 = (shuffled_symbols_to_use.len().max(1) - 1).min(255) as u8;
 
         let mut shuffled_color_replacements = HashMap::<u8, u8>::new();
         for source_color in 0..=max_color_value {
@@ -170,7 +191,10 @@ impl GenerateDataset {
 
         let use_overall_max_color_value: bool = rng.gen_bool(0.2); // 20% chance
 
-        let randomize_newlines_in_images: bool = rng.gen_bool(0.5); // 50% chance
+        let mut randomize_newlines_in_images: bool = rng.gen_bool(0.5); // 50% chance
+        if is_symbol_name_special_ascii {
+            randomize_newlines_in_images = false;
+        }
         let same_left_right_histograms_with_shuffled_pixels: bool = rng.gen_bool(0.05); // 5% chance
 
         let color_strategy_id: usize = Self::color_strategy_id(&mut rng);
@@ -425,18 +449,22 @@ impl GenerateDataset {
         items[dist.sample(rng)]
     }
 
-    fn random_data_separator_column_and_row(rng: &mut StdRng, is_ascii_special: bool) -> (String, String) {
-        let separator_id: u8 = Self::id_data_separator_column_and_row(rng, is_ascii_special);
+    fn random_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: usize) -> (String, String) {
+        let separator_id: u8 = Self::id_data_separator_column_and_row(rng, symbol_name_id);
         Self::data_separator_column_and_row(separator_id)
     }
 
-    fn id_data_separator_column_and_row(rng: &mut StdRng, is_ascii_special: bool) -> u8 {
-        let indexes: Vec<u8> = match is_ascii_special {
-            false => vec![0, 1, 2, 3, 4, 5, 6, 7],
-            true => {
+    fn id_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: usize) -> u8 {
+        let indexes: Vec<u8> = match symbol_name_id {
+            SYMBOL_NAME_SPECIAL_ASCII => {
                 // To prevent clashes when it's `symbol_name_special_ascii` then avoid using special characters for the separators.
-                vec![0, 1, 2]
+                vec![0, 1, 2, 3, 4]
             },
+            SYMBOL_NAME_LOWERCASE_HEX => {
+                // To ensure there is a separator between the columns, then avoid the empty separator.
+                vec![0, 5, 6, 7, 8]
+            },
+            _ => vec![0, 1, 2, 3, 4, 5, 6, 7, 8],
         };
         let separator_id: u8 = *indexes.choose(rng).unwrap();
         separator_id
@@ -462,21 +490,26 @@ impl GenerateDataset {
                 separator_row = ",";
             },
             4 => {
+                // No separator between columns. Newline for separating rows.
+                separator_column = "";
+                separator_row = "\n";
+            },
+            5 => {
                 // Space separator between columns. Semicolon for separating rows.
                 separator_column = " ";
                 separator_row = ";";
             },
-            5 => {
+            6 => {
                 // Colon separator between columns. Newline for separating rows.
                 separator_column = ":";
                 separator_row = "\n";
             },
-            6 => {
+            7 => {
                 // Comma separator between columns. Newline for separating rows.
                 separator_column = ",";
                 separator_row = "\n";
             },
-            7 => {
+            8 => {
                 // Comma separator between columns. Comma newline for separating rows.
                 separator_column = ",";
                 separator_row = ",\n";
@@ -1071,31 +1104,51 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_id_data_separator_column_and_row_false() {
+    fn test_40000_id_data_separator_column_and_row_all() {
         let mut min_value: u8 = 255;
         let mut max_value: u8 = 0;
         let mut rng = StdRng::seed_from_u64(0);
         for _ in 0..20 {
-            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, false);
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, 0);
             min_value = min_value.min(value);
             max_value = max_value.max(value);
         }
         assert_eq!(min_value, 0);
-        assert_eq!(max_value, 7);
+        assert_eq!(max_value, 8);
     }
 
     #[test]
-    fn test_40001_id_data_separator_column_and_row_true() {
+    fn test_40001_id_data_separator_column_and_row_special_ascii() {
         let mut min_value: u8 = 255;
         let mut max_value: u8 = 0;
         let mut rng = StdRng::seed_from_u64(0);
         for _ in 0..20 {
-            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, true);
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SYMBOL_NAME_SPECIAL_ASCII);
             min_value = min_value.min(value);
             max_value = max_value.max(value);
         }
         assert_eq!(min_value, 0);
-        assert_eq!(max_value, 2);
+        assert_eq!(max_value, 4);
+    }
+
+    #[test]
+    fn test_40002_id_data_separator_column_and_row_lowercase_hex() {
+        let mut min_value: u8 = 255;
+        let mut max_value: u8 = 0;
+        let mut histogram = Histogram::new();
+        let mut rng = StdRng::seed_from_u64(0);
+        for _ in 0..20 {
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SYMBOL_NAME_LOWERCASE_HEX);
+            histogram.increment(value);
+            min_value = min_value.min(value);
+            max_value = max_value.max(value);
+        }
+        assert_eq!(min_value, 0);
+        assert_eq!(max_value, 8);
+        assert_eq!(histogram.get(1), 0);
+        assert_eq!(histogram.get(2), 0);
+        assert_eq!(histogram.get(3), 0);
+        assert_eq!(histogram.get(4), 0);
     }
 
     #[test]
@@ -1122,21 +1175,26 @@ mod tests {
         }
         {
             let (col, row) = GenerateDataset::data_separator_column_and_row(4);
+            assert_eq!(col, "");
+            assert_eq!(row, "\n");
+        }
+        {
+            let (col, row) = GenerateDataset::data_separator_column_and_row(5);
             assert_eq!(col, " ");
             assert_eq!(row, ";");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(5);
+            let (col, row) = GenerateDataset::data_separator_column_and_row(6);
             assert_eq!(col, ":");
             assert_eq!(row, "\n");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(6);
+            let (col, row) = GenerateDataset::data_separator_column_and_row(7);
             assert_eq!(col, ",");
             assert_eq!(row, "\n");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(7);
+            let (col, row) = GenerateDataset::data_separator_column_and_row(8);
             assert_eq!(col, ",");
             assert_eq!(row, ",\n");
         }
