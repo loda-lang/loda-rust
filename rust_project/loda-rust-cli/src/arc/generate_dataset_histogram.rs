@@ -425,6 +425,49 @@ impl GenerateDataset {
         items[dist.sample(rng)]
     }
 
+    fn random_data_separator_column_and_row(rng: &mut StdRng) -> (String, String) {
+        let separator_id: u8 = rng.gen_range(0..=5);
+        Self::data_separator_column_and_row(separator_id)
+    }
+
+    fn data_separator_column_and_row(separator_id: u8) -> (String, String) {
+        let separator_column: &str;
+        let separator_row: &str;
+        match separator_id {
+            1 => {
+                // No separators. It's a single line of pixels.
+                separator_column = "";
+                separator_row = "";
+            },
+            2 => {
+                // No separator between columns. Comma for separating rows.
+                separator_column = "";
+                separator_row = ",";
+            },
+            3 => {
+                // Space separator between columns. Semicolon for separating rows.
+                separator_column = " ";
+                separator_row = ";";
+            },
+            4 => {
+                // Colon separator between columns. Newline for separating rows.
+                separator_column = ":";
+                separator_row = "\n";
+            },
+            5 => {
+                // Comma separator between columns. Newline for separating rows.
+                separator_column = ",";
+                separator_row = "\n";
+            },
+            _ => {
+                // Comma separator between columns. Comma newline for separating rows.
+                separator_column = ",";
+                separator_row = ",\n";
+            },
+        }
+        (separator_column.to_string(), separator_row.to_string())
+    }
+
     fn choose_symbol_name_id(rng: &mut StdRng, curriculum: Curriculum) -> usize {
         let items: [usize; 5] = [0, 1, 2, 3, 4];
         let weights: [u8; 5] = match curriculum {
@@ -1003,6 +1046,40 @@ mod tests {
     fn test_30000_number_of_items_to_generate() {
         assert_eq!(GenerateDataset::number_of_comparison_items_to_generate(&mut StdRng::seed_from_u64(0)), 6);
         assert_eq!(GenerateDataset::number_of_comparison_items_to_generate(&mut StdRng::seed_from_u64(2)), 2);
+    }
+
+    #[test]
+    fn test_40000_data_separator_column_and_row() {
+        {
+            let (col, row) = GenerateDataset::data_separator_column_and_row(0);
+            assert_eq!(col, ",");
+            assert_eq!(row, ",\n");
+        }
+        {
+            let (col, row) = GenerateDataset::data_separator_column_and_row(1);
+            assert_eq!(col, "");
+            assert_eq!(row, "");
+        }
+        {
+            let (col, row) = GenerateDataset::data_separator_column_and_row(2);
+            assert_eq!(col, "");
+            assert_eq!(row, ",");
+        }
+        {
+            let (col, row) = GenerateDataset::data_separator_column_and_row(3);
+            assert_eq!(col, " ");
+            assert_eq!(row, ";");
+        }
+        {
+            let (col, row) = GenerateDataset::data_separator_column_and_row(4);
+            assert_eq!(col, ":");
+            assert_eq!(row, "\n");
+        }
+        {
+            let (col, row) = GenerateDataset::data_separator_column_and_row(5);
+            assert_eq!(col, ",");
+            assert_eq!(row, "\n");
+        }
     }
 
     #[allow(dead_code)]
