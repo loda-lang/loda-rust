@@ -639,21 +639,25 @@ impl GenerateDataset {
         }
         let mut s = String::new();
         for _ in 0..items.len() {
+            if !s.is_empty() {
+                s.push_str(separator_row);
+            }
             let count: usize = rng.gen_range(5..=20);
+            let mut s2 = String::new();
             for _ in 0..count {
                 if items.is_empty() {
                     break;
                 }
-                let item = items.remove(0);
-                s.push_str(&item);
-                if !items.is_empty() {
-                    s.push_str(separator_column);
+                if !s2.is_empty() {
+                    s2.push_str(separator_column);
                 }
+                let item = items.remove(0);
+                s2.push_str(&item);
             }
+            s.push_str(&s2);
             if items.is_empty() {
                 break;
             }
-            s.push_str(separator_row);
         }
         s
     }
@@ -787,7 +791,7 @@ mod tests {
             &symbol_names, 
             "?",
             ",",
-            "\n",
+            ",\n",
         );
 
         // Assert
@@ -819,7 +823,7 @@ mod tests {
         );
 
         // Assert
-        let expected = "255|2|3|4|5|6|7|8|9|1|2|3|4|5|6|7|8|\n9|1|2|3|4|\n5|6|7|8|9|1|2|3|4|5|6|7|8|254";
+        let expected = "255|2|3|4|5|6|7|8|9|1|2|3|4|5|6|7|8\n9|1|2|3|4\n5|6|7|8|9|1|2|3|4|5|6|7|8|254";
         assert_eq!(actual, expected);
     }
 
