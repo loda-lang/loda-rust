@@ -172,6 +172,8 @@ impl GenerateDataset {
 
         let color_strategy_id: usize = Self::color_strategy_id(&mut rng);
 
+        let data_separator_column: &str = ",";
+
         let item_count: usize = Self::number_of_comparison_items_to_generate(&mut rng);
         let mut item_vec = Vec::<ComparisionItem>::new();
         for _ in 0..item_count {
@@ -286,7 +288,7 @@ impl GenerateDataset {
             let name: char = ('A' as u8 + item_index as u8) as char;
             markdown.push_str(&format!("## Data {}\n\n", name));
     
-            Self::markdown_for_data_item(&mut rng, &mut markdown, &item, &symbol_names, missing_symbol, randomize_newlines_in_images)?;
+            Self::markdown_for_data_item(&mut rng, &mut markdown, &item, &symbol_names, missing_symbol, data_separator_column, randomize_newlines_in_images)?;
     
             markdown.push_str("\n\n");
         }
@@ -349,14 +351,15 @@ impl GenerateDataset {
             let image_intersection_histogram_right_only: Image = intersection_histogram_right_only.color_image()?;
             let image_intersection_all_histograms: Image = intersection_all_histograms.color_image()?;
     
-            let body_image_union_all_histograms: String = Self::image_to_string(&image_union_all_histograms, &symbol_names, missing_symbol);
-            let body_union_histogram_left: String = Self::image_to_string(&image_union_histogram_left, &symbol_names, missing_symbol);
-            let body_union_histogram_right: String = Self::image_to_string(&image_union_histogram_right, &symbol_names, missing_symbol);
-            let body_image_intersection_histogram_left: String = Self::image_to_string(&image_intersection_histogram_left, &symbol_names, missing_symbol);
-            let body_image_intersection_histogram_right: String = Self::image_to_string(&image_intersection_histogram_right, &symbol_names, missing_symbol);
-            let body_image_intersection_histogram_left_only: String = Self::image_to_string(&image_intersection_histogram_left_only, &symbol_names, missing_symbol);
-            let body_image_intersection_histogram_right_only: String = Self::image_to_string(&image_intersection_histogram_right_only, &symbol_names, missing_symbol);
-            let body_image_intersection_all_histograms: String = Self::image_to_string(&image_intersection_all_histograms, &symbol_names, missing_symbol);
+            let separator_column: &str = ",";
+            let body_image_union_all_histograms: String = Self::image_to_string(&image_union_all_histograms, &symbol_names, missing_symbol, separator_column);
+            let body_union_histogram_left: String = Self::image_to_string(&image_union_histogram_left, &symbol_names, missing_symbol, separator_column);
+            let body_union_histogram_right: String = Self::image_to_string(&image_union_histogram_right, &symbol_names, missing_symbol, separator_column);
+            let body_image_intersection_histogram_left: String = Self::image_to_string(&image_intersection_histogram_left, &symbol_names, missing_symbol, separator_column);
+            let body_image_intersection_histogram_right: String = Self::image_to_string(&image_intersection_histogram_right, &symbol_names, missing_symbol, separator_column);
+            let body_image_intersection_histogram_left_only: String = Self::image_to_string(&image_intersection_histogram_left_only, &symbol_names, missing_symbol, separator_column);
+            let body_image_intersection_histogram_right_only: String = Self::image_to_string(&image_intersection_histogram_right_only, &symbol_names, missing_symbol, separator_column);
+            let body_image_intersection_all_histograms: String = Self::image_to_string(&image_intersection_all_histograms, &symbol_names, missing_symbol, separator_column);
     
             markdown.push_str("Union all histograms: ");
             markdown.push_str(&Self::markdown_code(&body_image_union_all_histograms));
@@ -431,7 +434,7 @@ impl GenerateDataset {
         items[dist.sample(rng)]
     }
 
-    fn markdown_for_data_item(rng: &mut StdRng, markdown: &mut String, item: &ComparisionItem, symbol_names: &HashMap<u8, String>, missing_symbol: &str, randomize_newlines_in_images: bool) -> anyhow::Result<()> {
+    fn markdown_for_data_item(rng: &mut StdRng, markdown: &mut String, item: &ComparisionItem, symbol_names: &HashMap<u8, String>, missing_symbol: &str, separator_column: &str, randomize_newlines_in_images: bool) -> anyhow::Result<()> {
         let body_data_left: String;
         let body_data_right: String;
         if randomize_newlines_in_images {
@@ -440,8 +443,8 @@ impl GenerateDataset {
             body_data_right = Self::image_to_string_with_random_wrap(rng, &item.image_right, symbol_names, missing_symbol);
         } else {
             // Insert newlines after each row
-            body_data_left = Self::image_to_string(&item.image_left, symbol_names, missing_symbol);
-            body_data_right = Self::image_to_string(&item.image_right, symbol_names, missing_symbol);
+            body_data_left = Self::image_to_string(&item.image_left, symbol_names, missing_symbol, separator_column);
+            body_data_right = Self::image_to_string(&item.image_right, symbol_names, missing_symbol, separator_column);
         }
 
         markdown.push_str("### Data left\n\n");
@@ -454,6 +457,8 @@ impl GenerateDataset {
     }
 
     fn markdown_for_comparison_item(markdown: &mut String, item: &ComparisionItem, symbol_names: &HashMap<u8, String>, missing_symbol: &str) -> anyhow::Result<()> {
+        let separator_column: &str = ",";
+
         let image_histogram_left: Image = item.histogram_left.color_image()?;
         let image_histogram_right: Image = item.histogram_right.color_image()?;
         let image_histogram_left_only: Image = item.histogram_left_only.color_image()?;
@@ -461,12 +466,12 @@ impl GenerateDataset {
         let image_histogram_union: Image = item.histogram_union.color_image()?;
         let image_histogram_intersection: Image = item.histogram_intersection.color_image()?;
 
-        let body_union_left_right: String = Self::image_to_string(&image_histogram_union, symbol_names, missing_symbol);
-        let body_intersection_left_right: String = Self::image_to_string(&image_histogram_intersection, symbol_names, missing_symbol);
-        let body_only_left: String = Self::image_to_string(&image_histogram_left_only, symbol_names, missing_symbol);
-        let body_only_right: String = Self::image_to_string(&image_histogram_right_only, symbol_names, missing_symbol);
-        let body_histogram_left: String = Self::image_to_string(&image_histogram_left, symbol_names, missing_symbol);
-        let body_histogram_right: String = Self::image_to_string(&image_histogram_right, symbol_names, missing_symbol);
+        let body_union_left_right: String = Self::image_to_string(&image_histogram_union, symbol_names, missing_symbol, separator_column);
+        let body_intersection_left_right: String = Self::image_to_string(&image_histogram_intersection, symbol_names, missing_symbol, separator_column);
+        let body_only_left: String = Self::image_to_string(&image_histogram_left_only, symbol_names, missing_symbol, separator_column);
+        let body_only_right: String = Self::image_to_string(&image_histogram_right_only, symbol_names, missing_symbol, separator_column);
+        let body_histogram_left: String = Self::image_to_string(&image_histogram_left, symbol_names, missing_symbol, separator_column);
+        let body_histogram_right: String = Self::image_to_string(&image_histogram_right, symbol_names, missing_symbol, separator_column);
 
         markdown.push_str("Histogram left: ");
         markdown.push_str(&Self::markdown_code(&body_histogram_left));
@@ -596,7 +601,7 @@ impl GenerateDataset {
         format!("{}{}", char1, char0)
     }
 
-    fn image_to_string(image: &Image, symbol_names: &HashMap<u8, String>, missing_symbol: &str) -> String {
+    fn image_to_string(image: &Image, symbol_names: &HashMap<u8, String>, missing_symbol: &str, separator_column: &str) -> String {
         let mut s = String::new();
         for y in 0..image.height() {
             if y > 0 {
@@ -604,7 +609,7 @@ impl GenerateDataset {
             }
             for x in 0..image.width() {
                 if x > 0 {
-                    s.push(',');
+                    s.push_str(separator_column);
                 }
                 let color: u8 = image.get(x as i32, y as i32).unwrap_or(255);
                 if let Some(name) = symbol_names.get(&color) {
@@ -698,7 +703,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_image_to_string() {
+    fn test_10000_image_to_string_separator_comma() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2, 3,
@@ -715,7 +720,12 @@ mod tests {
         ].iter().cloned().collect();
 
         // Act
-        let actual: String = GenerateDataset::image_to_string(&image, &mapping, "?");
+        let actual: String = GenerateDataset::image_to_string(
+            &image, 
+            &mapping, 
+            "?",
+            ","
+        );
 
         // Assert
         let expected = "b1,c2,d3\na0,?,a0\nb1,c2,d3";
@@ -723,7 +733,37 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_image_to_string_with_random_wrap() {
+    fn test_10001_image_to_string_separator_pipe() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3,
+            0, 255, 0,
+            1, 2, 3,
+        ];
+        let image: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let mapping: HashMap<u8, String> = [
+            (0, String::from("a0")),
+            (1, String::from("b1")),
+            (2, String::from("c2")),
+            (3, String::from("d3")),
+        ].iter().cloned().collect();
+
+        // Act
+        let actual: String = GenerateDataset::image_to_string(
+            &image, 
+            &mapping, 
+            "?",
+            "|"
+        );
+
+        // Assert
+        let expected = "b1|c2|d3\na0|?|a0\nb1|c2|d3";
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10002_image_to_string_with_random_wrap() {
         // Arrange
         let pixels: Vec<u8> = vec![
             255, 2, 3, 4, 5, 6, 7, 8, 9,
