@@ -432,10 +432,10 @@ impl GenerateDataset {
 
     fn id_data_separator_column_and_row(rng: &mut StdRng, is_ascii_special: bool) -> u8 {
         let indexes: Vec<u8> = match is_ascii_special {
-            false => vec![0, 1, 2, 3, 4, 5],
+            false => vec![0, 1, 2, 3, 4, 5, 6, 7],
             true => {
                 // To prevent clashes when it's `symbol_name_special_ascii` then avoid using special characters for the separators.
-                vec![0, 1, 2, 3]
+                vec![0, 1, 2]
             },
         };
         let separator_id: u8 = *indexes.choose(rng).unwrap();
@@ -447,34 +447,44 @@ impl GenerateDataset {
         let separator_row: &str;
         match separator_id {
             1 => {
+                // No separator between columns. Space for separating rows.
+                separator_column = "";
+                separator_row = " ";
+            },
+            2 => {
                 // No separators. It's a single line of pixels.
                 separator_column = "";
                 separator_row = "";
             },
-            2 => {
+            3 => {
                 // No separator between columns. Comma for separating rows.
                 separator_column = "";
                 separator_row = ",";
             },
-            3 => {
+            4 => {
                 // Space separator between columns. Semicolon for separating rows.
                 separator_column = " ";
                 separator_row = ";";
             },
-            4 => {
+            5 => {
                 // Colon separator between columns. Newline for separating rows.
                 separator_column = ":";
                 separator_row = "\n";
             },
-            5 => {
+            6 => {
                 // Comma separator between columns. Newline for separating rows.
                 separator_column = ",";
                 separator_row = "\n";
             },
-            _ => {
+            7 => {
                 // Comma separator between columns. Comma newline for separating rows.
                 separator_column = ",";
                 separator_row = ",\n";
+            },
+            _ => {
+                // Space separator between columns. Newline for separating rows.
+                separator_column = " ";
+                separator_row = "\n";
             },
         }
         (separator_column.to_string(), separator_row.to_string())
@@ -1071,7 +1081,7 @@ mod tests {
             max_value = max_value.max(value);
         }
         assert_eq!(min_value, 0);
-        assert_eq!(max_value, 5);
+        assert_eq!(max_value, 7);
     }
 
     #[test]
@@ -1085,40 +1095,50 @@ mod tests {
             max_value = max_value.max(value);
         }
         assert_eq!(min_value, 0);
-        assert_eq!(max_value, 3);
+        assert_eq!(max_value, 2);
     }
 
     #[test]
     fn test_40002_data_separator_column_and_row() {
         {
             let (col, row) = GenerateDataset::data_separator_column_and_row(0);
-            assert_eq!(col, ",");
-            assert_eq!(row, ",\n");
+            assert_eq!(col, " ");
+            assert_eq!(row, "\n");
         }
         {
             let (col, row) = GenerateDataset::data_separator_column_and_row(1);
             assert_eq!(col, "");
-            assert_eq!(row, "");
+            assert_eq!(row, " ");
         }
         {
             let (col, row) = GenerateDataset::data_separator_column_and_row(2);
             assert_eq!(col, "");
-            assert_eq!(row, ",");
+            assert_eq!(row, "");
         }
         {
             let (col, row) = GenerateDataset::data_separator_column_and_row(3);
+            assert_eq!(col, "");
+            assert_eq!(row, ",");
+        }
+        {
+            let (col, row) = GenerateDataset::data_separator_column_and_row(4);
             assert_eq!(col, " ");
             assert_eq!(row, ";");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(4);
+            let (col, row) = GenerateDataset::data_separator_column_and_row(5);
             assert_eq!(col, ":");
             assert_eq!(row, "\n");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(5);
+            let (col, row) = GenerateDataset::data_separator_column_and_row(6);
             assert_eq!(col, ",");
             assert_eq!(row, "\n");
+        }
+        {
+            let (col, row) = GenerateDataset::data_separator_column_and_row(7);
+            assert_eq!(col, ",");
+            assert_eq!(row, ",\n");
         }
     }
 
