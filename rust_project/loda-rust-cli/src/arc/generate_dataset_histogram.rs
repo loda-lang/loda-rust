@@ -298,7 +298,7 @@ impl GenerateDataset {
 
         for (item_index, item) in item_vec.iter().enumerate() {
             let name: char = ('A' as u8 + item_index as u8) as char;
-            markdown.push_str(&format!("## Comparison {}\n\n", name));
+            markdown.push_str(&format!("## Compare {}\n\n", name));
     
             Self::markdown_for_comparison_item(&mut markdown, &item, &symbol_names, missing_symbol)?;
     
