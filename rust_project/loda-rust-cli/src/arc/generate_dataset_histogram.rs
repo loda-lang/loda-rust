@@ -439,8 +439,8 @@ impl GenerateDataset {
         let body_data_right: String;
         if randomize_newlines_in_images {
             // Insert newlines random places
-            body_data_left = Self::image_to_string_with_random_wrap(rng, &item.image_left, symbol_names, missing_symbol);
-            body_data_right = Self::image_to_string_with_random_wrap(rng, &item.image_right, symbol_names, missing_symbol);
+            body_data_left = Self::image_to_string_with_random_wrap(rng, &item.image_left, symbol_names, missing_symbol, separator_column);
+            body_data_right = Self::image_to_string_with_random_wrap(rng, &item.image_right, symbol_names, missing_symbol, separator_column);
         } else {
             // Insert newlines after each row
             body_data_left = Self::image_to_string(&item.image_left, symbol_names, missing_symbol, separator_column);
@@ -622,7 +622,7 @@ impl GenerateDataset {
         s
     }
 
-    fn image_to_string_with_random_wrap(rng: &mut StdRng, image: &Image, symbol_names: &HashMap<u8, String>, missing_symbol: &str) -> String {
+    fn image_to_string_with_random_wrap(rng: &mut StdRng, image: &Image, symbol_names: &HashMap<u8, String>, missing_symbol: &str, separator_column: &str) -> String {
         let mut items = Vec::<String>::new();
         for y in 0..image.height() {
             for x in 0..image.width() {
@@ -644,7 +644,7 @@ impl GenerateDataset {
                 let item = items.remove(0);
                 s.push_str(&item);
                 if !items.is_empty() {
-                    s.push(',');
+                    s.push_str(separator_column);
                 }
             }
             if items.is_empty() {
@@ -763,7 +763,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_image_to_string_with_random_wrap() {
+    fn test_10002_image_to_string_with_random_wrap_separator_comma() {
         // Arrange
         let pixels: Vec<u8> = vec![
             255, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -780,11 +780,39 @@ mod tests {
             &mut StdRng::seed_from_u64(0), 
             &image, 
             &symbol_names, 
-            "?"
+            "?",
+            ","
         );
 
         // Assert
         let expected = "255,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,\n9,1,2,3,4,\n5,6,7,8,9,1,2,3,4,5,6,7,8,254";
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10003_image_to_string_with_random_wrap_separator_pipe() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            255, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 254,
+        ];
+        let image: Image = Image::try_create(9, 4, pixels).expect("image");
+
+        let symbol_names: HashMap<u8, String> = GenerateDataset::generate_symbol_names_with_callback(GenerateDataset::symbol_name_0_255);
+
+        // Act
+        let actual: String = GenerateDataset::image_to_string_with_random_wrap(
+            &mut StdRng::seed_from_u64(0), 
+            &image, 
+            &symbol_names, 
+            "?",
+            "|"
+        );
+
+        // Assert
+        let expected = "255|2|3|4|5|6|7|8|9|1|2|3|4|5|6|7|8|\n9|1|2|3|4|\n5|6|7|8|9|1|2|3|4|5|6|7|8|254";
         assert_eq!(actual, expected);
     }
 
@@ -882,10 +910,10 @@ mod tests {
     fn test_40000_generate() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histograms.jsonl");
         let mut generator = GenerateDataset::new();
-        let number_of_items: u32 = 10000;
-        generator.populate(Curriculum::Small, number_of_items, false).expect("ok");
-        generator.populate(Curriculum::SmallMedium, number_of_items, false).expect("ok");
-        generator.populate(Curriculum::SmallMediumBig, number_of_items, false).expect("ok");
+        let number_of_items: u32 = 100;
+        // generator.populate(Curriculum::Small, number_of_items, false).expect("ok");
+        // generator.populate(Curriculum::SmallMedium, number_of_items, false).expect("ok");
+        generator.populate(Curriculum::SmallMediumBig, number_of_items, true).expect("ok");
         generator.shuffle();
         generator.save(&path).expect("ok");
     }
