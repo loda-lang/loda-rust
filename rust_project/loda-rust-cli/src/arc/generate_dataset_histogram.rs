@@ -3,6 +3,9 @@
 //! This dataset is available here:
 //! https://huggingface.co/datasets/neoneye/histogram-comparisons-v1
 //! 
+//! Given a prompt similar to ARC input/output raw pixel data.
+//! The response is histogram for every image, comparisons of input/output histograms, and a summary of the histograms.
+//! 
 //! The primary goal is to deal with different symbols systems, and still be able to predict correct histograms.
 //!
 //! The goal is not to mimic ARC's patterns. Maybe a secondary goal in the future, but for now it's not a goal.
@@ -15,10 +18,6 @@
 //! Images with the same foreground color, where the goal is to identify the shared foreground color.
 //! Splitview where the goal is to identify the separator color.
 //! Crop out an area from the input image, so that the output image is a subset of the input image.
-//! 
-//! Non-ARC ideas:
-//! Variable number of colors, that exercises rarely used values in the color space a-z, where the values is towards `z`.
-//! Variable number of colors, that exercises rarely used values in the color space ascii symbols.
 use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise};
 use rand::prelude::Distribution;
 use rand::seq::SliceRandom;
