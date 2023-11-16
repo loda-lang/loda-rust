@@ -1026,6 +1026,7 @@ impl SolveLogisticRegression {
         let enable_typo_for_center_row_right_columns: bool = [!has_different_size_for_input_output, false, false][v];
         let enable_denoise_type5_input: bool = [false, true, false][v];
         let enable_denoise_type5_output: bool = [false, false, false][v];
+        let enable_same_colors_for_area3x3_and_area5x5: bool = [false, false, false][v];
         let enable_area3x3_input_8bit_mask: bool = [false, false, false][v];
         let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
 
@@ -2464,6 +2465,13 @@ impl SolveLogisticRegression {
                     let area3x3: Image = input.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
+
+                    if enable_same_colors_for_area3x3_and_area5x5 {
+                        let h0: Histogram = area3x3.histogram_all();
+                        let h1: Histogram = area5x5.histogram_all();
+                        let same_colors: bool = h0.is_same_color_but_ignore_count(&h1);
+                        record.serialize_bool_onehot(same_colors);
+                    }
 
                     let area5x5_output: Image;
                     if let Some(image) = &earlier_prediction_image {
