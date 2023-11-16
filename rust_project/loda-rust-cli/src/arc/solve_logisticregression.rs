@@ -976,16 +976,16 @@ impl SolveLogisticRegression {
         let enable_noisecolor_in_outline: bool = [true, true, true][v];
         let enable_grid: bool = true;
 
-        let enable_enumerated_clusters_grow_mask3: bool = [false, false, false][v];
-        let enable_color_grow_mask1: bool = [false, false, false][v];
-        let enable_color_grow_mask2: bool = [false, false, false][v];
-        let enable_color_grow_mask3: bool = [false, false, false][v];
+        let enable_enumerated_clusters_grow_mask3: bool = [false, true, false][v];
+        let enable_color_grow_mask1: bool = [false, true, false][v];
+        let enable_color_grow_mask2: bool = [false, true, false][v];
+        let enable_color_grow_mask3: bool = [false, true, false][v];
 
         let enable_no_change_to_color: bool = true;
         let enable_no_change_to_center_color: bool = false;
         let enable_no_change_to_noise_color: bool = false;
         let enable_object_center_same_as_neighbour: bool = false;
-        let enable_edge: bool = [false, true, false][v];
+        let enable_edge: bool = [false, false, false][v];
 
         let enable_color_inside_bounding_box: bool = [true, true, true][v];
         let enable_object_id_image_connectivity4: bool = [false, false, false][v];
