@@ -86,7 +86,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 /// const PROCESS_TASK_VARIANTS: [u8; 3] = [0, 1, 2]; 
 /// 
 /// No need to run variant=1 nor variant=2, because they don't solve any of the hidden ARC tasks. Only variant=0 solves 2 of the hidden ARC tasks.
-const PROCESS_TASK_VARIANTS: [u8; 1] = [0, 1];
+const PROCESS_TASK_VARIANTS: [u8; 2] = [0, 1];
 
 /// The colors 0..9 with an extra `color 10` for the `outside` canvas area.
 #[allow(dead_code)]
