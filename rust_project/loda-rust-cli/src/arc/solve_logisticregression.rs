@@ -1026,6 +1026,8 @@ impl SolveLogisticRegression {
         let enable_typo_for_center_row_right_columns: bool = [!has_different_size_for_input_output, false, false][v];
         let enable_denoise_type5_input: bool = [false, true, false][v];
         let enable_denoise_type5_output: bool = [false, false, false][v];
+        let enable_area3x3_input_8bit_mask: bool = [false, false, false][v];
+        let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -2470,6 +2472,42 @@ impl SolveLogisticRegression {
                         area5x5_output = Image::empty();
                     }
                     let center_output: u8 = area5x5_output.get(2, 2).unwrap_or(255);
+
+                    if enable_area3x3_input_8bit_mask {
+                        let mut mask: u16 = 0;
+                        for yyy in 0..3 {
+                            for xxx in 0..3 {
+                                if xxx == 1 && yyy == 1 {
+                                    continue;
+                                }
+                                let color: u8 = area3x3.get(xxx, yyy).unwrap_or(255);
+                                mask = mask << 1;
+                                if color == center {
+                                    mask |= 1;
+                                }
+                                // record.serialize_bool(color == center);
+                            }
+                        }
+                        record.serialize_complex(mask, 256);
+                    }
+
+                    if enable_area3x3_output_8bit_mask {
+                        let mut mask: u16 = 0;
+                        for yyy in 0..3 {
+                            for xxx in 0..3 {
+                                if xxx == 1 && yyy == 1 {
+                                    continue;
+                                }
+                                let color: u8 = area5x5_output.get(xxx + 1, yyy + 1).unwrap_or(255);
+                                mask = mask << 1;
+                                if color == center {
+                                    mask |= 1;
+                                }
+                                // record.serialize_bool(color == center_output);
+                            }
+                        }
+                        record.serialize_complex(mask, 256);
+                    }
 
                     if enable_denoise_type5_input {
                         if let Some(image) = &denoise_type5_input_image {
