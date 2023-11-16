@@ -2434,19 +2434,6 @@ impl SolveLogisticRegression {
                         values: vec!(),
                     };
 
-                    if enable_denoise_type5_input {
-                        if let Some(image) = &denoise_type5_input_image {
-                            let color: u8 = image.get(xx, yy).unwrap_or(255);
-                            record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
-                        }
-                    }
-                    if enable_denoise_type5_output {
-                        if let Some(image) = &denoise_type5_output_image {
-                            let color: u8 = image.get(xx, yy).unwrap_or(255);
-                            record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
-                        }
-                    }
-
                     // {
                     //     let random_color: u8 = random_image.get(xx, yy).unwrap_or(255);
                     //     record.serialize_bool(random_color == 0);
@@ -2483,6 +2470,21 @@ impl SolveLogisticRegression {
                         area5x5_output = Image::empty();
                     }
                     let center_output: u8 = area5x5_output.get(2, 2).unwrap_or(255);
+
+                    if enable_denoise_type5_input {
+                        if let Some(image) = &denoise_type5_input_image {
+                            let color: u8 = image.get(xx, yy).unwrap_or(255);
+                            // record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
+                            // record.serialize_onehot_discard_overflow(color, 10);
+                            record.serialize_bool(color == center);
+                        }
+                    }
+                    if enable_denoise_type5_output {
+                        if let Some(image) = &denoise_type5_output_image {
+                            let color: u8 = image.get(xx, yy).unwrap_or(255);
+                            record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
+                        }
+                    }
 
                     if enable_scale_widthheight {
                         if let Some((scale_x, scale_y)) = context.scale_widthheight {
