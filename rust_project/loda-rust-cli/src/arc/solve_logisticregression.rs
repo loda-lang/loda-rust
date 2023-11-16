@@ -2477,12 +2477,16 @@ impl SolveLogisticRegression {
                             // record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
                             // record.serialize_onehot_discard_overflow(color, 10);
                             record.serialize_bool(color == center);
+                            // record.serialize_bool(color == center_output);
                         }
                     }
                     if enable_denoise_type5_output {
                         if let Some(image) = &denoise_type5_output_image {
                             let color: u8 = image.get(xx, yy).unwrap_or(255);
-                            record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
+                            // record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
+                            // record.serialize_onehot_discard_overflow(color, 10);
+                            // record.serialize_bool(color == center);
+                            record.serialize_bool(color == center_output);
                         }
                     }
 
