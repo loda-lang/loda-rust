@@ -1016,7 +1016,7 @@ impl SolveLogisticRegression {
         let enable_scale_widthheight: bool = has_different_size_for_input_output;
         let enable_check_pixel_in_histogram: bool = false;
         let enable_nearest_color: bool = false;
-        let enable_colordirection_to_distanceimage: bool = [false, false, true][v];
+        let enable_colordirection_to_distanceimage: bool = [false, true, true][v];
         let enable_neighbour_color: bool = false;
         let enable_adjacent_neighbour_same_as_center: bool = false;
         let enable_opposite_neighbour: bool = [false, false, true][v];
