@@ -942,8 +942,8 @@ impl SolveLogisticRegression {
         let enable_distance: bool = !has_different_size_for_input_output;
         let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
 
-        let enable_histogram_diagonal_a: bool = [false, false, false][v];
-        let enable_histogram_diagonal_b: bool = [false, false, false][v];
+        let enable_histogram_diagonal_a: bool = [false, true, false][v];
+        let enable_histogram_diagonal_b: bool = [false, true, false][v];
         let enable_histogram_diagonal_c: bool = [false, false, false][v];
         let enable_histogram_diagonal_d: bool = [false, false, false][v];
         let enable_histogram_diagonal_e: bool = false;
@@ -969,11 +969,11 @@ impl SolveLogisticRegression {
         let enable_mod3_reverse_input: bool = [false, false, true][v];
         let enable_mod3_reverse_output: bool = [false, false, false][v];
 
-        let enable_hole_type1: bool = true;
+        let enable_hole_type1: bool = [true, false, true][v];
         let enable_color_repair: bool = true;
         
         let enable_shape_transformation_images: bool = [false, false, false][v];
-        let enable_noisecolor_in_outline: bool = [true, true, true][v];
+        let enable_noisecolor_in_outline: bool = [true, false, true][v];
         let enable_grid: bool = true;
 
         let enable_enumerated_clusters_grow_mask3: bool = [false, true, false][v];
