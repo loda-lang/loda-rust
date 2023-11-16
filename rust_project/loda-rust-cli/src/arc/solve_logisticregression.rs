@@ -995,9 +995,9 @@ impl SolveLogisticRegression {
         let enable_trigram_count_word1_center: bool = false;
         let enable_trigram_count_word012_center: bool = false;
 
-        let enable_full_row_and_column: bool = [true, true, true][v];
-        let enable_full_row_xor_column: bool = [true, true, true][v];
-        let enable_full_row_or_column: bool = [true, true, true][v];
+        let enable_full_row_and_column: bool = [true, false, true][v];
+        let enable_full_row_xor_column: bool = [true, false, true][v];
+        let enable_full_row_or_column: bool = [true, false, true][v];
         let enable_full_row: bool = [false, false, false][v];
         let enable_full_column: bool = [false, false, false][v];
 
@@ -1006,9 +1006,9 @@ impl SolveLogisticRegression {
         let enable_corner_classification: bool = false;
 
         let enable_histogram_columns_rows_get_color: bool = [true, true, false][v];
-        let enable_histogram_columns_rows_lookaround: bool = [false, false, false][v];
+        let enable_histogram_columns_rows_lookaround: bool = [false, true, false][v];
 
-        let enable_exterior_of_clusters: bool = false;
+        let enable_exterior_of_clusters: bool = [false, true, false][v];
         let enable_largest_interior_rectangle_masks: bool = [false, false, false][v];
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
