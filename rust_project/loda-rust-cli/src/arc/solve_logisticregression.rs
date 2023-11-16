@@ -1029,6 +1029,7 @@ impl SolveLogisticRegression {
         let enable_same_colors_for_area3x3_and_area5x5: bool = [false, false, false][v];
         let enable_area3x3_input_8bit_mask: bool = [false, false, false][v];
         let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
+        let enable_gameoflife: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1223,6 +1224,22 @@ impl SolveLogisticRegression {
                 denoise_type5_output_image = Some(image);
             }
     
+            let mut gameoflife_images = HashMap::<u8, Image>::new();
+            if enable_gameoflife {
+                for color in 0..=9u8 {
+                    let mask: Image = input.to_mask_where_color_is(color);
+                    let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&mask, None);
+                    ca.step_once();
+                    gameoflife_images.insert(color, ca.image().clone());
+                }
+                // for color in 0..=9u8 {
+                    // let mask: Image = input.to_mask_where_color_is_different(color);
+                    // let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&mask, None);
+                    // // ca.step_once();
+                    // ca.step(2);
+                    // gameoflife_images.insert(color + 10, ca.image().clone());
+                // }
+            }
     
             let mut resized_input_image: Option<Image> = None;
             let mut repeated_input_image: Option<Image> = None;
@@ -2533,6 +2550,17 @@ impl SolveLogisticRegression {
                             // record.serialize_onehot_discard_overflow(color, 10);
                             // record.serialize_bool(color == center);
                             record.serialize_bool(color == center_output);
+                        }
+                    }
+
+                    if enable_gameoflife {
+                        for i in 0..10u8 {
+                            let mut color: u8 = 255;
+                            if let Some(image) = gameoflife_images.get(&i) {
+                                color = image.get(xx, yy).unwrap_or(255);
+                            }
+                            // record.serialize_bool_onehot(color > 0);
+                            record.serialize_bool(color > 0);
                         }
                     }
 
