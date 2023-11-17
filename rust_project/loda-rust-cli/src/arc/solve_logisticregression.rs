@@ -1030,9 +1030,10 @@ impl SolveLogisticRegression {
         let enable_area3x3_input_8bit_mask: bool = [false, false, false][v];
         let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
         let enable_gameoflife: bool = false;
+        let enable_nonbackground_different_than_most_popular_color: bool = false;
         let enable_shape3x3_input: bool = true;
         let enable_shape3x3_input_nonbackground: bool = false;
-        let enable_nonbackground_different_than_most_popular_color: bool = false;
+        let enable_shape3x3_output: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -5762,48 +5763,47 @@ impl SolveLogisticRegression {
                     //     record.serialize_bool_onehot(value);
                     // }
 
+                    if enable_shape3x3_output {
+                        if let Some(image) = &earlier_prediction_image {
+                            let earlier_prediction_area3x3: Image = image.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
+                            let mut the_shapeid: u8 = 255;
+                            let mut transform_mask: u8 = 0;
+                            match Shape3x3::instance().shapeid_and_transformations(&earlier_prediction_area3x3) {
+                                Ok((shapeid, transformations)) => {
+                                    the_shapeid = shapeid;
+                                    if transformations.contains(&ShapeTransformation::Normal) {
+                                        transform_mask |= 1;
+                                    }
+                                    if transformations.contains(&ShapeTransformation::RotateCw90) {
+                                        transform_mask |= 2;
+                                    }
+                                    if transformations.contains(&ShapeTransformation::RotateCw180) {
+                                        transform_mask |= 4;
+                                    }
+                                    if transformations.contains(&ShapeTransformation::RotateCw270) {
+                                        transform_mask |= 8;
+                                    }
+                                    if transformations.contains(&ShapeTransformation::FlipX) {
+                                        transform_mask |= 16;
+                                    }
+                                    if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                                        transform_mask |= 32;
+                                    }
+                                    if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                                        transform_mask |= 64;
+                                    }
+                                    if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                                        transform_mask |= 128;
+                                    }
+                                },
+                                Err(_) => {},
+                            }
+                            record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                            record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                        }        
+                    }
+
                     {
-
-                        // if let Some(image) = &earlier_prediction_image {
-                        //     let earlier_prediction_area3x3: Image = image.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
-                        //     {
-                        //         let mut the_shapeid: u8 = 255;
-                        //         let mut transform_mask: u8 = 0;
-                        //         match Shape3x3::instance().shapeid_and_transformations(&earlier_prediction_area3x3) {
-                        //             Ok((shapeid, transformations)) => {
-                        //                 the_shapeid = shapeid;
-                        //                 if transformations.contains(&ShapeTransformation::Normal) {
-                        //                     transform_mask |= 1;
-                        //                 }
-                        //                 if transformations.contains(&ShapeTransformation::RotateCw90) {
-                        //                     transform_mask |= 2;
-                        //                 }
-                        //                 if transformations.contains(&ShapeTransformation::RotateCw180) {
-                        //                     transform_mask |= 4;
-                        //                 }
-                        //                 if transformations.contains(&ShapeTransformation::RotateCw270) {
-                        //                     transform_mask |= 8;
-                        //                 }
-                        //                 if transformations.contains(&ShapeTransformation::FlipX) {
-                        //                     transform_mask |= 16;
-                        //                 }
-                        //                 if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
-                        //                     transform_mask |= 32;
-                        //                 }
-                        //                 if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
-                        //                     transform_mask |= 64;
-                        //                 }
-                        //                 if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
-                        //                     transform_mask |= 128;
-                        //                 }
-                        //             },
-                        //             Err(_) => {},
-                        //         }
-                        //         record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
-                        //         record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
-                        //     }        
-                        // }
-
                         if let Some(image) = &earlier_prediction_shapetype_connectivity4 {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(0);
                             record.serialize_onehot_discard_overflow(pixel, shape_type_count);
