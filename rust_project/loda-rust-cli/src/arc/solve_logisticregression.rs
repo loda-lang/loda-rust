@@ -1030,6 +1030,7 @@ impl SolveLogisticRegression {
         let enable_area3x3_input_8bit_mask: bool = [false, false, false][v];
         let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
         let enable_gameoflife: bool = false;
+        let enable_shape3x3_input: bool = true;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -5461,7 +5462,7 @@ impl SolveLogisticRegression {
 
                     // let center_shapeid: u8;
                     // let center_shapetransformations: u8;
-                    {
+                    if enable_shape3x3_input {
                         let mut the_shapeid: u8 = 255;
                         let mut transform_mask: u8 = 0;
                         match Shape3x3::instance().shapeid_and_transformations(&area3x3) {
