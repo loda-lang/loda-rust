@@ -408,16 +408,16 @@ impl SolveLogisticRegression {
         );
         
         let already_fully_solved_tasks_ids = [
-            "009d5c81", "00d62c1b", "00dbd492", "08ed6ac7", "0a2355a6", "0d3d703e", "140c817e", "178fcbfb", "1b2d62fb", "1c0d0a4b",
-            "2072aba6", "21f83797", "2281f1f4", "23581191", "253bf280", "25d8a9c8", "319f2597", "32597951", "332efdb3", "3618c87e",
-            "37d3e8b2", "4258a5f9", "44d8ac46", "45737921", "4612dd53", "50cb2852", "5168d44c", "516b51b7", "5289ad53", "543a7ed5",
-            "54d9e175", "5b526a93", "5b6cbef5", "639f5a19", "6455b5f5", "67385a82", "694f12f3", "69889d6e", "6c434453", "6d75e8bb",
-            "6ea4a07e", "6f8cd79b", "776ffc46", "810b9b61", "8a371977", "84f2aca1", "868de0fa", "90f3ed37", "95990924", "a5313dff",
-            "a61f2674", "a65b410d", "a699fb00", "a8d7556c", "a934301b", "a9f96cdd", "aa4ec2a5", "ae3edfdc", "ae58858e", "aedd82e4",
-            "b0c4d837", "b1948b0a", "b230c067", "b2862040", "b60334d2", "b6afb2da", "ba26e723", "bb43febb", "bbb1b8b6", "bdad9b1f",
-            "c0f76784", "c8f0f002", "ce039d91", "ce22a75a", "ce9e57f2", "d2abd087", "d364b489", "d37a1ef5", "d406998b", "d511f180",
-            "d5d6de2d", "dbc1a6ce", "dc433765", "de1cd16c", "ded97339", "e0fb7511", "e133d23d", "e8593010", "e872b94a", "e9c9d9a1",
-            "ef135b50", 
+            "009d5c81", "00d62c1b", "00dbd492", "08ed6ac7", "0a2355a6", "0ca9ddb6", "0d3d703e", "140c817e", "178fcbfb", "1b2d62fb",
+            "1c0d0a4b", "2072aba6", "21f83797", "2281f1f4", "23581191", "253bf280", "25d8a9c8", "2dee498d", "319f2597", "32597951",
+            "332efdb3", "3618c87e", "37d3e8b2", "4258a5f9", "44d8ac46", "45737921", "4612dd53", "50cb2852", "5168d44c", "516b51b7",
+            "5289ad53", "543a7ed5", "54d9e175", "5b526a93", "5b6cbef5", "639f5a19", "6455b5f5", "67385a82", "694f12f3", "69889d6e",
+            "6c434453", "6d75e8bb", "6ea4a07e", "6f8cd79b", "776ffc46", "810b9b61", "84f2aca1", "868de0fa", "8a371977", "90f3ed37",
+            "913fb3ed", "94f9d214", "95990924", "a5313dff", "a61f2674", "a65b410d", "a699fb00", "a8d7556c", "a934301b", "a9f96cdd",
+            "aa4ec2a5", "ae3edfdc", "ae58858e", "aedd82e4", "b0c4d837", "b1948b0a", "b230c067", "b2862040", "b60334d2", "b6afb2da",
+            "ba26e723", "bb43febb", "bbb1b8b6", "bdad9b1f", "c0f76784", "c8f0f002", "ce039d91", "ce22a75a", "ce9e57f2", "d2abd087",
+            "d364b489", "d37a1ef5", "d406998b", "d511f180", "d5d6de2d", "dbc1a6ce", "dc433765", "de1cd16c", "ded97339", "e0fb7511",
+            "e133d23d", "e7dd8335", "e8593010", "e872b94a", "e9c9d9a1", "ef135b50", "f45f5ca7",
         ];
         let ignore_task_id: HashSet<String> = already_fully_solved_tasks_ids.iter().map(|s| s.to_string()).collect();
         
