@@ -1053,6 +1053,7 @@ impl SolveLogisticRegression {
         let enable_histogram_column_row_count: bool = false;
         let enable_cluster_distance1_all_colors: bool = [false, true, false][v];
         let enable_cluster_distance2_all_colors: bool = [false, false, true][v];
+        let enable_min_inbetween_max_inside_shape_connectivity4: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -5324,38 +5325,40 @@ impl SolveLogisticRegression {
                     // }
 
                     // Extreme position inside shape, is it the min or the max or inbetween
-                    // {
-                    //     let mut shape_width: u8 = 0;
-                    //     let mut shape_height: u8 = 0;
-                    //     for (shape_size_image_index, shape_size_image) in shape_size_images_connectivity4.iter().enumerate() {
-                    //         let value: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
-                    //         if shape_size_image_index == 0 {
-                    //             shape_width = value;
-                    //         }
-                    //         if shape_size_image_index == 1 {
-                    //             shape_height = value;
-                    //         }
-                    //     }
-                    //     record.serialize_onehot_discard_overflow(shape_width, 30);
-                    //     record.serialize_onehot_discard_overflow(shape_height, 30);
-                    //     record.serialize_u8(shape_width);
-                    //     record.serialize_u8(shape_height);
-                    //
-                    //     for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity4.iter().enumerate() {
-                    //         let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
-                    //         let mut shape_size: u8 = 0;
-                    //         if relative_position_image_index == 0 {
-                    //             shape_size = shape_width;
-                    //         }
-                    //         if relative_position_image_index == 1 {
-                    //             shape_size = shape_height;
-                    //         }
-                    //         let is_min: bool = value == 0;
-                    //         let is_max: bool = value + 1 == shape_size;
-                    //         record.serialize_bool_onehot(is_min);
-                    //         record.serialize_bool_onehot(is_max);
-                    //     }
-                    // }
+                    if enable_min_inbetween_max_inside_shape_connectivity4 {
+                        let mut shape_width: u8 = 0;
+                        let mut shape_height: u8 = 0;
+                        for (shape_size_image_index, shape_size_image) in shape_size_images_connectivity4.iter().enumerate() {
+                            let value: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                            if shape_size_image_index == 0 {
+                                shape_width = value;
+                            }
+                            if shape_size_image_index == 1 {
+                                shape_height = value;
+                            }
+                        }
+                        // record.serialize_onehot_discard_overflow(shape_width, 30);
+                        // record.serialize_onehot_discard_overflow(shape_height, 30);
+                        // record.serialize_u8(shape_width);
+                        // record.serialize_u8(shape_height);
+                    
+                        for (relative_position_image_index, relative_position_image) in relative_position_images_connectivity4.iter().enumerate() {
+                            let value: u8 = relative_position_image.get(xx, yy).unwrap_or(255);
+                            let mut shape_size: u8 = 0;
+                            if relative_position_image_index == 0 {
+                                shape_size = shape_width;
+                            }
+                            if relative_position_image_index == 1 {
+                                shape_size = shape_height;
+                            }
+                            let is_min: bool = value == 0;
+                            let is_max: bool = value + 1 == shape_size;
+                            let is_between: bool = value > 0 && (value + 1) < shape_size;
+                            record.serialize_bool_onehot(is_min);
+                            record.serialize_bool_onehot(is_max);
+                            record.serialize_bool_onehot(is_between);
+                        }
+                    }
 
                     // Extreme position inside shape, is it the min or the max or inbetween
                     // {
