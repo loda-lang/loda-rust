@@ -1048,6 +1048,8 @@ impl SolveLogisticRegression {
         let enable_earlier_prediction_shapetype_connectivity8: bool = false;
         let enable_earlier_prediction_shapetype45_connectivity8: bool = false;
 
+        let enable_histogram_column_row_count: bool = false;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -4478,19 +4480,16 @@ impl SolveLogisticRegression {
                         }
                     }
 
-                    {
-                        // let count: u16 = histogram_columns[x as usize].number_of_counters_greater_than_zero();
-                        // record.serialize_bool_onehot(count > 0);
-                        // record.serialize_onehot(count.min(255) as u8, 3);
-                        // record.serialize_f64(count as f64);
-                        // record.serialize(histogram_columns.num, count)
-                    }
-                    {
-                        // let count: u16 = histogram_rows[y as usize].number_of_counters_greater_than_zero();
-                        // record.serialize_bool_onehot(count > 0);
-                        // record.serialize_onehot(count.min(255) as u8, 3);
-                        // record.serialize_f64(count as f64);
-                        // record.serialize(histogram_columns.num, count)
+                    if enable_histogram_column_row_count {
+                        let count_columns: u16 = histogram_columns[x as usize].number_of_counters_greater_than_zero();
+                        let count_rows: u16 = histogram_rows[y as usize].number_of_counters_greater_than_zero();
+                        let counters: [u16; 2] = [count_columns, count_rows];
+                        for count in counters {
+                            record.serialize_bool_onehot(count > 0);
+                            // record.serialize_onehot(count.min(255) as u8, 3);
+                            // record.serialize_f64(count as f64);
+                            // record.serialize(histogram_columns.num, count)
+                        }
                     }
 
                     if enable_histogram_diagonal {
