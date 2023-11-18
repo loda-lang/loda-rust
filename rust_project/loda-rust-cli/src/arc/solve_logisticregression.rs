@@ -2506,10 +2506,12 @@ impl SolveLogisticRegression {
                         for color in 0..=9 {
                             let count: u8 = *color_clustercount_connectivity4.get(&color).unwrap_or(&0);
                             record.serialize_u8(count);
+                            // record.serialize_u8(count.min(127) * 2);
                         }
                         for color in 0..=9 {
                             let count: u8 = *color_clustercount_connectivity8.get(&color).unwrap_or(&0);
                             record.serialize_u8(count);
+                            // record.serialize_u8(count.min(127) * 2);
                         }
                     }
 
