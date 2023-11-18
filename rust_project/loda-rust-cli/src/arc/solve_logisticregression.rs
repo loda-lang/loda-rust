@@ -969,7 +969,8 @@ impl SolveLogisticRegression {
         let enable_mod3_reverse_input: bool = [false, false, true][v];
         let enable_mod3_reverse_output: bool = [false, false, false][v];
 
-        let enable_hole_type1: bool = [true, false, true][v];
+        let enable_hole_type1_center: bool = [true, false, true][v];
+        let enable_hole_type1_all_colors: bool = false;
         let enable_color_repair: bool = true;
         
         let enable_shape_transformation_images: bool = [false, false, false][v];
@@ -4658,12 +4659,22 @@ impl SolveLogisticRegression {
                     }
 
 
-                    if enable_hole_type1 {
+                    if enable_hole_type1_center {
                         let mut color_hole_type1: u8 = 255;
                         if let Some(image) = color_to_hole_type1.get(&center) {
                             color_hole_type1 = image.get(xx, yy).unwrap_or(0);
                         }
                         record.serialize_color_complex(color_hole_type1, obfuscated_color_offset, enable_serialize_color_complex);
+                    }
+
+                    if enable_hole_type1_all_colors {
+                        for color in 0..=9u8 {
+                            let mut color_repair: u8 = 255;
+                            if let Some(image) = color_to_hole_type1.get(&color) {
+                                color_repair = image.get(xx, yy).unwrap_or(0);
+                            }
+                            record.serialize_color_complex(color_repair, obfuscated_color_offset, enable_serialize_color_complex);
+                        }
                     }
 
                     if enable_color_repair {
@@ -4674,14 +4685,6 @@ impl SolveLogisticRegression {
                         record.serialize_color_complex(color_repair, obfuscated_color_offset, enable_serialize_color_complex);
                         // record.serialize_onehot(color_repair, 10);
                     }
-
-                    // for color in 0..=9u8 {
-                    //     let mut color_repair: u8 = 255;
-                    //     if let Some(image) = color_to_hole_type1.get(&color) {
-                    //         color_repair = image.get(xx, yy).unwrap_or(0);
-                    //     }
-                    //     record.serialize_color_complex(color_repair, obfuscated_color_offset, enable_serialize_color_complex);
-                    // }
 
 
                     // color of the neighbour in all 8 directions
