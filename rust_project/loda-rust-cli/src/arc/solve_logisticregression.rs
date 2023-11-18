@@ -942,6 +942,7 @@ impl SolveLogisticRegression {
         let enable_is_outside: bool = has_different_size_for_input_output;
         let enable_distance: bool = !has_different_size_for_input_output;
         let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
+        let enable_diagonalhistogram: bool = false;
 
         let enable_histogram_diagonal_a: bool = [false, true, true][v];
         let enable_histogram_diagonal_b: bool = [false, true, true][v];
@@ -3067,29 +3068,32 @@ impl SolveLogisticRegression {
                             dh_output_area_bottomleft = Some(DiagonalHistogram::diagonal_b(&output_area_bottomleft)?);
                             dh_output_area_bottomright = Some(DiagonalHistogram::diagonal_a(&output_area_bottomright)?);
                         }
-                        // let diagonalhistograms = [
-                        //     &dh_input_area_topleft, &dh_input_area_topright, &dh_input_area_bottomleft, &dh_input_area_bottomright,
-                        //     &dh_output_area_topleft, &dh_output_area_topright, &dh_output_area_bottomleft, &dh_output_area_bottomright,
-                        // ];
-                        // for diagonalhistogram in diagonalhistograms {
-                        //     for color in 0..COUNT_COLORS_PLUS1 {
-                        //         let mut mass: u32 = 0;
-                        //         let mut unique_count: u16 = 0;
-                        //         let mut found_center: bool = false;
-                        //         if let Some(histogram) = diagonalhistogram.get(x as i32, y as i32) {
-                        //             mass = histogram.get(color);
-                        //             unique_count = histogram.number_of_counters_greater_than_zero();
-                        //             found_center = histogram.get(center) > 0;
-                        //         }
-                        //         record.serialize_bool(mass > 0);
-                        //         record.serialize_bool_onehot(mass > 0);
-                        //         let the_color: u8 = if mass > 0 { color } else { 255 };
-                        //         record.serialize_color_complex(the_color, obfuscated_color_offset, enable_serialize_color_complex);
-                        //         record.serialize_u8(mass.min(255) as u8);
-                        //         record.serialize_onehot(unique_count.min(255) as u8, COUNT_COLORS_PLUS1);
-                        //         record.serialize_bool(found_center);
-                        //     }
-                        // }
+
+                        if enable_diagonalhistogram {
+                            let diagonalhistograms = [
+                                &dh_input_area_topleft, &dh_input_area_topright, &dh_input_area_bottomleft, &dh_input_area_bottomright,
+                                // &dh_output_area_topleft, &dh_output_area_topright, &dh_output_area_bottomleft, &dh_output_area_bottomright,
+                            ];
+                            for diagonalhistogram in diagonalhistograms {
+                                for color in 0..COUNT_COLORS_PLUS1 {
+                                    let mut mass: u32 = 0;
+                                    let mut unique_count: u16 = 0;
+                                    let mut found_center: bool = false;
+                                    if let Some(histogram) = diagonalhistogram.get(x as i32, y as i32) {
+                                        mass = histogram.get(color);
+                                        unique_count = histogram.number_of_counters_greater_than_zero();
+                                        found_center = histogram.get(center) > 0;
+                                    }
+                                    record.serialize_bool(mass > 0);
+                                    record.serialize_bool_onehot(mass > 0);
+                                    let the_color: u8 = if mass > 0 { color } else { 255 };
+                                    record.serialize_color_complex(the_color, obfuscated_color_offset, enable_serialize_color_complex);
+                                    record.serialize_u8(mass.min(255) as u8);
+                                    record.serialize_onehot(unique_count.min(255) as u8, COUNT_COLORS_PLUS1);
+                                    record.serialize_bool(found_center);
+                                }
+                            }
+                        }
 
                         let mut dh_opposites = Vec::<(&DiagonalHistogram, &DiagonalHistogram)>::new();
                         dh_opposites.push((&dh_input_area_topleft, &dh_input_area_bottomright));
