@@ -1035,6 +1035,17 @@ impl SolveLogisticRegression {
         let enable_shape3x3_input_nonbackground: bool = false;
         let enable_shape3x3_output: bool = false;
 
+        let enable_shape_type_image_connectivity4: bool = true;
+        let enable_shape_type_image_connectivity8: bool = true;
+        let enable_shape_type45_image_connectivity4: bool = true;
+        let enable_shape_type45_image_connectivity8: bool = true;
+        let enable_shape_orientation_connectivity4: bool = true;
+        let enable_shape_orientation_connectivity8: bool = true;
+        let enable_shape_size_connectivity4: bool = true;
+        let enable_shape_size_connectivity8: bool = true;
+        let enable_earlier_prediction_shapetype_connectivity4: bool = true;
+        let enable_earlier_prediction_shapetype45_connectivity4: bool = true;
+
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
         //     match label {
@@ -5662,19 +5673,19 @@ impl SolveLogisticRegression {
                     //     let pixel: u8 = non_background_shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
                     //     record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     // }
-                    {
+                    if enable_shape_type_image_connectivity4 {
                         let pixel: u8 = shape_type_image_connectivity4.get(xx, yy).unwrap_or(255);
                         record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
-                    {
+                    if enable_shape_type_image_connectivity8 {
                         let pixel: u8 = shape_type_image_connectivity8.get(xx, yy).unwrap_or(255);
                         record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
-                    {
+                    if enable_shape_type45_image_connectivity4 {
                         let pixel: u8 = shape_type45_image_connectivity4.get(xx, yy).unwrap_or(255);
                         record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
-                    {
+                    if enable_shape_type45_image_connectivity8 {
                         let pixel: u8 = shape_type45_image_connectivity8.get(xx, yy).unwrap_or(255);
                         record.serialize_onehot_discard_overflow(pixel, shape_type_count);
                     }
@@ -5692,7 +5703,7 @@ impl SolveLogisticRegression {
                     }
 
                     // Shape orientation: landscape, portrait, square
-                    {
+                    if enable_shape_orientation_connectivity4 {
                         let mut shape_width: u8 = 0;
                         let mut shape_height: u8 = 0;
                         for (shape_size_image_index, shape_size_image) in shape_size_images_connectivity4.iter().enumerate() {
@@ -5718,7 +5729,7 @@ impl SolveLogisticRegression {
                     }
 
                     // Shape orientation: landscape, portrait, square
-                    {
+                    if enable_shape_orientation_connectivity8 {
                         let mut shape_width: u8 = 0;
                         let mut shape_height: u8 = 0;
                         for (shape_size_image_index, shape_size_image) in shape_size_images_connectivity8.iter().enumerate() {
@@ -5743,15 +5754,19 @@ impl SolveLogisticRegression {
                         record.serialize_ternary(shape_orientation);
                     }
 
-                    for shape_size_image in &shape_size_images_connectivity4 {
-                        let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
-                        // record.serialize_u8(pixel);
-                        record.serialize_onehot(pixel, 30);
+                    if enable_shape_size_connectivity4 {
+                        for shape_size_image in &shape_size_images_connectivity4 {
+                            let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                            // record.serialize_u8(pixel);
+                            record.serialize_onehot(pixel, 30);
+                        }
                     }
-                    for shape_size_image in &shape_size_images_connectivity8 {
-                        let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
-                        // record.serialize_u8(pixel);
-                        record.serialize_onehot(pixel, 30);
+                    if enable_shape_size_connectivity8 {
+                        for shape_size_image in &shape_size_images_connectivity8 {
+                            let pixel: u8 = shape_size_image.get(xx, yy).unwrap_or(255);
+                            // record.serialize_u8(pixel);
+                            record.serialize_onehot(pixel, 30);
+                        }
                     }
 
                     // if let Some(image) = earlier_prediction_image {
@@ -5804,14 +5819,18 @@ impl SolveLogisticRegression {
                     }
 
                     {
-                        if let Some(image) = &earlier_prediction_shapetype_connectivity4 {
-                            let pixel: u8 = image.get(xx, yy).unwrap_or(0);
-                            record.serialize_onehot_discard_overflow(pixel, shape_type_count);
+                        if enable_earlier_prediction_shapetype_connectivity4 {
+                            if let Some(image) = &earlier_prediction_shapetype_connectivity4 {
+                                let pixel: u8 = image.get(xx, yy).unwrap_or(0);
+                                record.serialize_onehot_discard_overflow(pixel, shape_type_count);
+                            }
                         }
 
-                        if let Some(image) = &earlier_prediction_shapetype45_connectivity4 {
-                            let pixel: u8 = image.get(xx, yy).unwrap_or(0);
-                            record.serialize_onehot_discard_overflow(pixel, shape_type_count);
+                        if enable_earlier_prediction_shapetype45_connectivity4 {
+                            if let Some(image) = &earlier_prediction_shapetype45_connectivity4 {
+                                let pixel: u8 = image.get(xx, yy).unwrap_or(0);
+                                record.serialize_onehot_discard_overflow(pixel, shape_type_count);
+                            }
                         }
 
                         // if let Some(image) = &earlier_prediction_shapetype_connectivity8 {
