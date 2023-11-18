@@ -1050,6 +1050,7 @@ impl SolveLogisticRegression {
         let enable_earlier_prediction_shapetype45_connectivity8: bool = false;
 
         let enable_histogram_column_row_count: bool = false;
+        let enable_cluster_distance1_all_colors: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -4878,22 +4879,23 @@ impl SolveLogisticRegression {
                         //         record.serialize_bool(mask_value > 0);
                         //     }
                         // }
-                        for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
-                                #[allow(unused_variables)]
-                                let distance: u8 = match cluster_distance1.get(&(color, *connectivity)) {
-                                    Some(value) => {
-                                        value.get(xx, yy).unwrap_or(255)
-                                    }
-                                    None => 255
-                                };
-                                // record.serialize_u8(distance);
-                                // record.serialize_onehot(distance, 2);
-                                // record.serialize_onehot(distance, 3);
-                                // record.serialize_onehot(distance, 4);
-                                // record.serialize_onehot(distance, 5);
-                                // record.serialize_onehot(distance, 6);
-                                // record.serialize_onehot(distance, 8);
+                        if enable_cluster_distance1_all_colors {
+                            for connectivity in &connectivity_vec {
+                                for color in 0..=9 {
+                                    let distance: u8 = match cluster_distance1.get(&(color, *connectivity)) {
+                                        Some(value) => {
+                                            value.get(xx, yy).unwrap_or(255)
+                                        }
+                                        None => 255
+                                    };
+                                    record.serialize_u8(distance);
+                                    // record.serialize_onehot(distance, 2);
+                                    // record.serialize_onehot(distance, 3);
+                                    // record.serialize_onehot(distance, 4);
+                                    // record.serialize_onehot(distance, 5);
+                                    // record.serialize_onehot(distance, 6);
+                                    // record.serialize_onehot(distance, 8);
+                                }
                             }
                         }
                         for connectivity in &connectivity_vec {
