@@ -415,9 +415,9 @@ impl SolveLogisticRegression {
             "6c434453", "6d75e8bb", "6ea4a07e", "6f8cd79b", "776ffc46", "810b9b61", "84f2aca1", "868de0fa", "8a371977", "90f3ed37",
             "913fb3ed", "a2fd1cf0", "94f9d214", "95990924", "a5313dff", "a61f2674", "a65b410d", "a699fb00", "a8d7556c", "a934301b",
             "a9f96cdd", "aa4ec2a5", "ae3edfdc", "ae58858e", "aedd82e4", "b0c4d837", "b1948b0a", "b230c067", "b2862040", "b60334d2",
-            "b6afb2da", "ba26e723", "bb43febb", "bbb1b8b6", "bdad9b1f", "c0f76784", "c8f0f002", "ce039d91", "ce22a75a", "ce9e57f2",
-            "d2abd087", "d364b489", "d37a1ef5", "d406998b", "d511f180", "d5d6de2d", "dbc1a6ce", "dc433765", "de1cd16c", "ded97339",
-            "e0fb7511", "e133d23d", "e7dd8335", "e8593010", "e872b94a", "e9c9d9a1", "ef135b50", "f45f5ca7",
+            "b6afb2da", "ba26e723", "bb43febb", "bbb1b8b6", "bbc9ae5d", "bdad9b1f", "c0f76784", "c8f0f002", "ce039d91", "ce22a75a",
+            "ce9e57f2", "d2abd087", "d364b489", "d37a1ef5", "d406998b", "d511f180", "d5d6de2d", "dbc1a6ce", "dc433765", "de1cd16c",
+            "ded97339", "e0fb7511", "e133d23d", "e7dd8335", "e8593010", "e872b94a", "e9c9d9a1", "ef135b50", "f45f5ca7",
         ];
         let ignore_task_id: HashSet<String> = already_fully_solved_tasks_ids.iter().map(|s| s.to_string()).collect();
         
@@ -1051,6 +1051,7 @@ impl SolveLogisticRegression {
 
         let enable_histogram_column_row_count: bool = false;
         let enable_cluster_distance1_all_colors: bool = [false, true, false][v];
+        let enable_cluster_distance2_all_colors: bool = [false, false, true][v];
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -4898,22 +4899,23 @@ impl SolveLogisticRegression {
                                 }
                             }
                         }
-                        for connectivity in &connectivity_vec {
-                            for color in 0..=9 {
-                                #[allow(unused_variables)]
-                                let distance: u8 = match cluster_distance2.get(&(color, *connectivity)) {
-                                    Some(value) => {
-                                        value.get(xx, yy).unwrap_or(255)
-                                    }
-                                    None => 255
-                                };
-                                // record.serialize_u8(distance);
-                                // record.serialize_onehot(distance, 2);
-                                // record.serialize_onehot(distance, 3);
-                                // record.serialize_onehot(distance, 4);
-                                // record.serialize_onehot(distance, 5);
-                                // record.serialize_onehot(distance, 6);
-                                // record.serialize_onehot(distance, 8);
+                        if enable_cluster_distance2_all_colors {
+                            for connectivity in &connectivity_vec {
+                                for color in 0..=9 {
+                                    let distance: u8 = match cluster_distance2.get(&(color, *connectivity)) {
+                                        Some(value) => {
+                                            value.get(xx, yy).unwrap_or(255)
+                                        }
+                                        None => 255
+                                    };
+                                    record.serialize_u8(distance);
+                                    // record.serialize_onehot(distance, 2);
+                                    // record.serialize_onehot(distance, 3);
+                                    // record.serialize_onehot(distance, 4);
+                                    // record.serialize_onehot(distance, 5);
+                                    // record.serialize_onehot(distance, 6);
+                                    // record.serialize_onehot(distance, 8);
+                                }
                             }
                         }
 
