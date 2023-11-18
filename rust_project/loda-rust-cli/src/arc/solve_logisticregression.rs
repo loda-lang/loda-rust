@@ -1054,6 +1054,8 @@ impl SolveLogisticRegression {
         let enable_cluster_distance1_all_colors: bool = [false, true, false][v];
         let enable_cluster_distance2_all_colors: bool = [false, false, true][v];
         let enable_min_inbetween_max_inside_shape_connectivity4: bool = false;
+        let enable_earlier_prediction_mass_connectivity4: bool = false;
+        let enable_earlier_prediction_mass_connectivity8: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -5870,24 +5872,27 @@ impl SolveLogisticRegression {
                         }
                     }
 
+                    if enable_earlier_prediction_mass_connectivity4 {
+                        if let Some(image) = &earlier_prediction_mass_connectivity4 {
+                            let mass: u8 = image.get(xx, yy).unwrap_or(0);
+                            record.serialize_color_complex(mass, obfuscated_color_offset, enable_serialize_color_complex);
+                            record.serialize_u8(mass);
+                            record.serialize_onehot_discard_overflow(mass, 5);
+                            record.serialize_onehot_discard_overflow(mass, 40);
+                        }
+                    }
+
+                    if enable_earlier_prediction_mass_connectivity8 {
+                        if let Some(image) = &earlier_prediction_mass_connectivity8 {
+                            let mass: u8 = image.get(xx, yy).unwrap_or(0);
+                            record.serialize_color_complex(mass, obfuscated_color_offset, enable_serialize_color_complex);
+                            record.serialize_u8(mass);
+                            record.serialize_onehot_discard_overflow(mass, 5);
+                            record.serialize_onehot_discard_overflow(mass, 40);
+                        }
+                    }
+
                     {
-
-                        // if let Some(image) = &earlier_prediction_mass_connectivity4 {
-                        //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
-                        //     record.serialize_color_complex(mass, obfuscated_color_offset, enable_serialize_color_complex);
-                        //     record.serialize_u8(mass);
-                        //     record.serialize_onehot_discard_overflow(mass, 5);
-                        //     record.serialize_onehot_discard_overflow(mass, 40);
-                        // }
-
-                        // if let Some(image) = &earlier_prediction_mass_connectivity8 {
-                        //     let mass: u8 = image.get(xx, yy).unwrap_or(0);
-                        //     record.serialize_color_complex(mass, obfuscated_color_offset, enable_serialize_color_complex);
-                        //     record.serialize_u8(mass);
-                        //     record.serialize_onehot_discard_overflow(mass, 5);
-                        //     record.serialize_onehot_discard_overflow(mass, 40);
-                        // }
-
                         if let Some(image) = earlier_prediction_image {
                             // let pixel: u8 = image.get(xx, yy).unwrap_or(0);
                             // record.serialize_onehot(pixel, 10);
