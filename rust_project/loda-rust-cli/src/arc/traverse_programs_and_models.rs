@@ -406,7 +406,7 @@ impl TraverseProgramsAndModels {
     #[allow(dead_code)]
     fn inspect_tasks_without_solution(task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut indexes = HashSet::<usize>::new();
-        for (index, task) in task_vec.iter().enumerate() {
+        for (index, _task) in task_vec.iter().enumerate() {
             // if task.occur_in_solutions_csv {
             //     continue;
             // }
