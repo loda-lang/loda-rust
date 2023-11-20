@@ -398,8 +398,10 @@ pub enum ActionLabel {
     /// Preserves content, but the ordering of the rows are changed.
     ChangesOrderOfRows,
     
+    /// Preserves content, but the ordering of the columns or rows are changed.
+    ChangesOrderOfColumnsOrRows,
+
     // Ideas for more
-    // ChangesOrderOfColumnsOrRows,
     // ChangeHappensToItemWithColor { item: Item, color: u8 }, // where item is row, column, diagonal a, diagonal b.
     // NoChangeHappensToItemWithColor { item: Item, color: u8 }, // where item is row, column, diagonal a, diagonal b.
     // ChangeHappensToRowsWithColor { color: u8 },

@@ -329,6 +329,7 @@ impl arc_work_model::Pair {
                 if self.input.image.is_same_rows_ignoring_order(&self.output.image) {
                     // println!("task: {} changes order of rows", self.id);
                     self.action_label_set.insert(ActionLabel::ChangesOrderOfRows);
+                    self.action_label_set.insert(ActionLabel::ChangesOrderOfColumnsOrRows);
                 }
             }
             if count1 == histogram_columns_len {
@@ -365,6 +366,7 @@ impl arc_work_model::Pair {
                 if self.input.image.is_same_columns_ignoring_order(&self.output.image) {
                     // println!("task: {} changes order of columns", self.id);
                     self.action_label_set.insert(ActionLabel::ChangesOrderOfColumns);
+                    self.action_label_set.insert(ActionLabel::ChangesOrderOfColumnsOrRows);
                 }
             }
             if count1 == histogram_rows_len {
