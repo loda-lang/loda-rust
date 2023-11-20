@@ -1,6 +1,10 @@
 //! Performs logistic regression of each input pixel with the corresponding classification for the output pixel.
 //! 
 //! These older commits solves some of the tasks from the hidden ARC dataset, using logistic regression:
+//! commit 2023-Nov-17: solves 2 of the hidden ARC tasks. This uses variant=0 and variant=1. No use of variant=2.
+//! Since it uses multiple variants and doesn't solve more tasks than the previous commit, then it is not an improvement.
+//! https://github.com/loda-lang/loda-rust/commit/e7228b0a3c3453652a9cd23a1c810b42f82696b1
+//!
 //! commit 2023-Nov-16: solves 2 of the hidden ARC tasks. This uses variant=0 and variant=1. No use of variant=2.
 //! Since it uses multiple variants and doesn't solve more tasks than the previous commit, then it is not an improvement.
 //! https://github.com/loda-lang/loda-rust/commit/f7bf7103e1de14dcf83471aebb3013794fe7699b
