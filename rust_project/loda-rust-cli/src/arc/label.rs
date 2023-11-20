@@ -304,6 +304,26 @@ pub enum ImageCorner {
     BottomRight,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ChangeItem {
+    SingleLineRow, // there is a change somewhere inside the row when encountering a Red pixel.
+    SingleLineColumn, // there is a change somewhere inside the column when encountering a Red pixel.
+
+    // Future experiments
+    // SingleLineDiagonalA, there is a change somewhere inside the DiagonalA when encountering a Red pixel.
+    // SingleLineDiagonalB, there is a change somewhere inside the DiagonalB when encountering a Red pixel.
+    // SingleLineRowLeft, does the row change only on the left side of the Red pixel.
+    // SingleLineRowRight, does the row change only on the right side of the Red pixel.
+    // SingleLineColumnTop, does the column change only on the above the Red pixel.
+    // SingleLineColumnBottom, does the column change only on the below the Red pixel.
+    // ThreeLineRow, there is a change somewhere inside the 3 rows when encountering a Red pixel.
+    // ThreeLineColumn, there is a change somewhere inside the 3 columns when encountering a Red pixel.
+    // PyramidUp, there is a change somewhere inside the a pyramid cone when encountering a Red pixel.
+    // PyramidDown, there is a change somewhere inside the a pyramid cone when encountering a Red pixel.
+    // PyramidLeft, there is a change somewhere inside the a pyramid cone when encountering a Red pixel.
+    // PyramidRight, there is a change somewhere inside the a pyramid cone when encountering a Red pixel.
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ActionLabel {
     OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: ImageProperty },
@@ -401,13 +421,11 @@ pub enum ActionLabel {
     /// Preserves content, but the ordering of the columns or rows are changed.
     ChangesOrderOfColumnsOrRows,
 
+    /// The input gets changed whenever a particular color occur.
+    ChangeHappensToItemWithColor { item: ChangeItem, color: u8 },
+
     // Ideas for more
-    // ChangeHappensToItemWithColor { item: Item, color: u8 }, // where item is row, column, diagonal a, diagonal b.
-    // NoChangeHappensToItemWithColor { item: Item, color: u8 }, // where item is row, column, diagonal a, diagonal b.
-    // ChangeHappensToRowsWithColor { color: u8 },
-    // ChangeHappensToColumnsWithColor { color: u8 },
-    // ChangeHappensToDiagonalAWithColor { color: u8 },
-    // ChangeHappensToDiagonalBWithColor { color: u8 },
+    // NoChangeHappensToItemWithColor { item: NoChangeItem, color: u8 }, // where item is row, column, diagonal a, diagonal b.
     // NoChangeHappensToRowsWithColor { color: u8 },
     // NoChangeHappensToColumnsWithColor { color: u8 },
     // NoChangeHappensToDiagonalAWithColor { color: u8 },

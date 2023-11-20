@@ -259,7 +259,7 @@ pub use image_try_create::ImageTryCreate;
 pub use image_unicode_formatting::ImageUnicodeFormatting;
 pub use inspect_predicted::InspectPredicted;
 pub use inspect_task::InspectTask;
-pub use label::{ActionLabel, ActionLabelSet, GridLabel, ImageCorner, ImageEdge, ImageLabel, ImageLabelSet, ObjectLabel, ImageProperty, PropertyOutput, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel, SplitLabel, SymmetryLabel};
+pub use label::{ActionLabel, ActionLabelSet, GridLabel, ImageCorner, ImageEdge, ImageLabel, ImageLabelSet, ObjectLabel, ImageProperty, PropertyOutput, SingleColorObjectRectangleLabel, SingleColorObjectSparseLabel, SplitLabel, SymmetryLabel, ChangeItem};
 pub use largest_interior_rectangle::LargestInteriorRectangle;
 pub use linespan::{LineSpan, LineSpanDirection, LineSpanMode};
 pub use ngram::{ImageNgram, RecordBigram, RecordTrigram};
