@@ -2124,7 +2124,7 @@ dependencies = [
 
 [[package]]
 name = "loda-rust-cli"
-version = "2023.11.16"
+version = "2023.11.17"
 dependencies = [
  "ahash",
  "alphanumeric-sort",

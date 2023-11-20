@@ -1,6 +1,10 @@
 //! Performs logistic regression of each input pixel with the corresponding classification for the output pixel.
 //! 
 //! These older commits solves some of the tasks from the hidden ARC dataset, using logistic regression:
+//! commit 2023-Nov-17: solves 2 of the hidden ARC tasks. This uses variant=0 and variant=1. No use of variant=2.
+//! Since it uses multiple variants and doesn't solve more tasks than the previous commit, then it is not an improvement.
+//! https://github.com/loda-lang/loda-rust/commit/e7228b0a3c3453652a9cd23a1c810b42f82696b1
+//!
 //! commit 2023-Nov-16: solves 2 of the hidden ARC tasks. This uses variant=0 and variant=1. No use of variant=2.
 //! Since it uses multiple variants and doesn't solve more tasks than the previous commit, then it is not an improvement.
 //! https://github.com/loda-lang/loda-rust/commit/f7bf7103e1de14dcf83471aebb3013794fe7699b
@@ -59,7 +63,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat, rule, CellularAutomaton};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode, VerifyPrediction, VerifyPredictionWithTask};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -947,8 +951,8 @@ impl SolveLogisticRegression {
         let enable_distance: bool = !has_different_size_for_input_output;
         let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
 
-        let enable_histogram_diagonal_a: bool = [false, false, false][v];
-        let enable_histogram_diagonal_b: bool = [false, false, false][v];
+        let enable_histogram_diagonal_a: bool = [false, true, false][v];
+        let enable_histogram_diagonal_b: bool = [false, true, false][v];
         let enable_histogram_diagonal_c: bool = [false, false, false][v];
         let enable_histogram_diagonal_d: bool = [false, false, false][v];
         let enable_histogram_diagonal_e: bool = false;
@@ -974,35 +978,35 @@ impl SolveLogisticRegression {
         let enable_mod3_reverse_input: bool = [false, false, true][v];
         let enable_mod3_reverse_output: bool = [false, false, false][v];
 
-        let enable_hole_type1: bool = true;
+        let enable_hole_type1: bool = [true, false, true][v];
         let enable_color_repair: bool = true;
         
         let enable_shape_transformation_images: bool = [false, false, false][v];
-        let enable_noisecolor_in_outline: bool = [true, true, true][v];
+        let enable_noisecolor_in_outline: bool = [true, false, true][v];
         let enable_grid: bool = true;
 
-        let enable_enumerated_clusters_grow_mask3: bool = [false, false, false][v];
-        let enable_color_grow_mask1: bool = [false, false, false][v];
-        let enable_color_grow_mask2: bool = [false, false, false][v];
-        let enable_color_grow_mask3: bool = [false, false, false][v];
+        let enable_enumerated_clusters_grow_mask3: bool = [false, true, false][v];
+        let enable_color_grow_mask1: bool = [false, true, false][v];
+        let enable_color_grow_mask2: bool = [false, true, false][v];
+        let enable_color_grow_mask3: bool = [false, true, false][v];
 
         let enable_no_change_to_color: bool = true;
         let enable_no_change_to_center_color: bool = false;
         let enable_no_change_to_noise_color: bool = false;
         let enable_object_center_same_as_neighbour: bool = false;
-        let enable_edge: bool = [false, true, false][v];
+        let enable_edge: bool = [false, false, false][v];
 
         let enable_color_inside_bounding_box: bool = [true, true, true][v];
         let enable_object_id_image_connectivity4: bool = [false, false, false][v];
         let enable_object_id_image_connectivity8: bool = [false, false, false][v];
 
-        let enable_trigram_count_center: bool = false;
-        let enable_trigram_count_word1_center: bool = false;
-        let enable_trigram_count_word012_center: bool = false;
+        let enable_trigram_count_center: bool = [false, true, false][v];
+        let enable_trigram_count_word1_center: bool = [false, true, false][v];
+        let enable_trigram_count_word012_center: bool = [false, true, false][v];
 
-        let enable_full_row_and_column: bool = [true, true, true][v];
-        let enable_full_row_xor_column: bool = [true, true, true][v];
-        let enable_full_row_or_column: bool = [true, true, true][v];
+        let enable_full_row_and_column: bool = [true, false, true][v];
+        let enable_full_row_xor_column: bool = [true, false, true][v];
+        let enable_full_row_or_column: bool = [true, false, true][v];
         let enable_full_row: bool = [false, false, false][v];
         let enable_full_column: bool = [false, false, false][v];
 
@@ -1011,9 +1015,9 @@ impl SolveLogisticRegression {
         let enable_corner_classification: bool = false;
 
         let enable_histogram_columns_rows_get_color: bool = [true, true, false][v];
-        let enable_histogram_columns_rows_lookaround: bool = [false, false, false][v];
+        let enable_histogram_columns_rows_lookaround: bool = [false, true, false][v];
 
-        let enable_exterior_of_clusters: bool = false;
+        let enable_exterior_of_clusters: bool = [false, true, false][v];
         let enable_largest_interior_rectangle_masks: bool = [false, false, false][v];
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
@@ -1021,7 +1025,7 @@ impl SolveLogisticRegression {
         let enable_scale_widthheight: bool = has_different_size_for_input_output;
         let enable_check_pixel_in_histogram: bool = false;
         let enable_nearest_color: bool = false;
-        let enable_colordirection_to_distanceimage: bool = [false, false, true][v];
+        let enable_colordirection_to_distanceimage: bool = [false, true, true][v];
         let enable_neighbour_color: bool = false;
         let enable_adjacent_neighbour_same_as_center: bool = false;
         let enable_opposite_neighbour: bool = [false, false, true][v];
@@ -1031,6 +1035,10 @@ impl SolveLogisticRegression {
         let enable_typo_for_center_row_right_columns: bool = [!has_different_size_for_input_output, false, false][v];
         let enable_denoise_type5_input: bool = [false, true, false][v];
         let enable_denoise_type5_output: bool = [false, false, false][v];
+        let enable_same_colors_for_area3x3_and_area5x5: bool = [false, false, false][v];
+        let enable_area3x3_input_8bit_mask: bool = [false, false, false][v];
+        let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
+        let enable_gameoflife: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1225,6 +1233,22 @@ impl SolveLogisticRegression {
                 denoise_type5_output_image = Some(image);
             }
     
+            let mut gameoflife_images = HashMap::<u8, Image>::new();
+            if enable_gameoflife {
+                for color in 0..=9u8 {
+                    let mask: Image = input.to_mask_where_color_is(color);
+                    let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&mask, None);
+                    ca.step_once();
+                    gameoflife_images.insert(color, ca.image().clone());
+                }
+                // for color in 0..=9u8 {
+                    // let mask: Image = input.to_mask_where_color_is_different(color);
+                    // let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::GameOfLife>::with_image(&mask, None);
+                    // // ca.step_once();
+                    // ca.step(2);
+                    // gameoflife_images.insert(color + 10, ca.image().clone());
+                // }
+            }
     
             let mut resized_input_image: Option<Image> = None;
             let mut repeated_input_image: Option<Image> = None;
@@ -2439,19 +2463,6 @@ impl SolveLogisticRegression {
                         values: vec!(),
                     };
 
-                    if enable_denoise_type5_input {
-                        if let Some(image) = &denoise_type5_input_image {
-                            let color: u8 = image.get(xx, yy).unwrap_or(255);
-                            record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
-                        }
-                    }
-                    if enable_denoise_type5_output {
-                        if let Some(image) = &denoise_type5_output_image {
-                            let color: u8 = image.get(xx, yy).unwrap_or(255);
-                            record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
-                        }
-                    }
-
                     // {
                     //     let random_color: u8 = random_image.get(xx, yy).unwrap_or(255);
                     //     record.serialize_bool(random_color == 0);
@@ -2481,6 +2492,13 @@ impl SolveLogisticRegression {
                     let area5x5: Image = input.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
                     let center: u8 = area5x5.get(2, 2).unwrap_or(255);
 
+                    if enable_same_colors_for_area3x3_and_area5x5 {
+                        let h0: Histogram = area3x3.histogram_all();
+                        let h1: Histogram = area5x5.histogram_all();
+                        let same_colors: bool = h0.is_same_color_but_ignore_count(&h1);
+                        record.serialize_bool_onehot(same_colors);
+                    }
+
                     let area5x5_output: Image;
                     if let Some(image) = &earlier_prediction_image {
                         area5x5_output = image.crop_outside(xx - 2, yy - 2, 5, 5, 255)?;
@@ -2488,6 +2506,72 @@ impl SolveLogisticRegression {
                         area5x5_output = Image::empty();
                     }
                     let center_output: u8 = area5x5_output.get(2, 2).unwrap_or(255);
+
+                    if enable_area3x3_input_8bit_mask {
+                        let mut mask: u16 = 0;
+                        for yyy in 0..3 {
+                            for xxx in 0..3 {
+                                if xxx == 1 && yyy == 1 {
+                                    continue;
+                                }
+                                let color: u8 = area3x3.get(xxx, yyy).unwrap_or(255);
+                                mask = mask << 1;
+                                if color == center {
+                                    mask |= 1;
+                                }
+                                // record.serialize_bool(color == center);
+                            }
+                        }
+                        record.serialize_complex(mask, 256);
+                    }
+
+                    if enable_area3x3_output_8bit_mask {
+                        let mut mask: u16 = 0;
+                        for yyy in 0..3 {
+                            for xxx in 0..3 {
+                                if xxx == 1 && yyy == 1 {
+                                    continue;
+                                }
+                                let color: u8 = area5x5_output.get(xxx + 1, yyy + 1).unwrap_or(255);
+                                mask = mask << 1;
+                                if color == center {
+                                    mask |= 1;
+                                }
+                                // record.serialize_bool(color == center_output);
+                            }
+                        }
+                        record.serialize_complex(mask, 256);
+                    }
+
+                    if enable_denoise_type5_input {
+                        if let Some(image) = &denoise_type5_input_image {
+                            let color: u8 = image.get(xx, yy).unwrap_or(255);
+                            // record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
+                            // record.serialize_onehot_discard_overflow(color, 10);
+                            record.serialize_bool(color == center);
+                            // record.serialize_bool(color == center_output);
+                        }
+                    }
+                    if enable_denoise_type5_output {
+                        if let Some(image) = &denoise_type5_output_image {
+                            let color: u8 = image.get(xx, yy).unwrap_or(255);
+                            // record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
+                            // record.serialize_onehot_discard_overflow(color, 10);
+                            // record.serialize_bool(color == center);
+                            record.serialize_bool(color == center_output);
+                        }
+                    }
+
+                    if enable_gameoflife {
+                        for i in 0..10u8 {
+                            let mut color: u8 = 255;
+                            if let Some(image) = gameoflife_images.get(&i) {
+                                color = image.get(xx, yy).unwrap_or(255);
+                            }
+                            // record.serialize_bool_onehot(color > 0);
+                            record.serialize_bool(color > 0);
+                        }
+                    }
 
                     if enable_scale_widthheight {
                         if let Some((scale_x, scale_y)) = context.scale_widthheight {
