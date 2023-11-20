@@ -1,4 +1,4 @@
-use super::{ImageSize, Image, ImageMask};
+use super::{ImageSize, Image, ImageMask, ImageTryCreate};
 use rand::Rng;
 use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
@@ -89,13 +89,20 @@ impl RandomImage {
         Ok(result_image)
     }
 
-    /// Random pixel values between `0..=max_color_value`.
+    /// Random pixel values between `min_color_value..=max_color_value`, example `0..=255`, or `0..=9`.
+    /// 
+    /// Returns an error if the `min_color_value` is equal or greater than the `max_color_value`.
+    /// 
+    /// Returns an error if the size is empty.
     #[allow(dead_code)]
-    pub fn uniform_colors(rng: &mut StdRng, size: ImageSize, max_color_value: u8) -> anyhow::Result<Image> {
+    pub fn uniform_colors(rng: &mut StdRng, size: ImageSize, min_color_value: u8, max_color_value: u8) -> anyhow::Result<Image> {
+        if min_color_value >= max_color_value {
+            return Err(anyhow::anyhow!("The minimum color value must be less than the maximum color value. min_color_value={} max_color_value={}", min_color_value, max_color_value));
+        }
         if size.is_empty() {
             return Err(anyhow::anyhow!("size is empty. Must be 1x1 or bigger."));
         }
-        let range: Uniform<u8> = Uniform::from(0..=max_color_value);
+        let range: Uniform<u8> = Uniform::from(min_color_value..=max_color_value);
         let mut image: Image = Image::zero(size.width, size.height);
         for y in 0..size.height {
             for x in 0..size.width {
@@ -105,13 +112,24 @@ impl RandomImage {
         }
         Ok(image)
     }
+
+    /// Move pixels around. Preserving the histogram or the original image.
+    #[allow(dead_code)]
+    pub fn shuffle_pixels(rng: &mut StdRng, image: &Image) -> anyhow::Result<Image> {
+        if image.is_empty() {
+            return Err(anyhow::anyhow!("size is empty. Must be 1x1 or bigger."));
+        }
+        let mut pixels: Vec<u8> = image.pixels().clone();
+        pixels.shuffle(rng);
+        let result_image = Image::try_create(image.width(), image.height(), pixels)?;
+        Ok(result_image)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use rand::SeedableRng;
-    use crate::arc::ImageTryCreate;
 
     #[test]
     fn test_10000_one_dot() {
@@ -201,15 +219,43 @@ mod tests {
 
     #[test]
     fn test_40000_uniform_colors() {
-        let actual: Image = RandomImage::uniform_colors(&mut StdRng::seed_from_u64(0), ImageSize::new(3, 2), 3).expect("ok");
+        let actual: Image = RandomImage::uniform_colors(&mut StdRng::seed_from_u64(0), ImageSize::new(3, 2), 0, 3).expect("ok");
         let expected = Image::try_create(3, 2, vec![3, 2, 2, 3, 3, 0]).expect("ok");
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn test_40001_uniform_colors() {
-        let actual: Image = RandomImage::uniform_colors(&mut StdRng::seed_from_u64(0), ImageSize::new(3, 3), 4).expect("ok");
+        let actual: Image = RandomImage::uniform_colors(&mut StdRng::seed_from_u64(0), ImageSize::new(3, 3), 0, 4).expect("ok");
         let expected = Image::try_create(3, 3, vec![4, 3, 2, 3, 4, 0, 3, 2, 4]).expect("ok");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40002_uniform_colors() {
+        let actual: Image = RandomImage::uniform_colors(&mut StdRng::seed_from_u64(0), ImageSize::new(2, 4), 4, 6).expect("ok");
+        let expected = Image::try_create(2, 4, vec![6, 6, 5, 6, 6, 4, 6, 5]).expect("ok");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_50000_shuffle_pixels() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+        ];
+        let input: Image = Image::try_create(4, 2, pixels).expect("image");
+
+        // Act
+        let actual: Image = RandomImage::shuffle_pixels(&mut StdRng::seed_from_u64(0), &input).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            8, 2, 3, 1,
+            5, 4, 6, 7,
+        ];
+        let expected: Image = Image::try_create(4, 2, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }

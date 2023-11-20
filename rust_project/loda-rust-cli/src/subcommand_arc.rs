@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 #[cfg(feature = "loda-rust-arc")]
 use crate::arc::{SubcommandARCSize, SubcommandARCWeb, TraverseProgramsAndModels};
+// use crate::arc::GenerateDataset;
 
 #[derive(Debug)]
 pub enum SubcommandARCMode {
@@ -61,6 +62,9 @@ impl SubcommandARC {
                 return TraverseProgramsAndModels::export_dataset();
             },
             SubcommandARCMode::SolveWithLogisticRegression => {
+                // let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histograms.jsonl");
+                // GenerateDataset::generate_fulldataset(&path)?;
+                // return Ok(());
                 return TraverseProgramsAndModels::solve_with_logistic_regression();
             },
             SubcommandARCMode::PredictOutputSizesForSingleTask { task_json_file } => {

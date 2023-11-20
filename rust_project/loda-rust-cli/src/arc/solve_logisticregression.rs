@@ -1,7 +1,12 @@
 //! Performs logistic regression of each input pixel with the corresponding classification for the output pixel.
 //! 
 //! These older commits solves some of the tasks from the hidden ARC dataset, using logistic regression:
-//! commit 2023-Nov-05: solves 2 of the hidden ARC tasks.
+//! commit 2023-Nov-16: solves 2 of the hidden ARC tasks. This uses variant=0 and variant=1. No use of variant=2.
+//! Since it uses multiple variants and doesn't solve more tasks than the previous commit, then it is not an improvement.
+//! https://github.com/loda-lang/loda-rust/commit/f7bf7103e1de14dcf83471aebb3013794fe7699b
+//!
+//! commit 2023-Nov-05: solves 2 of the hidden ARC tasks. Uses only variant=0. No use of variant=1 nor variant=2.
+//! This is the optimal combination so far. Only a single variant is used.
 //! https://github.com/loda-lang/loda-rust/commit/afd97bb998964b5dca372b22843de7c6c15f8969
 //!
 //! commit 2023-Oct-31: solves 2 of the hidden ARC tasks.
@@ -86,7 +91,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 /// const PROCESS_TASK_VARIANTS: [u8; 3] = [0, 1, 2]; 
 /// 
 /// No need to run variant=1 nor variant=2, because they don't solve any of the hidden ARC tasks. Only variant=0 solves 2 of the hidden ARC tasks.
-const PROCESS_TASK_VARIANTS: [u8; 1] = [0];
+const PROCESS_TASK_VARIANTS: [u8; 2] = [0, 1];
 
 /// The colors 0..9 with an extra `color 10` for the `outside` canvas area.
 #[allow(dead_code)]
@@ -1022,8 +1027,10 @@ impl SolveLogisticRegression {
         let enable_opposite_neighbour: bool = [false, false, true][v];
         let enable_removal_color_center: bool = false;
         let enable_detect_nonsquare: bool = false;
-
+        
         let enable_typo_for_center_row_right_columns: bool = [!has_different_size_for_input_output, false, false][v];
+        let enable_denoise_type5_input: bool = [false, true, false][v];
+        let enable_denoise_type5_output: bool = [false, false, false][v];
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1207,6 +1214,18 @@ impl SolveLogisticRegression {
             let input: Image = background.overlay_with_position(&original_input, 0, 0)?;
             let output: Image = background.overlay_with_position(&original_output, 0, 0)?;
 
+            let mut denoise_type5_input_image: Option<Image> = None;
+            let mut denoise_type5_output_image: Option<Image> = None;
+            if enable_denoise_type5_input {
+                let image: Image = input.denoise_type5()?;
+                denoise_type5_input_image = Some(image);
+            }
+            if enable_denoise_type5_output {
+                let image: Image = output.denoise_type5()?;
+                denoise_type5_output_image = Some(image);
+            }
+    
+    
             let mut resized_input_image: Option<Image> = None;
             let mut repeated_input_image: Option<Image> = None;
             if enable_scale_widthheight {
@@ -2419,6 +2438,19 @@ impl SolveLogisticRegression {
                         pair_id,
                         values: vec!(),
                     };
+
+                    if enable_denoise_type5_input {
+                        if let Some(image) = &denoise_type5_input_image {
+                            let color: u8 = image.get(xx, yy).unwrap_or(255);
+                            record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
+                        }
+                    }
+                    if enable_denoise_type5_output {
+                        if let Some(image) = &denoise_type5_output_image {
+                            let color: u8 = image.get(xx, yy).unwrap_or(255);
+                            record.serialize_color_complex(color, obfuscated_color_offset, enable_serialize_color_complex);
+                        }
+                    }
 
                     // {
                     //     let random_color: u8 = random_image.get(xx, yy).unwrap_or(255);

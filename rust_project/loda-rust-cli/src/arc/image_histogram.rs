@@ -15,6 +15,26 @@ pub trait ImageHistogram {
     
     /// Histogram for every column
     fn histogram_columns(&self) -> Vec<Histogram>;
+
+    /// Detect horizontal lines.
+    /// 
+    /// return `Some(true)` if all rows contain just one color.
+    /// 
+    /// return `Some(false)` if one or more rows contain 2 or more colors.
+    /// 
+    /// return `None` when there is less than 2 columns.
+    #[allow(dead_code)]
+    fn is_repeated_column(&self) -> Option<bool>;
+
+    /// Detect vertical lines.
+    /// 
+    /// return `Some(true)` if all columns contain just one color.
+    /// 
+    /// return `Some(false)` if one or more columns contain 2 or more colors.
+    /// 
+    /// return `None` when there is less than 2 rows.
+    #[allow(dead_code)]
+    fn is_repeated_row(&self) -> Option<bool>;
 }
 
 impl ImageHistogram for Image {
@@ -94,6 +114,34 @@ impl ImageHistogram for Image {
             columns.push(h);
         }
         columns
+    }
+
+    fn is_repeated_column(&self) -> Option<bool> {
+        if self.width() < 2 || self.height() < 1 {
+            // There must be 2 or more columns
+            return None;
+        }
+        let histogram_vec: Vec<Histogram> = self.histogram_rows();
+        for histogram in histogram_vec {
+            if histogram.number_of_counters_greater_than_zero() > 1 {
+                return Some(false);
+            }
+        }
+        Some(true)
+    }
+
+    fn is_repeated_row(&self) -> Option<bool> {
+        if self.width() < 1 || self.height() < 2 {
+            // There must be 2 or more rows
+            return None;
+        }
+        let histogram_vec: Vec<Histogram> = self.histogram_columns();
+        for histogram in histogram_vec {
+            if histogram.number_of_counters_greater_than_zero() > 1 {
+                return Some(false);
+            }
+        }
+        Some(true)
     }
 }
 
@@ -240,5 +288,180 @@ mod tests {
             s += "\n";
         }
         assert_eq!(s, "5 1,\n2 0,1 4,1 3,1 2,\n5 1,\n3 0,2 2,\n5 3,\n");
+    }
+
+    #[test]
+    fn test_60000_is_repeated_column() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5,
+            3, 3,
+            3, 3,
+            9, 9,
+            5, 5,
+        ];
+        let input: Image = Image::try_create(2, 5, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_column();
+
+        // Assert
+        assert_eq!(actual, Some(true));
+    }
+
+    #[test]
+    fn test_60001_is_repeated_column() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5,
+            3, 3, 3,
+            3, 3, 3,
+            9, 9, 9,
+            5, 5, 5,
+        ];
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_column();
+
+        // Assert
+        assert_eq!(actual, Some(true));
+    }
+
+    #[test]
+    fn test_60002_is_repeated_column() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5,
+            3, 3, 3,
+            3, 0, 3,
+            9, 9, 9,
+            5, 5, 5,
+        ];
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_column();
+
+        // Assert
+        assert_eq!(actual, Some(false));
+    }
+
+    #[test]
+    fn test_60003_is_repeated_column() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5,
+            3,
+            2,
+        ];
+        let input: Image = Image::try_create(1, 3, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_column();
+
+        // Assert
+        assert_eq!(actual, None);
+    }
+
+    #[test]
+    fn test_60004_is_repeated_column() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 3,
+            5, 3, 3,
+            3, 3, 9,
+            3, 9, 5,
+            9, 5, 5,
+        ];
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_column();
+
+        // Assert
+        assert_eq!(actual, Some(false));
+    }
+
+    #[test]
+    fn test_70000_is_repeated_row() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 3, 3, 9, 5,
+            5, 3, 3, 9, 5,
+        ];
+        let input: Image = Image::try_create(5, 2, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_row();
+
+        // Assert
+        assert_eq!(actual, Some(true));
+    }
+
+    #[test]
+    fn test_70001_is_repeated_row() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 3, 3, 9, 5,
+            5, 3, 3, 9, 5,
+            5, 3, 3, 9, 5,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_row();
+
+        // Assert
+        assert_eq!(actual, Some(true));
+    }
+
+    #[test]
+    fn test_70003_is_repeated_row() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 3, 3, 9, 5,
+            5, 3, 0, 9, 5,
+            5, 3, 3, 9, 5,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_row();
+
+        // Assert
+        assert_eq!(actual, Some(false));
+    }
+
+    #[test]
+    fn test_70004_is_repeated_row() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 3, 2,
+        ];
+        let input: Image = Image::try_create(3, 1, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_row();
+
+        // Assert
+        assert_eq!(actual, None);
+    }
+
+    #[test]
+    fn test_70005_is_repeated_row() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            3, 3, 9, 5, 5,
+            5, 3, 3, 9, 5,
+            5, 5, 3, 3, 9,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+
+        // Act
+        let actual: Option<bool> = input.is_repeated_row();
+
+        // Assert
+        assert_eq!(actual, Some(false));
     }
 }
