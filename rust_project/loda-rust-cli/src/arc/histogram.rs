@@ -463,6 +463,19 @@ impl Histogram {
         counters1.sort();
         counters0 == counters1
     }
+
+    /// Compare two histograms, returns `true` if they have one or more colors in common.
+    /// 
+    /// Returns `false` when they have no colors in common.
+    #[allow(dead_code)]
+    pub fn is_overlap(&self, other: &Histogram) -> bool {
+        for i in 0..256 {
+            if (self.counters[i] > 0) && (other.counters[i] > 0) {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 #[cfg(test)]
@@ -1232,5 +1245,41 @@ mod tests {
         assert_eq!(h0.is_same_count_but_ignore_color(&h1), false);
         assert_eq!(h0.is_same_count_but_ignore_color(&h2), false);
         assert_eq!(h1.is_same_count_but_ignore_color(&h2), true);
+    }
+
+    #[test]
+    fn test_220000_is_overlap_true() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment_by(3, 7);
+        h0.increment_by(42, 2);
+
+        let mut h1: Histogram = Histogram::new();
+        h1.increment(8);
+        h1.increment(42);
+        h1.increment(99);
+
+        // Act + Assert
+        assert_eq!(h0.is_overlap(&h0), true);
+        assert_eq!(h0.is_overlap(&h1), true);
+        assert_eq!(h1.is_overlap(&h1), true);
+    }
+
+    #[test]
+    fn test_220001_is_overlap_false() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment_by(3, 7);
+        h0.increment_by(5, 2);
+
+        let mut h1: Histogram = Histogram::new();
+        h1.increment(8);
+        h1.increment(42);
+        h1.increment(99);
+
+        // Act + Assert
+        assert_eq!(h0.is_overlap(&h0), true);
+        assert_eq!(h0.is_overlap(&h1), false);
+        assert_eq!(h1.is_overlap(&h1), true);
     }
 }
