@@ -321,8 +321,14 @@ impl arc_work_model::Pair {
                 if histogram.get(color) == 0 {
                     continue;
                 }
-                let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineRow, color };
-                self.action_label_set.insert(label);
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineRow, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineRowOrColumn, color };
+                    self.action_label_set.insert(label);
+                }
             }
         }
 
@@ -332,8 +338,14 @@ impl arc_work_model::Pair {
                 if histogram.get(color) == 0 {
                     continue;
                 }
-                let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineColumn, color };
-                self.action_label_set.insert(label);
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineRowOrColumn, color };
+                    self.action_label_set.insert(label);
+                }
             }
         }
 

@@ -1058,6 +1058,7 @@ impl SolveLogisticRegression {
         let enable_earlier_prediction_mass_connectivity4: bool = false;
         let enable_earlier_prediction_mass_connectivity8: bool = false;
         let enable_change_happens_to_single_line: bool = false;
+        let enable_change_happens_to_single_line_row_or_column: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1190,6 +1191,7 @@ impl SolveLogisticRegression {
 
         let mut change_happens_to_single_line_row = Histogram::new();
         let mut change_happens_to_single_line_column = Histogram::new();
+        let mut change_happens_to_single_line_row_or_column = Histogram::new();
         for label in &task.action_label_set_intersection {
             match label {
                 ActionLabel::ChangeHappensToItemWithColor { item, color } => {
@@ -1199,6 +1201,9 @@ impl SolveLogisticRegression {
                         },
                         ChangeItem::SingleLineColumn => {
                             change_happens_to_single_line_column.increment(*color);
+                        },
+                        ChangeItem::SingleLineRowOrColumn => {
+                            change_happens_to_single_line_row_or_column.increment(*color);
                         },
                     }
                 },
@@ -6087,6 +6092,19 @@ impl SolveLogisticRegression {
                             let mut overlap: bool = false;
                             if let Some(histogram) = histogram_columns.get(x as usize) {
                                 overlap = change_happens_to_single_line_column.is_overlap(histogram);
+                            }
+                            record.serialize_bool_onehot(overlap);
+                        }
+                    }
+
+                    if enable_change_happens_to_single_line_row_or_column {
+                        {
+                            let mut overlap: bool = false;
+                            if let Some(histogram) = histogram_rows.get(y as usize) {
+                                overlap = change_happens_to_single_line_row_or_column.is_overlap(histogram);
+                            }
+                            if let Some(histogram) = histogram_columns.get(x as usize) {
+                                overlap = change_happens_to_single_line_row_or_column.is_overlap(histogram);
                             }
                             record.serialize_bool_onehot(overlap);
                         }

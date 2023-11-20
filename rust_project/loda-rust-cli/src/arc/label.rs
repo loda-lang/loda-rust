@@ -308,6 +308,7 @@ pub enum ImageCorner {
 pub enum ChangeItem {
     SingleLineRow, // there is a change somewhere inside the row when encountering a Red pixel.
     SingleLineColumn, // there is a change somewhere inside the column when encountering a Red pixel.
+    SingleLineRowOrColumn, // there is a change somewhere inside the row or column when encountering a Red pixel.
 
     // Future experiments
     // SingleLineDiagonalA, there is a change somewhere inside the DiagonalA when encountering a Red pixel.
