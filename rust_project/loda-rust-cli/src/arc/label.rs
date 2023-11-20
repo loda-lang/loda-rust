@@ -400,12 +400,22 @@ pub enum ActionLabel {
     
     // Ideas for more
     // ChangesOrderOfColumnsOrRows,
+    // ChangeHappensToItemWithColor { item: Item, color: u8 }, // where item is row, column, diagonal a, diagonal b.
+    // NoChangeHappensToItemWithColor { item: Item, color: u8 }, // where item is row, column, diagonal a, diagonal b.
+    // ChangeHappensToRowsWithColor { color: u8 },
+    // ChangeHappensToColumnsWithColor { color: u8 },
+    // ChangeHappensToDiagonalAWithColor { color: u8 },
+    // ChangeHappensToDiagonalBWithColor { color: u8 },
+    // NoChangeHappensToRowsWithColor { color: u8 },
+    // NoChangeHappensToColumnsWithColor { color: u8 },
+    // NoChangeHappensToDiagonalAWithColor { color: u8 },
+    // NoChangeHappensToDiagonalBWithColor { color: u8 },
     // PeriodicityXIgnoringBackgroundColor { period: u8 },
     // PeriodicityYIgnoringBackgroundColor { period: u8 },
     // HistogramNoChangeInDirectionDiagonalA,
     // HistogramNoChangeInDirectionDiagonalB,
     // Directionality of a pair. Is it up/down/left/right. Then the images will require the corresponding rotation applied and unapplied.
-    // OutputSizeIsTheSameAsSplitViewCell,    
+    // OutputSizeIsTheSameAsSplitViewCell,
     // Preserve image above the split view, and change the image below the separator
     // InputStatsIsOutputStats { mode: ImageStatsMode },
     // InputStatsHasHigherMeanAndLowerSigmaThanOutputStats { mode: ImageStatsMode },
