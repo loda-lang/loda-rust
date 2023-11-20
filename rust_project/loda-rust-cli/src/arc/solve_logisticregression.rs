@@ -54,7 +54,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat, rule, CellularAutomaton};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat, rule, CellularAutomaton, ChangeItem};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode, VerifyPrediction, VerifyPredictionWithTask};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -1057,6 +1057,7 @@ impl SolveLogisticRegression {
         let enable_min_inbetween_max_inside_shape_connectivity4: bool = false;
         let enable_earlier_prediction_mass_connectivity4: bool = false;
         let enable_earlier_prediction_mass_connectivity8: bool = false;
+        let enable_change_happens_to_single_line: bool = false;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1181,6 +1182,24 @@ impl SolveLogisticRegression {
                 ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
                     if *color < 10 {
                         no_change_to_color[*color as usize] = true;
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        let mut change_happens_to_single_line_row = Histogram::new();
+        let mut change_happens_to_single_line_column = Histogram::new();
+        for label in &task.action_label_set_intersection {
+            match label {
+                ActionLabel::ChangeHappensToItemWithColor { item, color } => {
+                    match *item {
+                        ChangeItem::SingleLineRow => {
+                            change_happens_to_single_line_row.increment(*color);
+                        },
+                        ChangeItem::SingleLineColumn => {
+                            change_happens_to_single_line_column.increment(*color);
+                        },
                     }
                 },
                 _ => {}
@@ -6055,6 +6074,23 @@ impl SolveLogisticRegression {
                         // record.serialize_u8(distance3);
                         // record.serialize_u8(distance4);
                     // }
+
+                    if enable_change_happens_to_single_line {
+                        {
+                            let mut overlap: bool = false;
+                            if let Some(histogram) = histogram_rows.get(y as usize) {
+                                overlap = change_happens_to_single_line_row.is_overlap(histogram);
+                            }
+                            record.serialize_bool_onehot(overlap);
+                        }
+                        {
+                            let mut overlap: bool = false;
+                            if let Some(histogram) = histogram_columns.get(x as usize) {
+                                overlap = change_happens_to_single_line_column.is_overlap(histogram);
+                            }
+                            record.serialize_bool_onehot(overlap);
+                        }
+                    }
 
                     // Future experiments
                     // shape bounding box
