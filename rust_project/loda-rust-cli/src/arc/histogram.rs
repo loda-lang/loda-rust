@@ -212,6 +212,16 @@ impl Histogram {
         }
     }
 
+    /// Extract the colors that are only present in `self`, and set their counters to `1`.
+    /// 
+    /// Performs an operation similar to: `self` AND NOT `other`.
+    pub fn subtract_clamp01(&self, other: &Histogram) -> Histogram {
+        let mut histogram: Histogram = self.clone();
+        histogram.subtract_histogram(other);
+        histogram.clamp01();
+        histogram
+    }
+
     pub fn most_popular(&self) -> HistogramPair {
         let mut found_count: u32 = 0;
         let mut found_index: usize = 0;
@@ -1120,6 +1130,7 @@ mod tests {
         h0.increment(5);
         h0.increment(9);
         h0.increment(13);
+        h0.increment(13);
         let mut h1 = Histogram::new();
         h1.increment(42);
         h1.increment(42);
@@ -1130,6 +1141,32 @@ mod tests {
         // Act
         let mut h: Histogram = h0.clone();
         h.subtract_histogram(&h1);
+        
+        // Assert
+        let pairs: Vec<(u32, u8)> = h.pairs_descending();
+        let expected: Vec<(u32, u8)> = vec![(2, 13), (1, 9)];
+        assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_140001_subtract_clamp01() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+        h0.increment(42);
+        h0.increment(5);
+        h0.increment(9);
+        h0.increment(13);
+        h0.increment(13);
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(5);
+        h1.increment(0);
+
+        // Act
+        let h: Histogram = h0.subtract_clamp01(&h1);
         
         // Assert
         let pairs: Vec<(u32, u8)> = h.pairs_descending();
