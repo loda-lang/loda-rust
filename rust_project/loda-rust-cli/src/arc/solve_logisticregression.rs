@@ -431,11 +431,11 @@ impl SolveLogisticRegression {
             "516b51b7", "5289ad53", "543a7ed5", "54d9e175", "5b526a93", "5b6cbef5", "639f5a19", "6455b5f5", "67385a82", "694f12f3",
             "69889d6e", "6c434453", "6d75e8bb", "6ea4a07e", "6f8cd79b", "72a961c9", "776ffc46", "810b9b61", "84db8fc4", "84f2aca1",
             "868de0fa", "8a371977", "90f3ed37", "913fb3ed", "94f9d214", "95990924", "a2fd1cf0", "a5313dff", "a61f2674", "a65b410d",
-            "a699fb00", "a8d7556c", "a934301b", "a9f96cdd", "aa4ec2a5", "ae3edfdc", "ae58858e", "aedd82e4", "b0c4d837", "b1948b0a",
-            "b230c067", "b2862040", "b60334d2", "b6afb2da", "ba26e723", "bb43febb", "bbb1b8b6", "bbc9ae5d", "bdad9b1f", "c0f76784",
-            "c8f0f002", "ce039d91", "ce22a75a", "ce9e57f2", "d2abd087", "d364b489", "d37a1ef5", "d406998b", "d511f180", "d5d6de2d",
-            "dbc1a6ce", "dc433765", "de1cd16c", "ded97339", "e0fb7511", "e133d23d", "e7dd8335", "e8593010", "e872b94a", "e9c9d9a1",
-            "ef135b50", "f45f5ca7",
+            "a699fb00", "a79310a0", "a8d7556c", "a934301b", "a9f96cdd", "aa4ec2a5", "ae3edfdc", "ae58858e", "aedd82e4", "b0c4d837",
+            "b1948b0a", "b230c067", "b2862040", "b60334d2", "b6afb2da", "ba26e723", "bb43febb", "bbb1b8b6", "bbc9ae5d", "bdad9b1f",
+            "c0f76784", "c8f0f002", "ce039d91", "ce22a75a", "ce9e57f2", "d2abd087", "d364b489", "d37a1ef5", "d406998b", "d511f180",
+            "d5d6de2d", "dbc1a6ce", "dc433765", "de1cd16c", "ded97339", "e0fb7511", "e133d23d", "e7dd8335", "e8593010", "e872b94a",
+            "e9c9d9a1", "ef135b50", "f45f5ca7",
         ];
         let ignore_task_id: HashSet<String> = already_fully_solved_tasks_ids.iter().map(|s| s.to_string()).collect();
         
@@ -943,11 +943,11 @@ impl SolveLogisticRegression {
 
 
         
-        let enable_serialize_color_complex: bool = [true, false, false][v];
-        let enable_serialize_cluster_id_shakeup: bool = [false, true, true][v];
-        let enable_total_clustercount: bool = false;
-        let enable_color_clustercount: bool = [false, true, true][v];
-        let enable_half_context_input_size: bool = [true, true, true][v];
+        let enable_serialize_color_complex: bool = [true, true, false][v];
+        let enable_serialize_cluster_id_shakeup: bool = [false, false, true][v];
+        let enable_total_clustercount: bool = [false, false, false][v];
+        let enable_color_clustercount: bool = [false, false, true][v];
+        let enable_half_context_input_size: bool = [true, false, true][v];
         let enable_half_context_output_size: bool = [false, false, false][v];
         let enable_normalized_coordinates_context_input_size: bool = false;
         let enable_normalized_coordinates_context_output_size: bool = false;
@@ -961,16 +961,16 @@ impl SolveLogisticRegression {
         let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
         let enable_diagonalhistogram: bool = false;
 
-        let enable_histogram_diagonal_a: bool = [false, true, true][v];
-        let enable_histogram_diagonal_b: bool = [false, true, true][v];
+        let enable_histogram_diagonal_a: bool = [false, false, true][v];
+        let enable_histogram_diagonal_b: bool = [false, false, true][v];
         let enable_histogram_diagonal_c: bool = [false, false, false][v];
         let enable_histogram_diagonal_d: bool = [false, false, false][v];
-        let enable_histogram_diagonal_e: bool = false;
-        let enable_histogram_diagonal_f: bool = false;
+        let enable_histogram_diagonal_e: bool = [false, false, false][v];
+        let enable_histogram_diagonal_f: bool = [false, false, false][v];
 
         let enable_center_indicator_a: bool = false;
-        let enable_center_indicator_x: bool = [false, true, false][v];
-        let enable_center_indicator_y: bool = [false, true, false][v];
+        let enable_center_indicator_x: bool = [false, false, false][v];
+        let enable_center_indicator_y: bool = [false, false, false][v];
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
 
         let enable_input_four_xy_pairs: bool = [false, false, false][v];
@@ -979,44 +979,44 @@ impl SolveLogisticRegression {
         let enable_output_three_xy_pairs: bool = false;
         let enable_gravity: bool = false;
 
-        let enable_mod2: bool = [true, false, true][v];
-        let enable_mod2_reverse_input: bool = [true, false, true][v];
-        let enable_mod2_reverse_output: bool = false;
+        let enable_mod2: bool = [true, true, true][v];
+        let enable_mod2_reverse_input: bool = [true, true, true][v];
+        let enable_mod2_reverse_output: bool = [false, has_different_size_for_input_output, false][v];
 
-        let enable_mod3: bool = [false, true, false][v];
-        let enable_mod3_reverse_input: bool = [false, true, false][v];
+        let enable_mod3: bool = [false, false, false][v];
+        let enable_mod3_reverse_input: bool = [false, false, false][v];
         let enable_mod3_reverse_output: bool = [false, false, false][v];
 
-        let enable_hole_type1_center: bool = [true, false, false][v];
-        let enable_hole_type1_all_colors: bool = false;
-        let enable_color_repair: bool = true;
+        let enable_hole_type1_center: bool = [true, true, false][v];
+        let enable_hole_type1_all_colors: bool = [false, true, false][v];
+        let enable_color_repair: bool = [true, false, false][v];
         
         let enable_shape_transformation_images: bool = [false, false, false][v];
         let enable_noisecolor_in_outline: bool = [true, true, false][v];
         let enable_grid: bool = true;
 
-        let enable_enumerated_clusters_grow_mask3: bool = [false, true, true][v];
-        let enable_color_grow_mask1: bool = [false, true, true][v];
-        let enable_color_grow_mask2: bool = [false, true, true][v];
-        let enable_color_grow_mask3: bool = [false, true, true][v];
+        let enable_enumerated_clusters_grow_mask3: bool = [false, false, true][v];
+        let enable_color_grow_mask1: bool = [false, false, true][v];
+        let enable_color_grow_mask2: bool = [false, false, true][v];
+        let enable_color_grow_mask3: bool = [false, false, true][v];
 
         let enable_no_change_to_color: bool = true;
         let enable_no_change_to_center_color: bool = false;
-        let enable_no_change_to_noise_color: bool = [false, true, false][v];
-        let enable_object_center_same_as_neighbour: bool = [false, true, false][v];
+        let enable_no_change_to_noise_color: bool = [false, false, false][v];
+        let enable_object_center_same_as_neighbour: bool = [false, false, false][v];
         let enable_edge: bool = [false, false, false][v];
 
         let enable_color_inside_bounding_box: bool = [true, true, true][v];
-        let enable_object_id_image_connectivity4: bool = [false, true, false][v];
+        let enable_object_id_image_connectivity4: bool = [false, false, false][v];
         let enable_object_id_image_connectivity8: bool = [false, false, false][v];
 
         let enable_trigram_count_center: bool = [false, false, true][v];
         let enable_trigram_count_word1_center: bool = [false, false, true][v];
         let enable_trigram_count_word012_center: bool = [false, false, true][v];
 
-        let enable_full_row_and_column: bool = [true, false, false][v];
-        let enable_full_row_xor_column: bool = [true, false, false][v];
-        let enable_full_row_or_column: bool = [true, false, false][v];
+        let enable_full_row_and_column: bool = [true, true, false][v];
+        let enable_full_row_xor_column: bool = [true, true, false][v];
+        let enable_full_row_or_column: bool = [true, true, false][v];
         let enable_full_row: bool = [false, true, false][v];
         let enable_full_column: bool = [false, true, false][v];
 
@@ -1027,16 +1027,16 @@ impl SolveLogisticRegression {
         let enable_histogram_columns_rows_get_color: bool = [true, true, true][v];
         let enable_histogram_columns_rows_lookaround: bool = [false, true, true][v];
 
-        let enable_exterior_of_clusters: bool = [false, true, true][v];
+        let enable_exterior_of_clusters: bool = [false, false, true][v];
         let enable_largest_interior_rectangle_masks: bool = [false, false, false][v];
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
 
         let enable_scale_widthheight: bool = has_different_size_for_input_output;
-        let enable_check_pixel_in_histogram: bool = false;
-        let enable_nearest_color: bool = false;
-        let enable_colordirection_to_distanceimage: bool = [false, true, true][v];
-        let enable_neighbour_color: bool = false;
+        let enable_check_pixel_in_histogram: bool = [false, true, false][v];
+        let enable_nearest_color: bool = [false, true, false][v];
+        let enable_colordirection_to_distanceimage: bool = [false, false, true][v];
+        let enable_neighbour_color: bool = [false, true, false][v];
         let enable_adjacent_neighbour_same_as_center: bool = false;
         let enable_opposite_neighbour: bool = [false, false, false][v];
         let enable_removal_color_center: bool = false;
@@ -1050,7 +1050,7 @@ impl SolveLogisticRegression {
         let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
         let enable_gameoflife: bool = false;
         let enable_nonbackground_different_than_most_popular_color: bool = false;
-        let enable_shape3x3_input: bool = true;
+        let enable_shape3x3_input: bool = [true, false, false][v];
         let enable_shape3x3_input_nonbackground: bool = false;
         let enable_shape3x3_output: bool = false;
 
@@ -1068,21 +1068,21 @@ impl SolveLogisticRegression {
         let enable_earlier_prediction_shapetype45_connectivity8: bool = false;
 
         let enable_histogram_column_row_count: bool = false;
-        let enable_cluster_distance1_all_colors: bool = [false, true, false][v];
+        let enable_cluster_distance1_all_colors: bool = [false, false, false][v];
         let enable_cluster_distance2_all_colors: bool = [false, false, true][v];
-        let enable_min_inbetween_max_inside_shape_connectivity4: bool = false;
+        let enable_min_inbetween_max_inside_shape_connectivity4: bool = [false, true, false][v];
         let enable_earlier_prediction_mass_connectivity4: bool = false;
         let enable_earlier_prediction_mass_connectivity8: bool = false;
-        let enable_change_happens_to_single_line: bool = false;
-        let enable_change_happens_to_single_line_row_or_column: bool = false;
-        let enable_change_happens_to_single_line_diagonal: bool = false;
-        let enable_change_happens_to_single_line_some_diagonal: bool = false;
-        let enable_change_happens_to_single_line_any_45degree_angle: bool = false;
-        let enable_nochange_happens_to_single_line: bool = false;
-        let enable_nochange_happens_to_single_line_row_or_column: bool = false;
-        let enable_nochange_happens_to_single_line_diagonal: bool = false;
-        let enable_nochange_happens_to_single_line_some_diagonal: bool = false;
-        let enable_nochange_happens_to_single_line_any_45degree_angle: bool = false;
+        let enable_change_happens_to_single_line: bool = [false, true, false][v];
+        let enable_change_happens_to_single_line_row_or_column: bool = [false, true, false][v];
+        let enable_change_happens_to_single_line_diagonal: bool = [false, true, false][v];
+        let enable_change_happens_to_single_line_some_diagonal: bool = [false, true, false][v];
+        let enable_change_happens_to_single_line_any_45degree_angle: bool = [false, true, false][v];
+        let enable_nochange_happens_to_single_line: bool = [false, true, false][v];
+        let enable_nochange_happens_to_single_line_row_or_column: bool = [false, true, false][v];
+        let enable_nochange_happens_to_single_line_diagonal: bool = [false, true, false][v];
+        let enable_nochange_happens_to_single_line_some_diagonal: bool = [false, true, false][v];
+        let enable_nochange_happens_to_single_line_any_45degree_angle: bool = [false, true, false][v];
 
         let enable_histogram_diagonal: bool = 
             enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || 
@@ -6171,8 +6171,8 @@ impl SolveLogisticRegression {
                                 possible_colors = change_happens_to_single_line_row.intersection(histogram);
                             }
                             for color in 0..=9u8 {
-                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                                record.serialize_bool(possible_colors.get(color) > 0);
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
                             }
                         }
                         {
@@ -6181,8 +6181,8 @@ impl SolveLogisticRegression {
                                 possible_colors = change_happens_to_single_line_column.intersection(histogram);
                             }
                             for color in 0..=9u8 {
-                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                                record.serialize_bool(possible_colors.get(color) > 0);
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
                             }
                         }
                     }
@@ -6196,8 +6196,8 @@ impl SolveLogisticRegression {
                             possible_colors.add_histogram(&change_happens_to_single_line_column.intersection(histogram));
                         }
                         for color in 0..=9u8 {
-                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                            record.serialize_bool(possible_colors.get(color) > 0);
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
                         }
                     }
 
@@ -6208,8 +6208,8 @@ impl SolveLogisticRegression {
                                 possible_colors = change_happens_to_single_line_diagonal_a.intersection(histogram);
                             }
                             for color in 0..=9u8 {
-                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                                record.serialize_bool(possible_colors.get(color) > 0);
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
                             }
                         }
                         if let Some(diagonal_histogram) = &histogram_diagonal_b {
@@ -6218,8 +6218,8 @@ impl SolveLogisticRegression {
                                 possible_colors = change_happens_to_single_line_diagonal_b.intersection(histogram);
                             }
                             for color in 0..=9u8 {
-                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                                record.serialize_bool(possible_colors.get(color) > 0);
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
                             }
                         }
                     }
@@ -6237,8 +6237,8 @@ impl SolveLogisticRegression {
                             }
                         }
                         for color in 0..=9u8 {
-                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                            record.serialize_bool(possible_colors.get(color) > 0);
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
                         }
                     }
 
@@ -6261,8 +6261,8 @@ impl SolveLogisticRegression {
                             }
                         }
                         for color in 0..=9u8 {
-                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                            record.serialize_bool(possible_colors.get(color) > 0);
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
                         }
                     }
 
@@ -6283,8 +6283,8 @@ impl SolveLogisticRegression {
                                 possible_colors = nochange_happens_to_single_line_column.intersection(histogram);
                             }
                             for color in 0..=9u8 {
-                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                                record.serialize_bool(possible_colors.get(color) > 0);
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
                             }
                         }
                     }
@@ -6298,8 +6298,8 @@ impl SolveLogisticRegression {
                             possible_colors.add_histogram(&nochange_happens_to_single_line_column.intersection(histogram));
                         }
                         for color in 0..=9u8 {
-                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                            record.serialize_bool(possible_colors.get(color) > 0);
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
                         }
                     }
 
@@ -6320,8 +6320,8 @@ impl SolveLogisticRegression {
                                 possible_colors = nochange_happens_to_single_line_diagonal_b.intersection(histogram);
                             }
                             for color in 0..=9u8 {
-                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                                record.serialize_bool(possible_colors.get(color) > 0);
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
                             }
                         }
                     }
@@ -6339,8 +6339,8 @@ impl SolveLogisticRegression {
                             }
                         }
                         for color in 0..=9u8 {
-                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                            record.serialize_bool(possible_colors.get(color) > 0);
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
                         }
                     }
 
@@ -6363,8 +6363,8 @@ impl SolveLogisticRegression {
                             }
                         }
                         for color in 0..=9u8 {
-                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
-                            record.serialize_bool(possible_colors.get(color) > 0);
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
                         }
                     }
 
