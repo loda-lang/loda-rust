@@ -309,10 +309,11 @@ pub enum ChangeItem {
     SingleLineRow, // there is a change somewhere inside the row when encountering a Red pixel.
     SingleLineColumn, // there is a change somewhere inside the column when encountering a Red pixel.
     SingleLineRowOrColumn, // there is a change somewhere inside the row or column when encountering a Red pixel.
+    SingleLineDiagonalA, // there is a change somewhere inside the DiagonalA when encountering a Red pixel.
+    SingleLineDiagonalB, // there is a change somewhere inside the DiagonalB when encountering a Red pixel.
+    SingleLineSomeDiagonal, // there is a change somewhere inside the DiagonalA or DiagonalB when encountering a Red pixel.
 
     // Future experiments
-    // SingleLineDiagonalA, there is a change somewhere inside the DiagonalA when encountering a Red pixel.
-    // SingleLineDiagonalB, there is a change somewhere inside the DiagonalB when encountering a Red pixel.
     // SingleLineRowLeft, does the row change only on the left side of the Red pixel.
     // SingleLineRowRight, does the row change only on the right side of the Red pixel.
     // SingleLineColumnTop, does the column change only on the above the Red pixel.

@@ -349,6 +349,38 @@ impl arc_work_model::Pair {
             }
         }
 
+        if let Ok(histogram) = compare.single_line_diagonal_a() {
+            for color in 0..=9u8 {
+                if histogram.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineDiagonalA, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineSomeDiagonal, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+        }
+
+        if let Ok(histogram) = compare.single_line_diagonal_b() {
+            for color in 0..=9u8 {
+                if histogram.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineDiagonalB, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineSomeDiagonal, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+        }
+
         Ok(())
     }
 
