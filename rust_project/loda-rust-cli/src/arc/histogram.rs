@@ -181,6 +181,18 @@ impl Histogram {
         }
     }
 
+    /// Finds the `intersection` between two histograms, similar to performing an `AND` operation.
+    /// 
+    /// The counter is `1` when the color is present in both histograms.
+    /// 
+    /// Otherwise the counter is `0`.
+    #[allow(dead_code)]
+    pub fn intersection(&self, other: &Histogram) -> Histogram {
+        let mut result: Histogram = self.clone();
+        result.intersection_histogram(other);
+        result
+    }
+
     /// Clear counters where the other histogram has non-zero counters.
     /// 
     /// Performs an operation similar to: `self` AND NOT `other`.
@@ -1048,6 +1060,30 @@ mod tests {
         // Act
         let mut h: Histogram = h0.clone();
         h.intersection_histogram(&h1);
+        
+        // Assert
+        let pairs: Vec<(u32, u8)> = h.pairs_descending();
+        let expected: Vec<(u32, u8)> = vec![(1, 42), (1, 5)];
+        assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_130001_intersection() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+        h0.increment(42);
+        h0.increment(5);
+        h0.increment(9);
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(5);
+        h1.increment(0);
+
+        // Act
+        let h: Histogram = h0.intersection(&h1);
         
         // Assert
         let pairs: Vec<(u32, u8)> = h.pairs_descending();
