@@ -1078,11 +1078,17 @@ impl SolveLogisticRegression {
         let enable_change_happens_to_single_line_diagonal: bool = false;
         let enable_change_happens_to_single_line_some_diagonal: bool = false;
         let enable_change_happens_to_single_line_any_45degree_angle: bool = false;
+        let enable_nochange_happens_to_single_line: bool = false;
+        let enable_nochange_happens_to_single_line_row_or_column: bool = false;
+        let enable_nochange_happens_to_single_line_diagonal: bool = false;
+        let enable_nochange_happens_to_single_line_some_diagonal: bool = false;
+        let enable_nochange_happens_to_single_line_any_45degree_angle: bool = false;
 
         let enable_histogram_diagonal: bool = 
             enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || 
             enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f ||
-            enable_change_happens_to_single_line_diagonal || enable_change_happens_to_single_line_some_diagonal || enable_change_happens_to_single_line_any_45degree_angle;
+            enable_change_happens_to_single_line_diagonal || enable_change_happens_to_single_line_some_diagonal || enable_change_happens_to_single_line_any_45degree_angle ||
+            enable_nochange_happens_to_single_line_diagonal || enable_nochange_happens_to_single_line_some_diagonal || enable_nochange_happens_to_single_line_any_45degree_angle;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1244,6 +1250,44 @@ impl SolveLogisticRegression {
                         },
                         ChangeItem::SingleLineAny45DegreeAngle => {
                             change_happens_to_single_line_any_45_degree_angle.increment(*color);
+                        },
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        let mut nochange_happens_to_single_line_row = Histogram::new();
+        let mut nochange_happens_to_single_line_column = Histogram::new();
+        let mut nochange_happens_to_single_line_row_or_column = Histogram::new();
+        let mut nochange_happens_to_single_line_diagonal_a = Histogram::new();
+        let mut nochange_happens_to_single_line_diagonal_b = Histogram::new();
+        let mut nochange_happens_to_single_line_some_diagonal = Histogram::new();
+        let mut nochange_happens_to_single_line_any_45_degree_angle = Histogram::new();
+        for label in &task.action_label_set_intersection {
+            match label {
+                ActionLabel::NoChangeHappensToItemWithColor { item, color } => {
+                    match *item {
+                        ChangeItem::SingleLineRow => {
+                            nochange_happens_to_single_line_row.increment(*color);
+                        },
+                        ChangeItem::SingleLineColumn => {
+                            nochange_happens_to_single_line_column.increment(*color);
+                        },
+                        ChangeItem::SingleLineRowOrColumn => {
+                            nochange_happens_to_single_line_row_or_column.increment(*color);
+                        },
+                        ChangeItem::SingleLineDiagonalA => {
+                            nochange_happens_to_single_line_diagonal_a.increment(*color);
+                        },
+                        ChangeItem::SingleLineDiagonalB => {
+                            nochange_happens_to_single_line_diagonal_b.increment(*color);
+                        },
+                        ChangeItem::SingleLineSomeDiagonal => {
+                            nochange_happens_to_single_line_some_diagonal.increment(*color);
+                        },
+                        ChangeItem::SingleLineAny45DegreeAngle => {
+                            nochange_happens_to_single_line_any_45_degree_angle.increment(*color);
                         },
                     }
                 },
@@ -6214,6 +6258,108 @@ impl SolveLogisticRegression {
                         if let Some(diagonal_histogram) = &histogram_diagonal_b {
                             if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
                                 possible_colors.add_histogram(&change_happens_to_single_line_some_diagonal.intersection(histogram));
+                            }
+                        }
+                        for color in 0..=9u8 {
+                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            record.serialize_bool(possible_colors.get(color) > 0);
+                        }
+                    }
+
+                    if enable_nochange_happens_to_single_line {
+                        {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = histogram_rows.get(y as usize) {
+                                possible_colors = nochange_happens_to_single_line_row.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                        {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = histogram_columns.get(x as usize) {
+                                possible_colors = nochange_happens_to_single_line_column.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                    }
+
+                    if enable_nochange_happens_to_single_line_row_or_column {
+                        let mut possible_colors: Histogram = Histogram::new();
+                        if let Some(histogram) = histogram_rows.get(y as usize) {
+                            possible_colors = nochange_happens_to_single_line_row.intersection(histogram);
+                        }
+                        if let Some(histogram) = histogram_columns.get(x as usize) {
+                            possible_colors.add_histogram(&nochange_happens_to_single_line_column.intersection(histogram));
+                        }
+                        for color in 0..=9u8 {
+                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            record.serialize_bool(possible_colors.get(color) > 0);
+                        }
+                    }
+
+                    if enable_nochange_happens_to_single_line_diagonal {
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors = nochange_happens_to_single_line_diagonal_a.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors = nochange_happens_to_single_line_diagonal_b.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                    }
+
+                    if enable_nochange_happens_to_single_line_some_diagonal {
+                        let mut possible_colors: Histogram = Histogram::new();
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors = nochange_happens_to_single_line_some_diagonal.intersection(histogram);
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors.add_histogram(&nochange_happens_to_single_line_some_diagonal.intersection(histogram));
+                            }
+                        }
+                        for color in 0..=9u8 {
+                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            record.serialize_bool(possible_colors.get(color) > 0);
+                        }
+                    }
+
+                    if enable_nochange_happens_to_single_line_any_45degree_angle {
+                        let mut possible_colors: Histogram = Histogram::new();
+                        if let Some(histogram) = histogram_rows.get(y as usize) {
+                            possible_colors = nochange_happens_to_single_line_row_or_column.intersection(histogram);
+                        }
+                        if let Some(histogram) = histogram_columns.get(x as usize) {
+                            possible_colors.add_histogram(&nochange_happens_to_single_line_row_or_column.intersection(histogram));
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors.add_histogram(&nochange_happens_to_single_line_some_diagonal.intersection(histogram));
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors.add_histogram(&nochange_happens_to_single_line_some_diagonal.intersection(histogram));
                             }
                         }
                         for color in 0..=9u8 {
