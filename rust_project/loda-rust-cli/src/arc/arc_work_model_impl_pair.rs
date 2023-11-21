@@ -292,7 +292,7 @@ impl arc_work_model::Pair {
             }
         }
 
-        _ = self.analyze_change_with_color();
+        _ = self.analyze_change_nochange_with_color();
         _ = self.analyze_histogram_rowcolumn_sameness();
         _ = self.analyze_preservation_of_corners();
         _ = self.analyze_preservation_of_edges();
@@ -304,7 +304,7 @@ impl arc_work_model::Pair {
         _ = self.analyze_input_output_color_relationship();
     }
 
-    fn analyze_change_with_color(&mut self) -> anyhow::Result<()> {
+    fn analyze_change_nochange_with_color(&mut self) -> anyhow::Result<()> {
         let input: &Image = &self.input.image;
         let output: &Image = &self.output.image;
         let image_size: ImageSize = input.size();
@@ -316,7 +316,7 @@ impl arc_work_model::Pair {
         let compare: CompareInputOutput = CompareInputOutput::create(input, output)?;
 
         {
-            let (change, _nochange) = compare.single_line_row();
+            let (change, nochange) = compare.single_line_row();
             for color in 0..=9u8 {
                 if change.get(color) == 0 {
                     continue;
@@ -334,10 +334,27 @@ impl arc_work_model::Pair {
                     self.action_label_set.insert(label);
                 }
             }
+            for color in 0..=9u8 {
+                if nochange.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineRow, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineRowOrColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
         }
 
         {
-            let (change, _nochange) = compare.single_line_column();
+            let (change, nochange) = compare.single_line_column();
             for color in 0..=9u8 {
                 if change.get(color) == 0 {
                     continue;
@@ -355,9 +372,26 @@ impl arc_work_model::Pair {
                     self.action_label_set.insert(label);
                 }
             }
+            for color in 0..=9u8 {
+                if nochange.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineRowOrColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
         }
 
-        if let Ok((change, _nochange)) = compare.single_line_diagonal_a() {
+        if let Ok((change, nochange)) = compare.single_line_diagonal_a() {
             for color in 0..=9u8 {
                 if change.get(color) == 0 {
                     continue;
@@ -375,9 +409,26 @@ impl arc_work_model::Pair {
                     self.action_label_set.insert(label);
                 }
             }
+            for color in 0..=9u8 {
+                if nochange.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineDiagonalA, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineSomeDiagonal, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
         }
 
-        if let Ok((change, _nochange)) = compare.single_line_diagonal_b() {
+        if let Ok((change, nochange)) = compare.single_line_diagonal_b() {
             for color in 0..=9u8 {
                 if change.get(color) == 0 {
                     continue;
@@ -392,6 +443,23 @@ impl arc_work_model::Pair {
                 }
                 {
                     let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+            for color in 0..=9u8 {
+                if nochange.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineDiagonalB, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineSomeDiagonal, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
                     self.action_label_set.insert(label);
                 }
             }

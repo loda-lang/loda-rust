@@ -428,13 +428,13 @@ pub enum ActionLabel {
     /// Example: If Red is present in the input row, then the output row gets some kind of modification.
     ChangeHappensToItemWithColor { item: ChangeItem, color: u8 },
 
+    /// The output is an exact copy of the input, whenever a particular color occur.
+    /// Example: If Red is present in the input row, then the output row is a copy of the input.
+    NoChangeHappensToItemWithColor { item: ChangeItem, color: u8 },
+
     // Ideas for more
     // ChangeHappensToItemWithSpecialColor { item: ChangeItem, color: SpecialColor }, // where SpecialColor is most popular, least popular, noise color, grid color.
-    // NoChangeHappensToItemWithColor { item: NoChangeItem, color: u8 }, // where item is row, column, diagonal a, diagonal b.
-    // NoChangeHappensToRowsWithColor { color: u8 },
-    // NoChangeHappensToColumnsWithColor { color: u8 },
-    // NoChangeHappensToDiagonalAWithColor { color: u8 },
-    // NoChangeHappensToDiagonalBWithColor { color: u8 },
+    // NoChangeHappensToItemWithSpecialColor { item: ChangeItem, color: SpecialColor }, // where SpecialColor is most popular, least popular, noise color, grid color.
     // PeriodicityXIgnoringBackgroundColor { period: u8 },
     // PeriodicityYIgnoringBackgroundColor { period: u8 },
     // HistogramNoChangeInDirectionDiagonalA,
