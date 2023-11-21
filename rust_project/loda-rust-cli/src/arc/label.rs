@@ -422,7 +422,8 @@ pub enum ActionLabel {
     /// Preserves content, but the ordering of the columns or rows are changed.
     ChangesOrderOfColumnsOrRows,
 
-    /// The input gets changed whenever a particular color occur.
+    /// The output is not an exact copy of the input, whenever a particular color occur.
+    /// Example: If Red is present in the input row, then the output row gets some kind of modification.
     ChangeHappensToItemWithColor { item: ChangeItem, color: u8 },
 
     // Ideas for more
