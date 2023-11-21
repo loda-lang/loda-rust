@@ -312,6 +312,7 @@ pub enum ChangeItem {
     SingleLineDiagonalA, // there is a change somewhere inside the DiagonalA when encountering a Red pixel.
     SingleLineDiagonalB, // there is a change somewhere inside the DiagonalB when encountering a Red pixel.
     SingleLineSomeDiagonal, // there is a change somewhere inside the DiagonalA or DiagonalB when encountering a Red pixel.
+    SingleLineAny45DegreeAngle, // there is a change somewhere inside the row/column/diagonals when encountering a Red pixel.
 
     // Future experiments
     // SingleLineRowLeft, does the row change only on the left side of the Red pixel.
@@ -428,6 +429,7 @@ pub enum ActionLabel {
     ChangeHappensToItemWithColor { item: ChangeItem, color: u8 },
 
     // Ideas for more
+    // ChangeHappensToItemWithSpecialColor { item: ChangeItem, color: SpecialColor }, // where SpecialColor is most popular, least popular, noise color, grid color.
     // NoChangeHappensToItemWithColor { item: NoChangeItem, color: u8 }, // where item is row, column, diagonal a, diagonal b.
     // NoChangeHappensToRowsWithColor { color: u8 },
     // NoChangeHappensToColumnsWithColor { color: u8 },

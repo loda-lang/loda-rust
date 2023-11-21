@@ -1059,11 +1059,13 @@ impl SolveLogisticRegression {
         let enable_change_happens_to_single_line: bool = false;
         let enable_change_happens_to_single_line_row_or_column: bool = false;
         let enable_change_happens_to_single_line_diagonal: bool = false;
+        let enable_change_happens_to_single_line_some_diagonal: bool = false;
+        let enable_change_happens_to_single_line_any_45degree_angle: bool = false;
 
         let enable_histogram_diagonal: bool = 
             enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || 
             enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f ||
-            enable_change_happens_to_single_line_diagonal;
+            enable_change_happens_to_single_line_diagonal || enable_change_happens_to_single_line_some_diagonal || enable_change_happens_to_single_line_any_45degree_angle;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1200,6 +1202,7 @@ impl SolveLogisticRegression {
         let mut change_happens_to_single_line_diagonal_a = Histogram::new();
         let mut change_happens_to_single_line_diagonal_b = Histogram::new();
         let mut change_happens_to_single_line_some_diagonal = Histogram::new();
+        let mut change_happens_to_single_line_any_45_degree_angle = Histogram::new();
         for label in &task.action_label_set_intersection {
             match label {
                 ActionLabel::ChangeHappensToItemWithColor { item, color } => {
@@ -1221,6 +1224,9 @@ impl SolveLogisticRegression {
                         },
                         ChangeItem::SingleLineSomeDiagonal => {
                             change_happens_to_single_line_some_diagonal.increment(*color);
+                        },
+                        ChangeItem::SingleLineAny45DegreeAngle => {
+                            change_happens_to_single_line_any_45_degree_angle.increment(*color);
                         },
                     }
                 },
@@ -6121,7 +6127,7 @@ impl SolveLogisticRegression {
                                 overlap = change_happens_to_single_line_row_or_column.is_overlap(histogram);
                             }
                             if let Some(histogram) = histogram_columns.get(x as usize) {
-                                overlap = change_happens_to_single_line_row_or_column.is_overlap(histogram);
+                                overlap = overlap || change_happens_to_single_line_row_or_column.is_overlap(histogram);
                             }
                             record.serialize_bool_onehot(overlap);
                         }
@@ -6142,6 +6148,42 @@ impl SolveLogisticRegression {
                             }
                             record.serialize_bool_onehot(overlap);
                         }
+                    }
+
+                    if enable_change_happens_to_single_line_some_diagonal {
+                        let mut overlap: bool = false;
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                overlap = change_happens_to_single_line_some_diagonal.is_overlap(histogram);
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                overlap = overlap || change_happens_to_single_line_some_diagonal.is_overlap(histogram);
+                            }
+                        }
+                        record.serialize_bool_onehot(overlap);
+                    }
+
+                    if enable_change_happens_to_single_line_any_45degree_angle {
+                        let mut overlap: bool = false;
+                        if let Some(histogram) = histogram_rows.get(y as usize) {
+                            overlap = change_happens_to_single_line_row_or_column.is_overlap(histogram);
+                        }
+                        if let Some(histogram) = histogram_columns.get(x as usize) {
+                            overlap = overlap || change_happens_to_single_line_row_or_column.is_overlap(histogram);
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                overlap = overlap || change_happens_to_single_line_some_diagonal.is_overlap(histogram);
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                overlap = overlap || change_happens_to_single_line_some_diagonal.is_overlap(histogram);
+                            }
+                        }
+                        record.serialize_bool_onehot(overlap);
                     }
 
                     // Future experiments

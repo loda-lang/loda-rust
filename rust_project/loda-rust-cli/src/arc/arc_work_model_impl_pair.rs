@@ -329,6 +329,10 @@ impl arc_work_model::Pair {
                     let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineRowOrColumn, color };
                     self.action_label_set.insert(label);
                 }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
             }
         }
 
@@ -344,6 +348,10 @@ impl arc_work_model::Pair {
                 }
                 {
                     let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineRowOrColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
                     self.action_label_set.insert(label);
                 }
             }
@@ -362,6 +370,10 @@ impl arc_work_model::Pair {
                     let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineSomeDiagonal, color };
                     self.action_label_set.insert(label);
                 }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
             }
         }
 
@@ -376,6 +388,10 @@ impl arc_work_model::Pair {
                 }
                 {
                     let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineSomeDiagonal, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
                     self.action_label_set.insert(label);
                 }
             }
