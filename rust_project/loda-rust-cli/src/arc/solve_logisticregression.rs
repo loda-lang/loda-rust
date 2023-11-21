@@ -6105,85 +6105,104 @@ impl SolveLogisticRegression {
 
                     if enable_change_happens_to_single_line {
                         {
-                            let mut overlap: bool = false;
+                            let mut possible_colors: Histogram = Histogram::new();
                             if let Some(histogram) = histogram_rows.get(y as usize) {
-                                overlap = change_happens_to_single_line_row.is_overlap(histogram);
+                                possible_colors = change_happens_to_single_line_row.intersection(histogram);
                             }
-                            record.serialize_bool_onehot(overlap);
+                            for color in 0..=9u8 {
+                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                record.serialize_bool(possible_colors.get(color) > 0);
+                            }
                         }
                         {
-                            let mut overlap: bool = false;
+                            let mut possible_colors: Histogram = Histogram::new();
                             if let Some(histogram) = histogram_columns.get(x as usize) {
-                                overlap = change_happens_to_single_line_column.is_overlap(histogram);
+                                possible_colors = change_happens_to_single_line_column.intersection(histogram);
                             }
-                            record.serialize_bool_onehot(overlap);
+                            for color in 0..=9u8 {
+                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                record.serialize_bool(possible_colors.get(color) > 0);
+                            }
                         }
                     }
 
                     if enable_change_happens_to_single_line_row_or_column {
-                        {
-                            let mut overlap: bool = false;
-                            if let Some(histogram) = histogram_rows.get(y as usize) {
-                                overlap = change_happens_to_single_line_row_or_column.is_overlap(histogram);
-                            }
-                            if let Some(histogram) = histogram_columns.get(x as usize) {
-                                overlap = overlap || change_happens_to_single_line_row_or_column.is_overlap(histogram);
-                            }
-                            record.serialize_bool_onehot(overlap);
+                        let mut possible_colors: Histogram = Histogram::new();
+                        if let Some(histogram) = histogram_rows.get(y as usize) {
+                            possible_colors = change_happens_to_single_line_row.intersection(histogram);
+                        }
+                        if let Some(histogram) = histogram_columns.get(x as usize) {
+                            possible_colors.add_histogram(&change_happens_to_single_line_column.intersection(histogram));
+                        }
+                        for color in 0..=9u8 {
+                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            record.serialize_bool(possible_colors.get(color) > 0);
                         }
                     }
 
                     if enable_change_happens_to_single_line_diagonal {
                         if let Some(diagonal_histogram) = &histogram_diagonal_a {
-                            let mut overlap: bool = false;
+                            let mut possible_colors: Histogram = Histogram::new();
                             if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
-                                overlap = change_happens_to_single_line_diagonal_a.is_overlap(histogram);
+                                possible_colors = change_happens_to_single_line_diagonal_a.intersection(histogram);
                             }
-                            record.serialize_bool_onehot(overlap);
+                            for color in 0..=9u8 {
+                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                record.serialize_bool(possible_colors.get(color) > 0);
+                            }
                         }
                         if let Some(diagonal_histogram) = &histogram_diagonal_b {
-                            let mut overlap: bool = false;
+                            let mut possible_colors: Histogram = Histogram::new();
                             if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
-                                overlap = change_happens_to_single_line_diagonal_b.is_overlap(histogram);
+                                possible_colors = change_happens_to_single_line_diagonal_b.intersection(histogram);
                             }
-                            record.serialize_bool_onehot(overlap);
+                            for color in 0..=9u8 {
+                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                record.serialize_bool(possible_colors.get(color) > 0);
+                            }
                         }
                     }
 
                     if enable_change_happens_to_single_line_some_diagonal {
-                        let mut overlap: bool = false;
+                        let mut possible_colors: Histogram = Histogram::new();
                         if let Some(diagonal_histogram) = &histogram_diagonal_a {
                             if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
-                                overlap = change_happens_to_single_line_some_diagonal.is_overlap(histogram);
+                                possible_colors = change_happens_to_single_line_some_diagonal.intersection(histogram);
                             }
                         }
                         if let Some(diagonal_histogram) = &histogram_diagonal_b {
                             if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
-                                overlap = overlap || change_happens_to_single_line_some_diagonal.is_overlap(histogram);
+                                possible_colors.add_histogram(&change_happens_to_single_line_some_diagonal.intersection(histogram));
                             }
                         }
-                        record.serialize_bool_onehot(overlap);
+                        for color in 0..=9u8 {
+                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            record.serialize_bool(possible_colors.get(color) > 0);
+                        }
                     }
 
                     if enable_change_happens_to_single_line_any_45degree_angle {
-                        let mut overlap: bool = false;
+                        let mut possible_colors: Histogram = Histogram::new();
                         if let Some(histogram) = histogram_rows.get(y as usize) {
-                            overlap = change_happens_to_single_line_row_or_column.is_overlap(histogram);
+                            possible_colors = change_happens_to_single_line_row_or_column.intersection(histogram);
                         }
                         if let Some(histogram) = histogram_columns.get(x as usize) {
-                            overlap = overlap || change_happens_to_single_line_row_or_column.is_overlap(histogram);
+                            possible_colors.add_histogram(&change_happens_to_single_line_row_or_column.intersection(histogram));
                         }
                         if let Some(diagonal_histogram) = &histogram_diagonal_a {
                             if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
-                                overlap = overlap || change_happens_to_single_line_some_diagonal.is_overlap(histogram);
+                                possible_colors.add_histogram(&change_happens_to_single_line_some_diagonal.intersection(histogram));
                             }
                         }
                         if let Some(diagonal_histogram) = &histogram_diagonal_b {
                             if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
-                                overlap = overlap || change_happens_to_single_line_some_diagonal.is_overlap(histogram);
+                                possible_colors.add_histogram(&change_happens_to_single_line_some_diagonal.intersection(histogram));
                             }
                         }
-                        record.serialize_bool_onehot(overlap);
+                        for color in 0..=9u8 {
+                            // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            record.serialize_bool(possible_colors.get(color) > 0);
+                        }
                     }
 
                     // Future experiments
