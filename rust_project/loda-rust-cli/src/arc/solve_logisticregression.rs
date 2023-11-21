@@ -950,7 +950,6 @@ impl SolveLogisticRegression {
         let enable_histogram_diagonal_d: bool = [false, false, false][v];
         let enable_histogram_diagonal_e: bool = false;
         let enable_histogram_diagonal_f: bool = false;
-        let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
 
         let enable_center_indicator_a: bool = false;
         let enable_center_indicator_x: bool = [false, true, false][v];
@@ -1059,6 +1058,12 @@ impl SolveLogisticRegression {
         let enable_earlier_prediction_mass_connectivity8: bool = false;
         let enable_change_happens_to_single_line: bool = false;
         let enable_change_happens_to_single_line_row_or_column: bool = false;
+        let enable_change_happens_to_single_line_diagonal: bool = true;
+
+        let enable_histogram_diagonal: bool = 
+            enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || 
+            enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f ||
+            enable_change_happens_to_single_line_diagonal;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1192,6 +1197,9 @@ impl SolveLogisticRegression {
         let mut change_happens_to_single_line_row = Histogram::new();
         let mut change_happens_to_single_line_column = Histogram::new();
         let mut change_happens_to_single_line_row_or_column = Histogram::new();
+        let mut change_happens_to_single_line_diagonal_a = Histogram::new();
+        let mut change_happens_to_single_line_diagonal_b = Histogram::new();
+        let mut change_happens_to_single_line_some_diagonal = Histogram::new();
         for label in &task.action_label_set_intersection {
             match label {
                 ActionLabel::ChangeHappensToItemWithColor { item, color } => {
@@ -1204,6 +1212,15 @@ impl SolveLogisticRegression {
                         },
                         ChangeItem::SingleLineRowOrColumn => {
                             change_happens_to_single_line_row_or_column.increment(*color);
+                        },
+                        ChangeItem::SingleLineDiagonalA => {
+                            change_happens_to_single_line_diagonal_a.increment(*color);
+                        },
+                        ChangeItem::SingleLineDiagonalB => {
+                            change_happens_to_single_line_diagonal_b.increment(*color);
+                        },
+                        ChangeItem::SingleLineSomeDiagonal => {
+                            change_happens_to_single_line_some_diagonal.increment(*color);
                         },
                     }
                 },
@@ -6105,6 +6122,23 @@ impl SolveLogisticRegression {
                             }
                             if let Some(histogram) = histogram_columns.get(x as usize) {
                                 overlap = change_happens_to_single_line_row_or_column.is_overlap(histogram);
+                            }
+                            record.serialize_bool_onehot(overlap);
+                        }
+                    }
+
+                    if enable_change_happens_to_single_line_diagonal {
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            let mut overlap: bool = false;
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                overlap = change_happens_to_single_line_diagonal_a.is_overlap(histogram);
+                            }
+                            record.serialize_bool_onehot(overlap);
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            let mut overlap: bool = false;
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                overlap = change_happens_to_single_line_diagonal_b.is_overlap(histogram);
                             }
                             record.serialize_bool_onehot(overlap);
                         }
