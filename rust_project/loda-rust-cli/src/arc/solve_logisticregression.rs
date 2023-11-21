@@ -1058,7 +1058,7 @@ impl SolveLogisticRegression {
         let enable_earlier_prediction_mass_connectivity8: bool = false;
         let enable_change_happens_to_single_line: bool = false;
         let enable_change_happens_to_single_line_row_or_column: bool = false;
-        let enable_change_happens_to_single_line_diagonal: bool = true;
+        let enable_change_happens_to_single_line_diagonal: bool = false;
 
         let enable_histogram_diagonal: bool = 
             enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || 
