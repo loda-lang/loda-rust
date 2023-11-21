@@ -1,4 +1,8 @@
-//! Fingerprint of what colors are present in the rows/columns/diagonals that gets changes between input and output.
+//! Fingerprint of what colors are present in the rows/columns/diagonals.
+//! 
+//! Example when the Red color is present, then we know that the column doesn't change between input and output.
+//! 
+//! Example when the Blue or Yellow colors are present, then we know that DiagonalA changes between input and output.
 use super::{Histogram, Image, ImageCompare, ImageSize, ImageHistogram, ImageSkew};
 use anyhow::Context;
 
@@ -31,7 +35,7 @@ impl CompareInputOutput {
         Ok(instance)
     }
 
-    /// Fingerprint of what colors are present in rows.
+    /// Fingerprint of what colors impacts the rows.
     pub fn single_line_row(&self) -> (Histogram, Histogram) {
         let histogram_rows: Vec<Histogram> = self.input.histogram_rows();
         let mut histogram_change = Histogram::new();
@@ -57,34 +61,30 @@ impl CompareInputOutput {
         Self::remove_overlap(&histogram_change, &histogram_nochange)
     }
 
-    /// Fingerprint of what colors are present in columns that changes between input and output.
-    pub fn single_line_column(&self) -> Histogram {
+    /// Fingerprint of what colors impacts the columns.
+    pub fn single_line_column(&self) -> (Histogram, Histogram) {
         let histogram_columns: Vec<Histogram> = self.input.histogram_columns();
         let mut histogram_change = Histogram::new();
         let mut histogram_nochange = Histogram::new();
         for x in 0..self.image_size.width {
-            let mut has_change_in_column: bool = false;
+            let mut is_same: bool = true;
             for y in 0..self.image_size.height {
                 let mask: u8 = self.difference.get(x as i32, y as i32).unwrap_or(0);
-                if mask == 0 {
-                    continue;
+                if mask > 0 {
+                    is_same = false;
+                    break;
                 }
-                has_change_in_column = true;
-                break;
             }
 
             if let Some(histogram) = histogram_columns.get(x as usize) {
-                if has_change_in_column {
-                    histogram_change.add_histogram(histogram);
-                } else {
+                if is_same {
                     histogram_nochange.add_histogram(histogram);
+                } else {
+                    histogram_change.add_histogram(histogram);
                 }
             }
         }
-        let mut intersection_histogram: Histogram = histogram_change.clone();
-        intersection_histogram.subtract_histogram(&histogram_nochange);
-        intersection_histogram.clamp01();
-        intersection_histogram
+        Self::remove_overlap(&histogram_change, &histogram_nochange)
     }
 
     /// Fingerprint of what colors are present in DiagonalA that changes between input and output.
@@ -139,36 +139,6 @@ impl CompareInputOutput {
         intersection_histogram.subtract_histogram(&histogram_nochange);
         intersection_histogram.clamp01();
         Ok(intersection_histogram)
-    }
-
-    /// Fingerprint of what colors are present in columns that doesn't changes between input and output.
-    #[allow(dead_code)]
-    pub fn nochange_single_line_column(&self) -> Histogram {
-        let histogram_columns: Vec<Histogram> = self.input.histogram_columns();
-        let mut histogram_change = Histogram::new();
-        let mut histogram_nochange = Histogram::new();
-        for x in 0..self.image_size.width {
-            let mut is_same: bool = true;
-            for y in 0..self.image_size.height {
-                let mask: u8 = self.difference.get(x as i32, y as i32).unwrap_or(0);
-                if mask > 0 {
-                    is_same = false;
-                    break;
-                }
-            }
-
-            if let Some(histogram) = histogram_columns.get(x as usize) {
-                if is_same {
-                    histogram_nochange.add_histogram(histogram);
-                } else {
-                    histogram_change.add_histogram(histogram);
-                }
-            }
-        }
-        let mut intersection_histogram: Histogram = histogram_nochange.clone();
-        intersection_histogram.subtract_histogram(&histogram_change);
-        intersection_histogram.clamp01();
-        intersection_histogram
     }
 
     fn remove_overlap(histogram_change: &Histogram, histogram_nochange: &Histogram) -> (Histogram, Histogram) {
@@ -307,13 +277,48 @@ mod tests {
         let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
 
         // Act
-        let actual: Histogram = instance.single_line_column();
+        let (actual_change, actual_nochange) = instance.single_line_column();
 
         // Assert
-        let mut expected: Histogram = Histogram::new();
-        expected.increment(2);
-        expected.increment(3);
-        assert_eq!(actual, expected);
+        let mut expected_change: Histogram = Histogram::new();
+        expected_change.increment(2);
+        expected_change.increment(3);
+        assert_eq!(actual_change, expected_change);
+        let expected_nochange: Histogram = Histogram::new();
+        assert_eq!(actual_nochange, expected_nochange);
+    }
+
+    #[test]
+    fn test_20001_single_line_column() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            7, 5, 9, 9, 9,
+            9, 9, 9, 3, 2,
+            9, 9, 9, 9, 2,
+        ];
+        let input: Image = Image::try_create(5, 3, input_pixels).expect("image");
+
+        let output_pixels: Vec<u8> = vec![
+            7, 5, 9, 9, 9,
+            9, 7, 9, 7, 2,
+            9, 9, 9, 9, 2,
+        ];
+        let output: Image = Image::try_create(5, 3, output_pixels).expect("image");
+
+        let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
+
+        // Act
+        let (actual_change, actual_nochange) = instance.single_line_column();
+
+        // Assert
+        let mut expected_change: Histogram = Histogram::new();
+        expected_change.increment(3);
+        expected_change.increment(5);
+        assert_eq!(actual_change, expected_change);
+        let mut expected_nochange: Histogram = Histogram::new();
+        expected_nochange.increment(2);
+        expected_nochange.increment(7);
+        assert_eq!(actual_nochange, expected_nochange);
     }
 
     #[test]
@@ -435,35 +440,6 @@ mod tests {
         // Assert
         let mut expected: Histogram = Histogram::new();
         expected.increment(3);
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn test_50000_nochange_single_line_column() {
-        // Arrange
-        let input_pixels: Vec<u8> = vec![
-            7, 5, 9, 9, 9,
-            9, 9, 9, 3, 2,
-            9, 9, 9, 9, 2,
-        ];
-        let input: Image = Image::try_create(5, 3, input_pixels).expect("image");
-
-        let output_pixels: Vec<u8> = vec![
-            7, 5, 9, 9, 9,
-            9, 7, 9, 7, 2,
-            9, 9, 9, 9, 2,
-        ];
-        let output: Image = Image::try_create(5, 3, output_pixels).expect("image");
-
-        let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
-
-        // Act
-        let actual: Histogram = instance.nochange_single_line_column();
-
-        // Assert
-        let mut expected: Histogram = Histogram::new();
-        expected.increment(2);
-        expected.increment(7);
         assert_eq!(actual, expected);
     }
 }
