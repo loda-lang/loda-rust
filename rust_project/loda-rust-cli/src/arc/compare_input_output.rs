@@ -87,20 +87,20 @@ impl CompareInputOutput {
         Self::remove_overlap(&histogram_change, &histogram_nochange)
     }
 
-    /// Fingerprint of what colors are present in DiagonalA that changes between input and output.
+    /// Fingerprint of what colors impacts DiagonalA.
     #[allow(dead_code)]
-    pub fn single_line_diagonal_a(&self) -> anyhow::Result<Histogram> {
+    pub fn single_line_diagonal_a(&self) -> anyhow::Result<(Histogram, Histogram)> {
+        self.single_line_diagonal(true)
+    }
+    
+    /// Fingerprint of what colors impacts DiagonalB.
+    #[allow(dead_code)]
+    pub fn single_line_diagonal_b(&self) -> anyhow::Result<(Histogram, Histogram)> {
         self.single_line_diagonal(false)
     }
 
-    /// Fingerprint of what colors are present in DiagonalB that changes between input and output.
-    #[allow(dead_code)]
-    pub fn single_line_diagonal_b(&self) -> anyhow::Result<Histogram> {
-        self.single_line_diagonal(true)
-    }
-
-    /// Fingerprint of what colors are present in DiagonalA or DiagonalB that changes between input and output.
-    fn single_line_diagonal(&self, skew_reverse: bool) -> anyhow::Result<Histogram> {
+    /// Fingerprint of what colors impacts DiagonalA or DiagonalB.
+    fn single_line_diagonal(&self, skew_reverse: bool) -> anyhow::Result<(Histogram, Histogram)> {
         let magic_color: u8 = 255;
         let difference_skewed: Image = self.difference.skew_x(magic_color, skew_reverse)?;
         let input_skewed: Image = self.input.skew_x(magic_color, skew_reverse)?;
@@ -117,28 +117,28 @@ impl CompareInputOutput {
         let mut histogram_change = Histogram::new();
         let mut histogram_nochange = Histogram::new();
         for x in 0..image_size.width {
-            let mut has_change: bool = false;
+            let mut is_same: bool = true;
             for y in 0..image_size.height {
                 let mask: u8 = difference_skewed.get(x as i32, y as i32).unwrap_or(0);
-                if mask == 0 || mask == magic_color {
+                if mask == magic_color {
                     continue;
                 }
-                has_change = true;
-                break;
+                if mask > 0 {
+                    is_same = false;
+                    break;
+                }
             }
 
             if let Some(histogram) = histogram_vec.get(x as usize) {
-                if has_change {
-                    histogram_change.add_histogram(histogram);
-                } else {
+                if is_same {
                     histogram_nochange.add_histogram(histogram);
+                } else {
+                    histogram_change.add_histogram(histogram);
                 }
             }
         }
-        let mut intersection_histogram: Histogram = histogram_change.clone();
-        intersection_histogram.subtract_histogram(&histogram_nochange);
-        intersection_histogram.clamp01();
-        Ok(intersection_histogram)
+        let (histogram0, histogram1) = Self::remove_overlap(&histogram_change, &histogram_nochange);
+        Ok((histogram0, histogram1))
     }
 
     fn remove_overlap(histogram_change: &Histogram, histogram_nochange: &Histogram) -> (Histogram, Histogram) {
@@ -332,67 +332,6 @@ mod tests {
         let input: Image = Image::try_create(5, 3, input_pixels).expect("image");
 
         let output_pixels: Vec<u8> = vec![
-            7, 9, 9, 9, 9,
-            9, 9, 9, 9, 7,
-            9, 9, 9, 9, 2,
-        ];
-        let output: Image = Image::try_create(5, 3, output_pixels).expect("image");
-
-        let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
-
-        // Act
-        let actual: Histogram = instance.single_line_diagonal_a().expect("ok");
-
-        // Assert
-        let mut expected: Histogram = Histogram::new();
-        expected.increment(4);
-        expected.increment(6);
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn test_30001_single_line_diagonal_a() {
-        // Arrange
-        let input_pixels: Vec<u8> = vec![
-            3, 7, 7, 7, 7, 7,
-            7, 7, 7, 3, 7, 7,
-            7, 7, 3, 7, 7, 7,
-            7, 7, 7, 7, 7, 7,
-            9, 9, 7, 7, 7, 7,
-        ];
-        let input: Image = Image::try_create(6, 5, input_pixels).expect("image");
-
-        let output_pixels: Vec<u8> = vec![
-            5, 7, 5, 7, 7, 7,
-            7, 5, 7, 3, 7, 7,
-            7, 7, 5, 7, 5, 7,
-            7, 7, 7, 5, 7, 5,
-            9, 9, 7, 7, 5, 7,
-        ];
-        let output: Image = Image::try_create(6, 5, output_pixels).expect("image");
-
-        let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
-
-        // Act
-        let actual: Histogram = instance.single_line_diagonal_a().expect("ok");
-
-        // Assert
-        let mut expected: Histogram = Histogram::new();
-        expected.increment(3);
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn test_40000_single_line_diagonal_b() {
-        // Arrange
-        let input_pixels: Vec<u8> = vec![
-            9, 9, 9, 6, 9,
-            9, 4, 9, 9, 9,
-            9, 9, 9, 9, 2,
-        ];
-        let input: Image = Image::try_create(5, 3, input_pixels).expect("image");
-
-        let output_pixels: Vec<u8> = vec![
             9, 9, 9, 9, 9,
             9, 9, 9, 9, 9,
             4, 6, 9, 9, 2,
@@ -402,17 +341,51 @@ mod tests {
         let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
 
         // Act
-        let actual: Histogram = instance.single_line_diagonal_b().expect("ok");
+        let (actual_change, actual_nochange) = instance.single_line_diagonal_a().expect("ok");
 
         // Assert
-        let mut expected: Histogram = Histogram::new();
-        expected.increment(4);
-        expected.increment(6);
-        assert_eq!(actual, expected);
+        let mut expected_change: Histogram = Histogram::new();
+        expected_change.increment(4);
+        expected_change.increment(6);
+        assert_eq!(actual_change, expected_change);
+        let mut expected_nochange: Histogram = Histogram::new();
+        expected_nochange.increment(2);
+        assert_eq!(actual_nochange, expected_nochange);
     }
 
     #[test]
-    fn test_40001_single_line_diagonal_b() {
+    fn test_30001_single_line_diagonal_a() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            9, 9, 3, 9, 9,
+            3, 9, 9, 3, 9,
+            9, 3, 9, 9, 3,
+        ];
+        let input: Image = Image::try_create(5, 3, input_pixels).expect("image");
+
+        let output_pixels: Vec<u8> = vec![
+            9, 9, 3, 9, 9,
+            3, 9, 9, 7, 9,
+            9, 7, 9, 9, 3,
+        ];
+        let output: Image = Image::try_create(5, 3, output_pixels).expect("image");
+
+        let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
+
+        // Act
+        let (actual_change, actual_nochange) = instance.single_line_diagonal_a().expect("ok");
+
+        // Assert
+        let mut expected_change: Histogram = Histogram::new();
+        expected_change.increment(3);
+        assert_eq!(actual_change, expected_change);
+        let mut expected_nochange: Histogram = Histogram::new();
+        expected_nochange.increment(9);
+        assert_eq!(actual_nochange, expected_nochange);
+    }
+
+    #[test]
+    fn test_30002_single_line_diagonal_a() {
         // Arrange
         let input_pixels: Vec<u8> = vec![
             7, 3, 7, 7, 7, 7,
@@ -435,11 +408,111 @@ mod tests {
         let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
 
         // Act
-        let actual: Histogram = instance.single_line_diagonal_a().expect("ok");
+        let (actual_change, actual_nochange) = instance.single_line_diagonal_a().expect("ok");
 
         // Assert
-        let mut expected: Histogram = Histogram::new();
-        expected.increment(3);
-        assert_eq!(actual, expected);
+        let expected_change: Histogram = Histogram::new();
+        assert_eq!(actual_change, expected_change);
+        let expected_nochange: Histogram = Histogram::new();
+        assert_eq!(actual_nochange, expected_nochange);
+    }
+
+    #[test]
+    fn test_40000_single_line_diagonal_b() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            9, 9, 9, 6, 9,
+            9, 4, 9, 9, 9,
+            9, 9, 9, 9, 2,
+        ];
+        let input: Image = Image::try_create(5, 3, input_pixels).expect("image");
+
+        let output_pixels: Vec<u8> = vec![
+            7, 9, 9, 9, 9,
+            9, 9, 9, 9, 7,
+            9, 9, 9, 9, 2,
+        ];
+        let output: Image = Image::try_create(5, 3, output_pixels).expect("image");
+
+        let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
+
+        // Act
+        let (actual_change, actual_nochange) = instance.single_line_diagonal_b().expect("ok");
+
+        // Assert
+        let mut expected_change: Histogram = Histogram::new();
+        expected_change.increment(4);
+        expected_change.increment(6);
+        assert_eq!(actual_change, expected_change);
+        let mut expected_nochange: Histogram = Histogram::new();
+        expected_nochange.increment(2);
+        assert_eq!(actual_nochange, expected_nochange);
+    }
+
+    #[test]
+    fn test_40001_single_line_diagonal_b() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            3, 7, 7, 7, 7, 7,
+            7, 7, 7, 3, 7, 7,
+            7, 7, 3, 7, 7, 6,
+            7, 7, 7, 7, 6, 7,
+            9, 9, 7, 6, 7, 6,
+        ];
+        let input: Image = Image::try_create(6, 5, input_pixels).expect("image");
+
+        let output_pixels: Vec<u8> = vec![
+            5, 7, 5, 7, 7, 7,
+            7, 5, 7, 3, 7, 7,
+            7, 7, 5, 7, 5, 6,
+            7, 7, 7, 5, 6, 5,
+            9, 9, 7, 6, 5, 6,
+        ];
+        let output: Image = Image::try_create(6, 5, output_pixels).expect("image");
+
+        let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
+
+        // Act
+        let (actual_change, actual_nochange) = instance.single_line_diagonal_b().expect("ok");
+
+        // Assert
+        let mut expected_change: Histogram = Histogram::new();
+        expected_change.increment(3);
+        assert_eq!(actual_change, expected_change);
+        let mut expected_nochange: Histogram = Histogram::new();
+        expected_nochange.increment(6);
+        assert_eq!(actual_nochange, expected_nochange);
+    }
+
+    #[test]
+    fn test_40002_single_line_diagonal_b() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            7, 7, 5, 7, 7, 4,
+            7, 5, 7, 7, 4, 7,
+            5, 7, 7, 4, 7, 7,
+        ];
+        let input: Image = Image::try_create(6, 3, input_pixels).expect("image");
+
+        let output_pixels: Vec<u8> = vec![
+            7, 7, 9, 7, 7, 9,
+            7, 9, 7, 7, 9, 7,
+            9, 7, 7, 9, 7, 7,
+        ];
+        let output: Image = Image::try_create(6, 3, output_pixels).expect("image");
+
+        let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
+
+        // Act
+        let (actual_change, actual_nochange) = instance.single_line_diagonal_b().expect("ok");
+
+        // Assert
+        let mut expected_change: Histogram = Histogram::new();
+        expected_change.increment(4);
+        expected_change.increment(5);
+        assert_eq!(actual_change, expected_change);
+        let mut expected_nochange: Histogram = Histogram::new();
+        expected_nochange.increment(7);
+        assert_eq!(actual_nochange, expected_nochange);
     }
 }

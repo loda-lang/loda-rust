@@ -357,9 +357,9 @@ impl arc_work_model::Pair {
             }
         }
 
-        if let Ok(histogram) = compare.single_line_diagonal_a() {
+        if let Ok((change, _nochange)) = compare.single_line_diagonal_a() {
             for color in 0..=9u8 {
-                if histogram.get(color) == 0 {
+                if change.get(color) == 0 {
                     continue;
                 }
                 {
@@ -377,9 +377,9 @@ impl arc_work_model::Pair {
             }
         }
 
-        if let Ok(histogram) = compare.single_line_diagonal_b() {
+        if let Ok((change, _nochange)) = compare.single_line_diagonal_b() {
             for color in 0..=9u8 {
-                if histogram.get(color) == 0 {
+                if change.get(color) == 0 {
                     continue;
                 }
                 {
