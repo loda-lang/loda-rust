@@ -316,9 +316,9 @@ impl arc_work_model::Pair {
         let compare: CompareInputOutput = CompareInputOutput::create(input, output)?;
 
         {
-            let histogram: Histogram = compare.single_line_row();
+            let (change, _nochange) = compare.single_line_row();
             for color in 0..=9u8 {
-                if histogram.get(color) == 0 {
+                if change.get(color) == 0 {
                     continue;
                 }
                 {
