@@ -98,6 +98,14 @@ impl Histogram {
         }
     }
 
+    /// Initialize all counters to `count=1`.
+    #[allow(dead_code)]
+    pub fn one() -> Self {
+        Self {
+            counters: [1; 256],
+        }
+    }
+
     #[allow(dead_code)]
     pub fn reset(&mut self) {
         self.counters = [0; 256];
@@ -495,6 +503,18 @@ mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
     use std::collections::HashSet;
+
+    #[test]
+    fn test_10000_one() {
+        // Arrange + Act
+        let mut h = Histogram::one();
+        h.increment(3);
+
+        // Assert
+        let counters = h.counters();
+        assert_eq!(counters[42], 1);
+        assert_eq!(counters[3], 2);
+    }
 
     #[test]
     fn test_11000_increment() {
