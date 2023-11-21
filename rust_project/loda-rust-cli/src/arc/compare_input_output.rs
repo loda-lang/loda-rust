@@ -145,6 +145,35 @@ impl CompareInputOutput {
         Ok(intersection_histogram)
     }
 
+    /// Fingerprint of what colors are present in columns that doesn't changes between input and output.
+    #[allow(dead_code)]
+    pub fn nochange_single_line_column(&self) -> Histogram {
+        let histogram_columns: Vec<Histogram> = self.input.histogram_columns();
+        let mut histogram_change = Histogram::new();
+        let mut histogram_nochange = Histogram::new();
+        for x in 0..self.image_size.width {
+            let mut is_same: bool = true;
+            for y in 0..self.image_size.height {
+                let mask: u8 = self.difference.get(x as i32, y as i32).unwrap_or(0);
+                if mask > 0 {
+                    is_same = false;
+                    break;
+                }
+            }
+
+            if let Some(histogram) = histogram_columns.get(x as usize) {
+                if is_same {
+                    histogram_nochange.add_histogram(histogram);
+                } else {
+                    histogram_change.add_histogram(histogram);
+                }
+            }
+        }
+        let mut intersection_histogram: Histogram = histogram_nochange.clone();
+        intersection_histogram.subtract_histogram(&histogram_change);
+        intersection_histogram.clamp01();
+        intersection_histogram
+    }
 }
 
 #[cfg(test)]
@@ -367,6 +396,35 @@ mod tests {
         // Assert
         let mut expected: Histogram = Histogram::new();
         expected.increment(3);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_50000_nochange_single_line_column() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            7, 5, 9, 9, 9,
+            9, 9, 9, 3, 2,
+            9, 9, 9, 9, 2,
+        ];
+        let input: Image = Image::try_create(5, 3, input_pixels).expect("image");
+
+        let output_pixels: Vec<u8> = vec![
+            7, 5, 9, 9, 9,
+            9, 7, 9, 7, 2,
+            9, 9, 9, 9, 2,
+        ];
+        let output: Image = Image::try_create(5, 3, output_pixels).expect("image");
+
+        let instance: CompareInputOutput = CompareInputOutput::create(&input, &output).expect("instance");
+
+        // Act
+        let actual: Histogram = instance.nochange_single_line_column();
+
+        // Assert
+        let mut expected: Histogram = Histogram::new();
+        expected.increment(2);
+        expected.increment(7);
         assert_eq!(actual, expected);
     }
 }
