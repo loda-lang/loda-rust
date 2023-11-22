@@ -1,13 +1,16 @@
-//! Shape3x3 is a catalog of all 48 possible 3x3 shapes, in all their transformations (rotate, flip).
+//! Shape3x3 is a catalog of all possible 3x3 shapes, in all their transformations (rotate, flip).
 //! 
-//! Beware that this catalog contains shapes smaller than 3x3. 
+//! With trimming the 3x3 image, there are 48 possible shapes.
+//! Beware that this trimming causes the catalog to contain shapes smaller than 3x3. 
 //! These have the sizes: 3x2, 2x3, 2x2, 1x3, 3x1, 1x2, 2x1, 1x1.
+//! 
+//! Without trimming the 3x3 images, there are 51 possible shapes.
 use super::{Image, ImageMask, ImageTrim, ShapeTransformation, ImageSize, ImageTryCreate, HtmlLog};
 use std::collections::{HashSet, HashMap};
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref SHAPE3X3: Shape3x3 = Shape3x3::populate().expect("populate");
+    static ref SHAPE3X3_WITH_TRIM: Shape3x3 = Shape3x3::populate(true).expect("populate");
 }
 
 #[allow(dead_code)]
@@ -21,21 +24,30 @@ pub struct Shape3x3 {
 
 impl Shape3x3 {
     pub fn instance() -> &'static Self {
-        &SHAPE3X3
+        &SHAPE3X3_WITH_TRIM
     }
 
+    /// Get the number of shapes in the catalog.
+    /// 
+    /// With trimming the 3x3 image, there are 48 possible shapes.
+    /// 
+    /// Without trimming the 3x3 images, there are 51 possible shapes.
     pub fn number_of_shapes(&self) -> u8 {
         (self.shape_vec.len() & 255) as u8
     }
     
     #[allow(dead_code)]
-    fn analyze(image: &Image) -> anyhow::Result<(HashSet<ShapeTransformation>, Image)> {
+    fn analyze(image: &Image, trim: bool) -> anyhow::Result<(HashSet<ShapeTransformation>, Image)> {
         if image.width() != 3 || image.height() != 3 {
             return Err(anyhow::anyhow!("image size is not 3x3"));
         }
         let center: u8 = image.get(1, 1).unwrap_or(255);
         let mask0: Image = image.to_mask_where_color_is(center);
-        let mask1: Image = mask0.trim_color(0)?;
+        let mask1: Image = if trim {
+            mask0.trim_color(0)?
+        } else {
+            mask0
+        };
 
         let size: ImageSize = mask1.size();
         let transformations: Vec<(ShapeTransformation, Image)> = ShapeTransformation::perform_all_transformations(&mask1)?;
@@ -45,7 +57,7 @@ impl Shape3x3 {
     }
 
     #[allow(dead_code)]
-    fn populate() -> anyhow::Result<Self> {
+    fn populate(trim: bool) -> anyhow::Result<Self> {
         let mut shape_set = HashSet::<Image>::new();
         let mut shape_vec = Vec::<Image>::new();
         let mut image_to_shapeid = HashMap::<Image, u8>::new();
@@ -61,7 +73,7 @@ impl Shape3x3 {
                 (i >> 5) & 1, (i >> 6) & 1, (i >> 7) & 1,
             ];
             let image: Image = Image::try_create(3, 3, values.to_vec())?;
-            let (transformations, output) = Shape3x3::analyze(&image).expect("image");
+            let (transformations, output) = Shape3x3::analyze(&image, trim).expect("image");
             if !shape_set.contains(&output) {
                 let shapeid: u8 = (shape_set.len() & 255) as u8;
                 image_to_shapeid.insert(output.clone(), shapeid);
@@ -88,7 +100,7 @@ impl Shape3x3 {
         Ok(instance)
     }
 
-    /// Log all shapes to the html log, so it's possible to inspect all the 48 shapes.
+    /// Log all shapes to the html log, so it's possible to inspect all the 48 or 51 shapes.
     #[allow(dead_code)]
     pub fn htmllog_all_shapes(&self) {
         HtmlLog::text(format!("number of shapes: {}", self.shape_vec.len()));
@@ -129,7 +141,11 @@ impl Shape3x3 {
     /// Find the shapeid and transformations for a 3x3 image.
     /// 
     /// Returns a tuple with the shapeid and the transformations.
-    /// The shapeid is a value in the range `0..=47`.
+    /// 
+    /// If the Shape3x3 was populated with trimming, then the shapeid is a value in the range `0..=47`.
+    ///
+    /// If the Shape3x3 was populated without trimming, then the shapeid is a value in the range `0..=50`.
+    /// 
     /// The set contains at least 1 transformation. And max 8 transformations `ShapeTransformation::all()`.
     #[allow(dead_code)]
     pub fn shapeid_and_transformations(&self, image: &Image) -> anyhow::Result<(u8, HashSet<ShapeTransformation>)> {
@@ -165,7 +181,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let (transformations, output) = Shape3x3::analyze(&input).expect("image");
+        let (transformations, output) = Shape3x3::analyze(&input, true).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -179,17 +195,33 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_populate() {
+    fn test_20000_populate_with_trim() {
         // Arrange
         
         // Act
-        let instance: Shape3x3 = Shape3x3::populate().expect("populate");
+        let instance: Shape3x3 = Shape3x3::populate(true).expect("populate");
         // instance.htmllog_all_shapes();
 
         // Assert
         assert_eq!(instance.shape_set.len(), 48);
         assert_eq!(instance.shape_vec.len(), 48);
         assert_eq!(instance.image_to_shapeid.len(), 48);
+        assert_eq!(instance.index_to_transformation.len(), 256);
+        assert_eq!(instance.index_to_shapeid.len(), 256);
+    }
+
+    #[test]
+    fn test_20001_populate_without_trim() {
+        // Arrange
+        
+        // Act
+        let instance: Shape3x3 = Shape3x3::populate(false).expect("populate");
+        // instance.htmllog_all_shapes();
+
+        // Assert
+        assert_eq!(instance.shape_set.len(), 51);
+        assert_eq!(instance.shape_vec.len(), 51);
+        assert_eq!(instance.image_to_shapeid.len(), 51);
         assert_eq!(instance.index_to_transformation.len(), 256);
         assert_eq!(instance.index_to_shapeid.len(), 256);
     }
@@ -324,7 +356,7 @@ mod tests {
         // The center pixel is surrounded with pixels of different color. This is the first shape id included in the catalog of shapes.
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
+        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -345,7 +377,7 @@ mod tests {
         // The center pixel is surrounded with pixels of same color. This is the last shape id included in the catalog of shapes.
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
+        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -365,7 +397,7 @@ mod tests {
         ];
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
+        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -385,7 +417,7 @@ mod tests {
         ];
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
+        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -405,7 +437,7 @@ mod tests {
         ];
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
+        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -425,7 +457,7 @@ mod tests {
         ];
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
+        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
