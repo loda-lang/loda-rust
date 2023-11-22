@@ -487,6 +487,29 @@ mod tests {
     }
 
     #[test]
+    fn test_190401_plus_with_diagonal_corners() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 9, 8, 8,
+            8, 8, 7, 9, 9,
+            9, 9, 3, 0, 0,
+            5, 5, 3, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: LandmarkSinglePixel = LandmarkSinglePixel::analyze(&input, 0).expect("ok");
+
+        // Assert
+        let expected = LandmarkSinglePixel {
+            x: 2,
+            y: 1,
+            color: 7,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn test_200000_reject_empty() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -822,5 +845,24 @@ mod tests {
         // Assert
         let message = error.to_string();
         assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_280003_reject_c_shape() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            3, 6, 9, 0, 0,
+            7, 0, 0, 0, 0,
+            9, 9, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "2 or more landmarks found in the corner mask");
     }
 }
