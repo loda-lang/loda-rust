@@ -2824,6 +2824,8 @@ impl SolveLogisticRegression {
                         let mut at_landmark_center: bool = false;
                         let mut at_landmark_x: bool = false;
                         let mut at_landmark_y: bool = false;
+                        let mut at_landmark_diagonal_a: bool = false;
+                        let mut at_landmark_diagonal_b: bool = false;
                         if let Some(landmark_single_pixel) = &pair.input.landmark_single_pixel {
                             if landmark_single_pixel.x == x && landmark_single_pixel.y == y {
                                 at_landmark_center = true;
@@ -2834,10 +2836,20 @@ impl SolveLogisticRegression {
                             if landmark_single_pixel.y == y {
                                 at_landmark_y = true;
                             }
+                            let dx: i32 = landmark_single_pixel.x as i32 - xx;
+                            let dy: i32 = landmark_single_pixel.y as i32 - yy;
+                            if dx == dy {
+                                at_landmark_diagonal_a = true;
+                            }
+                            if dx == -dy {
+                                at_landmark_diagonal_b = true;
+                            }
                         }
                         record.serialize_bool_onehot(at_landmark_center);
                         record.serialize_bool_onehot(at_landmark_x);
                         record.serialize_bool_onehot(at_landmark_y);
+                        record.serialize_bool_onehot(at_landmark_diagonal_a);
+                        record.serialize_bool_onehot(at_landmark_diagonal_b);
                     }
 
                     if enable_input_four_xy_pairs {
