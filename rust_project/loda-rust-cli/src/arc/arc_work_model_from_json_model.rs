@@ -145,6 +145,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             removal_histogram_intersection,
             insert_histogram_intersection,
             input_most_popular_color: None,
+            output_most_popular_color: None,
             input_properties_intersection: HashMap::new(),
             action_label_set_intersection: ActionLabelSet::new(),
             input_image_label_set_intersection: HashSet::new(),

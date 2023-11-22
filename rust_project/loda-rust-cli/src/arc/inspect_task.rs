@@ -303,6 +303,11 @@ impl InspectTask {
                 self.row_output_image += "N/A";
             }
         }
+        if let Some(color) = task.output_most_popular_color {
+            self.row_output_image += "<br><br>Output most popular color<br>";
+            let image: Image = Image::color(1, 1, color);
+            self.row_output_image += &image.to_html();
+        }
         self.row_output_image += "</td>";
 
         self.row_output_labels += &td_begin;

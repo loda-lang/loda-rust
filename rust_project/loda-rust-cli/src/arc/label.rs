@@ -226,6 +226,8 @@ pub enum ImageLabel {
     PeriodicityY { period: u8 },
 
     // Ideas for more
+    // MassIncreasesSignificantlyForNoiseColor { color: u8 },
+    // MassDecreasesSignificantlyForSolidObjectWithColor { color: u8 },
     // DiagonalLinesWithColor { color: u8 },
     // How many times are the pixels stretched out horizontally. Dividing by this scale does not cause dataloss.
     // ScaleX { scale: u8 },
