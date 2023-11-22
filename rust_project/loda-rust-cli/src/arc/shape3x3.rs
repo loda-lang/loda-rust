@@ -1,16 +1,12 @@
 //! Shape3x3 is a catalog of all possible 3x3 shapes, in all their transformations (rotate, flip).
-//! 
-//! With trimming the 3x3 image, there are 48 possible shapes.
-//! Beware that this trimming causes the catalog to contain shapes smaller than 3x3. 
-//! These have the sizes: 3x2, 2x3, 2x2, 1x3, 3x1, 1x2, 2x1, 1x1.
-//! 
-//! Without trimming the 3x3 images, there are 51 possible shapes.
 use super::{Image, ImageMask, ImageTrim, ShapeTransformation, ImageSize, ImageTryCreate, HtmlLog};
 use std::collections::{HashSet, HashMap};
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref SHAPE3X3_WITH_TRIM: Shape3x3 = Shape3x3::populate(true).expect("populate");
+    static ref SHAPE3X3_WITH_TRIM: Shape3x3 = Shape3x3::populate(true).expect("populate true");
+
+    static ref SHAPE3X3_WITHOUT_TRIM: Shape3x3 = Shape3x3::populate(false).expect("populate false");
 }
 
 #[allow(dead_code)]
@@ -23,8 +19,18 @@ pub struct Shape3x3 {
 }
 
 impl Shape3x3 {
-    pub fn instance() -> &'static Self {
+    /// With trimming the 3x3 image, there are 48 possible shapes.
+    /// 
+    /// Beware that this trimming causes the catalog to contain shapes smaller than 3x3. 
+    /// These have the sizes: 3x2, 2x3, 2x2, 1x3, 3x1, 1x2, 2x1, 1x1.
+    pub fn catalog_with_trim() -> &'static Self {
         &SHAPE3X3_WITH_TRIM
+    }
+
+    /// Without trimming the 3x3 images, there are 51 possible shapes.
+    #[allow(dead_code)]
+    pub fn catalog_without_trim() -> &'static Self {
+        &SHAPE3X3_WITHOUT_TRIM
     }
 
     /// Get the number of shapes in the catalog.
@@ -36,7 +42,6 @@ impl Shape3x3 {
         (self.shape_vec.len() & 255) as u8
     }
     
-    #[allow(dead_code)]
     fn analyze(image: &Image, trim: bool) -> anyhow::Result<(HashSet<ShapeTransformation>, Image)> {
         if image.width() != 3 || image.height() != 3 {
             return Err(anyhow::anyhow!("image size is not 3x3"));
@@ -242,11 +247,11 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_populate_with_trim() {
+    fn test_20000_catalog_with_trim() {
         // Arrange
         
         // Act
-        let instance: Shape3x3 = Shape3x3::populate(true).expect("populate");
+        let instance: &Shape3x3 = Shape3x3::catalog_with_trim();
         // instance.htmllog_all_shapes();
 
         // Assert
@@ -258,11 +263,11 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_populate_without_trim() {
+    fn test_20001_catalog_without_trim() {
         // Arrange
         
         // Act
-        let instance: Shape3x3 = Shape3x3::populate(false).expect("populate");
+        let instance: &Shape3x3 = Shape3x3::catalog_without_trim();
         // instance.htmllog_all_shapes();
 
         // Assert
@@ -393,7 +398,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_shapeid_and_transformations_first() {
+    fn test_40000_with_trim_shapeid_and_transformations_first() {
         // Arrange
         let pixels: Vec<u8> = vec![
             8, 8, 8,
@@ -403,7 +408,7 @@ mod tests {
         // The center pixel is surrounded with pixels of different color. This is the first shape id included in the catalog of shapes.
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
+        let find_shape: &Shape3x3 = Shape3x3::catalog_with_trim();
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -414,7 +419,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_shapeid_and_transformations_last() {
+    fn test_40001_with_trim_shapeid_and_transformations_last() {
         // Arrange
         let pixels: Vec<u8> = vec![
             8, 8, 8,
@@ -424,7 +429,7 @@ mod tests {
         // The center pixel is surrounded with pixels of same color. This is the last shape id included in the catalog of shapes.
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
+        let find_shape: &Shape3x3 = Shape3x3::catalog_with_trim();
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -435,7 +440,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_shapeid_9() {
+    fn test_40002_with_trim_shapeid_9() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 8, 8,
@@ -444,7 +449,7 @@ mod tests {
         ];
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
+        let find_shape: &Shape3x3 = Shape3x3::catalog_with_trim();
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -455,7 +460,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40003_shapeid_9() {
+    fn test_40003_with_trim_shapeid_9() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5,
@@ -464,7 +469,7 @@ mod tests {
         ];
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
+        let find_shape: &Shape3x3 = Shape3x3::catalog_with_trim();
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -475,7 +480,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40004_shapeid_30() {
+    fn test_40004_with_trim_shapeid_30() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 8,
@@ -484,7 +489,7 @@ mod tests {
         ];
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
+        let find_shape: &Shape3x3 = Shape3x3::catalog_with_trim();
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
@@ -495,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40005_shapeid_42() {
+    fn test_40005_with_trim_shapeid_42() {
         // Arrange
         let pixels: Vec<u8> = vec![
             8, 5, 8,
@@ -504,13 +509,135 @@ mod tests {
         ];
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
-        let find_shape: Shape3x3 = Shape3x3::populate(true).expect("ok");
+        let find_shape: &Shape3x3 = Shape3x3::catalog_with_trim();
 
         // Act
         let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
 
         // Assert
         assert_eq!(shapeid, 42);
+        assert_eq!(transformations, ShapeTransformation::all());
+    }
+
+    #[test]
+    fn test_50000_without_trim_shapeid_and_transformations_first() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 8, 8,
+            8, 3, 8,
+            8, 8, 8,
+        ];
+        // The center pixel is surrounded with pixels of different color. This is the first shape id included in the catalog of shapes.
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: &Shape3x3 = Shape3x3::catalog_without_trim();
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 0);
+        assert_eq!(transformations, ShapeTransformation::all());
+    }
+
+    #[test]
+    fn test_50001_without_trim_shapeid_and_transformations_last() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 8, 8,
+            8, 8, 8,
+            8, 8, 8,
+        ];
+        // The center pixel is surrounded with pixels of same color. This is the last shape id included in the catalog of shapes.
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: &Shape3x3 = Shape3x3::catalog_without_trim();
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 50);
+        assert_eq!(transformations, ShapeTransformation::all());
+    }
+
+    #[test]
+    fn test_50002_without_trim_shapeid_10() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 8, 8,
+            8, 8, 5,
+            5, 5, 5,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: &Shape3x3 = Shape3x3::catalog_without_trim();
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 10);
+        assert_eq!(transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw180]));
+    }
+
+    #[test]
+    fn test_50003_without_trim_shapeid_10() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5,
+            5, 8, 8,
+            8, 8, 5,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: &Shape3x3 = Shape3x3::catalog_without_trim();
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 10);
+        assert_eq!(transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal]));
+    }
+
+    #[test]
+    fn test_50004_without_trim_shapeid_33() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 8,
+            8, 8, 8,
+            8, 5, 5,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: &Shape3x3 = Shape3x3::catalog_without_trim();
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 33);
+        assert_eq!(transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::RotateCw180]));
+    }
+
+    #[test]
+    fn test_50005_without_trim_shapeid_45() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 5, 8,
+            5, 8, 5,
+            8, 5, 8,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: &Shape3x3 = Shape3x3::catalog_without_trim();
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 45);
         assert_eq!(transformations, ShapeTransformation::all());
     }
 }
