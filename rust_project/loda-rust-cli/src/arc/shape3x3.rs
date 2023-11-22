@@ -1,3 +1,7 @@
+//! Shape3x3 is a catalog of all 48 possible 3x3 shapes, in all their transformations (rotate, flip).
+//! 
+//! Beware that this catalog contains shapes smaller than 3x3. 
+//! These have the sizes: 3x2, 2x3, 2x2, 1x3, 3x1, 1x2, 2x1, 1x1.
 use super::{Image, ImageMask, ImageTrim, ShapeTransformation, ImageSize, ImageTryCreate, HtmlLog};
 use std::collections::{HashSet, HashMap};
 use lazy_static::lazy_static;
