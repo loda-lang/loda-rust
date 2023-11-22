@@ -1050,6 +1050,7 @@ impl SolveLogisticRegression {
         let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
         let enable_gameoflife: bool = false;
         let enable_nonbackground_different_than_most_popular_color: bool = false;
+        let enable_shape3x3_with_trim: bool = [true, false, false][v];
         let enable_shape3x3_input: bool = [true, false, false][v];
         let enable_shape3x3_input_nonbackground: bool = false;
         let enable_shape3x3_output: bool = false;
@@ -2421,7 +2422,12 @@ impl SolveLogisticRegression {
                 output_orientation = 0;
             }
 
-            let number_of_shape3x3ids: u8 = Shape3x3::catalog_with_trim().number_of_shapes();
+            let shape3x3: &Shape3x3 = if enable_shape3x3_with_trim {
+                Shape3x3::catalog_with_trim()
+            } else {
+                Shape3x3::catalog_without_trim()
+            };
+            let number_of_shape3x3ids: u8 = shape3x3.number_of_shapes();
 
             let center_indicator_x: Image;
             let center_indicator_y: Image;
@@ -5578,7 +5584,7 @@ impl SolveLogisticRegression {
                     //     local_area3x3.set(2, 2, area5x5.get(3, 4).unwrap_or(255));
                     //     // let image_id: u8 = Shape3x3::id_from_3x3image(&local_area3x3).unwrap_or(0);
                     //     // record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
-                    //     match Shape3x3::catalog_with_trim().shapeid_and_transformations(&local_area3x3) {
+                    //     match shape3x3.shapeid_and_transformations(&local_area3x3) {
                     //         Ok((shapeid, transformations)) => {
                     //             the_shapeid = shapeid;
                     //             if transformations.contains(&ShapeTransformation::Normal) {
@@ -5617,7 +5623,7 @@ impl SolveLogisticRegression {
                     if enable_shape3x3_input {
                         let mut the_shapeid: u8 = 255;
                         let mut transform_mask: u8 = 0;
-                        match Shape3x3::catalog_with_trim().shapeid_and_transformations(&area3x3) {
+                        match shape3x3.shapeid_and_transformations(&area3x3) {
                             Ok((shapeid, transformations)) => {
                                 the_shapeid = shapeid;
                                 if transformations.contains(&ShapeTransformation::Normal) {
@@ -5658,7 +5664,7 @@ impl SolveLogisticRegression {
 
                         let mut the_shapeid: u8 = 255;
                         let mut transform_mask: u8 = 0;
-                        match Shape3x3::catalog_with_trim().shapeid_and_transformations(&nonbackground_area3x3) {
+                        match shape3x3.shapeid_and_transformations(&nonbackground_area3x3) {
                             Ok((shapeid, transformations)) => {
                                 the_shapeid = shapeid;
                                 if transformations.contains(&ShapeTransformation::Normal) {
@@ -5701,7 +5707,7 @@ impl SolveLogisticRegression {
                     //     if let Some(color) = most_popular_color {
                     //         my_area3x3 = my_area3x3.to_mask_where_color_is_different(color);
                     //     }
-                    //     match Shape3x3::catalog_with_trim().shapeid_and_transformations(&my_area3x3) {
+                    //     match shape3x3.shapeid_and_transformations(&my_area3x3) {
                     //         Ok((shapeid, transformations)) => {
                     //             the_shapeid = shapeid;
                     //             if transformations.contains(&ShapeTransformation::Normal) {
@@ -5745,7 +5751,7 @@ impl SolveLogisticRegression {
                     //     // let current_area3x3: Image = input.crop_outside(combo.0, combo.1, 3, 3, 255)?;
                     //     let mut the_shapeid: u8 = 255;
                     //     let mut transform_mask: u8 = 0;
-                    //     match Shape3x3::catalog_with_trim().shapeid_and_transformations(&current_area3x3) {
+                    //     match shape3x3.shapeid_and_transformations(&current_area3x3) {
                     //         Ok((shapeid, transformations)) => {
                     //             the_shapeid = shapeid;
                     //             if transformations.contains(&ShapeTransformation::Normal) {
@@ -5921,7 +5927,7 @@ impl SolveLogisticRegression {
                             let earlier_prediction_area3x3: Image = image.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                             let mut the_shapeid: u8 = 255;
                             let mut transform_mask: u8 = 0;
-                            match Shape3x3::catalog_with_trim().shapeid_and_transformations(&earlier_prediction_area3x3) {
+                            match shape3x3.shapeid_and_transformations(&earlier_prediction_area3x3) {
                                 Ok((shapeid, transformations)) => {
                                     the_shapeid = shapeid;
                                     if transformations.contains(&ShapeTransformation::Normal) {
