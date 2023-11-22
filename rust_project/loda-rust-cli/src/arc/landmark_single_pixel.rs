@@ -1,4 +1,5 @@
-use super::{Image, ImageMask, ImageMaskCount, ImageCornerAnalyze, MixMode, ImageMix};
+use super::{Image, ImageMask, ImageMaskCount, ImageCornerAnalyze, MixMode, ImageMix, ImageCrop, Shape3x3};
+use std::collections::HashSet;
 use anyhow::bail;
 
 #[allow(dead_code)]
@@ -12,6 +13,12 @@ pub struct LandmarkSinglePixel {
 impl LandmarkSinglePixel {
     #[allow(dead_code)]
     pub fn analyze(image: &Image, background_color: u8) -> anyhow::Result<Self> {
+        // Self::analyze_old(image, background_color)
+        Self::analyze_new(image, background_color)
+    }
+
+    #[allow(dead_code)]
+    fn analyze_old(image: &Image, background_color: u8) -> anyhow::Result<Self> {
         let mask: Image = image.to_mask_where_color_is_different(background_color);
         let count: u16 = mask.mask_count_nonzero();
         if count == 0 {
@@ -36,6 +43,88 @@ impl LandmarkSinglePixel {
         }
 
         let corner_mask: Image = mask.corners()?;
+        let combined_mask: Image = mask.mix(&corner_mask, MixMode::Multiply)?;
+
+        let count: u16 = combined_mask.mask_count_nonzero();
+        if count == 0 {
+            bail!("zero landmarks found in the corner mask");
+        }
+        if count >= 2 {
+            bail!("2 or more landmarks found in the corner mask");
+        }
+        if let Some(rectangle) = combined_mask.bounding_box() {
+            if rectangle.width() == 1 && rectangle.height() == 1 {
+                let x_i32: i32 = rectangle.min_x();
+                let y_i32: i32 = rectangle.min_y();
+                if x_i32 < 0 || y_i32 < 0 || x_i32 >= 255 || y_i32 >= 255 {
+                    bail!("the position is outside the image");
+                }
+                let x: u8 = x_i32 as u8;
+                let y: u8 = y_i32 as u8;
+                let color: u8 = image.get(x_i32, y_i32).unwrap_or(255);
+                return Ok(LandmarkSinglePixel {
+                    x,
+                    y,
+                    color,
+                });
+            }
+        }
+
+        bail!("didn't find a single pixel landmark")
+    }
+
+    #[allow(dead_code)]
+    fn analyze_new(image: &Image, background_color: u8) -> anyhow::Result<Self> {
+        let mask: Image = image.to_mask_where_color_is_different(background_color);
+        let count: u16 = mask.mask_count_nonzero();
+        if count == 0 {
+            bail!("the image is entirely the background color. no landmark found");
+        }
+        if let Some(rectangle) = mask.bounding_box() {
+            if rectangle.width() == 1 && rectangle.height() == 1 {
+                let x_i32: i32 = rectangle.min_x();
+                let y_i32: i32 = rectangle.min_y();
+                if x_i32 < 0 || y_i32 < 0 || x_i32 >= 255 || y_i32 >= 255 {
+                    bail!("the position is outside the image");
+                }
+                let x: u8 = x_i32 as u8;
+                let y: u8 = y_i32 as u8;
+                let color: u8 = image.get(x_i32, y_i32).unwrap_or(255);
+                return Ok(LandmarkSinglePixel {
+                    x,
+                    y,
+                    color,
+                });
+            }
+        }
+
+        let shapeid_set = HashSet::<u8>::from([
+            4, // L-shape 45 degree 
+            6, // L-shape
+            8, // bended line
+            11, // bended shape
+            14, // T-shape
+            19, // T-shape 45 degree
+            37, // Plus shape
+            45, // Plus shape 45 degree
+        ]);
+
+        let mut corner_mask: Image = mask.clone_zero();
+        for y in 0..mask.height() {
+            for x in 0..mask.width() {
+                let color: u8 = mask.get(x as i32, y as i32).unwrap_or(0);
+                if color == 0 {
+                    continue;
+                }
+                let area3x3: Image = mask.crop_outside(x as i32 - 1, y as i32 - 1, 3, 3, 0)?;
+                let (shape_id, _transformations) = Shape3x3::catalog_without_trim().shapeid_and_transformations(&area3x3)?;
+
+                if shapeid_set.contains(&shape_id) {
+                    _ = corner_mask.set(x as i32, y as i32, 1);
+                }
+            }
+        }
+
         let combined_mask: Image = mask.mix(&corner_mask, MixMode::Multiply)?;
 
         let count: u16 = combined_mask.mask_count_nonzero();
@@ -210,31 +299,7 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    #[allow(dead_code)]
-    // #[test]
-    fn test_140005_rectangle_2x2_attached_to_border() {
-        // Arrange
-        let pixels: Vec<u8> = vec![
-            5, 6, 0,
-            7, 8, 0,
-            0, 0, 0,
-        ];
-        let input: Image = Image::try_create(3, 3, pixels).expect("image");
-
-        // Act
-        let actual: LandmarkSinglePixel = LandmarkSinglePixel::analyze(&input, 0).expect("ok");
-
-        // Assert
-        let expected = LandmarkSinglePixel {
-            x: 1,
-            y: 1,
-            color: 8,
-        };
-        assert_eq!(actual, expected);
-    }
-
-    #[allow(dead_code)]
-    // #[test]
+    #[test]
     fn test_150000_x_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -257,8 +322,7 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    #[allow(dead_code)]
-    // #[test]
+    #[test]
     fn test_160000_45degree_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -281,8 +345,7 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    #[allow(dead_code)]
-    // #[test]
+    #[test]
     fn test_170000_45degree_t_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -305,8 +368,7 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    #[allow(dead_code)]
-    // #[test]
+    #[test]
     fn test_180000_45degree_bending_line() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -329,8 +391,7 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    #[allow(dead_code)]
-    // #[test]
+    #[test]
     fn test_190000_45degree_bending_line() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -527,6 +588,24 @@ mod tests {
     }
 
     #[test]
+    fn test_260001_reject_rectangle_2x2_attached_to_border() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 6, 0,
+            7, 8, 0,
+            0, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
     fn test_260002_reject_rectangle_3x2() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -634,6 +713,23 @@ mod tests {
 
         // Assert
         let message = error.to_string();
-        assert_eq!(message, "2 or more landmarks found in the corner mask");
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_280001_reject_skew_tetris_attached_to_border() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 7, 8, 0, 0,
+            0, 0, 4, 5, 0,
+        ];
+        let input: Image = Image::try_create(5, 2, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
     }
 }
