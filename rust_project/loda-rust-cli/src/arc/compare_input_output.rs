@@ -1,8 +1,14 @@
-//! Fingerprint of what colors are present in the rows/columns/diagonals.
+//! Heatmap of where change/nochange are likely to be present.
+//! 
+//! Makes a fingerprint of what colors are present in the rows/columns/diagonals that change/nochange between input and output.
 //! 
 //! Example when the Red color is present, then we know that the column doesn't change between input and output.
 //! 
 //! Example when the Blue or Yellow colors are present, then we know that DiagonalA changes between input and output.
+//! 
+//! Weakness: It considers the entire row/column/diagonal, so it's a very loose hint that something may be going on in this row/column/diagonal.
+//! A more narrow hint would be to consider the only pixels BEFORE the Red color, or the pixels AFTER the Red colors.
+//! That way it would be more narrow where the change/nochange is likely to be present.
 use super::{Histogram, Image, ImageCompare, ImageSize, ImageHistogram, ImageSkew};
 use anyhow::Context;
 
@@ -141,6 +147,7 @@ impl CompareInputOutput {
         Ok((histogram0, histogram1))
     }
 
+    /// The colors that are in common between the two histograms are removed.
     fn remove_overlap(histogram_change: &Histogram, histogram_nochange: &Histogram) -> (Histogram, Histogram) {
         let histogram0: Histogram = histogram_change.subtract_clamp01(&histogram_nochange);
         let histogram1: Histogram = histogram_nochange.subtract_clamp01(&histogram_change);
