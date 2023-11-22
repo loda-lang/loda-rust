@@ -226,8 +226,16 @@ pub enum ImageLabel {
     PeriodicityY { period: u8 },
 
     // Ideas for more
-    // MassIncreasesSignificantlyForNoiseColor { color: u8 },
-    // MassDecreasesSignificantlyForSolidObjectWithColor { color: u8 },
+    // IgnoringBackgroundColorOuterColorFullyEnclosesInnerColor { outer_color: u8, inner_color: u8 },
+    // IgnoringBackgroundColorOuterColorPartiallyEnclosesInnerColor { outer_color: u8, inner_color: u8 },
+    // IgnoringBackgroundColorAllObjectsHaveTheSameShape { shape: ShapeType },
+    // ExtrusionDefectToRectanglesWithColor { color: u8 },
+    // AlternatingTwoColors { color0: u8, color1: u8 },
+    // AlternatingThreeColors { color0: u8, color1: u8, color2: u8 },
+    // MazeLikePatternWithColor { color: u8 },
+    // SymmetricAroundXAxisWithAlteredColors,
+    // SymmetricAroundYAxisWithAlteredColors,
+    // IgnoringBackgroundGravityDirection { direction: Up/Down/Left/Right },
     // DiagonalLinesWithColor { color: u8 },
     // How many times are the pixels stretched out horizontally. Dividing by this scale does not cause dataloss.
     // ScaleX { scale: u8 },
@@ -437,6 +445,11 @@ pub enum ActionLabel {
     // Ideas for more
     // ChangeHappensToItemWithSpecialColor { item: ChangeItem, color: SpecialColor }, // where SpecialColor is most popular, least popular, noise color, grid color.
     // NoChangeHappensToItemWithSpecialColor { item: ChangeItem, color: SpecialColor }, // where SpecialColor is most popular, least popular, noise color, grid color.
+    // ChangeHappensToItemWithShapeCorner { item: ChangeItem }, // where corner is either a single pixel or a the corner of an L shape or the center of a plus shape.
+    // IgnoringBackgroundColorAllInputShapesArePresentInOutputWithoutTransformation, 
+    // IgnoringBackgroundColorAllInputShapesArePresentInOutputWithTransformation, 
+    // MassIncreasesSignificantlyForNoiseColor { color: u8 },
+    // MassDecreasesSignificantlyForSolidObjectWithColor { color: u8 },
     // PeriodicityXIgnoringBackgroundColor { period: u8 },
     // PeriodicityYIgnoringBackgroundColor { period: u8 },
     // HistogramNoChangeInDirectionDiagonalA,
