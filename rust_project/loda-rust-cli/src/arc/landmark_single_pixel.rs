@@ -5,9 +5,9 @@ use anyhow::bail;
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LandmarkSinglePixel {
-    x: u8,
-    y: u8,
-    color: u8,
+    pub x: u8,
+    pub y: u8,
+    pub color: u8,
 }
 
 impl LandmarkSinglePixel {

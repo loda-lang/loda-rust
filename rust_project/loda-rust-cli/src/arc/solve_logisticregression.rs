@@ -1084,6 +1084,7 @@ impl SolveLogisticRegression {
         let enable_nochange_happens_to_single_line_diagonal: bool = [false, true, false][v];
         let enable_nochange_happens_to_single_line_some_diagonal: bool = [false, true, false][v];
         let enable_nochange_happens_to_single_line_any_45degree_angle: bool = [false, true, false][v];
+        let enable_landmark_single_pixel: bool = [false, true, true][v];
 
         let enable_histogram_diagonal: bool = 
             enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || 
@@ -2817,6 +2818,26 @@ impl SolveLogisticRegression {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             record.serialize_color_complex(pixel, obfuscated_color_offset, enable_serialize_color_complex);
                         }
+                    }
+
+                    if enable_landmark_single_pixel {
+                        let mut at_landmark_center: bool = false;
+                        let mut at_landmark_x: bool = false;
+                        let mut at_landmark_y: bool = false;
+                        if let Some(landmark_single_pixel) = &pair.input.landmark_single_pixel {
+                            if landmark_single_pixel.x == x && landmark_single_pixel.y == y {
+                                at_landmark_center = true;
+                            }
+                            if landmark_single_pixel.x == x {
+                                at_landmark_x = true;
+                            }
+                            if landmark_single_pixel.y == y {
+                                at_landmark_y = true;
+                            }
+                        }
+                        record.serialize_bool_onehot(at_landmark_center);
+                        record.serialize_bool_onehot(at_landmark_x);
+                        record.serialize_bool_onehot(at_landmark_y);
                     }
 
                     if enable_input_four_xy_pairs {
