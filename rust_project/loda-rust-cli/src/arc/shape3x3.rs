@@ -354,4 +354,84 @@ mod tests {
         assert_eq!(shapeid, 47);
         assert_eq!(transformations, ShapeTransformation::all());
     }
+
+    #[test]
+    fn test_40002_shapeid_9() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 8, 8,
+            8, 8, 5,
+            5, 5, 5,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 9);
+        assert_eq!(transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::RotateCw180]));
+    }
+
+    #[test]
+    fn test_40003_shapeid_9() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5,
+            5, 8, 8,
+            8, 8, 5,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 9);
+        assert_eq!(transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::RotateCw180]));
+    }
+
+    #[test]
+    fn test_40004_shapeid_30() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 8,
+            8, 8, 8,
+            8, 5, 5,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 30);
+        assert_eq!(transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::Normal, ShapeTransformation::RotateCw180]));
+    }
+
+    #[test]
+    fn test_40005_shapeid_42() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 5, 8,
+            5, 8, 5,
+            8, 5, 8,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let find_shape: Shape3x3 = Shape3x3::populate().expect("ok");
+
+        // Act
+        let (shapeid, transformations) = find_shape.shapeid_and_transformations(&input).expect("ok");
+
+        // Assert
+        assert_eq!(shapeid, 42);
+        assert_eq!(transformations, ShapeTransformation::all());
+    }
 }
