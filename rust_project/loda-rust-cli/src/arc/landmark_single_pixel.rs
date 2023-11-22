@@ -212,6 +212,29 @@ mod tests {
 
     #[allow(dead_code)]
     // #[test]
+    fn test_140005_rectangle_2x2_attached_to_border() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 6, 0,
+            7, 8, 0,
+            0, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: LandmarkSinglePixel = LandmarkSinglePixel::analyze(&input, 0).expect("ok");
+
+        // Assert
+        let expected = LandmarkSinglePixel {
+            x: 1,
+            y: 1,
+            color: 8,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[allow(dead_code)]
+    // #[test]
     fn test_150000_x_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -276,6 +299,54 @@ mod tests {
         // Assert
         let expected = LandmarkSinglePixel {
             x: 1,
+            y: 1,
+            color: 9,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[allow(dead_code)]
+    // #[test]
+    fn test_180000_45degree_bending_line() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            3, 6, 9, 0, 0,
+            0, 0, 0, 3, 0,
+            0, 0, 0, 0, 1,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: LandmarkSinglePixel = LandmarkSinglePixel::analyze(&input, 0).expect("ok");
+
+        // Assert
+        let expected = LandmarkSinglePixel {
+            x: 2,
+            y: 1,
+            color: 9,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[allow(dead_code)]
+    // #[test]
+    fn test_190000_45degree_bending_line() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            3, 6, 9, 0, 0,
+            5, 5, 5, 3, 0,
+            5, 5, 5, 5, 1,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: LandmarkSinglePixel = LandmarkSinglePixel::analyze(&input, 0).expect("ok");
+
+        // Assert
+        let expected = LandmarkSinglePixel {
+            x: 2,
             y: 1,
             color: 9,
         };
@@ -456,24 +527,6 @@ mod tests {
     }
 
     #[test]
-    fn test_260001_reject_rectangle_2x2() {
-        // Arrange
-        let pixels: Vec<u8> = vec![
-            5, 6, 0,
-            7, 8, 0,
-            0, 0, 0,
-        ];
-        let input: Image = Image::try_create(3, 3, pixels).expect("image");
-
-        // Act
-        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
-
-        // Assert
-        let message = error.to_string();
-        assert_eq!(message, "zero landmarks found in the corner mask");
-    }
-
-    #[test]
     fn test_260002_reject_rectangle_3x2() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -569,11 +622,12 @@ mod tests {
     fn test_280000_reject_skew_tetris() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            0, 0, 0, 0,
-            0, 7, 8, 0,
-            0, 0, 4, 5,
+            0, 0, 0, 0, 0,
+            0, 7, 8, 0, 0,
+            0, 0, 4, 5, 0,
+            0, 0, 0, 0, 0,
         ];
-        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
 
         // Act
         let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
