@@ -100,8 +100,6 @@ pub struct Input {
 
     pub removal_color: Option<u8>,
 
-    pub most_popular_intersection_color: Option<u8>,
-
     pub single_pixel_noise_color: Option<u8>,
 
     // Future experiments to do.
@@ -205,6 +203,9 @@ pub struct Task {
     pub output_histogram_intersection: Histogram,
     pub removal_histogram_intersection: Histogram,
     pub insert_histogram_intersection: Histogram,
+
+    /// All the train and test pairs agree on the same color.
+    pub input_most_popular_color: Option<u8>,
 
     /// What do the `input` images have in common across the `train` and `test` pairs.
     pub input_properties_intersection: HashMap<ImageProperty, u8>,

@@ -1,4 +1,4 @@
-use super::{arc_work_model, ImageStatsMode, ImageStats};
+use super::{arc_work_model, ImageStatsMode, ImageStats, Image};
 use super::{ImageLabelSet, ActionLabelSet, ImageProperty};
 use super::{HtmlLog, ImageToHTML};
 use std::collections::HashMap;
@@ -268,6 +268,11 @@ impl InspectTask {
             Err(_) => {
                 self.row_input_image += "N/A";
             }
+        }
+        if let Some(color) = task.input_most_popular_color {
+            self.row_input_image += "<br><br>Input most popular color<br>";
+            let image: Image = Image::color(1, 1, color);
+            self.row_input_image += &image.to_html();
         }
         self.row_input_image += "</td>";
 

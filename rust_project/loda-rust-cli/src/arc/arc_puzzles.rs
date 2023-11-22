@@ -1319,7 +1319,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let background_color: u8 = task.input_most_popular_color.expect("color");
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
                 let mut result_image: Image = input.replace_color(noise_color, background_color)?;
                 result_image = result_image.replace_colors_other_than(background_color, noise_color)?;
@@ -4412,7 +4412,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let background_color: u8 = task.input_most_popular_color.expect("color");
                 let result_image: Image = input.draw_rect_filled_foreach_color(background_color)?;
                 Ok(result_image)
             }
@@ -4457,7 +4457,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let background_color: u8 = task.input_most_popular_color.expect("color");
                 let noise_color: u8 = pair.input.single_pixel_noise_color.expect("some");
                 let result_image = input.denoise_type4(noise_color, background_color)?;
                 Ok(result_image)
@@ -4836,7 +4836,7 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let background_color: u8 = pair.input.most_popular_intersection_color.expect("color");
+                let background_color: u8 = task.input_most_popular_color.expect("color");
                 let image_with_gravity: Image = input.gravity(background_color, GravityDirection::Right)?;
                 let result_image: Image = image_with_gravity.sort_by_mass(background_color, ImageSortMode::RowsAscending)?;
                 Ok(result_image)

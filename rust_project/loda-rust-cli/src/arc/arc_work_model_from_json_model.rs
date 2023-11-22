@@ -56,7 +56,6 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     substitution_rule_applied: None,
                     predicted_single_color_image: None,
                     removal_color: None,
-                    most_popular_intersection_color: None,
                     single_pixel_noise_color: None,
                 };
                 let buffer_output = arc_work_model::Output {
@@ -101,7 +100,6 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     substitution_rule_applied: None,
                     predicted_single_color_image: None,
                     removal_color: None,
-                    most_popular_intersection_color: None,
                     single_pixel_noise_color: None,
                 };
                 let buffer_output = arc_work_model::Output {
@@ -146,6 +144,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             output_histogram_intersection,
             removal_histogram_intersection,
             insert_histogram_intersection,
+            input_most_popular_color: None,
             input_properties_intersection: HashMap::new(),
             action_label_set_intersection: ActionLabelSet::new(),
             input_image_label_set_intersection: HashSet::new(),

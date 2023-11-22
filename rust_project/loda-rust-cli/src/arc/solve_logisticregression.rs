@@ -1498,7 +1498,7 @@ impl SolveLogisticRegression {
             // }
 
             let noise_color: Option<u8> = pair.input.single_pixel_noise_color;
-            let most_popular_color: Option<u8> = pair.input.most_popular_intersection_color;
+            let most_popular_color: Option<u8> = task.input_most_popular_color;
             // let most_popular_color: Option<u8> = task.input_output_most_popular_color_unambiguous();
             // let removal_color: Option<u8> = pair.input.removal_color;
 
