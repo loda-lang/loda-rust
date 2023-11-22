@@ -163,6 +163,9 @@ impl InspectTask {
         }
         {
             self.row_input_labels += "<td>";
+            if let Some(landmark_single_pixel) = &pair.input.landmark_single_pixel {
+                self.row_input_labels += &format!("Landmark single pixel: {:?}<br>", landmark_single_pixel);
+            }
             self.row_input_labels += &Self::image_label_set_to_html(&pair.input.image_meta.image_label_set);
             self.row_input_labels += "</td>";
         }

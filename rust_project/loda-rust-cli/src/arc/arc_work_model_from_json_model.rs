@@ -57,6 +57,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     predicted_single_color_image: None,
                     removal_color: None,
                     single_pixel_noise_color: None,
+                    landmark_single_pixel: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},train", task_id, index),
@@ -101,6 +102,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     predicted_single_color_image: None,
                     removal_color: None,
                     single_pixel_noise_color: None,
+                    landmark_single_pixel: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},test", task_id, index),

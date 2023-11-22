@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, ImageProperty, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification, ImageStats, Split};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, ImageProperty, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification, ImageStats, Split, LandmarkSinglePixel};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -101,6 +101,8 @@ pub struct Input {
     pub removal_color: Option<u8>,
 
     pub single_pixel_noise_color: Option<u8>,
+
+    pub landmark_single_pixel: Option<LandmarkSinglePixel>,
 
     // Future experiments to do.
     // least_popular_intersection_color
