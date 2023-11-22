@@ -113,6 +113,7 @@ mod index_for_pixel;
 mod inspect_task;
 mod lab_analyze_task;
 mod label;
+mod landmark_single_pixel;
 mod largest_interior_rectangle;
 mod linespan;
 mod ngram;
