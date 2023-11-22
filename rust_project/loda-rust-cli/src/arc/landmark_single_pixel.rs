@@ -73,7 +73,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_one_pixel() {
+    fn test_110000_one_pixel() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_l_shape() {
+    fn test_120000_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -119,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_l_shape() {
+    fn test_120001_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 3, 0, 0,
@@ -142,7 +142,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_t_shape() {
+    fn test_130000_t_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -165,7 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30001_t_shape() {
+    fn test_130001_t_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 5, 0,
@@ -188,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_plus_shape() {
+    fn test_140000_plus_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -212,7 +212,7 @@ mod tests {
 
     #[allow(dead_code)]
     // #[test]
-    fn test_50000_x_shape() {
+    fn test_150000_x_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 0, 2, 0,
@@ -236,7 +236,7 @@ mod tests {
 
     #[allow(dead_code)]
     // #[test]
-    fn test_60000_45degree_l_shape() {
+    fn test_160000_45degree_l_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 2, 0,
@@ -260,7 +260,7 @@ mod tests {
 
     #[allow(dead_code)]
     // #[test]
-    fn test_70000_45degree_t_shape() {
+    fn test_170000_45degree_t_shape() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 2, 0,
@@ -426,6 +426,154 @@ mod tests {
             0, 0, 1, 9, 7,
         ];
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "2 or more landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_260000_reject_rectangle_2x2() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 5, 6, 0, 0,
+            0, 7, 8, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_260001_reject_rectangle_2x2() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 6, 0,
+            7, 8, 0,
+            0, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_260002_reject_rectangle_3x2() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 4, 5, 6, 0,
+            0, 7, 8, 9, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_270000_reject_line() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 7, 8, 0,
+            0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_270001_reject_line() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 7, 0,
+            0, 8, 0,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_270002_reject_line() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 7, 0,
+            0, 0, 8,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_270003_reject_line() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 8,
+            0, 7, 0,
+            0, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_280000_reject_skew_tetris() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 7, 8, 0,
+            0, 0, 4, 5,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
 
         // Act
         let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
