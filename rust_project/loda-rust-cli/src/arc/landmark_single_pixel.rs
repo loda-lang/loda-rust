@@ -40,7 +40,7 @@ impl LandmarkSinglePixel {
 
         let count: u16 = combined_mask.mask_count_nonzero();
         if count == 0 {
-            bail!("no landmark found in the corner mask");
+            bail!("zero landmarks found in the corner mask");
         }
         if count >= 2 {
             bail!("2 or more landmarks found in the corner mask");
@@ -232,5 +232,206 @@ mod tests {
             color: 5,
         };
         assert_eq!(actual, expected);
+    }
+
+    #[allow(dead_code)]
+    // #[test]
+    fn test_60000_45degree_l_shape() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 2, 0,
+            0, 9, 0, 0,
+            0, 0, 3, 0,
+            0, 0, 0, 1,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: LandmarkSinglePixel = LandmarkSinglePixel::analyze(&input, 0).expect("ok");
+
+        // Assert
+        let expected = LandmarkSinglePixel {
+            x: 1,
+            y: 1,
+            color: 9,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[allow(dead_code)]
+    // #[test]
+    fn test_70000_45degree_t_shape() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 2, 0,
+            0, 9, 0, 0,
+            6, 0, 3, 0,
+            0, 0, 0, 1,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: LandmarkSinglePixel = LandmarkSinglePixel::analyze(&input, 0).expect("ok");
+
+        // Assert
+        let expected = LandmarkSinglePixel {
+            x: 1,
+            y: 1,
+            color: 9,
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_200000_reject_empty() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "the image is entirely the background color. no landmark found");
+    }
+
+    #[test]
+    fn test_200001_reject_empty() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5, 5,
+            5, 5, 5, 5,
+            5, 5, 5, 5,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_200002_reject_half_and_half() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 3, 3,
+            5, 5, 3, 3,
+            5, 5, 3, 3,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_210000_reject_two_single_pixels() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 0, 0, 3,
+            0, 6, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "zero landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_220000_reject_box() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 3, 8, 3,
+            0, 6, 0, 3,
+            0, 5, 7, 9,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "2 or more landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_230000_reject_two_l_shapes() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 0,
+            3, 3, 8, 0, 0,
+            0, 0, 0, 0, 8,
+            0, 5, 7, 9, 7,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "2 or more landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_240000_reject_two_plus_shapes() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0, 0, 0,
+            3, 3, 8, 0, 0,
+            0, 1, 0, 0, 0,
+            0, 0, 0, 9, 0,
+            0, 0, 1, 9, 7,
+            0, 0, 0, 9, 0,
+        ];
+        let input: Image = Image::try_create(5, 6, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "2 or more landmarks found in the corner mask");
+    }
+
+    #[test]
+    fn test_250000_reject_two_t_shapes() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 0,
+            3, 3, 8, 0, 0,
+            1, 0, 0, 0, 0,
+            0, 0, 0, 9, 0,
+            0, 0, 1, 9, 7,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let error = LandmarkSinglePixel::analyze(&input, 0).expect_err("should fail");
+
+        // Assert
+        let message = error.to_string();
+        assert_eq!(message, "2 or more landmarks found in the corner mask");
     }
 }
