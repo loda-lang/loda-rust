@@ -1,4 +1,4 @@
-use super::{Image, ImageMask, ImageTrim, ShapeTransformation, ImageSize, ImageTryCreate};
+use super::{Image, ImageMask, ImageTrim, ShapeTransformation, ImageSize, ImageTryCreate, HtmlLog};
 use std::collections::{HashSet, HashMap};
 use lazy_static::lazy_static;
 
@@ -82,6 +82,16 @@ impl Shape3x3 {
             index_to_shapeid,
         };
         Ok(instance)
+    }
+
+    /// Log all shapes to the html log, so it's possible to inspect all the 48 shapes.
+    #[allow(dead_code)]
+    pub fn htmllog_all_shapes(&self) {
+        HtmlLog::text(format!("number of shapes: {}", self.shape_vec.len()));
+        for (shape_id, image) in self.shape_vec.iter().enumerate() {
+            HtmlLog::text(format!("shape_id: {}", shape_id));
+            HtmlLog::image(&image);
+        }
     }
 
     /// Create an 8bit representation from a 3x3 image.
@@ -170,6 +180,7 @@ mod tests {
         
         // Act
         let instance: Shape3x3 = Shape3x3::populate().expect("populate");
+        // instance.htmllog_all_shapes();
 
         // Assert
         assert_eq!(instance.shape_set.len(), 48);
