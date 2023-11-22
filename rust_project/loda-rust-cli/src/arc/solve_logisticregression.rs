@@ -1498,14 +1498,14 @@ impl SolveLogisticRegression {
             // }
 
             let noise_color: Option<u8> = pair.input.single_pixel_noise_color;
-            let most_popular_color: Option<u8> = task.input_most_popular_color;
+            let input_most_popular_color: Option<u8> = task.input_most_popular_color;
             // let most_popular_color: Option<u8> = task.input_output_most_popular_color_unambiguous();
             // let removal_color: Option<u8> = pair.input.removal_color;
 
             let mut non_background_mask: Image = input.clone_zero();
             // let mut non_background_shape_type_image_connectivity4: Image = input.clone_zero();
             // let mut non_background_shape_type_image_connectivity8: Image = input.clone_zero();
-            if let Some(color) = most_popular_color {
+            if let Some(color) = input_most_popular_color {
                 // if let Some(color) = noise_color {
                 // non_background_mask = input.to_mask_where_color_is_different(color);
                 // non_background_mask = input.to_mask_where_color_is(color);
@@ -1846,7 +1846,7 @@ impl SolveLogisticRegression {
             let mut nearest_color4: Image = Image::empty();
             let mut nearest_color8: Image = Image::empty();
             if enable_nearest_color {
-                if let Some(color) = most_popular_color {
+                if let Some(color) = input_most_popular_color {
                     nearest_color4 = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity4, color)?;
                     nearest_color8 = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity8, color)?;
                 }
@@ -2157,7 +2157,7 @@ impl SolveLogisticRegression {
             let mut image_neighbour_upright: Image = Image::color(width, height, 255);
             let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
             let mut image_neighbour_downright: Image = Image::color(width, height, 255);
-            if let Some(color) = most_popular_color {
+            if let Some(color) = input_most_popular_color {
                 let ignore_mask: Image = input.to_mask_where_color_is(color);
                 match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Up, 255) {
                     Ok(image) => {
@@ -2311,7 +2311,7 @@ impl SolveLogisticRegression {
             //     color_to_denoise.insert(color, image);
             // }
 
-            let input_denoise_type1: Image = input.denoise_type1(most_popular_color.unwrap_or(255))?;
+            let input_denoise_type1: Image = input.denoise_type1(input_most_popular_color.unwrap_or(255))?;
 
             // let histogram_border: Histogram = input.histogram_border();
             // let border_most_popular_color: Option<u8> = histogram_border.most_popular_color();
@@ -2542,7 +2542,7 @@ impl SolveLogisticRegression {
             let gravity_right: Image;
             if enable_gravity {
                 let hardcoded_background_color: u8 = 0;
-                let gravity_background_color: u8 = most_popular_color.unwrap_or(hardcoded_background_color);
+                let gravity_background_color: u8 = input_most_popular_color.unwrap_or(hardcoded_background_color);
                 gravity_up = input.gravity(gravity_background_color, GravityDirection::Up)?;
                 gravity_down = input.gravity(gravity_background_color, GravityDirection::Down)?;
                 gravity_left = input.gravity(gravity_background_color, GravityDirection::Left)?;
@@ -2735,8 +2735,8 @@ impl SolveLogisticRegression {
                             }
 
                             {
-                                let value0: bool = pixel_resized == most_popular_color.unwrap_or(255);
-                                let value1: bool = pixel_repeated == most_popular_color.unwrap_or(255);
+                                let value0: bool = pixel_resized == input_most_popular_color.unwrap_or(255);
+                                let value1: bool = pixel_repeated == input_most_popular_color.unwrap_or(255);
                                 record.serialize_bool_onehot(value0 ^ value1);
                                 record.serialize_bool_onehot(value0 | value1);
                                 record.serialize_bool_onehot(value0 & value1);
@@ -2746,8 +2746,8 @@ impl SolveLogisticRegression {
                             record.serialize_bool_onehot(pixel_repeated == center);
                             record.serialize_bool_onehot(pixel_resized == center_output);
                             record.serialize_bool_onehot(pixel_repeated == center_output);
-                            record.serialize_bool_onehot(pixel_resized == most_popular_color.unwrap_or(255));
-                            record.serialize_bool_onehot(pixel_repeated == most_popular_color.unwrap_or(255));
+                            record.serialize_bool_onehot(pixel_resized == input_most_popular_color.unwrap_or(255));
+                            record.serialize_bool_onehot(pixel_repeated == input_most_popular_color.unwrap_or(255));
 
                             {
                                 let tx: u8 = x / scale_x.max(1);
@@ -3473,7 +3473,7 @@ impl SolveLogisticRegression {
                     let mass_connectivity4: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
                     let mass_connectivity8: u8 = image_mass_connectivity8.get(xx, yy).unwrap_or(0);
 
-                    let input_is_most_popular_color: bool = most_popular_color == Some(center);
+                    let input_is_most_popular_color: bool = input_most_popular_color == Some(center);
                 
                     let x_mod4: u8 = x % 4;
                     let y_mod4: u8 = y % 4;
@@ -3760,7 +3760,7 @@ impl SolveLogisticRegression {
                                 if noise_color == Some(*color) {
                                     v6 = 1;
                                 }
-                                if most_popular_color == Some(*color) {
+                                if input_most_popular_color == Some(*color) {
                                     v7 = 1;
                                 }
                             },
