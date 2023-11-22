@@ -1,4 +1,4 @@
-use super::{Image, ImageMask, ImageMaskCount, ImageCornerAnalyze, MixMode, ImageMix, ImageCrop, Shape3x3};
+use super::{Image, ImageMask, ImageMaskCount, MixMode, ImageMix, ImageCrop, Shape3x3};
 use std::collections::HashSet;
 use anyhow::bail;
 
@@ -13,68 +13,6 @@ pub struct LandmarkSinglePixel {
 impl LandmarkSinglePixel {
     #[allow(dead_code)]
     pub fn analyze(image: &Image, background_color: u8) -> anyhow::Result<Self> {
-        // Self::analyze_old(image, background_color)
-        Self::analyze_new(image, background_color)
-    }
-
-    #[allow(dead_code)]
-    fn analyze_old(image: &Image, background_color: u8) -> anyhow::Result<Self> {
-        let mask: Image = image.to_mask_where_color_is_different(background_color);
-        let count: u16 = mask.mask_count_nonzero();
-        if count == 0 {
-            bail!("the image is entirely the background color. no landmark found");
-        }
-        if let Some(rectangle) = mask.bounding_box() {
-            if rectangle.width() == 1 && rectangle.height() == 1 {
-                let x_i32: i32 = rectangle.min_x();
-                let y_i32: i32 = rectangle.min_y();
-                if x_i32 < 0 || y_i32 < 0 || x_i32 >= 255 || y_i32 >= 255 {
-                    bail!("the position is outside the image");
-                }
-                let x: u8 = x_i32 as u8;
-                let y: u8 = y_i32 as u8;
-                let color: u8 = image.get(x_i32, y_i32).unwrap_or(255);
-                return Ok(LandmarkSinglePixel {
-                    x,
-                    y,
-                    color,
-                });
-            }
-        }
-
-        let corner_mask: Image = mask.corners()?;
-        let combined_mask: Image = mask.mix(&corner_mask, MixMode::Multiply)?;
-
-        let count: u16 = combined_mask.mask_count_nonzero();
-        if count == 0 {
-            bail!("zero landmarks found in the corner mask");
-        }
-        if count >= 2 {
-            bail!("2 or more landmarks found in the corner mask");
-        }
-        if let Some(rectangle) = combined_mask.bounding_box() {
-            if rectangle.width() == 1 && rectangle.height() == 1 {
-                let x_i32: i32 = rectangle.min_x();
-                let y_i32: i32 = rectangle.min_y();
-                if x_i32 < 0 || y_i32 < 0 || x_i32 >= 255 || y_i32 >= 255 {
-                    bail!("the position is outside the image");
-                }
-                let x: u8 = x_i32 as u8;
-                let y: u8 = y_i32 as u8;
-                let color: u8 = image.get(x_i32, y_i32).unwrap_or(255);
-                return Ok(LandmarkSinglePixel {
-                    x,
-                    y,
-                    color,
-                });
-            }
-        }
-
-        bail!("didn't find a single pixel landmark")
-    }
-
-    #[allow(dead_code)]
-    fn analyze_new(image: &Image, background_color: u8) -> anyhow::Result<Self> {
         let mask: Image = image.to_mask_where_color_is_different(background_color);
         let count: u16 = mask.mask_count_nonzero();
         if count == 0 {
