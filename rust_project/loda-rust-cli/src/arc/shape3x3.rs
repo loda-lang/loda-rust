@@ -171,7 +171,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_analyze() {
+    fn test_10000_analyze_with_trim() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5,
@@ -188,6 +188,53 @@ mod tests {
             1, 0, 0,
             1, 1, 0,
             1, 1, 1,
+        ];
+        let expected: Image = Image::try_create(3, 3, expected_pixels).expect("image");
+        assert_eq!(output, expected);
+        assert_eq!(transformations, HashSet::<ShapeTransformation>::from([ShapeTransformation::RotateCw270, ShapeTransformation::FlipXRotateCw180]));
+    }
+
+    #[test]
+    fn test_10001_analyze_with_trim() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 8,
+            5, 5, 8,
+            8, 8, 8,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let (transformations, output) = Shape3x3::analyze(&input, true).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 1,
+            1, 1,
+        ];
+        let expected: Image = Image::try_create(2, 2, expected_pixels).expect("image");
+        assert_eq!(output, expected);
+        assert_eq!(transformations, ShapeTransformation::all());
+    }
+
+    #[test]
+    fn test_10002_analyze_without_trim() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 8,
+            5, 5, 8,
+            8, 8, 8,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let (transformations, output) = Shape3x3::analyze(&input, false).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0,
+            1, 1, 0,
+            1, 1, 0,
         ];
         let expected: Image = Image::try_create(3, 3, expected_pixels).expect("image");
         assert_eq!(output, expected);
