@@ -434,8 +434,8 @@ impl SolveLogisticRegression {
             "a699fb00", "a79310a0", "a8d7556c", "a934301b", "a9f96cdd", "aa4ec2a5", "ae3edfdc", "ae58858e", "aedd82e4", "b0c4d837",
             "b1948b0a", "b230c067", "b2862040", "b60334d2", "b6afb2da", "ba26e723", "bb43febb", "bbb1b8b6", "bbc9ae5d", "bdad9b1f",
             "c0f76784", "c8f0f002", "ce039d91", "ce22a75a", "ce9e57f2", "d2abd087", "d364b489", "d37a1ef5", "d406998b", "d511f180",
-            "d5d6de2d", "dbc1a6ce", "dc433765", "de1cd16c", "ded97339", "e0fb7511", "e133d23d", "e7dd8335", "e8593010", "e872b94a",
-            "e9c9d9a1", "ef135b50", "f45f5ca7",
+            "d5d6de2d", "dbc1a6ce", "dc433765", "de1cd16c", "ded97339", "e0fb7511", "e133d23d", "e73095fd", "e7dd8335", "e8593010",
+            "e872b94a", "e9c9d9a1", "ef135b50", "f45f5ca7",
         ];
         let ignore_task_id: HashSet<String> = already_fully_solved_tasks_ids.iter().map(|s| s.to_string()).collect();
         
@@ -1051,9 +1051,11 @@ impl SolveLogisticRegression {
         let enable_gameoflife: bool = false;
         let enable_nonbackground_different_than_most_popular_color: bool = false;
         let enable_shape3x3_with_trim: bool = [true, false, false][v];
-        let enable_shape3x3_input: bool = [true, false, false][v];
-        let enable_shape3x3_input_nonbackground: bool = false;
-        let enable_shape3x3_output: bool = false;
+        let enable_shape3x3_with_area5x5: bool = [false, true, true][v];
+        let enable_shape3x3_input: bool = [true, true, true][v];
+        let enable_shape3x3_input_nonbackground: bool = [false, true, true][v];
+        let enable_shape3x3_output: bool = [false, true, true][v];
+        let enable_shape3x3_with_different_than_input_most_popular_color: bool = [false, true, true][v];
 
         let enable_shape_type_image_connectivity4: bool = true;
         let enable_shape_type_image_connectivity8: bool = true;
@@ -5603,53 +5605,54 @@ impl SolveLogisticRegression {
                     //     let image_id: u8 = Shape3x3::id_from_3x3image(&area3x3).unwrap_or(0);
                     //     record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
                     // }
-                    // {
-                    //     let mut the_shapeid: u8 = 255;
-                    //     let mut transform_mask: u8 = 0;
-                    //     let mut local_area3x3: Image = area5x5.resize(3, 3)?;
-                    //     local_area3x3.set(0, 0, area5x5.get(1, 0).unwrap_or(255));
-                    //     local_area3x3.set(1, 0, area5x5.get(3, 0).unwrap_or(255));
-                    //     local_area3x3.set(2, 0, area5x5.get(0, 1).unwrap_or(255));
-                    //     local_area3x3.set(0, 1, area5x5.get(0, 3).unwrap_or(255));
-                    //     local_area3x3.set(2, 1, area5x5.get(4, 1).unwrap_or(255));
-                    //     local_area3x3.set(0, 2, area5x5.get(4, 3).unwrap_or(255));
-                    //     local_area3x3.set(1, 2, area5x5.get(1, 4).unwrap_or(255));
-                    //     local_area3x3.set(2, 2, area5x5.get(3, 4).unwrap_or(255));
-                    //     // let image_id: u8 = Shape3x3::id_from_3x3image(&local_area3x3).unwrap_or(0);
-                    //     // record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
-                    //     match shape3x3.shapeid_and_transformations(&local_area3x3) {
-                    //         Ok((shapeid, transformations)) => {
-                    //             the_shapeid = shapeid;
-                    //             if transformations.contains(&ShapeTransformation::Normal) {
-                    //                 transform_mask |= 1;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw90) {
-                    //                 transform_mask |= 2;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw180) {
-                    //                 transform_mask |= 4;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw270) {
-                    //                 transform_mask |= 8;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipX) {
-                    //                 transform_mask |= 16;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
-                    //                 transform_mask |= 32;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
-                    //                 transform_mask |= 64;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
-                    //                 transform_mask |= 128;
-                    //             }
-                    //         },
-                    //         Err(_) => {},
-                    //     }
-                    //     record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
-                    //     record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
-                    // }
+
+                    if enable_shape3x3_with_area5x5 {
+                        let mut the_shapeid: u8 = 255;
+                        let mut transform_mask: u8 = 0;
+                        let mut local_area3x3: Image = area5x5.resize(3, 3)?;
+                        local_area3x3.set(0, 0, area5x5.get(1, 0).unwrap_or(255));
+                        local_area3x3.set(1, 0, area5x5.get(3, 0).unwrap_or(255));
+                        local_area3x3.set(2, 0, area5x5.get(0, 1).unwrap_or(255));
+                        local_area3x3.set(0, 1, area5x5.get(0, 3).unwrap_or(255));
+                        local_area3x3.set(2, 1, area5x5.get(4, 1).unwrap_or(255));
+                        local_area3x3.set(0, 2, area5x5.get(4, 3).unwrap_or(255));
+                        local_area3x3.set(1, 2, area5x5.get(1, 4).unwrap_or(255));
+                        local_area3x3.set(2, 2, area5x5.get(3, 4).unwrap_or(255));
+                        // let image_id: u8 = Shape3x3::id_from_3x3image(&local_area3x3).unwrap_or(0);
+                        // record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
+                        match shape3x3.shapeid_and_transformations(&local_area3x3) {
+                            Ok((shapeid, transformations)) => {
+                                the_shapeid = shapeid;
+                                if transformations.contains(&ShapeTransformation::Normal) {
+                                    transform_mask |= 1;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw90) {
+                                    transform_mask |= 2;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw180) {
+                                    transform_mask |= 4;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw270) {
+                                    transform_mask |= 8;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipX) {
+                                    transform_mask |= 16;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                                    transform_mask |= 32;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                                    transform_mask |= 64;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                                    transform_mask |= 128;
+                                }
+                            },
+                            Err(_) => {},
+                        }
+                        record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                        record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                    }
 
                     // let center_shapeid: u8;
                     // let center_shapetransformations: u8;
@@ -5733,48 +5736,48 @@ impl SolveLogisticRegression {
                         record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
                     }
 
-                    // {
-                    //     let mut the_shapeid: u8 = 255;
-                    //     let mut transform_mask: u8 = 0;
-                    //     let mut my_area3x3: Image = area3x3.clone();
-                    //     if let Some(color) = most_popular_color {
-                    //         my_area3x3 = my_area3x3.to_mask_where_color_is_different(color);
-                    //     }
-                    //     match shape3x3.shapeid_and_transformations(&my_area3x3) {
-                    //         Ok((shapeid, transformations)) => {
-                    //             the_shapeid = shapeid;
-                    //             if transformations.contains(&ShapeTransformation::Normal) {
-                    //                 transform_mask |= 1;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw90) {
-                    //                 transform_mask |= 2;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw180) {
-                    //                 transform_mask |= 4;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw270) {
-                    //                 transform_mask |= 8;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipX) {
-                    //                 transform_mask |= 16;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
-                    //                 transform_mask |= 32;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
-                    //                 transform_mask |= 64;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
-                    //                 transform_mask |= 128;
-                    //             }
-                    //         },
-                    //         Err(_) => {},
-                    //     }
-                    //     // center_shapeid = the_shapeid;
-                    //     // center_shapetransformations = transform_mask;
-                    //     record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
-                    //     record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
-                    // }
+                    if enable_shape3x3_with_different_than_input_most_popular_color {
+                        let mut the_shapeid: u8 = 255;
+                        let mut transform_mask: u8 = 0;
+                        let mut my_area3x3: Image = area3x3.clone();
+                        if let Some(color) = input_most_popular_color {
+                            my_area3x3 = my_area3x3.to_mask_where_color_is_different(color);
+                        }
+                        match shape3x3.shapeid_and_transformations(&my_area3x3) {
+                            Ok((shapeid, transformations)) => {
+                                the_shapeid = shapeid;
+                                if transformations.contains(&ShapeTransformation::Normal) {
+                                    transform_mask |= 1;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw90) {
+                                    transform_mask |= 2;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw180) {
+                                    transform_mask |= 4;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw270) {
+                                    transform_mask |= 8;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipX) {
+                                    transform_mask |= 16;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                                    transform_mask |= 32;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                                    transform_mask |= 64;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                                    transform_mask |= 128;
+                                }
+                            },
+                            Err(_) => {},
+                        }
+                        // center_shapeid = the_shapeid;
+                        // center_shapetransformations = transform_mask;
+                        record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                        record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                    }
 
                     // let combos: [(i32, i32); 4] = [(xx - 1, 0), (xx - 1, (height as i32) - 3), (0, yy - 1), ((width as i32) - 3, yy - 1)];
                     // let combos: [(i32, i32); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
