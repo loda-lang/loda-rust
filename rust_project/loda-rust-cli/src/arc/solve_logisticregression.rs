@@ -66,6 +66,7 @@
 //! However I don't see any improvement of the prediction accuracy.
 //! 
 //! Future experiments:
+//! * Use confusion matrix for determining what parameters have impact on the precision. And enable/disable features based on the confusion matrix.
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 //! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
