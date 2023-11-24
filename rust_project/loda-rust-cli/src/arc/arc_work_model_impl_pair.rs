@@ -820,19 +820,19 @@ impl arc_work_model::Pair {
         let output_least_popular_color: Option<u8> = self.output.image_meta.histogram_all.least_popular_color_disallow_ambiguous();
 
         if input_most_popular_color.is_some() && input_most_popular_color == output_most_popular_color {
-            let label = ActionLabel::InputMostPopularColorIsOutputMostPopularColor;
+            let label = ActionLabel::PairInputMostPopularColorIsOutputMostPopularColor;
             self.action_label_set.insert(label);
         }
         if input_most_popular_color.is_some() && input_most_popular_color == output_least_popular_color {
-            let label = ActionLabel::InputMostPopularColorIsOutputLeastPopularColor;
+            let label = ActionLabel::PairInputMostPopularColorIsOutputLeastPopularColor;
             self.action_label_set.insert(label);
         }
         if input_least_popular_color.is_some() && input_least_popular_color == output_most_popular_color {
-            let label = ActionLabel::InputLeastPopularColorIsOutputMostPopularColor;
+            let label = ActionLabel::PairInputLeastPopularColorIsOutputMostPopularColor;
             self.action_label_set.insert(label);
         }
         if input_least_popular_color.is_some() && input_least_popular_color == output_least_popular_color {
-            let label = ActionLabel::InputLeastPopularColorIsOutputLeastPopularColor;
+            let label = ActionLabel::PairInputLeastPopularColorIsOutputLeastPopularColor;
             self.action_label_set.insert(label);
         }
         

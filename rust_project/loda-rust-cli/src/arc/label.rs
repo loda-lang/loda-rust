@@ -389,16 +389,16 @@ pub enum ActionLabel {
     OutputImageColorsComesFromInputImage,
 
     /// What input colors explains the output colors. The most popular stays the most popular.
-    InputMostPopularColorIsOutputMostPopularColor,
+    PairInputMostPopularColorIsOutputMostPopularColor,
 
     /// What input colors explains the output colors. The least popular stays the least popular.
-    InputLeastPopularColorIsOutputLeastPopularColor,
+    PairInputLeastPopularColorIsOutputLeastPopularColor,
 
     /// What input colors explains the output colors. The most popular becomes the least popular.
-    InputMostPopularColorIsOutputLeastPopularColor,
+    PairInputMostPopularColorIsOutputLeastPopularColor,
 
     /// What input colors explains the output colors. The least popular becomes the most popular.
-    InputLeastPopularColorIsOutputMostPopularColor,
+    PairInputLeastPopularColorIsOutputMostPopularColor,
 
     /// The output size is the same as the input size.
     /// Each pixel have the same number of identical pixels as in the input.
