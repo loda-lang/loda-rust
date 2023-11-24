@@ -12,6 +12,8 @@
 //! e98196ab, f2829549, fafffa47
 //! 
 //! Known problem: Can only split into columns or rows, not both.
+//! If a task contains both horizontal and vertical splits, then it cannot determine which split to use. Here a mechanism for determining what split to use is needed.
+//! If a task is a grid, then it cannot extract the grid cells.
 //! 
 //! Known problem: Returns a result the moment it finds something that seems to be a solution.
 //! It doesn't attempt to find a better solution.
@@ -31,7 +33,7 @@
 //! * Return multiple predictions, up to 3 is allowed.
 //! 
 //! Hard splitview tasks that it currently cannot solve, and will require more advanced techniques:
-//! 136b0064, 351d6448, 93b4f4b3, d47aa2ff, e3497940
+//! 136b0064, 351d6448, 93b4f4b3, d47aa2ff, e3497940, e6721834
 use super::arc_work_model::{Task, Input, PairType};
 use super::{ImageLabel, SplitLabel, ImageSplit, ImageSplitDirection, ImageOverlay, ImageHistogram, ColorMap, ImageSize};
 use super::{Image, ImageMaskBoolean, Histogram, ImageReplaceColor, ImageSymmetry};

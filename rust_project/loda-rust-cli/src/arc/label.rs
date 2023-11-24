@@ -468,6 +468,7 @@ pub enum ActionLabel {
     // ObjectsOnlyMoveInDirectionY,
     // CropWhenFinishedDrawingInsideSingleColorObjectWithColor { color: u8 },
     // OutputImageCropOutSingleColorObject { color: u8 },
+    // OutputSizeIsHalfOfInputSizeDependingOnInputOrientation,
     // OutputSizeIsTheSameAsBoundingBoxOfSingleColorObject { color: u8 },
     // OutputSizeIsTheSameAsHoleInSingleColorObject { color: u8 },
     // OutputSizeIsTheSameAsInputSmallestSingleColorObjectRectangle,
