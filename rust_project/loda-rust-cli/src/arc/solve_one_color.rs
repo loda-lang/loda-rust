@@ -335,6 +335,48 @@ impl SolveOneColor {
     }
 
     fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<ProcessedTaskWithOneTestPair> {
+        // Obtain `pair_index` from `test_index`.
+        let mut found_pair_index: Option<u8> = None;
+        for pair in &task.pairs {
+            if pair.test_index == Some(test_index) {
+                found_pair_index = Some(pair.pair_index);
+                break;
+            }
+        }
+        let pair_index: u8 = match found_pair_index {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to find pair with test_index: {}", test_index));
+            }
+        };
+
+        let predicted_colors: Vec<u8> = Self::predict_colors_for_task_with_test_index(context, task, test_index)?;
+        
+        let mut predicted_color: u8 = 42;
+
+        if predicted_colors.len() == 1 {
+            if let Some(color) = predicted_colors.first() {
+                predicted_color = *color;
+            }
+        }
+
+        // If there are 3 or fewer colors, then make a prediction for each color.
+        // If there are 4 or more colors, then do extra work to make max 3 predictions.
+        // if available_colors.number_of_counters_greater_than_zero() <= 3 {
+        // };
+
+        let crop_output_size: ImageSize = context.output_size_vec[pair_index as usize];
+
+        let cropped_image: Image = Image::color(crop_output_size.width, crop_output_size.height, predicted_color);
+
+        let instance = ProcessedTaskWithOneTestPair {
+            test_index,
+            cropped_image,
+        };
+        Ok(instance)
+    }
+
+    fn predict_colors_for_task_with_test_index(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Vec<u8>> {
         if context.input_size_vec.len() != task.pairs.len() {
             return Err(anyhow::anyhow!("context.output_size_vec.len() != task.pairs.len()"));
         }
@@ -398,28 +440,20 @@ impl SolveOneColor {
         HtmlLog::text(format!("task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color()));
         // HtmlLog::text(format!("task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors));
         
-        let mut predicted_color: u8 = 42;
-
         if available_colors.number_of_counters_greater_than_zero() == 1 {
             if let Some(color) = available_colors.most_popular_color_disallow_ambiguous() {
-                predicted_color = color;
+                return Ok(vec![color]);
             }
         }
+        
+        let mut predicted_color: u8 = 42;
 
         // If there are 3 or fewer colors, then make a prediction for each color.
         // If there are 4 or more colors, then do extra work to make max 3 predictions.
         // if available_colors.number_of_counters_greater_than_zero() <= 3 {
         // };
 
-        let crop_output_size: ImageSize = context.output_size_vec[pair_index as usize];
-
-        let cropped_image: Image = Image::color(crop_output_size.width, crop_output_size.height, predicted_color);
-
-        let instance = ProcessedTaskWithOneTestPair {
-            test_index,
-            cropped_image,
-        };
-        Ok(instance)
+        Ok(vec![predicted_color])
     }
 
     /// This solver is only able to solve tasks where all pairs agrees that the output images have one color.
@@ -494,7 +528,7 @@ impl SolveOneColor {
             return None;
         }
 
-        // Obtain the most popular color for the specified pair.
+        // Obtain the least popular color for the specified pair.
         for pair in &task.pairs {
             if pair.pair_index == pair_index {
                 return pair.input.image_meta.histogram_all.least_popular_color_disallow_ambiguous();
