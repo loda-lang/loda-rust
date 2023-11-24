@@ -236,7 +236,6 @@ impl SolveOneColor {
             // Display the internal computed image to the html log
             if run_and_verify_htmllog {
                 for (index, ptwotp) in processed_task.ptwotp_vec.iter().enumerate() {
-                    HtmlLog::compare_images(ptwotp.inspect_internal_image_vec.clone());
                     let is_correct: bool = correct_vec[index];
                     if is_correct {
                         HtmlLog::text(format!("{} - test_index: {} - correct", task.id, ptwotp.test_index));
@@ -402,7 +401,7 @@ impl SolveOneColor {
         let mut predicted_color: u8 = 42;
 
         if available_colors.number_of_counters_greater_than_zero() == 1 {
-            if let Some(color) = available_colors.most_popular_color() {
+            if let Some(color) = available_colors.most_popular_color_disallow_ambiguous() {
                 predicted_color = color;
             }
         }
@@ -419,7 +418,6 @@ impl SolveOneColor {
         let instance = ProcessedTaskWithOneTestPair {
             test_index,
             cropped_image,
-            inspect_internal_image_vec: vec!(),
         };
         Ok(instance)
     }
@@ -511,7 +509,6 @@ impl SolveOneColor {
 struct ProcessedTaskWithOneTestPair {
     test_index: u8,
     cropped_image: Image,
-    inspect_internal_image_vec: Vec<Image>,
 }
 
 struct ProcessedTask {
