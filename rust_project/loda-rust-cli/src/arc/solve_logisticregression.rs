@@ -675,10 +675,10 @@ impl SolveLogisticRegression {
         }
 
         let mut prediction_vec = Vec::<arcathon_solution_coordinator::Prediction>::new();
-        for (test_index, ptwotp) in ptwotp_vec.iter().enumerate() {
+        for ptwotp in &ptwotp_vec {
             let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&ptwotp.cropped_image);
             let prediction = arcathon_solution_coordinator::Prediction {
-                output_id: test_index.min(255) as u8,
+                output_id: ptwotp.test_index.min(255) as u8,
                 output: grid,
                 prediction_type,
             };
