@@ -226,6 +226,16 @@ pub enum ImageLabel {
     PeriodicityY { period: u8 },
 
     // Ideas for more
+    // IgnoringBackgroundColorOuterColorFullyEnclosesInnerColor { outer_color: u8, inner_color: u8 },
+    // IgnoringBackgroundColorOuterColorPartiallyEnclosesInnerColor { outer_color: u8, inner_color: u8 },
+    // IgnoringBackgroundColorAllObjectsHaveTheSameShape { shape: ShapeType },
+    // ExtrusionDefectToRectanglesWithColor { color: u8 },
+    // AlternatingTwoColors { color0: u8, color1: u8 },
+    // AlternatingThreeColors { color0: u8, color1: u8, color2: u8 },
+    // MazeLikePatternWithColor { color: u8 },
+    // SymmetricAroundXAxisWithAlteredColors,
+    // SymmetricAroundYAxisWithAlteredColors,
+    // IgnoringBackgroundGravityDirection { direction: Up/Down/Left/Right },
     // DiagonalLinesWithColor { color: u8 },
     // How many times are the pixels stretched out horizontally. Dividing by this scale does not cause dataloss.
     // ScaleX { scale: u8 },
@@ -302,6 +312,29 @@ pub enum ImageCorner {
     TopRight,
     BottomLeft,
     BottomRight,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ChangeItem {
+    SingleLineRow, // there is a change somewhere inside the row when encountering a Red pixel.
+    SingleLineColumn, // there is a change somewhere inside the column when encountering a Red pixel.
+    SingleLineRowOrColumn, // there is a change somewhere inside the row or column when encountering a Red pixel.
+    SingleLineDiagonalA, // there is a change somewhere inside the DiagonalA when encountering a Red pixel.
+    SingleLineDiagonalB, // there is a change somewhere inside the DiagonalB when encountering a Red pixel.
+    SingleLineSomeDiagonal, // there is a change somewhere inside the DiagonalA or DiagonalB when encountering a Red pixel.
+    SingleLineAny45DegreeAngle, // there is a change somewhere inside the row/column/diagonals when encountering a Red pixel.
+
+    // Future experiments
+    // SingleLineRowLeft, does the row change only on the left side of the Red pixel.
+    // SingleLineRowRight, does the row change only on the right side of the Red pixel.
+    // SingleLineColumnTop, does the column change only on the above the Red pixel.
+    // SingleLineColumnBottom, does the column change only on the below the Red pixel.
+    // ThreeLineRow, there is a change somewhere inside the 3 rows when encountering a Red pixel.
+    // ThreeLineColumn, there is a change somewhere inside the 3 columns when encountering a Red pixel.
+    // PyramidUp, there is a change somewhere inside the a pyramid cone when encountering a Red pixel.
+    // PyramidDown, there is a change somewhere inside the a pyramid cone when encountering a Red pixel.
+    // PyramidLeft, there is a change somewhere inside the a pyramid cone when encountering a Red pixel.
+    // PyramidRight, there is a change somewhere inside the a pyramid cone when encountering a Red pixel.
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -398,14 +431,31 @@ pub enum ActionLabel {
     /// Preserves content, but the ordering of the rows are changed.
     ChangesOrderOfRows,
     
+    /// Preserves content, but the ordering of the columns or rows are changed.
+    ChangesOrderOfColumnsOrRows,
+
+    /// The output is not an exact copy of the input, whenever a particular color occur.
+    /// Example: If Red is present in the input row, then the output row gets some kind of modification.
+    ChangeHappensToItemWithColor { item: ChangeItem, color: u8 },
+
+    /// The output is an exact copy of the input, whenever a particular color occur.
+    /// Example: If Red is present in the input row, then the output row is a copy of the input.
+    NoChangeHappensToItemWithColor { item: ChangeItem, color: u8 },
+
     // Ideas for more
-    // ChangesOrderOfColumnsOrRows,
+    // ChangeHappensToItemWithSpecialColor { item: ChangeItem, color: SpecialColor }, // where SpecialColor is most popular, least popular, noise color, grid color.
+    // NoChangeHappensToItemWithSpecialColor { item: ChangeItem, color: SpecialColor }, // where SpecialColor is most popular, least popular, noise color, grid color.
+    // ChangeHappensToItemWithShapeCorner { item: ChangeItem }, // where corner is either a single pixel or a the corner of an L shape or the center of a plus shape.
+    // IgnoringBackgroundColorAllInputShapesArePresentInOutputWithoutTransformation, 
+    // IgnoringBackgroundColorAllInputShapesArePresentInOutputWithTransformation, 
+    // MassIncreasesSignificantlyForNoiseColor { color: u8 },
+    // MassDecreasesSignificantlyForSolidObjectWithColor { color: u8 },
     // PeriodicityXIgnoringBackgroundColor { period: u8 },
     // PeriodicityYIgnoringBackgroundColor { period: u8 },
     // HistogramNoChangeInDirectionDiagonalA,
     // HistogramNoChangeInDirectionDiagonalB,
     // Directionality of a pair. Is it up/down/left/right. Then the images will require the corresponding rotation applied and unapplied.
-    // OutputSizeIsTheSameAsSplitViewCell,    
+    // OutputSizeIsTheSameAsSplitViewCell,
     // Preserve image above the split view, and change the image below the separator
     // InputStatsIsOutputStats { mode: ImageStatsMode },
     // InputStatsHasHigherMeanAndLowerSigmaThanOutputStats { mode: ImageStatsMode },

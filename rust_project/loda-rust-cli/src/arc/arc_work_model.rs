@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, ImageProperty, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification, ImageStats, Split};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, ImageProperty, ImageLabelSet, Symmetry, Grid, GridPattern, SingleColorObject, OutputSpecification, ImageStats, Split, LandmarkSinglePixel};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -100,9 +100,9 @@ pub struct Input {
 
     pub removal_color: Option<u8>,
 
-    pub most_popular_intersection_color: Option<u8>,
-
     pub single_pixel_noise_color: Option<u8>,
+
+    pub landmark_single_pixel: Option<LandmarkSinglePixel>,
 
     // Future experiments to do.
     // least_popular_intersection_color
@@ -205,6 +205,12 @@ pub struct Task {
     pub output_histogram_intersection: Histogram,
     pub removal_histogram_intersection: Histogram,
     pub insert_histogram_intersection: Histogram,
+
+    /// All the `train` and `test` pairs agree on the same color.
+    pub input_most_popular_color: Option<u8>,
+
+    /// All the `train` pairs agree on the same color. Not available for the `test` pairs.
+    pub output_most_popular_color: Option<u8>,
 
     /// What do the `input` images have in common across the `train` and `test` pairs.
     pub input_properties_intersection: HashMap<ImageProperty, u8>,

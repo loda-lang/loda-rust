@@ -1,4 +1,4 @@
-use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle, ImageProperty};
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle, ImageProperty, ChangeItem, CompareInputOutput};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram, ImageRowColumnOrder};
@@ -292,6 +292,7 @@ impl arc_work_model::Pair {
             }
         }
 
+        _ = self.analyze_change_nochange_with_color();
         _ = self.analyze_histogram_rowcolumn_sameness();
         _ = self.analyze_preservation_of_corners();
         _ = self.analyze_preservation_of_edges();
@@ -301,6 +302,170 @@ impl arc_work_model::Pair {
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
         _ = self.analyze_output_colors();
         _ = self.analyze_input_output_color_relationship();
+    }
+
+    fn analyze_change_nochange_with_color(&mut self) -> anyhow::Result<()> {
+        let input: &Image = &self.input.image;
+        let output: &Image = &self.output.image;
+        let image_size: ImageSize = input.size();
+        if image_size != output.size() {
+            // In order to compare the images, both images must have the same size.
+            return Ok(());
+        }
+
+        let compare: CompareInputOutput = CompareInputOutput::create(input, output)?;
+
+        {
+            let (change, nochange) = compare.single_line_row();
+            for color in 0..=9u8 {
+                if change.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineRow, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineRowOrColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+            for color in 0..=9u8 {
+                if nochange.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineRow, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineRowOrColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+        }
+
+        {
+            let (change, nochange) = compare.single_line_column();
+            for color in 0..=9u8 {
+                if change.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineRowOrColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+            for color in 0..=9u8 {
+                if nochange.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineRowOrColumn, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+        }
+
+        if let Ok((change, nochange)) = compare.single_line_diagonal_a() {
+            for color in 0..=9u8 {
+                if change.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineDiagonalA, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineSomeDiagonal, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+            for color in 0..=9u8 {
+                if nochange.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineDiagonalA, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineSomeDiagonal, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+        }
+
+        if let Ok((change, nochange)) = compare.single_line_diagonal_b() {
+            for color in 0..=9u8 {
+                if change.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineDiagonalB, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineSomeDiagonal, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::ChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+            for color in 0..=9u8 {
+                if nochange.get(color) == 0 {
+                    continue;
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineDiagonalB, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineSomeDiagonal, color };
+                    self.action_label_set.insert(label);
+                }
+                {
+                    let label = ActionLabel::NoChangeHappensToItemWithColor { item: ChangeItem::SingleLineAny45DegreeAngle, color };
+                    self.action_label_set.insert(label);
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn analyze_histogram_rowcolumn_sameness(&mut self) -> anyhow::Result<()> {
@@ -329,6 +494,7 @@ impl arc_work_model::Pair {
                 if self.input.image.is_same_rows_ignoring_order(&self.output.image) {
                     // println!("task: {} changes order of rows", self.id);
                     self.action_label_set.insert(ActionLabel::ChangesOrderOfRows);
+                    self.action_label_set.insert(ActionLabel::ChangesOrderOfColumnsOrRows);
                 }
             }
             if count1 == histogram_columns_len {
@@ -365,6 +531,7 @@ impl arc_work_model::Pair {
                 if self.input.image.is_same_columns_ignoring_order(&self.output.image) {
                     // println!("task: {} changes order of columns", self.id);
                     self.action_label_set.insert(ActionLabel::ChangesOrderOfColumns);
+                    self.action_label_set.insert(ActionLabel::ChangesOrderOfColumnsOrRows);
                 }
             }
             if count1 == histogram_rows_len {

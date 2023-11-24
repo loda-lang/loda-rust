@@ -552,10 +552,10 @@ impl RunWithProgram {
                 }
             }
             
-            // memory[x*100+114] = train[x].most_popular_intersection_color
+            // memory[x*100+114] = self.task.input_most_popular_color
             {
                 let the_color: i16;
-                if let Some(color) = pair.input.most_popular_intersection_color {
+                if let Some(color) = self.task.input_most_popular_color {
                     the_color = color as i16;
                 } else {
                     the_color = -1;
@@ -756,10 +756,10 @@ impl RunWithProgram {
                 }
             }
             
-            // memory[x*100+114] = test[x].most_popular_intersection_color
+            // memory[x*100+114] = self.task.input_most_popular_color
             {
                 let the_color: i16;
-                if let Some(color) = pair.input.most_popular_intersection_color {
+                if let Some(color) = self.task.input_most_popular_color {
                     the_color = color as i16;
                 } else {
                     the_color = -1;

@@ -98,6 +98,14 @@ impl Histogram {
         }
     }
 
+    /// Initialize all counters to `count=1`.
+    #[allow(dead_code)]
+    pub fn one() -> Self {
+        Self {
+            counters: [1; 256],
+        }
+    }
+
     #[allow(dead_code)]
     pub fn reset(&mut self) {
         self.counters = [0; 256];
@@ -181,6 +189,18 @@ impl Histogram {
         }
     }
 
+    /// Finds the `intersection` between two histograms, similar to performing an `AND` operation.
+    /// 
+    /// The counter is `1` when the color is present in both histograms.
+    /// 
+    /// Otherwise the counter is `0`.
+    #[allow(dead_code)]
+    pub fn intersection(&self, other: &Histogram) -> Histogram {
+        let mut result: Histogram = self.clone();
+        result.intersection_histogram(other);
+        result
+    }
+
     /// Clear counters where the other histogram has non-zero counters.
     /// 
     /// Performs an operation similar to: `self` AND NOT `other`.
@@ -190,6 +210,16 @@ impl Histogram {
                 self.counters[i] = 0;
             }
         }
+    }
+
+    /// Extract the colors that are only present in `self`, and set their counters to `1`.
+    /// 
+    /// Performs an operation similar to: `self` AND NOT `other`.
+    pub fn subtract_clamp01(&self, other: &Histogram) -> Histogram {
+        let mut histogram: Histogram = self.clone();
+        histogram.subtract_histogram(other);
+        histogram.clamp01();
+        histogram
     }
 
     pub fn most_popular(&self) -> HistogramPair {
@@ -463,6 +493,19 @@ impl Histogram {
         counters1.sort();
         counters0 == counters1
     }
+
+    /// Compare two histograms, returns `true` if they have one or more colors in common.
+    /// 
+    /// Returns `false` when they have no colors in common.
+    #[allow(dead_code)]
+    pub fn is_overlap(&self, other: &Histogram) -> bool {
+        for i in 0..256 {
+            if (self.counters[i] > 0) && (other.counters[i] > 0) {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 #[cfg(test)]
@@ -470,6 +513,18 @@ mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
     use std::collections::HashSet;
+
+    #[test]
+    fn test_10000_one() {
+        // Arrange + Act
+        let mut h = Histogram::one();
+        h.increment(3);
+
+        // Assert
+        let counters = h.counters();
+        assert_eq!(counters[42], 1);
+        assert_eq!(counters[3], 2);
+    }
 
     #[test]
     fn test_11000_increment() {
@@ -1043,6 +1098,30 @@ mod tests {
     }
 
     #[test]
+    fn test_130001_intersection() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+        h0.increment(42);
+        h0.increment(5);
+        h0.increment(9);
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(5);
+        h1.increment(0);
+
+        // Act
+        let h: Histogram = h0.intersection(&h1);
+        
+        // Assert
+        let pairs: Vec<(u32, u8)> = h.pairs_descending();
+        let expected: Vec<(u32, u8)> = vec![(1, 42), (1, 5)];
+        assert_eq!(pairs, expected);
+    }
+
+    #[test]
     fn test_140000_subtract_histogram() {
         // Arrange
         let mut h0 = Histogram::new();
@@ -1050,6 +1129,7 @@ mod tests {
         h0.increment(42);
         h0.increment(5);
         h0.increment(9);
+        h0.increment(13);
         h0.increment(13);
         let mut h1 = Histogram::new();
         h1.increment(42);
@@ -1061,6 +1141,32 @@ mod tests {
         // Act
         let mut h: Histogram = h0.clone();
         h.subtract_histogram(&h1);
+        
+        // Assert
+        let pairs: Vec<(u32, u8)> = h.pairs_descending();
+        let expected: Vec<(u32, u8)> = vec![(2, 13), (1, 9)];
+        assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_140001_subtract_clamp01() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+        h0.increment(42);
+        h0.increment(5);
+        h0.increment(9);
+        h0.increment(13);
+        h0.increment(13);
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(5);
+        h1.increment(0);
+
+        // Act
+        let h: Histogram = h0.subtract_clamp01(&h1);
         
         // Assert
         let pairs: Vec<(u32, u8)> = h.pairs_descending();
@@ -1232,5 +1338,41 @@ mod tests {
         assert_eq!(h0.is_same_count_but_ignore_color(&h1), false);
         assert_eq!(h0.is_same_count_but_ignore_color(&h2), false);
         assert_eq!(h1.is_same_count_but_ignore_color(&h2), true);
+    }
+
+    #[test]
+    fn test_220000_is_overlap_true() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment_by(3, 7);
+        h0.increment_by(42, 2);
+
+        let mut h1: Histogram = Histogram::new();
+        h1.increment(8);
+        h1.increment(42);
+        h1.increment(99);
+
+        // Act + Assert
+        assert_eq!(h0.is_overlap(&h0), true);
+        assert_eq!(h0.is_overlap(&h1), true);
+        assert_eq!(h1.is_overlap(&h1), true);
+    }
+
+    #[test]
+    fn test_220001_is_overlap_false() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment_by(3, 7);
+        h0.increment_by(5, 2);
+
+        let mut h1: Histogram = Histogram::new();
+        h1.increment(8);
+        h1.increment(42);
+        h1.increment(99);
+
+        // Act + Assert
+        assert_eq!(h0.is_overlap(&h0), true);
+        assert_eq!(h0.is_overlap(&h1), false);
+        assert_eq!(h1.is_overlap(&h1), true);
     }
 }

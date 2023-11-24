@@ -1,4 +1,4 @@
-use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle, Rectangle, SplitLabel};
+use super::{arc_work_model, GridLabel, GridPattern, InspectTask, ImageLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectRectangleLabel, SingleColorObject, SingleColorObjectRectangle, Rectangle, SplitLabel, LandmarkSinglePixel};
 use super::arc_work_model::{Input, PairType, Object, Prediction, Pair};
 use super::arc_json_model;
 use super::{Image, ImageMask, ImageMaskCount, ConnectedComponent, PixelConnectivity, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
@@ -1102,9 +1102,11 @@ impl arc_work_model::Task {
         self.assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color();
         _ = self.assign_predicted_single_color_image();
         _ = self.assign_removal_color();
-        _ = self.assign_most_popular_intersection_color();
+        self.assign_input_most_popular_color();
+        self.assign_output_most_popular_color();
         _ = self.assign_single_pixel_noise_color();
         _ = self.assign_output_specification_vec();
+        _ = self.assign_landmark_single_pixel();
         Ok(())
     }
 
@@ -1817,15 +1819,45 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    fn assign_most_popular_intersection_color(&mut self) -> anyhow::Result<()> {
-        // All the training pairs agree on the same color
+    fn assign_input_most_popular_color(&mut self) {
+        // All the train+test pairs agree on the same color
         if let Some(color) = self.input_histogram_intersection.most_popular_color_disallow_ambiguous() {
-            for pair in self.pairs.iter_mut() {
-                pair.input.most_popular_intersection_color = Some(color);
-            }
-            return Ok(());
+            self.input_most_popular_color = Some(color);
         }
-        Ok(())
+    }
+
+    fn assign_output_most_popular_color(&mut self) {
+        // All the train pairs agree on the same color. Not considering the test pairs.
+        if let Some(color) = self.output_histogram_intersection.most_popular_color_disallow_ambiguous() {
+            self.output_most_popular_color = Some(color);
+        }
+    }
+
+    fn assign_landmark_single_pixel(&mut self) {
+        let background_color: u8 = match self.input_most_popular_color {
+            Some(value) => value,
+            None => {
+                return;
+            }
+        };
+        let mut landmark_dict = HashMap::<u8, LandmarkSinglePixel>::new();
+        for pair in &self.pairs {
+            let image: &Image = &pair.input.image;
+            match LandmarkSinglePixel::analyze(image, background_color) {
+                Ok(landmark) => {
+                    landmark_dict.insert(pair.pair_index, landmark);
+                },
+                Err(_) => {
+                    // Either identified too many landmarks, or none at all.
+                    return;
+                }
+            }
+        }
+        for pair in self.pairs.iter_mut() {
+            if let Some(landmark) = landmark_dict.get(&pair.pair_index) {
+                pair.input.landmark_single_pixel = Some(landmark.clone());
+            }
+        }
     }
 
     fn assign_single_pixel_noise_color(&mut self) -> anyhow::Result<()> {

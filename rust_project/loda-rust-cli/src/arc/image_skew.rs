@@ -116,7 +116,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_skew_x() {
+    fn test_10002_skew_x_reversefalse() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2,
@@ -139,7 +139,30 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_skew_x() {
+    fn test_10003_skew_x_reversetrue() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2,
+            1, 2,
+            1, 3,
+        ];
+        let input: Image = Image::try_create(2, 3, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.skew_x(0, true).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 1, 2,
+            0, 1, 2, 0,
+            1, 3, 0, 0,
+        ];
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10004_skew_x_reversefalse() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 2,

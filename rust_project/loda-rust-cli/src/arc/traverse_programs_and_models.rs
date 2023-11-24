@@ -406,16 +406,16 @@ impl TraverseProgramsAndModels {
     #[allow(dead_code)]
     fn inspect_tasks_without_solution(task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut indexes = HashSet::<usize>::new();
-        for (index, task) in task_vec.iter().enumerate() {
+        for (index, _task) in task_vec.iter().enumerate() {
             // if task.occur_in_solutions_csv {
             //     continue;
             // }
             // if task.is_output_size_same_as_input_size() {
             //     continue;
             // }
-            if !task.is_output_size_same_as_input_splitview() {
-                continue;
-            }
+            // if !task.is_output_size_same_as_input_splitview() {
+            //     continue;
+            // }
             // if !task.is_output_size_same_as_input_splitview_x() {
             //     continue;
             // }
@@ -436,6 +436,25 @@ impl TraverseProgramsAndModels {
             found = true;
             // if task.has_removal_color() {
             //     found = true;
+            // }
+            // for action_label in &task.action_label_set_intersection {
+            //     match action_label {
+            //         ActionLabel::ChangesOrderOfColumnsOrRows => {
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
+            // }
+            // for action_label in &task.action_label_set_intersection {
+            //     match action_label {
+            //         ActionLabel::ChangesOrderOfColumns => {
+            //             found = false;
+            //         },
+            //         ActionLabel::ChangesOrderOfRows => {
+            //             found = false;
+            //         },
+            //         _ => {}
+            //     }
             // }
             // for action_label in &task.action_label_set_intersection {
             //     match action_label {

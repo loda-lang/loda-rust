@@ -1,6 +1,10 @@
 //! Performs logistic regression of each input pixel with the corresponding classification for the output pixel.
 //! 
 //! These older commits solves some of the tasks from the hidden ARC dataset, using logistic regression:
+//! commit 2023-Nov-23: solves 2 of the hidden ARC tasks. This uses variant=0 and variant=1 and variant=2. Only variant=0 does something useful.
+//! Since it uses multiple variants and doesn't solve more tasks than the previous commit, then it is not an improvement.
+//! https://github.com/loda-lang/loda-rust/commit/2e6577cd66af0c00fdd65533d4770a40ed2ccf3c
+//!
 //! commit 2023-Nov-20: solves 2 of the hidden ARC tasks. This uses variant=0 and variant=1 and variant=2. Only variant=0 does something useful.
 //! Since it uses multiple variants and doesn't solve more tasks than the previous commit, then it is not an improvement.
 //! https://github.com/loda-lang/loda-rust/commit/2c207e82bd962e1e22403ff21b4623b663092103
@@ -71,7 +75,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat, rule, CellularAutomaton};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat, rule, CellularAutomaton, ChangeItem};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode, VerifyPrediction, VerifyPredictionWithTask};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -431,11 +435,11 @@ impl SolveLogisticRegression {
             "516b51b7", "5289ad53", "543a7ed5", "54d9e175", "5b526a93", "5b6cbef5", "639f5a19", "6455b5f5", "67385a82", "694f12f3",
             "69889d6e", "6c434453", "6d75e8bb", "6ea4a07e", "6f8cd79b", "72a961c9", "776ffc46", "810b9b61", "84db8fc4", "84f2aca1",
             "868de0fa", "8a371977", "90f3ed37", "913fb3ed", "94f9d214", "95990924", "a2fd1cf0", "a5313dff", "a61f2674", "a65b410d",
-            "a699fb00", "a8d7556c", "a934301b", "a9f96cdd", "aa4ec2a5", "ae3edfdc", "ae58858e", "aedd82e4", "b0c4d837", "b1948b0a",
-            "b230c067", "b2862040", "b60334d2", "b6afb2da", "ba26e723", "bb43febb", "bbb1b8b6", "bbc9ae5d", "bdad9b1f", "c0f76784",
-            "c8f0f002", "ce039d91", "ce22a75a", "ce9e57f2", "d2abd087", "d364b489", "d37a1ef5", "d406998b", "d511f180", "d5d6de2d",
-            "dbc1a6ce", "dc433765", "de1cd16c", "ded97339", "e0fb7511", "e133d23d", "e7dd8335", "e8593010", "e872b94a", "e9c9d9a1",
-            "ef135b50", "f45f5ca7",
+            "a699fb00", "a79310a0", "a8d7556c", "a934301b", "a9f96cdd", "aa4ec2a5", "ae3edfdc", "ae58858e", "aedd82e4", "b0c4d837",
+            "b1948b0a", "b230c067", "b2862040", "b60334d2", "b6afb2da", "ba26e723", "bb43febb", "bbb1b8b6", "bbc9ae5d", "bdad9b1f",
+            "c0f76784", "c8f0f002", "ce039d91", "ce22a75a", "ce9e57f2", "d2abd087", "d364b489", "d37a1ef5", "d406998b", "d511f180",
+            "d5d6de2d", "dbc1a6ce", "dc433765", "de1cd16c", "ded97339", "e0fb7511", "e133d23d", "e73095fd", "e7dd8335", "e8593010",
+            "e872b94a", "e9c9d9a1", "ef135b50", "f45f5ca7",
         ];
         let ignore_task_id: HashSet<String> = already_fully_solved_tasks_ids.iter().map(|s| s.to_string()).collect();
         
@@ -943,31 +947,30 @@ impl SolveLogisticRegression {
 
 
         
-        let enable_serialize_color_complex: bool = [true, false, false][v];
+        let enable_serialize_color_complex: bool = [true, true, false][v];
         let enable_serialize_cluster_id_shakeup: bool = [false, true, true][v];
-        let enable_total_clustercount: bool = false;
-        let enable_color_clustercount: bool = [false, true, true][v];
-        let enable_half_context_input_size: bool = [true, true, true][v];
+        let enable_total_clustercount: bool = [false, false, false][v];
+        let enable_color_clustercount: bool = [false, false, true][v];
+        let enable_half_context_input_size: bool = [true, false, true][v];
         let enable_half_context_output_size: bool = [false, false, false][v];
         let enable_normalized_coordinates_context_input_size: bool = false;
         let enable_normalized_coordinates_context_output_size: bool = false;
 
         let enable_output_orientation: bool = has_different_size_for_input_output;
-        let enable_coordinates_xy: bool = false;
-        let enable_coordinates_xy_reverse_input: bool = false;
+        let enable_coordinates_xy: bool = [false, false, false][v];
+        let enable_coordinates_xy_reverse_input: bool = [false, false, false][v];
         let enable_coordinates_xy_reverse_output: bool = false;
         let enable_is_outside: bool = has_different_size_for_input_output;
-        let enable_distance: bool = !has_different_size_for_input_output;
+        let enable_distance: bool = [!has_different_size_for_input_output, false, !has_different_size_for_input_output][v];
         let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
         let enable_diagonalhistogram: bool = false;
 
-        let enable_histogram_diagonal_a: bool = [false, true, true][v];
-        let enable_histogram_diagonal_b: bool = [false, true, true][v];
-        let enable_histogram_diagonal_c: bool = [false, false, false][v];
-        let enable_histogram_diagonal_d: bool = [false, false, false][v];
-        let enable_histogram_diagonal_e: bool = false;
-        let enable_histogram_diagonal_f: bool = false;
-        let enable_histogram_diagonal: bool = enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f;
+        let enable_histogram_diagonal_a: bool = [false, false, true][v];
+        let enable_histogram_diagonal_b: bool = [false, false, true][v];
+        let enable_histogram_diagonal_c: bool = [false, true, false][v];
+        let enable_histogram_diagonal_d: bool = [false, true, false][v];
+        let enable_histogram_diagonal_e: bool = [false, false, false][v];
+        let enable_histogram_diagonal_f: bool = [false, false, false][v];
 
         let enable_center_indicator_a: bool = false;
         let enable_center_indicator_x: bool = [false, true, false][v];
@@ -980,31 +983,31 @@ impl SolveLogisticRegression {
         let enable_output_three_xy_pairs: bool = false;
         let enable_gravity: bool = false;
 
-        let enable_mod2: bool = [true, false, true][v];
-        let enable_mod2_reverse_input: bool = [true, false, true][v];
-        let enable_mod2_reverse_output: bool = false;
+        let enable_mod2: bool = [true, true, true][v];
+        let enable_mod2_reverse_input: bool = [true, true, true][v];
+        let enable_mod2_reverse_output: bool = [false, has_different_size_for_input_output, false][v];
 
-        let enable_mod3: bool = [false, true, false][v];
-        let enable_mod3_reverse_input: bool = [false, true, false][v];
+        let enable_mod3: bool = [false, false, false][v];
+        let enable_mod3_reverse_input: bool = [false, false, false][v];
         let enable_mod3_reverse_output: bool = [false, false, false][v];
 
-        let enable_hole_type1_center: bool = [true, false, false][v];
-        let enable_hole_type1_all_colors: bool = false;
-        let enable_color_repair: bool = true;
+        let enable_hole_type1_center: bool = [true, true, false][v];
+        let enable_hole_type1_all_colors: bool = [false, true, false][v];
+        let enable_color_repair: bool = [true, false, false][v];
         
-        let enable_shape_transformation_images: bool = [false, false, false][v];
+        let enable_shape_transformation_images: bool = [false, true, false][v];
         let enable_noisecolor_in_outline: bool = [true, true, false][v];
         let enable_grid: bool = true;
 
         let enable_enumerated_clusters_grow_mask3: bool = [false, true, true][v];
-        let enable_color_grow_mask1: bool = [false, true, true][v];
-        let enable_color_grow_mask2: bool = [false, true, true][v];
-        let enable_color_grow_mask3: bool = [false, true, true][v];
+        let enable_color_grow_mask1: bool = [false, false, true][v];
+        let enable_color_grow_mask2: bool = [false, false, true][v];
+        let enable_color_grow_mask3: bool = [false, false, true][v];
 
         let enable_no_change_to_color: bool = true;
         let enable_no_change_to_center_color: bool = false;
-        let enable_no_change_to_noise_color: bool = [false, true, false][v];
-        let enable_object_center_same_as_neighbour: bool = [false, true, false][v];
+        let enable_no_change_to_noise_color: bool = [false, false, false][v];
+        let enable_object_center_same_as_neighbour: bool = [false, false, false][v];
         let enable_edge: bool = [false, false, false][v];
 
         let enable_color_inside_bounding_box: bool = [true, true, true][v];
@@ -1015,45 +1018,48 @@ impl SolveLogisticRegression {
         let enable_trigram_count_word1_center: bool = [false, false, true][v];
         let enable_trigram_count_word012_center: bool = [false, false, true][v];
 
-        let enable_full_row_and_column: bool = [true, false, false][v];
-        let enable_full_row_xor_column: bool = [true, false, false][v];
-        let enable_full_row_or_column: bool = [true, false, false][v];
-        let enable_full_row: bool = [false, true, false][v];
-        let enable_full_column: bool = [false, true, false][v];
+        let enable_full_row_and_column: bool = [true, true, false][v];
+        let enable_full_row_xor_column: bool = [true, true, false][v];
+        let enable_full_row_or_column: bool = [true, true, false][v];
+        let enable_full_row: bool = [false, false, false][v];
+        let enable_full_column: bool = [false, false, false][v];
 
         let enable_symmetry_shorter: bool = [false, false, false][v];
         let enable_symmetry_masks: bool = false;
         let enable_corner_classification: bool = false;
 
         let enable_histogram_columns_rows_get_color: bool = [true, true, true][v];
-        let enable_histogram_columns_rows_lookaround: bool = [false, true, true][v];
+        let enable_histogram_columns_rows_lookaround: bool = [false, false, true][v];
 
-        let enable_exterior_of_clusters: bool = [false, true, true][v];
+        let enable_exterior_of_clusters: bool = [false, false, true][v];
         let enable_largest_interior_rectangle_masks: bool = [false, false, false][v];
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
 
         let enable_scale_widthheight: bool = has_different_size_for_input_output;
-        let enable_check_pixel_in_histogram: bool = false;
-        let enable_nearest_color: bool = false;
-        let enable_colordirection_to_distanceimage: bool = [false, true, true][v];
-        let enable_neighbour_color: bool = false;
+        let enable_check_pixel_in_histogram: bool = [false, false, false][v];
+        let enable_nearest_color: bool = [false, false, false][v];
+        let enable_colordirection_to_distanceimage: bool = [false, false, true][v];
+        let enable_neighbour_color: bool = [false, false, false][v];
         let enable_adjacent_neighbour_same_as_center: bool = false;
-        let enable_opposite_neighbour: bool = [false, false, false][v];
-        let enable_removal_color_center: bool = false;
+        let enable_opposite_neighbour: bool = [false, true, false][v];
+        let enable_removal_color_center: bool = [false, true, false][v];
         let enable_detect_nonsquare: bool = false;
         
         let enable_typo_for_center_row_right_columns: bool = [!has_different_size_for_input_output, false, false][v];
-        let enable_denoise_type5_input: bool = [false, true, true][v];
+        let enable_denoise_type5_input: bool = [false, false, true][v];
         let enable_denoise_type5_output: bool = [false, false, false][v];
         let enable_same_colors_for_area3x3_and_area5x5: bool = [false, false, false][v];
         let enable_area3x3_input_8bit_mask: bool = [false, false, false][v];
         let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
-        let enable_gameoflife: bool = false;
+        let enable_gameoflife: bool = [false, false, false][v];
         let enable_nonbackground_different_than_most_popular_color: bool = false;
-        let enable_shape3x3_input: bool = true;
-        let enable_shape3x3_input_nonbackground: bool = false;
-        let enable_shape3x3_output: bool = false;
+        let enable_shape3x3_with_trim: bool = [true, false, false][v];
+        let enable_shape3x3_with_area5x5: bool = [false, true, true][v];
+        let enable_shape3x3_input: bool = [true, true, true][v];
+        let enable_shape3x3_input_nonbackground: bool = [false, true, true][v];
+        let enable_shape3x3_output: bool = [false, true, true][v];
+        let enable_shape3x3_with_different_than_input_most_popular_color: bool = [false, true, true][v];
 
         let enable_shape_type_image_connectivity4: bool = true;
         let enable_shape_type_image_connectivity8: bool = true;
@@ -1069,11 +1075,28 @@ impl SolveLogisticRegression {
         let enable_earlier_prediction_shapetype45_connectivity8: bool = false;
 
         let enable_histogram_column_row_count: bool = false;
-        let enable_cluster_distance1_all_colors: bool = [false, true, false][v];
+        let enable_cluster_distance1_all_colors: bool = [false, false, false][v];
         let enable_cluster_distance2_all_colors: bool = [false, false, true][v];
-        let enable_min_inbetween_max_inside_shape_connectivity4: bool = false;
+        let enable_min_inbetween_max_inside_shape_connectivity4: bool = [false, false, false][v];
         let enable_earlier_prediction_mass_connectivity4: bool = false;
         let enable_earlier_prediction_mass_connectivity8: bool = false;
+        let enable_change_happens_to_single_line: bool = [false, true, false][v];
+        let enable_change_happens_to_single_line_row_or_column: bool = [false, true, false][v];
+        let enable_change_happens_to_single_line_diagonal: bool = [false, true, false][v];
+        let enable_change_happens_to_single_line_some_diagonal: bool = [false, true, false][v];
+        let enable_change_happens_to_single_line_any_45degree_angle: bool = [false, true, false][v];
+        let enable_nochange_happens_to_single_line: bool = [false, false, false][v];
+        let enable_nochange_happens_to_single_line_row_or_column: bool = [false, false, false][v];
+        let enable_nochange_happens_to_single_line_diagonal: bool = [false, false, false][v];
+        let enable_nochange_happens_to_single_line_some_diagonal: bool = [false, false, false][v];
+        let enable_nochange_happens_to_single_line_any_45degree_angle: bool = [false, false, false][v];
+        let enable_landmark_single_pixel: bool = [false, true, true][v];
+
+        let enable_histogram_diagonal: bool = 
+            enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || 
+            enable_histogram_diagonal_d || enable_histogram_diagonal_e || enable_histogram_diagonal_f ||
+            enable_change_happens_to_single_line_diagonal || enable_change_happens_to_single_line_some_diagonal || enable_change_happens_to_single_line_any_45degree_angle ||
+            enable_nochange_happens_to_single_line_diagonal || enable_nochange_happens_to_single_line_some_diagonal || enable_nochange_happens_to_single_line_any_45degree_angle;
 
         // let mut histogram_preserve = Histogram::new();
         // task.action_label_set_intersection.iter().for_each(|label| {
@@ -1198,6 +1221,82 @@ impl SolveLogisticRegression {
                 ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
                     if *color < 10 {
                         no_change_to_color[*color as usize] = true;
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        let mut change_happens_to_single_line_row = Histogram::new();
+        let mut change_happens_to_single_line_column = Histogram::new();
+        let mut change_happens_to_single_line_row_or_column = Histogram::new();
+        let mut change_happens_to_single_line_diagonal_a = Histogram::new();
+        let mut change_happens_to_single_line_diagonal_b = Histogram::new();
+        let mut change_happens_to_single_line_some_diagonal = Histogram::new();
+        let mut change_happens_to_single_line_any_45_degree_angle = Histogram::new();
+        for label in &task.action_label_set_intersection {
+            match label {
+                ActionLabel::ChangeHappensToItemWithColor { item, color } => {
+                    match *item {
+                        ChangeItem::SingleLineRow => {
+                            change_happens_to_single_line_row.increment(*color);
+                        },
+                        ChangeItem::SingleLineColumn => {
+                            change_happens_to_single_line_column.increment(*color);
+                        },
+                        ChangeItem::SingleLineRowOrColumn => {
+                            change_happens_to_single_line_row_or_column.increment(*color);
+                        },
+                        ChangeItem::SingleLineDiagonalA => {
+                            change_happens_to_single_line_diagonal_a.increment(*color);
+                        },
+                        ChangeItem::SingleLineDiagonalB => {
+                            change_happens_to_single_line_diagonal_b.increment(*color);
+                        },
+                        ChangeItem::SingleLineSomeDiagonal => {
+                            change_happens_to_single_line_some_diagonal.increment(*color);
+                        },
+                        ChangeItem::SingleLineAny45DegreeAngle => {
+                            change_happens_to_single_line_any_45_degree_angle.increment(*color);
+                        },
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        let mut nochange_happens_to_single_line_row = Histogram::new();
+        let mut nochange_happens_to_single_line_column = Histogram::new();
+        let mut nochange_happens_to_single_line_row_or_column = Histogram::new();
+        let mut nochange_happens_to_single_line_diagonal_a = Histogram::new();
+        let mut nochange_happens_to_single_line_diagonal_b = Histogram::new();
+        let mut nochange_happens_to_single_line_some_diagonal = Histogram::new();
+        let mut nochange_happens_to_single_line_any_45_degree_angle = Histogram::new();
+        for label in &task.action_label_set_intersection {
+            match label {
+                ActionLabel::NoChangeHappensToItemWithColor { item, color } => {
+                    match *item {
+                        ChangeItem::SingleLineRow => {
+                            nochange_happens_to_single_line_row.increment(*color);
+                        },
+                        ChangeItem::SingleLineColumn => {
+                            nochange_happens_to_single_line_column.increment(*color);
+                        },
+                        ChangeItem::SingleLineRowOrColumn => {
+                            nochange_happens_to_single_line_row_or_column.increment(*color);
+                        },
+                        ChangeItem::SingleLineDiagonalA => {
+                            nochange_happens_to_single_line_diagonal_a.increment(*color);
+                        },
+                        ChangeItem::SingleLineDiagonalB => {
+                            nochange_happens_to_single_line_diagonal_b.increment(*color);
+                        },
+                        ChangeItem::SingleLineSomeDiagonal => {
+                            nochange_happens_to_single_line_some_diagonal.increment(*color);
+                        },
+                        ChangeItem::SingleLineAny45DegreeAngle => {
+                            nochange_happens_to_single_line_any_45_degree_angle.increment(*color);
+                        },
                     }
                 },
                 _ => {}
@@ -1407,14 +1506,14 @@ impl SolveLogisticRegression {
             // }
 
             let noise_color: Option<u8> = pair.input.single_pixel_noise_color;
-            let most_popular_color: Option<u8> = pair.input.most_popular_intersection_color;
+            let input_most_popular_color: Option<u8> = task.input_most_popular_color;
             // let most_popular_color: Option<u8> = task.input_output_most_popular_color_unambiguous();
             // let removal_color: Option<u8> = pair.input.removal_color;
 
             let mut non_background_mask: Image = input.clone_zero();
             // let mut non_background_shape_type_image_connectivity4: Image = input.clone_zero();
             // let mut non_background_shape_type_image_connectivity8: Image = input.clone_zero();
-            if let Some(color) = most_popular_color {
+            if let Some(color) = input_most_popular_color {
                 // if let Some(color) = noise_color {
                 // non_background_mask = input.to_mask_where_color_is_different(color);
                 // non_background_mask = input.to_mask_where_color_is(color);
@@ -1755,7 +1854,7 @@ impl SolveLogisticRegression {
             let mut nearest_color4: Image = Image::empty();
             let mut nearest_color8: Image = Image::empty();
             if enable_nearest_color {
-                if let Some(color) = most_popular_color {
+                if let Some(color) = input_most_popular_color {
                     nearest_color4 = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity4, color)?;
                     nearest_color8 = input.nearest_color_in_any_direction(PixelConnectivity::Connectivity8, color)?;
                 }
@@ -2066,7 +2165,7 @@ impl SolveLogisticRegression {
             let mut image_neighbour_upright: Image = Image::color(width, height, 255);
             let mut image_neighbour_downleft: Image = Image::color(width, height, 255);
             let mut image_neighbour_downright: Image = Image::color(width, height, 255);
-            if let Some(color) = most_popular_color {
+            if let Some(color) = input_most_popular_color {
                 let ignore_mask: Image = input.to_mask_where_color_is(color);
                 match input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Up, 255) {
                     Ok(image) => {
@@ -2220,7 +2319,7 @@ impl SolveLogisticRegression {
             //     color_to_denoise.insert(color, image);
             // }
 
-            let input_denoise_type1: Image = input.denoise_type1(most_popular_color.unwrap_or(255))?;
+            let input_denoise_type1: Image = input.denoise_type1(input_most_popular_color.unwrap_or(255))?;
 
             // let histogram_border: Histogram = input.histogram_border();
             // let border_most_popular_color: Option<u8> = histogram_border.most_popular_color();
@@ -2330,7 +2429,12 @@ impl SolveLogisticRegression {
                 output_orientation = 0;
             }
 
-            let number_of_shape3x3ids: u8 = Shape3x3::instance().number_of_shapes();
+            let shape3x3: &Shape3x3 = if enable_shape3x3_with_trim {
+                Shape3x3::catalog_with_trim()
+            } else {
+                Shape3x3::catalog_without_trim()
+            };
+            let number_of_shape3x3ids: u8 = shape3x3.number_of_shapes();
 
             let center_indicator_x: Image;
             let center_indicator_y: Image;
@@ -2451,7 +2555,7 @@ impl SolveLogisticRegression {
             let gravity_right: Image;
             if enable_gravity {
                 let hardcoded_background_color: u8 = 0;
-                let gravity_background_color: u8 = most_popular_color.unwrap_or(hardcoded_background_color);
+                let gravity_background_color: u8 = input_most_popular_color.unwrap_or(hardcoded_background_color);
                 gravity_up = input.gravity(gravity_background_color, GravityDirection::Up)?;
                 gravity_down = input.gravity(gravity_background_color, GravityDirection::Down)?;
                 gravity_left = input.gravity(gravity_background_color, GravityDirection::Left)?;
@@ -2644,8 +2748,8 @@ impl SolveLogisticRegression {
                             }
 
                             {
-                                let value0: bool = pixel_resized == most_popular_color.unwrap_or(255);
-                                let value1: bool = pixel_repeated == most_popular_color.unwrap_or(255);
+                                let value0: bool = pixel_resized == input_most_popular_color.unwrap_or(255);
+                                let value1: bool = pixel_repeated == input_most_popular_color.unwrap_or(255);
                                 record.serialize_bool_onehot(value0 ^ value1);
                                 record.serialize_bool_onehot(value0 | value1);
                                 record.serialize_bool_onehot(value0 & value1);
@@ -2655,8 +2759,8 @@ impl SolveLogisticRegression {
                             record.serialize_bool_onehot(pixel_repeated == center);
                             record.serialize_bool_onehot(pixel_resized == center_output);
                             record.serialize_bool_onehot(pixel_repeated == center_output);
-                            record.serialize_bool_onehot(pixel_resized == most_popular_color.unwrap_or(255));
-                            record.serialize_bool_onehot(pixel_repeated == most_popular_color.unwrap_or(255));
+                            record.serialize_bool_onehot(pixel_resized == input_most_popular_color.unwrap_or(255));
+                            record.serialize_bool_onehot(pixel_repeated == input_most_popular_color.unwrap_or(255));
 
                             {
                                 let tx: u8 = x / scale_x.max(1);
@@ -2720,6 +2824,38 @@ impl SolveLogisticRegression {
                             let pixel: u8 = image.get(xx, yy).unwrap_or(255);
                             record.serialize_color_complex(pixel, obfuscated_color_offset, enable_serialize_color_complex);
                         }
+                    }
+
+                    if enable_landmark_single_pixel {
+                        let mut at_landmark_center: bool = false;
+                        let mut at_landmark_x: bool = false;
+                        let mut at_landmark_y: bool = false;
+                        let mut at_landmark_diagonal_a: bool = false;
+                        let mut at_landmark_diagonal_b: bool = false;
+                        if let Some(landmark_single_pixel) = &pair.input.landmark_single_pixel {
+                            if landmark_single_pixel.x == x && landmark_single_pixel.y == y {
+                                at_landmark_center = true;
+                            }
+                            if landmark_single_pixel.x == x {
+                                at_landmark_x = true;
+                            }
+                            if landmark_single_pixel.y == y {
+                                at_landmark_y = true;
+                            }
+                            let dx: i32 = landmark_single_pixel.x as i32 - xx;
+                            let dy: i32 = landmark_single_pixel.y as i32 - yy;
+                            if dx == dy {
+                                at_landmark_diagonal_a = true;
+                            }
+                            if dx == -dy {
+                                at_landmark_diagonal_b = true;
+                            }
+                        }
+                        record.serialize_bool_onehot(at_landmark_center);
+                        record.serialize_bool_onehot(at_landmark_x);
+                        record.serialize_bool_onehot(at_landmark_y);
+                        record.serialize_bool_onehot(at_landmark_diagonal_a);
+                        record.serialize_bool_onehot(at_landmark_diagonal_b);
                     }
 
                     if enable_input_four_xy_pairs {
@@ -3382,7 +3518,7 @@ impl SolveLogisticRegression {
                     let mass_connectivity4: u8 = image_mass_connectivity4.get(xx, yy).unwrap_or(0);
                     let mass_connectivity8: u8 = image_mass_connectivity8.get(xx, yy).unwrap_or(0);
 
-                    let input_is_most_popular_color: bool = most_popular_color == Some(center);
+                    let input_is_most_popular_color: bool = input_most_popular_color == Some(center);
                 
                     let x_mod4: u8 = x % 4;
                     let y_mod4: u8 = y % 4;
@@ -3669,7 +3805,7 @@ impl SolveLogisticRegression {
                                 if noise_color == Some(*color) {
                                     v6 = 1;
                                 }
-                                if most_popular_color == Some(*color) {
+                                if input_most_popular_color == Some(*color) {
                                     v7 = 1;
                                 }
                             },
@@ -5473,60 +5609,61 @@ impl SolveLogisticRegression {
                     //     let image_id: u8 = Shape3x3::id_from_3x3image(&area3x3).unwrap_or(0);
                     //     record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
                     // }
-                    // {
-                    //     let mut the_shapeid: u8 = 255;
-                    //     let mut transform_mask: u8 = 0;
-                    //     let mut local_area3x3: Image = area5x5.resize(3, 3)?;
-                    //     local_area3x3.set(0, 0, area5x5.get(1, 0).unwrap_or(255));
-                    //     local_area3x3.set(1, 0, area5x5.get(3, 0).unwrap_or(255));
-                    //     local_area3x3.set(2, 0, area5x5.get(0, 1).unwrap_or(255));
-                    //     local_area3x3.set(0, 1, area5x5.get(0, 3).unwrap_or(255));
-                    //     local_area3x3.set(2, 1, area5x5.get(4, 1).unwrap_or(255));
-                    //     local_area3x3.set(0, 2, area5x5.get(4, 3).unwrap_or(255));
-                    //     local_area3x3.set(1, 2, area5x5.get(1, 4).unwrap_or(255));
-                    //     local_area3x3.set(2, 2, area5x5.get(3, 4).unwrap_or(255));
-                    //     // let image_id: u8 = Shape3x3::id_from_3x3image(&local_area3x3).unwrap_or(0);
-                    //     // record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
-                    //     match Shape3x3::instance().shapeid_and_transformations(&local_area3x3) {
-                    //         Ok((shapeid, transformations)) => {
-                    //             the_shapeid = shapeid;
-                    //             if transformations.contains(&ShapeTransformation::Normal) {
-                    //                 transform_mask |= 1;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw90) {
-                    //                 transform_mask |= 2;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw180) {
-                    //                 transform_mask |= 4;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw270) {
-                    //                 transform_mask |= 8;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipX) {
-                    //                 transform_mask |= 16;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
-                    //                 transform_mask |= 32;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
-                    //                 transform_mask |= 64;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
-                    //                 transform_mask |= 128;
-                    //             }
-                    //         },
-                    //         Err(_) => {},
-                    //     }
-                    //     record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
-                    //     record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
-                    // }
+
+                    if enable_shape3x3_with_area5x5 {
+                        let mut the_shapeid: u8 = 255;
+                        let mut transform_mask: u8 = 0;
+                        let mut local_area3x3: Image = area5x5.resize(3, 3)?;
+                        local_area3x3.set(0, 0, area5x5.get(1, 0).unwrap_or(255));
+                        local_area3x3.set(1, 0, area5x5.get(3, 0).unwrap_or(255));
+                        local_area3x3.set(2, 0, area5x5.get(0, 1).unwrap_or(255));
+                        local_area3x3.set(0, 1, area5x5.get(0, 3).unwrap_or(255));
+                        local_area3x3.set(2, 1, area5x5.get(4, 1).unwrap_or(255));
+                        local_area3x3.set(0, 2, area5x5.get(4, 3).unwrap_or(255));
+                        local_area3x3.set(1, 2, area5x5.get(1, 4).unwrap_or(255));
+                        local_area3x3.set(2, 2, area5x5.get(3, 4).unwrap_or(255));
+                        // let image_id: u8 = Shape3x3::id_from_3x3image(&local_area3x3).unwrap_or(0);
+                        // record.serialize_onehot_discard_overflow_u16(image_id as u16, 256);
+                        match shape3x3.shapeid_and_transformations(&local_area3x3) {
+                            Ok((shapeid, transformations)) => {
+                                the_shapeid = shapeid;
+                                if transformations.contains(&ShapeTransformation::Normal) {
+                                    transform_mask |= 1;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw90) {
+                                    transform_mask |= 2;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw180) {
+                                    transform_mask |= 4;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw270) {
+                                    transform_mask |= 8;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipX) {
+                                    transform_mask |= 16;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                                    transform_mask |= 32;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                                    transform_mask |= 64;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                                    transform_mask |= 128;
+                                }
+                            },
+                            Err(_) => {},
+                        }
+                        record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                        record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                    }
 
                     // let center_shapeid: u8;
                     // let center_shapetransformations: u8;
                     if enable_shape3x3_input {
                         let mut the_shapeid: u8 = 255;
                         let mut transform_mask: u8 = 0;
-                        match Shape3x3::instance().shapeid_and_transformations(&area3x3) {
+                        match shape3x3.shapeid_and_transformations(&area3x3) {
                             Ok((shapeid, transformations)) => {
                                 the_shapeid = shapeid;
                                 if transformations.contains(&ShapeTransformation::Normal) {
@@ -5567,7 +5704,7 @@ impl SolveLogisticRegression {
 
                         let mut the_shapeid: u8 = 255;
                         let mut transform_mask: u8 = 0;
-                        match Shape3x3::instance().shapeid_and_transformations(&nonbackground_area3x3) {
+                        match shape3x3.shapeid_and_transformations(&nonbackground_area3x3) {
                             Ok((shapeid, transformations)) => {
                                 the_shapeid = shapeid;
                                 if transformations.contains(&ShapeTransformation::Normal) {
@@ -5603,48 +5740,48 @@ impl SolveLogisticRegression {
                         record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
                     }
 
-                    // {
-                    //     let mut the_shapeid: u8 = 255;
-                    //     let mut transform_mask: u8 = 0;
-                    //     let mut my_area3x3: Image = area3x3.clone();
-                    //     if let Some(color) = most_popular_color {
-                    //         my_area3x3 = my_area3x3.to_mask_where_color_is_different(color);
-                    //     }
-                    //     match Shape3x3::instance().shapeid_and_transformations(&my_area3x3) {
-                    //         Ok((shapeid, transformations)) => {
-                    //             the_shapeid = shapeid;
-                    //             if transformations.contains(&ShapeTransformation::Normal) {
-                    //                 transform_mask |= 1;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw90) {
-                    //                 transform_mask |= 2;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw180) {
-                    //                 transform_mask |= 4;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::RotateCw270) {
-                    //                 transform_mask |= 8;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipX) {
-                    //                 transform_mask |= 16;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
-                    //                 transform_mask |= 32;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
-                    //                 transform_mask |= 64;
-                    //             }
-                    //             if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
-                    //                 transform_mask |= 128;
-                    //             }
-                    //         },
-                    //         Err(_) => {},
-                    //     }
-                    //     // center_shapeid = the_shapeid;
-                    //     // center_shapetransformations = transform_mask;
-                    //     record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
-                    //     record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
-                    // }
+                    if enable_shape3x3_with_different_than_input_most_popular_color {
+                        let mut the_shapeid: u8 = 255;
+                        let mut transform_mask: u8 = 0;
+                        let mut my_area3x3: Image = area3x3.clone();
+                        if let Some(color) = input_most_popular_color {
+                            my_area3x3 = my_area3x3.to_mask_where_color_is_different(color);
+                        }
+                        match shape3x3.shapeid_and_transformations(&my_area3x3) {
+                            Ok((shapeid, transformations)) => {
+                                the_shapeid = shapeid;
+                                if transformations.contains(&ShapeTransformation::Normal) {
+                                    transform_mask |= 1;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw90) {
+                                    transform_mask |= 2;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw180) {
+                                    transform_mask |= 4;
+                                }
+                                if transformations.contains(&ShapeTransformation::RotateCw270) {
+                                    transform_mask |= 8;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipX) {
+                                    transform_mask |= 16;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw90) {
+                                    transform_mask |= 32;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw180) {
+                                    transform_mask |= 64;
+                                }
+                                if transformations.contains(&ShapeTransformation::FlipXRotateCw270) {
+                                    transform_mask |= 128;
+                                }
+                            },
+                            Err(_) => {},
+                        }
+                        // center_shapeid = the_shapeid;
+                        // center_shapetransformations = transform_mask;
+                        record.serialize_onehot_discard_overflow(the_shapeid, number_of_shape3x3ids);
+                        record.serialize_bitmask_as_onehot(transform_mask as u16, 8);
+                    }
 
                     // let combos: [(i32, i32); 4] = [(xx - 1, 0), (xx - 1, (height as i32) - 3), (0, yy - 1), ((width as i32) - 3, yy - 1)];
                     // let combos: [(i32, i32); 4] = [(-1, 0), (0, -1), (1, 0), (0, 1)];
@@ -5654,7 +5791,7 @@ impl SolveLogisticRegression {
                     //     // let current_area3x3: Image = input.crop_outside(combo.0, combo.1, 3, 3, 255)?;
                     //     let mut the_shapeid: u8 = 255;
                     //     let mut transform_mask: u8 = 0;
-                    //     match Shape3x3::instance().shapeid_and_transformations(&current_area3x3) {
+                    //     match shape3x3.shapeid_and_transformations(&current_area3x3) {
                     //         Ok((shapeid, transformations)) => {
                     //             the_shapeid = shapeid;
                     //             if transformations.contains(&ShapeTransformation::Normal) {
@@ -5830,7 +5967,7 @@ impl SolveLogisticRegression {
                             let earlier_prediction_area3x3: Image = image.crop_outside(xx - 1, yy - 1, 3, 3, 255)?;
                             let mut the_shapeid: u8 = 255;
                             let mut transform_mask: u8 = 0;
-                            match Shape3x3::instance().shapeid_and_transformations(&earlier_prediction_area3x3) {
+                            match shape3x3.shapeid_and_transformations(&earlier_prediction_area3x3) {
                                 Ok((shapeid, transformations)) => {
                                     the_shapeid = shapeid;
                                     if transformations.contains(&ShapeTransformation::Normal) {
@@ -6072,6 +6209,210 @@ impl SolveLogisticRegression {
                         // record.serialize_u8(distance3);
                         // record.serialize_u8(distance4);
                     // }
+
+                    if enable_change_happens_to_single_line {
+                        {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = histogram_rows.get(y as usize) {
+                                possible_colors = change_happens_to_single_line_row.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                        {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = histogram_columns.get(x as usize) {
+                                possible_colors = change_happens_to_single_line_column.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                    }
+
+                    if enable_change_happens_to_single_line_row_or_column {
+                        let mut possible_colors: Histogram = Histogram::new();
+                        if let Some(histogram) = histogram_rows.get(y as usize) {
+                            possible_colors = change_happens_to_single_line_row.intersection(histogram);
+                        }
+                        if let Some(histogram) = histogram_columns.get(x as usize) {
+                            possible_colors.add_histogram(&change_happens_to_single_line_column.intersection(histogram));
+                        }
+                        for color in 0..=9u8 {
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
+                        }
+                    }
+
+                    if enable_change_happens_to_single_line_diagonal {
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors = change_happens_to_single_line_diagonal_a.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors = change_happens_to_single_line_diagonal_b.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                    }
+
+                    if enable_change_happens_to_single_line_some_diagonal {
+                        let mut possible_colors: Histogram = Histogram::new();
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors = change_happens_to_single_line_some_diagonal.intersection(histogram);
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors.add_histogram(&change_happens_to_single_line_some_diagonal.intersection(histogram));
+                            }
+                        }
+                        for color in 0..=9u8 {
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
+                        }
+                    }
+
+                    if enable_change_happens_to_single_line_any_45degree_angle {
+                        let mut possible_colors: Histogram = Histogram::new();
+                        if let Some(histogram) = histogram_rows.get(y as usize) {
+                            possible_colors = change_happens_to_single_line_row_or_column.intersection(histogram);
+                        }
+                        if let Some(histogram) = histogram_columns.get(x as usize) {
+                            possible_colors.add_histogram(&change_happens_to_single_line_row_or_column.intersection(histogram));
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors.add_histogram(&change_happens_to_single_line_some_diagonal.intersection(histogram));
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors.add_histogram(&change_happens_to_single_line_some_diagonal.intersection(histogram));
+                            }
+                        }
+                        for color in 0..=9u8 {
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
+                        }
+                    }
+
+                    if enable_nochange_happens_to_single_line {
+                        {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = histogram_rows.get(y as usize) {
+                                possible_colors = nochange_happens_to_single_line_row.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                        {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = histogram_columns.get(x as usize) {
+                                possible_colors = nochange_happens_to_single_line_column.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                    }
+
+                    if enable_nochange_happens_to_single_line_row_or_column {
+                        let mut possible_colors: Histogram = Histogram::new();
+                        if let Some(histogram) = histogram_rows.get(y as usize) {
+                            possible_colors = nochange_happens_to_single_line_row.intersection(histogram);
+                        }
+                        if let Some(histogram) = histogram_columns.get(x as usize) {
+                            possible_colors.add_histogram(&nochange_happens_to_single_line_column.intersection(histogram));
+                        }
+                        for color in 0..=9u8 {
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
+                        }
+                    }
+
+                    if enable_nochange_happens_to_single_line_diagonal {
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors = nochange_happens_to_single_line_diagonal_a.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                // record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            let mut possible_colors: Histogram = Histogram::new();
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors = nochange_happens_to_single_line_diagonal_b.intersection(histogram);
+                            }
+                            for color in 0..=9u8 {
+                                record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                                // record.serialize_bool(possible_colors.get(color) > 0);
+                            }
+                        }
+                    }
+
+                    if enable_nochange_happens_to_single_line_some_diagonal {
+                        let mut possible_colors: Histogram = Histogram::new();
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors = nochange_happens_to_single_line_some_diagonal.intersection(histogram);
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors.add_histogram(&nochange_happens_to_single_line_some_diagonal.intersection(histogram));
+                            }
+                        }
+                        for color in 0..=9u8 {
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
+                        }
+                    }
+
+                    if enable_nochange_happens_to_single_line_any_45degree_angle {
+                        let mut possible_colors: Histogram = Histogram::new();
+                        if let Some(histogram) = histogram_rows.get(y as usize) {
+                            possible_colors = nochange_happens_to_single_line_row_or_column.intersection(histogram);
+                        }
+                        if let Some(histogram) = histogram_columns.get(x as usize) {
+                            possible_colors.add_histogram(&nochange_happens_to_single_line_row_or_column.intersection(histogram));
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_a {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors.add_histogram(&nochange_happens_to_single_line_some_diagonal.intersection(histogram));
+                            }
+                        }
+                        if let Some(diagonal_histogram) = &histogram_diagonal_b {
+                            if let Some(histogram) = diagonal_histogram.get(x as i32, y as i32) {
+                                possible_colors.add_histogram(&nochange_happens_to_single_line_some_diagonal.intersection(histogram));
+                            }
+                        }
+                        for color in 0..=9u8 {
+                            record.serialize_bool_onehot(possible_colors.get(color) > 0);
+                            // record.serialize_bool(possible_colors.get(color) > 0);
+                        }
+                    }
 
                     // Future experiments
                     // shape bounding box

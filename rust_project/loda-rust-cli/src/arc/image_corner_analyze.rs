@@ -19,6 +19,7 @@ pub trait ImageCornerAnalyze {
 
     // Future experiment
     // Is the corner on the on the contour of a single color object, or on the inside of the single color object?
+    // Detect corner in diagonal cross shape.
 }
 
 impl ImageCornerAnalyze for Image {

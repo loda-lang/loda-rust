@@ -1,4 +1,4 @@
-use super::{arc_work_model, ImageStatsMode, ImageStats};
+use super::{arc_work_model, ImageStatsMode, ImageStats, Image};
 use super::{ImageLabelSet, ActionLabelSet, ImageProperty};
 use super::{HtmlLog, ImageToHTML};
 use std::collections::HashMap;
@@ -163,6 +163,9 @@ impl InspectTask {
         }
         {
             self.row_input_labels += "<td>";
+            if let Some(landmark_single_pixel) = &pair.input.landmark_single_pixel {
+                self.row_input_labels += &format!("Landmark single pixel: {:?}<br>", landmark_single_pixel);
+            }
             self.row_input_labels += &Self::image_label_set_to_html(&pair.input.image_meta.image_label_set);
             self.row_input_labels += "</td>";
         }
@@ -269,6 +272,11 @@ impl InspectTask {
                 self.row_input_image += "N/A";
             }
         }
+        if let Some(color) = task.input_most_popular_color {
+            self.row_input_image += "<br><br>Input most popular color<br>";
+            let image: Image = Image::color(1, 1, color);
+            self.row_input_image += &image.to_html();
+        }
         self.row_input_image += "</td>";
 
         self.row_input_properties += &td_begin;
@@ -297,6 +305,11 @@ impl InspectTask {
             Err(_) => {
                 self.row_output_image += "N/A";
             }
+        }
+        if let Some(color) = task.output_most_popular_color {
+            self.row_output_image += "<br><br>Output most popular color<br>";
+            let image: Image = Image::color(1, 1, color);
+            self.row_output_image += &image.to_html();
         }
         self.row_output_image += "</td>";
 
