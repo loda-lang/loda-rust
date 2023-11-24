@@ -363,11 +363,24 @@ impl SolveOneColor {
             available_colors.increment(color);
         }
 
+        if Self::output_image_colors_comes_from_input_image(task) {
+            for pair in &task.pairs {
+                if pair.test_index == Some(test_index) {
+                    available_colors = pair.input.image_meta.histogram_all.clone();
+                }
+            }
+        }
+
         // If all pairs agree on the same removal colors, then make sure none of these are present in the available colors.
         available_colors.subtract_histogram(&task.removal_histogram_intersection);
 
         if task.insert_histogram_intersection.number_of_counters_greater_than_zero() > 0 {
             available_colors = task.insert_histogram_intersection.clone();
+        }
+
+        // All pairs agree on the exact same color.
+        if task.output_histogram_intersection == task.output_histogram_union {
+            available_colors = task.output_histogram_intersection.clone();
         }
 
         // HtmlLog::text(format!("task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_descending()));
@@ -407,6 +420,19 @@ impl SolveOneColor {
                     if *count == 1 {
                         return true;
                     }
+                },
+                _ => {}
+            }
+        }
+        false
+    }
+
+    /// Does the output colors come from the input image.
+    fn output_image_colors_comes_from_input_image(task: &Task) -> bool {
+        for action_label in &task.action_label_set_intersection {
+            match action_label {
+                ActionLabel::OutputImageColorsComesFromInputImage => {
+                    return true;
                 },
                 _ => {}
             }
