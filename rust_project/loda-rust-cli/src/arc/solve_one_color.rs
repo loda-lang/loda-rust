@@ -378,6 +378,12 @@ impl SolveOneColor {
             available_colors = task.insert_histogram_intersection.clone();
         }
 
+        // The most popular color specific for each pair, is used for the output color.
+        if let Some(color) = Self::pair_input_most_popular_color_is_output_most_popular_color(task, pair_index) {
+            available_colors = Histogram::new();
+            available_colors.increment(color);
+        }
+
         // All pairs agree on the exact same color.
         if task.output_histogram_intersection == task.output_histogram_union {
             available_colors = task.output_histogram_intersection.clone();
@@ -438,6 +444,33 @@ impl SolveOneColor {
             }
         }
         false
+    }
+
+    /// If the output color the same as the most popular color in the input image for pair.
+    /// then returns the most popular color for that pair.
+    fn pair_input_most_popular_color_is_output_most_popular_color(task: &Task, pair_index: u8) -> Option<u8> {
+        let mut found = false;
+        for action_label in &task.action_label_set_intersection {
+            match action_label {
+                ActionLabel::PairInputMostPopularColorIsOutputMostPopularColor => {
+                    found = true;
+                    break;
+                },
+                _ => {}
+            }
+        }
+        if !found {
+            return None;
+        }
+
+        // Obtain the most popular color for the specified pair.
+        for pair in &task.pairs {
+            if pair.pair_index == pair_index {
+                return pair.input.image_meta.histogram_all.most_popular_color_disallow_ambiguous();
+            }
+        }
+
+        None
     }
 }
 
