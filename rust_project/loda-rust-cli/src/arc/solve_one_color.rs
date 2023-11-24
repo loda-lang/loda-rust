@@ -223,6 +223,8 @@ impl SolveOneColor {
                     count_solved_partial.fetch_add(1, Ordering::Relaxed);
                     pb.println(format!("task {} - solved partial, {} correct of {} test pairs", task.id, number_of_solved_test_pairs, task_count_test));
                     HtmlLog::text(format!("task {} - solved partial, {} correct of {} test pairs", task.id, number_of_solved_test_pairs, task_count_test));
+                } else {
+                    pb.println(format!("task {} - unable to solve! zero of {} test pairs", task.id, task_count_test));
                 }
             }
             let count_full: usize = count_solved_full.load(Ordering::Relaxed);
