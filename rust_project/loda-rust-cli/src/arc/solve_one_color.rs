@@ -18,8 +18,6 @@ use std::sync::{Arc, Mutex};
 use rayon::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-const PROCESS_TASK_VARIANTS: [u8; 1] = [0];
-
 #[derive(Clone, Debug)]
 enum ProcessTaskMode {
     InputOutputSameSize,
@@ -28,7 +26,6 @@ enum ProcessTaskMode {
 
 #[derive(Clone, Debug)]
 pub struct ProcessTaskContext {
-    variant: u8,
     mode: ProcessTaskMode,
     input_size_vec: Vec<ImageSize>,
     output_size_vec: Vec<ImageSize>,
@@ -36,14 +33,13 @@ pub struct ProcessTaskContext {
 }
 
 impl ProcessTaskContext {
-    pub fn new(task: &Task, variant: u8) -> Self {
+    pub fn new(task: &Task) -> Self {
         let mode: ProcessTaskMode = if task.is_output_size_same_as_input_size() { 
             ProcessTaskMode::InputOutputSameSize 
         } else { 
             ProcessTaskMode::InputOutputDifferentSize 
         };
         let mut instance = Self {
-            variant,
             mode,
             input_size_vec: Vec::<ImageSize>::new(),
             output_size_vec: Vec::<ImageSize>::new(),
@@ -268,31 +264,12 @@ impl SolveOneColor {
     }
 
     fn process_task(task: &Task) -> anyhow::Result<ProcessedTask> {
-        let mut accumulated_processed_task = ProcessedTask {
-            ptwotp_vec: vec!(),
-            prediction_vec: vec!(),
-        };
-
-        for variant in &PROCESS_TASK_VARIANTS {
-            let processed_task: ProcessedTask = Self::process_task_item(task, *variant)
-                .with_context(|| format!("task: {} Unable to process_task_item() with variant: {}", task.id, variant))?;
-
-            accumulated_processed_task.ptwotp_vec.extend(processed_task.ptwotp_vec);
-            accumulated_processed_task.prediction_vec.extend(processed_task.prediction_vec);
-        }
-        if accumulated_processed_task.prediction_vec.is_empty() || accumulated_processed_task.ptwotp_vec.is_empty() {
-            return Err(anyhow::anyhow!("task: {} prediction_vec.is_empty() or ptwotp_vec.is_empty(). It's supposed to be non-empty.", task.id));
-        }
-        Ok(accumulated_processed_task)
-    }
-
-    fn process_task_item(task: &Task, variant: u8) -> anyhow::Result<ProcessedTask> {
         let count_test: u8 = task.count_test().min(255) as u8;
         if count_test < 1 {
             return Err(anyhow::anyhow!("skipping task: {} because it has no test pairs", task.id));
         }    
 
-        let context = ProcessTaskContext::new(task, variant);
+        let context = ProcessTaskContext::new(task);
 
         let task_for_processing: Task = task.clone();
         let prediction_type: arcathon_solution_coordinator::PredictionType;
@@ -302,19 +279,19 @@ impl SolveOneColor {
             prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionDifferentSize;
         }
 
-        let mut ptwotp_vec = Vec::<ProcessedTaskWithOneTestPair>::new();
+        let mut accumulated_ptwotp_vec = Vec::<ProcessedTaskWithOneTestPair>::new();
         for test_index in 0..count_test {
-            let ptwotp: ProcessedTaskWithOneTestPair = match Self::process_task_with_one_test_pair(&context, &task_for_processing, test_index) {
+            let ptwotp_vec: Vec<ProcessedTaskWithOneTestPair> = match Self::process_task_with_one_test_pair(&context, &task_for_processing, test_index) {
                 Ok(value) => value,
                 Err(error) => {
                     return Err(error);
                 }
             };
-            ptwotp_vec.push(ptwotp);
+            accumulated_ptwotp_vec.extend(ptwotp_vec);
         }
 
         let mut prediction_vec = Vec::<arcathon_solution_coordinator::Prediction>::new();
-        for ptwotp in &ptwotp_vec {
+        for ptwotp in &accumulated_ptwotp_vec {
             let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&ptwotp.cropped_image);
             let prediction = arcathon_solution_coordinator::Prediction {
                 output_id: ptwotp.test_index.min(255) as u8,
@@ -324,17 +301,14 @@ impl SolveOneColor {
             prediction_vec.push(prediction);
         }
     
-        if prediction_vec.len() != (count_test as usize) {
-            return Err(anyhow::anyhow!("task: {} predictions.len() != task.count_test()", task.id));
-        }
         let instance = ProcessedTask {
-            ptwotp_vec,
+            ptwotp_vec: accumulated_ptwotp_vec,
             prediction_vec,
         };
         Ok(instance)
     }
 
-    fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<ProcessedTaskWithOneTestPair> {
+    fn process_task_with_one_test_pair(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Vec<ProcessedTaskWithOneTestPair>> {
         // Obtain `pair_index` from `test_index`.
         let mut found_pair_index: Option<u8> = None;
         for pair in &task.pairs {
@@ -351,29 +325,18 @@ impl SolveOneColor {
         };
 
         let predicted_colors: Vec<u8> = Self::predict_colors_for_task_with_test_index(context, task, test_index)?;
-        
-        let mut predicted_color: u8 = 42;
 
-        if predicted_colors.len() == 1 {
-            if let Some(color) = predicted_colors.first() {
-                predicted_color = *color;
-            }
-        }
+        let output_size: ImageSize = context.output_size_vec[pair_index as usize];
 
-        // If there are 3 or fewer colors, then make a prediction for each color.
-        // If there are 4 or more colors, then do extra work to make max 3 predictions.
-        // if available_colors.number_of_counters_greater_than_zero() <= 3 {
-        // };
-
-        let crop_output_size: ImageSize = context.output_size_vec[pair_index as usize];
-
-        let cropped_image: Image = Image::color(crop_output_size.width, crop_output_size.height, predicted_color);
-
-        let instance = ProcessedTaskWithOneTestPair {
-            test_index,
-            cropped_image,
-        };
-        Ok(instance)
+        let ptwotp_vec: Vec<ProcessedTaskWithOneTestPair> = predicted_colors.iter().map(|predicted_color| {
+            let cropped_image: Image = Image::color(output_size.width, output_size.height, *predicted_color);
+            let ptwotp = ProcessedTaskWithOneTestPair {
+                test_index,
+                cropped_image,
+            };
+            ptwotp
+        }).collect();
+        Ok(ptwotp_vec)
     }
 
     fn predict_colors_for_task_with_test_index(context: &ProcessTaskContext, task: &Task, test_index: u8) -> anyhow::Result<Vec<u8>> {
@@ -436,22 +399,22 @@ impl SolveOneColor {
             available_colors = task.output_histogram_intersection.clone();
         }
 
-        // HtmlLog::text(format!("task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_descending()));
         HtmlLog::text(format!("task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color()));
-        // HtmlLog::text(format!("task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors));
         
-        if available_colors.number_of_counters_greater_than_zero() == 1 {
-            if let Some(color) = available_colors.most_popular_color_disallow_ambiguous() {
-                return Ok(vec![color]);
-            }
+        if available_colors.number_of_counters_greater_than_zero() == 0 {
+            bail!("Unable to make prediction for task: {} - test_index: {} there are no available colors", task.id, test_index);
         }
         
-        let mut predicted_color: u8 = 42;
+        // If there are 3 or fewer colors, then make a prediction with each color. ARCathon allows for 3 predictions.
+        if available_colors.number_of_counters_greater_than_zero() <= 3 {
+            let colors: Vec<u8> = available_colors.pairs_ordered_by_color().iter().map(|pair| pair.1).collect();
+            return Ok(colors);
+        }
 
-        // If there are 3 or fewer colors, then make a prediction for each color.
-        // If there are 4 or more colors, then do extra work to make max 3 predictions.
-        // if available_colors.number_of_counters_greater_than_zero() <= 3 {
-        // };
+        // There are 4 or more colors, then do extra work to make max 3 predictions.
+
+        // return Err(anyhow::anyhow!("Unable to make prediction for task: {} - test_index: {} there are too many colors", task.id, test_index));
+        let mut predicted_color: u8 = 42;
 
         Ok(vec![predicted_color])
     }
