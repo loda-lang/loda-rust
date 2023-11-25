@@ -327,7 +327,7 @@ impl Histogram {
         self.least_popular().count_allow_ambiguous()
     }
 
-    /// The pairs ordered by their color value.
+    /// The pairs ordered by their color value. Ignoring their count.
     /// 
     /// The lowest color value comes first.
     /// 
@@ -340,6 +340,16 @@ impl Histogram {
             }
         }
         pairs
+    }
+
+    /// The colors ordered by their color value. Ignoring their count.
+    /// 
+    /// The lowest color value comes first.
+    /// 
+    /// The highest color value comes last.
+    #[allow(dead_code)]
+    pub fn color_vec(&self) -> Vec<u8> {
+        self.pairs_ordered_by_color().iter().map(|pair| pair.1).collect()
     }
 
     /// The least frequent occurring comes first.
@@ -850,7 +860,24 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_pairs_descending() {
+    fn test_50001_color_vec() {
+        // Arrange
+        let mut h = Histogram::new();
+        let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
+        for value in values {
+            h.increment(value);
+        }
+
+        // Act
+        let actual: Vec<u8> = h.color_vec();
+
+        // Assert
+        let expected: Vec<u8> = vec![2, 3, 4, 5, 42];
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_50002_pairs_descending() {
         // Arrange
         let mut h = Histogram::new();
         let values: [u8; 12] = [3, 1, 1, 42, 7, 42, 7, 3, 2, 3, 4, 5];
@@ -867,7 +894,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50002_pairs_ascending() {
+    fn test_50003_pairs_ascending() {
         // Arrange
         let mut h = Histogram::new();
         let values: [u8; 12] = [3, 1, 1, 42, 7, 42, 7, 3, 2, 3, 4, 5];
