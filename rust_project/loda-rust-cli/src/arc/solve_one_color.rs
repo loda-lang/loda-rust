@@ -152,15 +152,6 @@ impl SolveOneColor {
         self.tasks.par_iter().for_each(|task| {
             pb.inc(1);
 
-            // Only process tasks where all pairs agree that the output images have just one color.
-            if !Self::all_pairs_have_one_output_color(task) {
-                return;
-            }
-            HtmlLog::text(format!("task {}", task.id));
-
-            // Only process tasks where the task has a predicted size.
-            // if the task doesn't have a predicted size, then skip it.
-
             let task_count_test: usize = task.count_test();
 
             // Make predictions
@@ -265,11 +256,77 @@ impl SolveOneColor {
         Ok(())
     }
 
+    /// Run without verifying that the predictions are correct.
+    /// 
+    /// This code is intended to run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
+    pub fn run_predictions(&self) -> anyhow::Result<TaskNameToPredictionVec> {
+        let number_of_tasks: u64 = self.tasks.len() as u64;
+        println!("{} - run start - will process {} tasks with SolveOneColor", human_readable_utc_timestamp(), number_of_tasks);
+        let count_solved = AtomicUsize::new(0);
+        let pb = ProgressBar::new(number_of_tasks as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
+            .progress_chars("#>-")
+        );
+        let accumulated = Arc::new(Mutex::new(TaskNameToPredictionVec::new()));
+        self.tasks.par_iter().for_each(|task| {
+            pb.inc(1);
+
+            // Make predictions
+            let processed_task: ProcessedTask = match Self::process_task(task) {
+                Ok(value) => value,
+                Err(error) => {
+                    pb.println(format!("task {} - error: {:?}", task.id, error));
+                    return;
+                }
+            };
+
+            // Show progress
+            count_solved.fetch_add(1, Ordering::Relaxed);
+            let count: usize = count_solved.load(Ordering::Relaxed);
+            pb.set_message(format!("Solved: {}", count));
+            pb.println(format!("task {} - solved", task.id));
+
+            // Accumulate the predictions
+            match accumulated.lock() {
+                Ok(mut map) => {
+                    map.entry(task.id.clone())
+                        .or_insert(Vec::new())
+                        .extend(processed_task.prediction_vec);
+                },
+                Err(error) => {
+                    pb.println(format!("run_predictions. Unable to lock accumulated. error: {:?}", error));
+                }
+            };
+        });
+        pb.finish_and_clear();
+        let count_solved: usize = count_solved.load(Ordering::Relaxed);
+        println!("{} - run - end", human_readable_utc_timestamp());
+        println!("{} - solved {} of {} tasks", human_readable_utc_timestamp(), count_solved, number_of_tasks);
+        let taskname_to_prediction_vec: TaskNameToPredictionVec = match accumulated.lock() {
+            Ok(map) => map.clone(),
+            Err(error) => {
+                return Err(anyhow::anyhow!("run_predictions. taskname_to_prediction_vec. Unable to lock accumulated. error: {:?}", error));
+            }
+        };
+        Ok(taskname_to_prediction_vec)
+    }
+
     fn process_task(task: &Task) -> anyhow::Result<ProcessedTask> {
         let count_test: u8 = task.count_test().min(255) as u8;
         if count_test < 1 {
             return Err(anyhow::anyhow!("skipping task: {} because it has no test pairs", task.id));
         }    
+
+        // Only process tasks where all pairs agree that the output images have just one color.
+        if !Self::all_pairs_have_one_output_color(task) {
+            return Err(anyhow::anyhow!("skipping task: {} all_pairs_have_one_output_color is not satisfied", task.id));
+        }
+        HtmlLog::text(format!("task {}", task.id));
+
+        // Future experiments:
+        // Only process tasks where the task has a predicted size with high confidence.
+        // if the task doesn't have a predicted size, then skip it, so that another solver can try solve it.
 
         let context = ProcessTaskContext::new(task);
 

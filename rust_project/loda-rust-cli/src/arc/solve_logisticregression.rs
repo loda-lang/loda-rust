@@ -558,7 +558,7 @@ impl SolveLogisticRegression {
     /// This code is intended to run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
     pub fn run_predictions(&self) -> anyhow::Result<TaskNameToPredictionVec> {
         let number_of_tasks: u64 = self.tasks.len() as u64;
-        println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
+        println!("{} - run start - will process {} tasks with SolveLogisticRegression", human_readable_utc_timestamp(), number_of_tasks);
         let count_solved = AtomicUsize::new(0);
         let pb = ProgressBar::new(number_of_tasks as u64);
         pb.set_style(ProgressStyle::default_bar()
