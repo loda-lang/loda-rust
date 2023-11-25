@@ -1,32 +1,24 @@
 //! Solve tasks that outputs a single color.
 //! 
-//! Example:
-//! d631b094
+//! The ARC 1 dataset contains 800 tasks, where 17 of the tasks outputs a single color.
+//! 1190e5a7, 1a2e2828, 239be575, 23b5c85d, 27a28665, 3194b014, 445eab21, 44f52bb0, 5582e5ca, 642d658d,
+//! 7039b2d7, 8597cfd7, b9b7f026, d631b094, d9fac9be, de1cd16c, e872b94a, 
+//! 
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat, rule, CellularAutomaton, ChangeItem};
-use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode, VerifyPrediction, VerifyPredictionWithTask};
-use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
-use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
+use super::{Image, arcathon_solution_coordinator, arc_json_model, ImageSize, TaskNameToPredictionVec, PropertyOutput, ImageProperty};
+use super::{ActionLabel, VerifyPrediction, VerifyPredictionWithTask};
+use super::{HtmlLog, Histogram};
 use super::human_readable_utc_timestamp;
-use anyhow::{Context, bail};
+use anyhow::bail;
 use indicatif::{ProgressBar, ProgressStyle};
-use serde::Serialize;
-use std::borrow::BorrowMut;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use rayon::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[derive(Clone, Debug)]
-enum ProcessTaskMode {
-    InputOutputSameSize,
-    InputOutputDifferentSize,
-}
-
-#[derive(Clone, Debug)]
 pub struct ProcessTaskContext {
-    mode: ProcessTaskMode,
     input_size_vec: Vec<ImageSize>,
     output_size_vec: Vec<ImageSize>,
     scale_widthheight: Option<(u8, u8)>,
@@ -34,13 +26,7 @@ pub struct ProcessTaskContext {
 
 impl ProcessTaskContext {
     pub fn new(task: &Task) -> Self {
-        let mode: ProcessTaskMode = if task.is_output_size_same_as_input_size() { 
-            ProcessTaskMode::InputOutputSameSize 
-        } else { 
-            ProcessTaskMode::InputOutputDifferentSize 
-        };
         let mut instance = Self {
-            mode,
             input_size_vec: Vec::<ImageSize>::new(),
             output_size_vec: Vec::<ImageSize>::new(),
             scale_widthheight: None,
@@ -140,6 +126,7 @@ impl SolveOneColor {
     /// This can be run with the public ARC dataset contains expected output for the test pairs.
     /// 
     /// This cannot be run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
+    #[allow(dead_code)]
     pub fn run_and_verify(&self) -> anyhow::Result<()> {
         let run_and_verify_htmllog = true;
         let number_of_tasks: u64 = self.tasks.len() as u64;
@@ -417,7 +404,7 @@ impl SolveOneColor {
                 break;
             }
         }
-        let pair_index: u8 = match found_pair_index {
+        let _pair_index: u8 = match found_pair_index {
             Some(value) => value,
             None => {
                 return Err(anyhow::anyhow!("Unable to find pair with test_index: {}", test_index));
@@ -503,7 +490,7 @@ impl SolveOneColor {
         println!("do more work: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
 
         // return Err(anyhow::anyhow!("Unable to make prediction for task: {} - test_index: {} there are too many colors", task.id, test_index));
-        let mut predicted_color: u8 = 42;
+        let predicted_color: u8 = 42;
 
         Ok(vec![predicted_color])
     }
@@ -538,6 +525,7 @@ impl SolveOneColor {
 
     /// If the output color the same as the most popular color in the input image for pair.
     /// then returns the most popular color for that pair.
+    #[allow(dead_code)]
     fn pair_input_most_popular_color(task: &Task, pair_index: u8) -> Option<u8> {
         let mut found = false;
         for action_label in &task.action_label_set_intersection {
@@ -565,6 +553,7 @@ impl SolveOneColor {
 
     /// If the output color the same as the least popular color in the input image for pair.
     /// then returns the least popular color for that pair.
+    #[allow(dead_code)]
     fn pair_input_least_popular_color(task: &Task, pair_index: u8) -> Option<u8> {
         let mut found = false;
         for action_label in &task.action_label_set_intersection {
