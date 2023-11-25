@@ -161,7 +161,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .subcommand(
             Command::new("arc-generate-solution-csv")
-                .about("ARC - Populate the 'solutions.csv' file by trying out all puzzles with all solutions.")
+                .about("ARC - Populate the 'solutions.csv' file by trying out all tasks with all solutions.")
                 .hide(true)
         )
         .subcommand(
@@ -171,7 +171,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .subcommand(
             Command::new("arc-label")
-                .about("ARC - Traverse all puzzles and classify each puzzle.")
+                .about("ARC - Traverse all tasks and classify each puzzle.")
                 .hide(true)
         )
         .subcommand(
@@ -180,9 +180,14 @@ async fn main() -> anyhow::Result<()> {
                 .hide(true)
         )
         .subcommand(
-            Command::new("arc-logistic-regression")
-                .about("ARC - Solve all puzzles using logistic regression solver.")
+            Command::new("arc-solve")
+                .about("ARC - Run a specific solver with all the tasks and check if the prediction are correct.")
                 .hide(true)
+                .arg(
+                    Arg::new("nameofsolver")
+                        .help("Name of the solver. lr = SolveLogisticRegression, one = SolveOneColor.")
+                        .required(true)
+                )
         )
         .subcommand(
             Command::new("arc-size")
@@ -190,7 +195,7 @@ async fn main() -> anyhow::Result<()> {
                 .hide(true)
                 .arg(
                     Arg::new("file")
-                        .help("Path to the task json file. Example: /home/arc-dataset/evaluation/0123abcd.json")
+                        .help("Absolute path to the task json file. Example: /home/arc-dataset/evaluation/0123abcd.json")
                         .required(true)
                 )
         )
@@ -350,9 +355,11 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if let Some(_sub_m) = matches.subcommand_matches("arc-logistic-regression") {
+    if let Some(sub_m) = matches.subcommand_matches("arc-solve") {
+        let nameofsolver_raw: &str = sub_m.value_of("nameofsolver").expect("nameofsolver");
+        let mode = SubcommandARCMode::SolveWithSpecificSolver { name_of_solver: nameofsolver_raw.to_string() };
         let blocking_task = tokio::task::spawn_blocking(|| {
-            SubcommandARC::run(SubcommandARCMode::SolveWithLogisticRegression).expect("ok");
+            SubcommandARC::run(mode).expect("ok");
         });
         blocking_task.await?;
         return Ok(());

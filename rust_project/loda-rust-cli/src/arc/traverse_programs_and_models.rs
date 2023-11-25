@@ -12,7 +12,7 @@ use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file
 use crate::common::find_asm_files_recursively;
 use crate::mine::{Genome, GenomeItem, ToGenomeItemVec, CreateGenomeMutateContextMode, create_genome_mutate_context, GenomeMutateContext};
 use bloomfilter::*;
-use anyhow::Context;
+use anyhow::{Context, bail};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
@@ -88,18 +88,29 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    pub fn solve_with_logistic_regression() -> anyhow::Result<()> {
+    pub fn solve_with_specific_solver(name_of_solver: &String) -> anyhow::Result<()> {
         // let tpam = TraverseProgramsAndModels::new()?;
         // let task_vec: Vec<Task> = tpam.to_task_vec();
         // let mut instance = ExperimentWithConvolution::new(task_vec);
         // instance.run()?;
-        {
+        
+        if name_of_solver == "lr" {
             let tpam = TraverseProgramsAndModels::new()?;
             let task_vec: Vec<Task> = tpam.to_task_vec();
             let instance = SolveLogisticRegression::new(task_vec);
             instance.run_and_verify()?;
             return Ok(());
         }
+
+        if name_of_solver == "one" {
+            let tpam = TraverseProgramsAndModels::new()?;
+            let task_vec: Vec<Task> = tpam.to_task_vec();
+            let instance = SolveOneColor::new(task_vec);
+            instance.run_and_verify()?;
+            return Ok(());
+        }
+
+        bail!("Unknown solver: {}", name_of_solver);
     }
 
     pub fn export_dataset() -> anyhow::Result<()> {
