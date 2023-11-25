@@ -27,6 +27,9 @@ pub enum PredictionType {
 
     SolveSplit,
     SolveGenetic,
+
+    /// Number of unique colors the output images across all train pairs, is s a single color.
+    SolveOneColor,
 }
 
 impl PredictionType {
@@ -34,11 +37,14 @@ impl PredictionType {
     fn sort_weight(&self) -> u32 {
         match self {
             // Split tries out lots of things deterministic, so it's high priority.
-            Self::SolveSplit => 0, 
+            Self::SolveSplit => 0,
+
+            // The SolveOneColor is a very simple solver, so it's high priority.
+            Self::SolveOneColor => 1, 
 
             // The LODA programs that have been manually been coded are somewhat good and deals with many edge cases.
             // The mutated LODA programs, may not deal with edge cases, but they are still good, since all train+test pairs gets evaluated.
-            Self::SolveGenetic => 1, 
+            Self::SolveGenetic => 2, 
 
             // Logistic regression is rarely correct, so it's low priority.
             // It's best at tasks where `input_size == output_size`.

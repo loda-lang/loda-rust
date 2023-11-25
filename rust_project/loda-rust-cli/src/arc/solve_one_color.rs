@@ -273,17 +273,9 @@ impl SolveOneColor {
 
         let context = ProcessTaskContext::new(task);
 
-        let task_for_processing: Task = task.clone();
-        let prediction_type: arcathon_solution_coordinator::PredictionType;
-        if task.is_output_size_same_as_input_size() {
-            prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionSameSize;
-        } else {
-            prediction_type = arcathon_solution_coordinator::PredictionType::SolveLogisticRegressionDifferentSize;
-        }
-
         let mut accumulated_ptwotp_vec = Vec::<ProcessedTaskWithOneTestPair>::new();
         for test_index in 0..count_test {
-            let ptwotp_vec: Vec<ProcessedTaskWithOneTestPair> = match Self::process_task_with_one_test_pair(&context, &task_for_processing, test_index) {
+            let ptwotp_vec: Vec<ProcessedTaskWithOneTestPair> = match Self::process_task_with_one_test_pair(&context, task, test_index) {
                 Ok(value) => value,
                 Err(error) => {
                     return Err(error);
@@ -298,7 +290,7 @@ impl SolveOneColor {
             let prediction = arcathon_solution_coordinator::Prediction {
                 output_id: ptwotp.test_index.min(255) as u8,
                 output: grid,
-                prediction_type,
+                prediction_type: arcathon_solution_coordinator::PredictionType::SolveOneColor,
             };
             prediction_vec.push(prediction);
         }
