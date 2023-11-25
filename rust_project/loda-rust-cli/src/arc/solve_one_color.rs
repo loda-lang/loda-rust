@@ -127,8 +127,11 @@ pub struct SolveOneColor {
 impl SolveOneColor {
     pub fn new(tasks: Vec<Task>) -> Self {
         // println!("loaded {} tasks", tasks.len());
+        let count0: usize = tasks.len();
+        let tasks_for_processing: Vec<Task> = tasks.iter().filter(|task| Self::can_process_task(task)).cloned().collect();
+        println!("SolveOneColor::new() out of {} tasks, {} tasks will be processed", count0, tasks_for_processing.len());
         Self {
-            tasks,
+            tasks: tasks_for_processing,
         }
     }
 
@@ -310,6 +313,14 @@ impl SolveOneColor {
             }
         };
         Ok(taskname_to_prediction_vec)
+    }
+
+    fn can_process_task(task: &Task) -> bool {
+        // Only process tasks where all pairs agree that the output images have just one color.
+        if !Self::all_pairs_have_one_output_color(task) {
+            return false;
+        }
+        true
     }
 
     fn process_task(task: &Task) -> anyhow::Result<ProcessedTask> {
