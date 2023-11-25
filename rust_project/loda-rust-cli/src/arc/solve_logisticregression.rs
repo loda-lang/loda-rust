@@ -389,6 +389,7 @@ impl ProcessTaskContext {
 struct ProcessedTaskWithOneTestPair {
     test_index: u8,
     cropped_image: Image,
+    #[allow(dead_code)]
     inspect_internal_image_vec: Vec<Image>,
 }
 
@@ -414,6 +415,7 @@ impl SolveLogisticRegression {
     /// This can be run with the public ARC dataset contains expected output for the test pairs.
     /// 
     /// This cannot be run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
+    #[allow(dead_code)]
     pub fn run_and_verify(&self) -> anyhow::Result<()> {
         let run_and_verify_htmllog = true;
         let run_and_verify_ignore_already_solved = false;
