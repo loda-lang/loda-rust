@@ -364,8 +364,10 @@ impl SolveOneColor {
             }
         };
 
-        // All pairs agree on the exact same color.
-        if task.output_histogram_intersection == task.output_histogram_union {
+        let output_image_colors_comes_from_input_image: bool = Self::output_image_colors_comes_from_input_image(task);
+
+        // All pairs agree on the exact same color, and the color isn't impacted by the input image.
+        if output_image_colors_comes_from_input_image == false && task.output_histogram_intersection == task.output_histogram_union {
             let available_colors: Histogram = task.output_histogram_intersection.clone();
             // println!("step0: task: {} - test_index: {} - available_colors: {:?} only one color is used across all outputs.", task.id, test_index, available_colors.pairs_ordered_by_color());
             let colors: Vec<u8> = available_colors.pairs_ordered_by_color().iter().map(|pair| pair.1).collect();
@@ -379,7 +381,8 @@ impl SolveOneColor {
 
         // println!("step0: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
 
-        if Self::output_image_colors_comes_from_input_image(task) {
+        if output_image_colors_comes_from_input_image {
+            // The output colors are dictated by the input image
             for pair in &task.pairs {
                 if pair.test_index == Some(test_index) {
                     available_colors = pair.input.image_meta.histogram_all.clone();
@@ -387,22 +390,25 @@ impl SolveOneColor {
                 }
             }
         } else {
+            // The output colors are not dictated by the input image
             available_colors = task.output_histogram_union.clone();
             // println!("step1B: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
         }
 
+        available_colors.add_histogram(&task.insert_histogram_intersection);
+        // println!("step2: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
+        
         // If all pairs agree on the same removal colors, then make sure none of these are present in the available colors.
+        // Future improvement: 
+        // ARCathon allows for 3 predictions, we want to make all 3 predictions with different colors.
+        // By removing too many colors, and we can make fewer predictions.
+        // Aim for 3 colors in the available colors, after removing the removal colors.
         available_colors.subtract_histogram(&task.removal_histogram_intersection);
         // println!("step3: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
 
-        if task.insert_histogram_intersection.number_of_counters_greater_than_zero() > 0 {
-            available_colors = task.insert_histogram_intersection.clone();
-            // println!("step4: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
-        }
-
         // if task.output_histogram_union.number_of_counters_greater_than_zero() > 0 {
         //     available_colors = task.output_histogram_union.clone();
-        //     println!("step7: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
+        //     println!("step4: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
         // }
 
         // The most popular color specific for each pair, is used for the output color.
@@ -434,6 +440,7 @@ impl SolveOneColor {
         }
 
         // There are 4 or more colors, then do extra work to make max 3 predictions.
+        println!("do more work: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
 
         // return Err(anyhow::anyhow!("Unable to make prediction for task: {} - test_index: {} there are too many colors", task.id, test_index));
         let mut predicted_color: u8 = 42;
