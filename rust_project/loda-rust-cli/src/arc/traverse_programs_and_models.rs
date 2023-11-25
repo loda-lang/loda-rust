@@ -1,5 +1,5 @@
 use super::arc_work_model::{PairType, Task};
-use super::{RunWithProgram, RunWithProgramResult};
+use super::{RunWithProgram, RunWithProgramResult, SolveOneColor};
 use super::ArcathonSolutionJsonFile;
 use super::{ActionLabel, ImageHistogram, ImageSize, Histogram, ExportTasks, SolveSplit};
 use super::{SolveSplitFoundSolution, ArcathonSolutionCoordinator};
@@ -1591,6 +1591,10 @@ impl TraverseProgramsAndModels {
         // and don't want to spend time on solving already solved tasks.
         let resume_from_last_snapshot = false;
 
+        // Solve tasks that outputs a single color.
+        // Not yet tried on the hidden ARC dataset, so I don't know if this doesn't solves any tasks.
+        let try_solve_one_color = false;
+
         // Solve `splitview` like tasks.
         // On the hidden ARC dataset, this doesn't solve any tasks.
         let try_solve_split = true;
@@ -1617,6 +1621,7 @@ impl TraverseProgramsAndModels {
 
         println!("path_solution_teamid_json: {:?}", self.arc_config.path_solution_teamid_json);
         println!("resume_from_last_snapshot: {}", resume_from_last_snapshot);
+        println!("try_solve_one_color: {}", try_solve_one_color);
         println!("try_solve_split: {}", try_solve_split);
         println!("try_existing_solutions: {}", try_existing_solutions);
         println!("try_logistic_regression: {}", try_logistic_regression);
@@ -1706,6 +1711,24 @@ impl TraverseProgramsAndModels {
             }
             println!("Number of tasks already solved: {}", count_solved);
             println!("Number of tasks unsolved: {}", count_unsolved);
+        }
+
+        if try_solve_one_color {
+            let solver_start_time: Instant = Instant::now();
+            println!("{} - SolveOneColor - start", human_readable_utc_timestamp());
+            let task_vec: Vec<Task> = self.to_task_vec();
+            let instance = SolveOneColor::new(task_vec);
+            match instance.run_predictions() {
+                Ok(taskname_to_predictions) => {
+                    println!("SolveOneColor::run_predictions completed successfully");
+                    coordinator.append_predictions_from_hashmap(&taskname_to_predictions);
+                },
+                Err(error) => {
+                    error!("SolveOneColor::run_with_callback failed with error: {:?}", error);
+                }
+            }
+            coordinator.save_solutions_json_with_console_output();
+            println!("{} - SolveOneColor - end. Elapsed {}", human_readable_utc_timestamp(), HumanDuration(solver_start_time.elapsed()));
         }
 
         if try_solve_split {
