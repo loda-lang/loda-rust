@@ -4,6 +4,24 @@
 //! 1190e5a7, 1a2e2828, 239be575, 23b5c85d, 27a28665, 3194b014, 445eab21, 44f52bb0, 5582e5ca, 642d658d,
 //! 7039b2d7, 8597cfd7, b9b7f026, d631b094, d9fac9be, de1cd16c, e872b94a, 
 //! 
+//! This solver is able to solve 16 of the 17 tasks.
+//! Where 10 is solved with some confidence.
+//! Where 6 of them is solved as a happy accident.
+//! Where 1 task is not solved, because it has more than 4 colors to choose from, and chooses the wrong color.
+//! 
+//! Weakness:
+//! When there are 4 or more colors to choose from, then it doesn't do any prediction, and takes the 3 first colors.
+//! If the 3 first colors are not the correct colors, then it will fail.
+//! The real solution will be to do the actual work needed to bring down the number of colors to max 3 colors,
+//! by doing shape recognition, eliminating noise colors.
+//! These tasks are exceeding 3 colors: 1a2e2828, 27a28665, 3194b014, 642d658d, b9b7f026, de1cd16c.
+//! and thus are not solved by this solver. They are a happy accident if they are "guessed" correctly.
+//! 
+//! Future experiments:
+//! Compare shapes across the input, is there a correlation between the shape and the output color.
+//! Check symmetry in the input, is there a correlation between the symmetry and the output color.
+//! Identify the densest color clusters, and pick the most popular color from the densest cluster.
+//! Count number of holes, and return the object with the most holes or least holes.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
 use super::{Image, arcathon_solution_coordinator, arc_json_model, ImageSize, TaskNameToPredictionVec, PropertyOutput, ImageProperty};
@@ -404,7 +422,7 @@ impl SolveOneColor {
                 break;
             }
         }
-        let _pair_index: u8 = match found_pair_index {
+        let pair_index: u8 = match found_pair_index {
             Some(value) => value,
             None => {
                 return Err(anyhow::anyhow!("Unable to find pair with test_index: {}", test_index));
@@ -417,7 +435,7 @@ impl SolveOneColor {
         if output_image_colors_comes_from_input_image == false && task.output_histogram_intersection == task.output_histogram_union {
             let available_colors: Histogram = task.output_histogram_intersection.clone();
             // println!("step0: task: {} - test_index: {} - available_colors: {:?} only one color is used across all outputs.", task.id, test_index, available_colors.pairs_ordered_by_color());
-            let colors: Vec<u8> = available_colors.pairs_ordered_by_color().iter().map(|pair| pair.1).collect();
+            let colors: Vec<u8> = available_colors.color_vec();
             return Ok(colors);
         }
 
@@ -450,49 +468,56 @@ impl SolveOneColor {
         // ARCathon allows for 3 predictions, we want to make all 3 predictions with different colors.
         // By removing too many colors, and we can make fewer predictions.
         // Aim for 3 colors in the available colors, after removing the removal colors.
+        // Move the colors to a 3rd bin for the weakest predictions.
         available_colors.subtract_histogram(&task.removal_histogram_intersection);
         // println!("step3: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
 
-        // if task.output_histogram_union.number_of_counters_greater_than_zero() > 0 {
-        //     available_colors = task.output_histogram_union.clone();
-        //     println!("step4: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
-        // }
+        let mut primary_color_predictions = Histogram::new();
 
         // The most popular color specific for each pair, is used for the output color.
-        // if let Some(color) = Self::pair_input_most_popular_color(task, pair_index) {
-        //     available_colors = Histogram::new();
-        //     available_colors.increment(color);
-        //     println!("step5: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
-        // }
+        if let Some(color) = Self::pair_input_most_popular_color(task, pair_index) {
+            primary_color_predictions.increment(color);
+            available_colors.set_counter_to_zero(color);
+            println!("step5: task: {} - test_index: {} - primary_predictions: {:?} available_colors: {:?}", task.id, test_index, primary_color_predictions.pairs_ordered_by_color(), available_colors.pairs_ordered_by_color());
+        }
 
-        // // The least popular color specific for each pair, is used for the output color.
-        // if let Some(color) = Self::pair_input_least_popular_color(task, pair_index) {
-        //     available_colors = Histogram::new();
-        //     available_colors.increment(color);
-        //     println!("step6: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
-        // }
+        // The least popular color specific for each pair, is used for the output color.
+        if let Some(color) = Self::pair_input_least_popular_color(task, pair_index) {
+            primary_color_predictions.increment(color);
+            available_colors.set_counter_to_zero(color);
+            println!("step6: task: {} - test_index: {} - primary_predictions: {:?} available_colors: {:?}", task.id, test_index, primary_color_predictions.pairs_ordered_by_color(), available_colors.pairs_ordered_by_color());
+        }
 
         // println!("step-last: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
 
-        HtmlLog::text(format!("task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color()));
+        HtmlLog::text(format!("task: {} - test_index: {} - primary_predictions: {:?} available_colors: {:?}", task.id, test_index, primary_color_predictions.pairs_ordered_by_color(), available_colors.pairs_ordered_by_color()));
         
-        if available_colors.number_of_counters_greater_than_zero() == 0 {
+        let primary_count: u16 = primary_color_predictions.number_of_counters_greater_than_zero();
+        let secondary_count: u16 = available_colors.number_of_counters_greater_than_zero();
+        let total_count: u16 = primary_count + secondary_count;
+        if total_count == 0 {
             bail!("Unable to make prediction for task: {} - test_index: {} there are no available colors", task.id, test_index);
         }
-        
-        // If there are 3 or fewer colors, then make a prediction with each color. ARCathon allows for 3 predictions.
-        if available_colors.number_of_counters_greater_than_zero() <= 3 {
-            let colors: Vec<u8> = available_colors.pairs_ordered_by_color().iter().map(|pair| pair.1).collect();
-            return Ok(colors);
+
+        let mut the_colors: Vec<u8> = primary_color_predictions.color_vec();
+        the_colors.extend(available_colors.color_vec());
+
+        let high_confidence: bool = primary_count > 0 && primary_count <= 3;
+        if high_confidence {
+            println!("high confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
+        } else {
+            let medium_confidence: bool = secondary_count > 0 && secondary_count <= 3;
+            if medium_confidence {
+                println!("medium confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
+            } else {
+                // There are 4 or more colors to choose from. Extra work is needed to bring down the number of colors to make max 3 predictions.
+                // Future experiments:
+                // Assign a low confidence score to these predictions, so they are ranked lower than other high confidence predictions.
+                // Rule out the noise color, grid color, most dense colors.
+                println!("low confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
+            }
         }
-
-        // There are 4 or more colors, then do extra work to make max 3 predictions.
-        println!("do more work: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
-
-        // return Err(anyhow::anyhow!("Unable to make prediction for task: {} - test_index: {} there are too many colors", task.id, test_index));
-        let predicted_color: u8 = 42;
-
-        Ok(vec![predicted_color])
+        Ok(the_colors)
     }
 
     /// This solver is only able to solve tasks where all pairs agrees that the output images have one color.
