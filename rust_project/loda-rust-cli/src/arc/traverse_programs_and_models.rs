@@ -1600,8 +1600,8 @@ impl TraverseProgramsAndModels {
         let try_solve_split = true;
 
         // Run logistic regression.
-        // On the hidden ARC dataset, this solves 1 task.
-        let try_logistic_regression = true;
+        // On the hidden ARC dataset, this solves 2 tasks.
+        let try_solve_logistic_regression = true;
 
         // Try out the existing programs with the unsolved tasks.
         // This may be a solution to one of the hidden puzzles.
@@ -1623,8 +1623,8 @@ impl TraverseProgramsAndModels {
         println!("resume_from_last_snapshot: {}", resume_from_last_snapshot);
         println!("try_solve_one_color: {}", try_solve_one_color);
         println!("try_solve_split: {}", try_solve_split);
+        println!("try_solve_logistic_regression: {}", try_solve_logistic_regression);
         println!("try_existing_solutions: {}", try_existing_solutions);
-        println!("try_logistic_regression: {}", try_logistic_regression);
         println!("try_mutate_existing_solutions: {}", try_mutate_existing_solutions);
         println!("ARC_COMPETITION_NUMBER_OF_MUTATIONS: {}", ARC_COMPETITION_NUMBER_OF_MUTATIONS);
 
@@ -1775,7 +1775,7 @@ impl TraverseProgramsAndModels {
             println!("{} - SolveSplit - complete - solved {} of {} tasks. Elapsed {}", human_readable_utc_timestamp(), count_tasks_solved, number_of_tasks, HumanDuration(solver_start_time.elapsed()));
         }
 
-        if try_logistic_regression {
+        if try_solve_logistic_regression {
             let solver_start_time: Instant = Instant::now();
             println!("{} - SolveLogisticRegression - start", human_readable_utc_timestamp());
             let task_vec: Vec<Task> = self.to_task_vec();
