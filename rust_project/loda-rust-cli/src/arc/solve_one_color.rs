@@ -7,7 +7,7 @@
 //! This solver is able to solve 16 of the 17 tasks.
 //! Where 10 is solved with some confidence.
 //! Where 6 of them is solved as a happy accident.
-//! Where 1 task is not solved, because it has more than 4 colors to choose from, and chooses the wrong color.
+//! Where 1 task is not solved b9b7f026, because it has more than 4 colors to choose from, and chooses the wrong color.
 //! 
 //! Weakness:
 //! When there are 4 or more colors to choose from, then it doesn't do any prediction, and takes the 3 first colors.
@@ -338,7 +338,6 @@ impl SolveOneColor {
         if !Self::all_pairs_have_one_output_color(task) {
             return Err(anyhow::anyhow!("skipping task: {} all_pairs_have_one_output_color is not satisfied", task.id));
         }
-        HtmlLog::text(format!("task {}", task.id));
 
         // Future experiments:
         // Only process tasks where the task has a predicted size with high confidence.
@@ -478,19 +477,18 @@ impl SolveOneColor {
         if let Some(color) = Self::pair_input_most_popular_color(task, pair_index) {
             primary_color_predictions.increment(color);
             available_colors.set_counter_to_zero(color);
-            println!("step5: task: {} - test_index: {} - primary_predictions: {:?} available_colors: {:?}", task.id, test_index, primary_color_predictions.pairs_ordered_by_color(), available_colors.pairs_ordered_by_color());
+            // println!("step5: task: {} - test_index: {} - primary_predictions: {:?} available_colors: {:?}", task.id, test_index, primary_color_predictions.pairs_ordered_by_color(), available_colors.pairs_ordered_by_color());
         }
 
         // The least popular color specific for each pair, is used for the output color.
         if let Some(color) = Self::pair_input_least_popular_color(task, pair_index) {
             primary_color_predictions.increment(color);
             available_colors.set_counter_to_zero(color);
-            println!("step6: task: {} - test_index: {} - primary_predictions: {:?} available_colors: {:?}", task.id, test_index, primary_color_predictions.pairs_ordered_by_color(), available_colors.pairs_ordered_by_color());
+            // println!("step6: task: {} - test_index: {} - primary_predictions: {:?} available_colors: {:?}", task.id, test_index, primary_color_predictions.pairs_ordered_by_color(), available_colors.pairs_ordered_by_color());
         }
 
         // println!("step-last: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, available_colors.pairs_ordered_by_color());
-
-        HtmlLog::text(format!("task: {} - test_index: {} - primary_predictions: {:?} available_colors: {:?}", task.id, test_index, primary_color_predictions.pairs_ordered_by_color(), available_colors.pairs_ordered_by_color()));
+        // HtmlLog::text(format!("task: {} - test_index: {} - primary_predictions: {:?} available_colors: {:?}", task.id, test_index, primary_color_predictions.pairs_ordered_by_color(), available_colors.pairs_ordered_by_color()));
         
         let primary_count: u16 = primary_color_predictions.number_of_counters_greater_than_zero();
         let secondary_count: u16 = available_colors.number_of_counters_greater_than_zero();
@@ -504,17 +502,17 @@ impl SolveOneColor {
 
         let high_confidence: bool = primary_count > 0 && primary_count <= 3;
         if high_confidence {
-            println!("high confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
+            debug!("high confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
         } else {
             let medium_confidence: bool = secondary_count > 0 && secondary_count <= 3;
             if medium_confidence {
-                println!("medium confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
+                debug!("medium confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
             } else {
                 // There are 4 or more colors to choose from. Extra work is needed to bring down the number of colors to make max 3 predictions.
                 // Future experiments:
                 // Assign a low confidence score to these predictions, so they are ranked lower than other high confidence predictions.
                 // Rule out the noise color, grid color, most dense colors.
-                println!("low confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
+                debug!("low confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
             }
         }
         Ok(the_colors)
@@ -550,7 +548,6 @@ impl SolveOneColor {
 
     /// If the output color the same as the most popular color in the input image for pair.
     /// then returns the most popular color for that pair.
-    #[allow(dead_code)]
     fn pair_input_most_popular_color(task: &Task, pair_index: u8) -> Option<u8> {
         let mut found = false;
         for action_label in &task.action_label_set_intersection {
@@ -578,7 +575,6 @@ impl SolveOneColor {
 
     /// If the output color the same as the least popular color in the input image for pair.
     /// then returns the least popular color for that pair.
-    #[allow(dead_code)]
     fn pair_input_least_popular_color(task: &Task, pair_index: u8) -> Option<u8> {
         let mut found = false;
         for action_label in &task.action_label_set_intersection {
