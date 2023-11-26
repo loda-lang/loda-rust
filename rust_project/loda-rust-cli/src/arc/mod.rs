@@ -148,6 +148,7 @@ mod single_color_object;
 mod single_color_object_satisfies_label;
 mod single_color_object_to_label;
 mod solve_logisticregression;
+mod solve_one_color;
 mod solve_split;
 mod split;
 mod split_to_label;
@@ -291,6 +292,7 @@ pub use single_color_object::{SingleColorObject, SingleColorObjectRectangle, Sin
 pub use single_color_object_satisfies_label::SingleColorObjectSatisfiesLabel;
 pub use single_color_object_to_label::SingleColorObjectToLabel;
 pub use solve_logisticregression::SolveLogisticRegression;
+pub use solve_one_color::SolveOneColor;
 pub use solve_split::{Operation, SolveSplit, SolveSplitFoundSolution};
 pub use split::{EvenSplit, Split, SplitCandidate, SplitCandidateContainer};
 pub use split_to_label::SplitToLabel;

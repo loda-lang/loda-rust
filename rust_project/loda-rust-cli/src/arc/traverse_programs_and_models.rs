@@ -1,5 +1,5 @@
 use super::arc_work_model::{PairType, Task};
-use super::{RunWithProgram, RunWithProgramResult};
+use super::{RunWithProgram, RunWithProgramResult, SolveOneColor};
 use super::ArcathonSolutionJsonFile;
 use super::{ActionLabel, ImageHistogram, ImageSize, Histogram, ExportTasks, SolveSplit};
 use super::{SolveSplitFoundSolution, ArcathonSolutionCoordinator};
@@ -12,7 +12,7 @@ use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file
 use crate::common::find_asm_files_recursively;
 use crate::mine::{Genome, GenomeItem, ToGenomeItemVec, CreateGenomeMutateContextMode, create_genome_mutate_context, GenomeMutateContext};
 use bloomfilter::*;
-use anyhow::Context;
+use anyhow::{Context, bail};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
@@ -88,18 +88,29 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    pub fn solve_with_logistic_regression() -> anyhow::Result<()> {
+    pub fn solve_with_specific_solver(name_of_solver: &String) -> anyhow::Result<()> {
         // let tpam = TraverseProgramsAndModels::new()?;
         // let task_vec: Vec<Task> = tpam.to_task_vec();
         // let mut instance = ExperimentWithConvolution::new(task_vec);
         // instance.run()?;
-        {
+        
+        if name_of_solver == "lr" {
             let tpam = TraverseProgramsAndModels::new()?;
             let task_vec: Vec<Task> = tpam.to_task_vec();
             let instance = SolveLogisticRegression::new(task_vec);
             instance.run_and_verify()?;
             return Ok(());
         }
+
+        if name_of_solver == "one" {
+            let tpam = TraverseProgramsAndModels::new()?;
+            let task_vec: Vec<Task> = tpam.to_task_vec();
+            let instance = SolveOneColor::new(task_vec);
+            instance.run_and_verify()?;
+            return Ok(());
+        }
+
+        bail!("Unknown solver: {}", name_of_solver);
     }
 
     pub fn export_dataset() -> anyhow::Result<()> {
@@ -1591,13 +1602,17 @@ impl TraverseProgramsAndModels {
         // and don't want to spend time on solving already solved tasks.
         let resume_from_last_snapshot = false;
 
+        // Solve tasks that outputs a single color.
+        // Not yet tried on the hidden ARC dataset, so I don't know if this doesn't solves any tasks.
+        let try_solve_one_color = true;
+
         // Solve `splitview` like tasks.
         // On the hidden ARC dataset, this doesn't solve any tasks.
         let try_solve_split = true;
 
         // Run logistic regression.
-        // On the hidden ARC dataset, this solves 1 task.
-        let try_logistic_regression = true;
+        // On the hidden ARC dataset, this solves 2 tasks.
+        let try_solve_logistic_regression = true;
 
         // Try out the existing programs with the unsolved tasks.
         // This may be a solution to one of the hidden puzzles.
@@ -1617,9 +1632,10 @@ impl TraverseProgramsAndModels {
 
         println!("path_solution_teamid_json: {:?}", self.arc_config.path_solution_teamid_json);
         println!("resume_from_last_snapshot: {}", resume_from_last_snapshot);
+        println!("try_solve_one_color: {}", try_solve_one_color);
         println!("try_solve_split: {}", try_solve_split);
+        println!("try_solve_logistic_regression: {}", try_solve_logistic_regression);
         println!("try_existing_solutions: {}", try_existing_solutions);
-        println!("try_logistic_regression: {}", try_logistic_regression);
         println!("try_mutate_existing_solutions: {}", try_mutate_existing_solutions);
         println!("ARC_COMPETITION_NUMBER_OF_MUTATIONS: {}", ARC_COMPETITION_NUMBER_OF_MUTATIONS);
 
@@ -1708,6 +1724,24 @@ impl TraverseProgramsAndModels {
             println!("Number of tasks unsolved: {}", count_unsolved);
         }
 
+        if try_solve_one_color {
+            let solver_start_time: Instant = Instant::now();
+            println!("{} - SolveOneColor - start", human_readable_utc_timestamp());
+            let task_vec: Vec<Task> = self.to_task_vec();
+            let instance = SolveOneColor::new(task_vec);
+            match instance.run_predictions() {
+                Ok(taskname_to_predictions) => {
+                    println!("SolveOneColor::run_predictions completed successfully");
+                    coordinator.append_predictions_from_hashmap(&taskname_to_predictions);
+                },
+                Err(error) => {
+                    error!("SolveOneColor::run_with_callback failed with error: {:?}", error);
+                }
+            }
+            coordinator.save_solutions_json_with_console_output();
+            println!("{} - SolveOneColor - end. Elapsed {}", human_readable_utc_timestamp(), HumanDuration(solver_start_time.elapsed()));
+        }
+
         if try_solve_split {
             let solver_start_time: Instant = Instant::now();
             let number_of_tasks: u64 = self.model_item_vec.len() as u64;
@@ -1752,7 +1786,7 @@ impl TraverseProgramsAndModels {
             println!("{} - SolveSplit - complete - solved {} of {} tasks. Elapsed {}", human_readable_utc_timestamp(), count_tasks_solved, number_of_tasks, HumanDuration(solver_start_time.elapsed()));
         }
 
-        if try_logistic_regression {
+        if try_solve_logistic_regression {
             let solver_start_time: Instant = Instant::now();
             println!("{} - SolveLogisticRegression - start", human_readable_utc_timestamp());
             let task_vec: Vec<Task> = self.to_task_vec();

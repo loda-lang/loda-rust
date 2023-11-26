@@ -1,6 +1,10 @@
 //! Performs logistic regression of each input pixel with the corresponding classification for the output pixel.
 //! 
 //! These older commits solves some of the tasks from the hidden ARC dataset, using logistic regression:
+//! commit 2023-Nov-25: solves 2 of the hidden ARC tasks. This uses variant=0 and variant=1 and variant=2. Only variant=0 does something useful.
+//! Since it uses multiple variants and doesn't solve more tasks than the previous commit, then it is not an improvement.
+//! https://github.com/loda-lang/loda-rust/commit/d08069b56c92c54140c27d13f8e6ad0897824d5a
+//!
 //! commit 2023-Nov-23: solves 2 of the hidden ARC tasks. This uses variant=0 and variant=1 and variant=2. Only variant=0 does something useful.
 //! Since it uses multiple variants and doesn't solve more tasks than the previous commit, then it is not an improvement.
 //! https://github.com/loda-lang/loda-rust/commit/2e6577cd66af0c00fdd65533d4770a40ed2ccf3c
@@ -70,6 +74,7 @@
 //! However I don't see any improvement of the prediction accuracy.
 //! 
 //! Future experiments:
+//! * Use confusion matrix for determining what parameters have impact on the precision. And enable/disable features based on the confusion matrix.
 //! * Transform the `train` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 //! * Transform the `test` pairs: rotate90, rotate180, rotate270, flipx, flipy.
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
@@ -388,6 +393,7 @@ impl ProcessTaskContext {
 struct ProcessedTaskWithOneTestPair {
     test_index: u8,
     cropped_image: Image,
+    #[allow(dead_code)]
     inspect_internal_image_vec: Vec<Image>,
 }
 
@@ -397,12 +403,10 @@ struct ProcessedTask {
 }
 
 pub struct SolveLogisticRegression {
-    #[allow(dead_code)]
     tasks: Vec<Task>,
 }
 
 impl SolveLogisticRegression {
-    #[allow(dead_code)]
     pub fn new(tasks: Vec<Task>) -> Self {
         // println!("loaded {} tasks", tasks.len());
         Self {
@@ -415,6 +419,7 @@ impl SolveLogisticRegression {
     /// This can be run with the public ARC dataset contains expected output for the test pairs.
     /// 
     /// This cannot be run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
+    #[allow(dead_code)]
     pub fn run_and_verify(&self) -> anyhow::Result<()> {
         let run_and_verify_htmllog = true;
         let run_and_verify_ignore_already_solved = false;
@@ -559,7 +564,7 @@ impl SolveLogisticRegression {
     /// This code is intended to run with the hidden ARC dataset, which doesn't contain expected output for the test pairs.
     pub fn run_predictions(&self) -> anyhow::Result<TaskNameToPredictionVec> {
         let number_of_tasks: u64 = self.tasks.len() as u64;
-        println!("{} - run start - will process {} tasks with logistic regression", human_readable_utc_timestamp(), number_of_tasks);
+        println!("{} - run start - will process {} tasks with SolveLogisticRegression", human_readable_utc_timestamp(), number_of_tasks);
         let count_solved = AtomicUsize::new(0);
         let pb = ProgressBar::new(number_of_tasks as u64);
         pb.set_style(ProgressStyle::default_bar()
@@ -676,10 +681,10 @@ impl SolveLogisticRegression {
         }
 
         let mut prediction_vec = Vec::<arcathon_solution_coordinator::Prediction>::new();
-        for (test_index, ptwotp) in ptwotp_vec.iter().enumerate() {
+        for ptwotp in &ptwotp_vec {
             let grid: arc_json_model::Grid = arc_json_model::Grid::from_image(&ptwotp.cropped_image);
             let prediction = arcathon_solution_coordinator::Prediction {
-                output_id: test_index.min(255) as u8,
+                output_id: ptwotp.test_index.min(255) as u8,
                 output: grid,
                 prediction_type,
             };

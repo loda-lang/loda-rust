@@ -25,9 +25,13 @@ pub enum SubcommandARCMode {
     /// Create a file with training data.
     ExportDataset,
 
-    /// Run all tasks using the logistic regression solver.
-    SolveWithLogisticRegression,
-
+    /// Run all tasks using the specified solver.
+    /// 
+    /// where `name_of_solver` is one of:
+    /// - `lr` is logistic regression.
+    /// - `one` is `SolveOneColor`.
+    SolveWithSpecificSolver { name_of_solver: String },
+    
     /// Predict the output sizes for a single ARC task.
     PredictOutputSizesForSingleTask { task_json_file: PathBuf },
 }
@@ -59,13 +63,13 @@ impl SubcommandARC {
                 return TraverseProgramsAndModels::label_all_puzzles();
             },
             SubcommandARCMode::ExportDataset => {
-                return TraverseProgramsAndModels::export_dataset();
-            },
-            SubcommandARCMode::SolveWithLogisticRegression => {
                 // let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histograms.jsonl");
                 // GenerateDataset::generate_fulldataset(&path)?;
                 // return Ok(());
-                return TraverseProgramsAndModels::solve_with_logistic_regression();
+                return TraverseProgramsAndModels::export_dataset();
+            },
+            SubcommandARCMode::SolveWithSpecificSolver { name_of_solver } => {
+                return TraverseProgramsAndModels::solve_with_specific_solver(&name_of_solver);
             },
             SubcommandARCMode::PredictOutputSizesForSingleTask { task_json_file } => {
                 return SubcommandARCSize::run(&task_json_file);
