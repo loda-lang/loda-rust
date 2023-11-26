@@ -116,6 +116,7 @@ mod label;
 mod landmark_single_pixel;
 mod largest_interior_rectangle;
 mod linespan;
+mod measure_density;
 mod ngram;
 mod number_to_image;
 mod object_with_different_color;
@@ -265,6 +266,7 @@ pub use label::{ActionLabel, ActionLabelSet, GridLabel, ImageCorner, ImageEdge, 
 pub use landmark_single_pixel::LandmarkSinglePixel;
 pub use largest_interior_rectangle::LargestInteriorRectangle;
 pub use linespan::{LineSpan, LineSpanDirection, LineSpanMode};
+pub use measure_density::MeasureDensity;
 pub use ngram::{ImageNgram, RecordBigram, RecordTrigram};
 pub use number_to_image::NumberToImage;
 pub use object_with_different_color::ObjectWithDifferentColor;

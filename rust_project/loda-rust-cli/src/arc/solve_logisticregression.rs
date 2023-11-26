@@ -76,7 +76,7 @@
 //! * Provide `weight` to logistic regression, depending on how important each parameter is.
 use super::arc_json_model::GridFromImage;
 use super::arc_work_model::{Task, PairType, Pair};
-use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat, rule, CellularAutomaton, ChangeItem};
+use super::{Image, ImageOverlay, arcathon_solution_coordinator, arc_json_model, ImageMix, MixMode, ObjectsAndMass, ImageCrop, Rectangle, ImageExtractRowColumn, ImageDenoise, TaskGraph, ShapeType, ImageSize, ShapeTransformation, SingleColorObject, ShapeIdentificationFromSingleColorObject, ImageDetectHole, ImagePadding, ImageRepairPattern, TaskNameToPredictionVec, CreateTaskWithSameSize, ImageReplaceColor, ImageCenterIndicator, ImageGravity, GravityDirection, DiagonalHistogram, RecordTrigram, ImageNgram, ImageExteriorCorners, LargestInteriorRectangle, ImageDrawRect, PropertyOutput, ImageProperty, ImageResize, ImageRepeat, rule, CellularAutomaton, ChangeItem, MeasureDensity};
 use super::{ActionLabel, ImageLabel, ImageMaskDistance, LineSpan, LineSpanDirection, LineSpanMode, VerifyPrediction, VerifyPredictionWithTask};
 use super::{HtmlLog, PixelConnectivity, ImageHistogram, Histogram, ImageEdge, ImageMask};
 use super::{ImageNeighbour, ImageNeighbourDirection, ImageCornerAnalyze, ImageMaskGrow, Shape3x3};
@@ -1092,6 +1092,7 @@ impl SolveLogisticRegression {
         let enable_nochange_happens_to_single_line_some_diagonal: bool = [false, false, false][v];
         let enable_nochange_happens_to_single_line_any_45degree_angle: bool = [false, false, false][v];
         let enable_landmark_single_pixel: bool = [false, true, true][v];
+        let enable_measure_density: bool = [false, true, true][v];
 
         let enable_histogram_diagonal: bool = 
             enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || 
@@ -1366,6 +1367,12 @@ impl SolveLogisticRegression {
             if enable_denoise_type5_output {
                 let image: Image = output.denoise_type5()?;
                 denoise_type5_output_image = Some(image);
+            }
+
+            let mut density_any_direction: Option<Image> = None;
+            if enable_measure_density {
+                let measure_density: MeasureDensity = MeasureDensity::analyze(&input)?;
+                density_any_direction = Some(measure_density.density_any_direction);
             }
     
             let mut gameoflife_images = HashMap::<u8, Image>::new();
@@ -2714,6 +2721,14 @@ impl SolveLogisticRegression {
                             // record.serialize_bool(color == center);
                             record.serialize_bool(color == center_output);
                         }
+                    }
+
+                    if enable_measure_density {
+                        let mut color: u8 = 255;
+                        if let Some(image) = &density_any_direction {
+                            color = image.get(xx, yy).unwrap_or(255);
+                        }
+                        record.serialize_onehot_discard_overflow(color, 9);
                     }
 
                     if enable_gameoflife {
