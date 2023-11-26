@@ -1081,19 +1081,24 @@ impl SolveLogisticRegression {
         let enable_min_inbetween_max_inside_shape_connectivity4: bool = [false, false, false][v];
         let enable_earlier_prediction_mass_connectivity4: bool = false;
         let enable_earlier_prediction_mass_connectivity8: bool = false;
-        let enable_change_happens_to_single_line: bool = [false, true, false][v];
-        let enable_change_happens_to_single_line_row_or_column: bool = [false, true, false][v];
-        let enable_change_happens_to_single_line_diagonal: bool = [false, true, false][v];
-        let enable_change_happens_to_single_line_some_diagonal: bool = [false, true, false][v];
-        let enable_change_happens_to_single_line_any_45degree_angle: bool = [false, true, false][v];
-        let enable_nochange_happens_to_single_line: bool = [false, false, false][v];
-        let enable_nochange_happens_to_single_line_row_or_column: bool = [false, false, false][v];
-        let enable_nochange_happens_to_single_line_diagonal: bool = [false, false, false][v];
-        let enable_nochange_happens_to_single_line_some_diagonal: bool = [false, false, false][v];
-        let enable_nochange_happens_to_single_line_any_45degree_angle: bool = [false, false, false][v];
+        let enable_change_happens_to_single_line: bool = [false, true, true][v];
+        let enable_change_happens_to_single_line_row_or_column: bool = [false, true, true][v];
+        let enable_change_happens_to_single_line_diagonal: bool = [false, true, true][v];
+        let enable_change_happens_to_single_line_some_diagonal: bool = [false, true, true][v];
+        let enable_change_happens_to_single_line_any_45degree_angle: bool = [false, true, true][v];
+        let enable_nochange_happens_to_single_line: bool = [false, true, true][v];
+        let enable_nochange_happens_to_single_line_row_or_column: bool = [false, true, true][v];
+        let enable_nochange_happens_to_single_line_diagonal: bool = [false, true, true][v];
+        let enable_nochange_happens_to_single_line_some_diagonal: bool = [false, true, true][v];
+        let enable_nochange_happens_to_single_line_any_45degree_angle: bool = [false, true, true][v];
         let enable_landmark_single_pixel: bool = [false, true, true][v];
-        let enable_measure_density_of_input: bool = [false, true, true][v];
-        let enable_measure_density_of_shapetype: bool = [false, true, true][v];
+        let enable_density_of_input: bool = [false, true, true][v];
+        let enable_density_of_shapetype90: bool = [false, true, true][v];
+        let enable_density_of_shapetype45: bool = [false, true, true][v];
+        let enable_density_of_object_id: bool = [false, true, true][v];
+        let enable_density_any_direction_of_denoise_type5_input: bool = [false, true, true][v];
+        let enable_mostleast_popular_in_column: bool = [false, false, false][v];
+        let enable_mostleast_popular_in_row: bool = [false, false, false][v];
 
         let enable_histogram_diagonal: bool = 
             enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || 
@@ -1371,7 +1376,7 @@ impl SolveLogisticRegression {
             }
 
             let mut density_any_direction_of_input: Option<Image> = None;
-            if enable_measure_density_of_input {
+            if enable_density_of_input {
                 let measure_density: MeasureDensity = MeasureDensity::analyze(&input)?;
                 density_any_direction_of_input = Some(measure_density.density_any_direction);
             }
@@ -1472,7 +1477,7 @@ impl SolveLogisticRegression {
             }
 
             let object_id_image_connectivity8: Image;
-            if enable_object_id_image_connectivity8 {
+            if enable_object_id_image_connectivity8 || enable_density_of_object_id {
                 object_id_image_connectivity8 = Self::object_id_image(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
             } else {
                 object_id_image_connectivity8 = Image::empty();
@@ -1509,10 +1514,30 @@ impl SolveLogisticRegression {
             let shape_size_images_connectivity8: Vec<Image> = Self::shape_size_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
             _ = shape_size_images_connectivity8;
 
-            let mut density_any_direction_of_shapetype: Option<Image> = None;
-            if enable_measure_density_of_shapetype {
+            let mut density_any_direction_of_shapetype90: Option<Image> = None;
+            if enable_density_of_shapetype90 {
                 let measure_density: MeasureDensity = MeasureDensity::analyze(&shape_type_image_connectivity8)?;
-                density_any_direction_of_shapetype = Some(measure_density.density_any_direction);
+                density_any_direction_of_shapetype90 = Some(measure_density.density_any_direction);
+            }
+    
+            let mut density_any_direction_of_shapetype45: Option<Image> = None;
+            if enable_density_of_shapetype45 {
+                let measure_density: MeasureDensity = MeasureDensity::analyze(&shape_type45_image_connectivity8)?;
+                density_any_direction_of_shapetype45 = Some(measure_density.density_any_direction);
+            }
+    
+            let mut density_any_direction_of_object_id: Option<Image> = None;
+            if enable_density_of_object_id {
+                let measure_density: MeasureDensity = MeasureDensity::analyze(&object_id_image_connectivity8)?;
+                density_any_direction_of_object_id = Some(measure_density.density_any_direction);
+            }
+
+            let mut density_any_direction_of_denoise_type5_input: Option<Image> = None;
+            if enable_density_any_direction_of_denoise_type5_input {
+                if let Some(image) = &denoise_type5_input_image {
+                    let measure_density: MeasureDensity = MeasureDensity::analyze(image)?;
+                    density_any_direction_of_denoise_type5_input = Some(measure_density.density_any_direction);
+                }
             }
     
             // let mut repair_mask: Image = Image::zero(width, height);
@@ -2730,7 +2755,7 @@ impl SolveLogisticRegression {
                         }
                     }
 
-                    if enable_measure_density_of_input {
+                    if enable_density_of_input {
                         let mut color: u8 = 255;
                         if let Some(image) = &density_any_direction_of_input {
                             color = image.get(xx, yy).unwrap_or(255);
@@ -2738,9 +2763,33 @@ impl SolveLogisticRegression {
                         record.serialize_onehot_discard_overflow(color, 9);
                     }
 
-                    if enable_measure_density_of_shapetype {
+                    if enable_density_of_shapetype90 {
                         let mut color: u8 = 255;
-                        if let Some(image) = &density_any_direction_of_shapetype {
+                        if let Some(image) = &density_any_direction_of_shapetype90 {
+                            color = image.get(xx, yy).unwrap_or(255);
+                        }
+                        record.serialize_onehot_discard_overflow(color, 9);
+                    }
+
+                    if enable_density_of_shapetype45 {
+                        let mut color: u8 = 255;
+                        if let Some(image) = &density_any_direction_of_shapetype45 {
+                            color = image.get(xx, yy).unwrap_or(255);
+                        }
+                        record.serialize_onehot_discard_overflow(color, 9);
+                    }
+
+                    if enable_density_of_object_id {
+                        let mut color: u8 = 255;
+                        if let Some(image) = &density_any_direction_of_object_id {
+                            color = image.get(xx, yy).unwrap_or(255);
+                        }
+                        record.serialize_onehot_discard_overflow(color, 9);
+                    }
+
+                    if enable_density_any_direction_of_denoise_type5_input {
+                        let mut color: u8 = 255;
+                        if let Some(image) = &density_any_direction_of_denoise_type5_input {
                             color = image.get(xx, yy).unwrap_or(255);
                         }
                         record.serialize_onehot_discard_overflow(color, 9);
@@ -3942,32 +3991,31 @@ impl SolveLogisticRegression {
                     // record.serialize_color_complex(rows_columns_agree_on_one_color.unwrap_or(255), obfuscated_color_offset, enable_serialize_color_complex);
                     // record.serialize_onehot_discard_overflow(rows_columns_agree_on_one_color.unwrap_or(255), 10);
 
-                    // {
-                    //     let mut most_popular_color_in_column: Option<u8> = None;
-                    //     let mut least_popular_color_in_column: Option<u8> = None;
-                    //     if let Some(histogram) = histogram_columns.get(x as usize) {
-                    //         most_popular_color_in_column = histogram.most_popular_color_disallow_ambiguous();
-                    //         least_popular_color_in_column = histogram.least_popular_color_disallow_ambiguous();
-                    //     }
-                    //     record.serialize_color_complex(most_popular_color_in_column.unwrap_or(255), obfuscated_color_offset, enable_serialize_color_complex);
-                    //     record.serialize_color_complex(least_popular_color_in_column.unwrap_or(255), obfuscated_color_offset, enable_serialize_color_complex);
-                    //     record.serialize_onehot_discard_overflow(most_popular_color_in_column.unwrap_or(255), 10);
-                    //     record.serialize_onehot_discard_overflow(least_popular_color_in_column.unwrap_or(255), 10);
-                    // }
+                    if enable_mostleast_popular_in_column {
+                        let mut most_popular_color_in_column: Option<u8> = None;
+                        let mut least_popular_color_in_column: Option<u8> = None;
+                        if let Some(histogram) = histogram_columns.get(x as usize) {
+                            most_popular_color_in_column = histogram.most_popular_color_disallow_ambiguous();
+                            least_popular_color_in_column = histogram.least_popular_color_disallow_ambiguous();
+                        }
+                        record.serialize_color_complex(most_popular_color_in_column.unwrap_or(255), obfuscated_color_offset, enable_serialize_color_complex);
+                        record.serialize_color_complex(least_popular_color_in_column.unwrap_or(255), obfuscated_color_offset, enable_serialize_color_complex);
+                        record.serialize_onehot_discard_overflow(most_popular_color_in_column.unwrap_or(255), 10);
+                        record.serialize_onehot_discard_overflow(least_popular_color_in_column.unwrap_or(255), 10);
+                    }
 
-                    // {
-                    //     let mut most_popular_color_in_row: Option<u8> = None;
-                    //     let mut least_popular_color_in_row: Option<u8> = None;
-                    //     if let Some(histogram) = histogram_rows.get(y as usize) {
-                    //         most_popular_color_in_row = histogram.most_popular_color_disallow_ambiguous();
-                    //         least_popular_color_in_row = histogram.least_popular_color_disallow_ambiguous();
-                    //     }
-                    //     record.serialize_color_complex(most_popular_color_in_row.unwrap_or(255), obfuscated_color_offset, enable_serialize_color_complex);
-                    //     record.serialize_color_complex(least_popular_color_in_row.unwrap_or(255), obfuscated_color_offset, enable_serialize_color_complex);
-                    //     record.serialize_onehot_discard_overflow(most_popular_color_in_row.unwrap_or(255), 10);
-                    //     record.serialize_onehot_discard_overflow(least_popular_color_in_row.unwrap_or(255), 10);
-                    // }
-
+                    if enable_mostleast_popular_in_row {
+                        let mut most_popular_color_in_row: Option<u8> = None;
+                        let mut least_popular_color_in_row: Option<u8> = None;
+                        if let Some(histogram) = histogram_rows.get(y as usize) {
+                            most_popular_color_in_row = histogram.most_popular_color_disallow_ambiguous();
+                            least_popular_color_in_row = histogram.least_popular_color_disallow_ambiguous();
+                        }
+                        record.serialize_color_complex(most_popular_color_in_row.unwrap_or(255), obfuscated_color_offset, enable_serialize_color_complex);
+                        record.serialize_color_complex(least_popular_color_in_row.unwrap_or(255), obfuscated_color_offset, enable_serialize_color_complex);
+                        record.serialize_onehot_discard_overflow(most_popular_color_in_row.unwrap_or(255), 10);
+                        record.serialize_onehot_discard_overflow(least_popular_color_in_row.unwrap_or(255), 10);
+                    }
 
                     let mut is_full_column: bool = false;
                     let mut is_full_row: bool = false;
