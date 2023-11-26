@@ -1092,7 +1092,8 @@ impl SolveLogisticRegression {
         let enable_nochange_happens_to_single_line_some_diagonal: bool = [false, false, false][v];
         let enable_nochange_happens_to_single_line_any_45degree_angle: bool = [false, false, false][v];
         let enable_landmark_single_pixel: bool = [false, true, true][v];
-        let enable_measure_density: bool = [false, true, true][v];
+        let enable_measure_density_of_input: bool = [false, true, true][v];
+        let enable_measure_density_of_shapetype: bool = [false, true, true][v];
 
         let enable_histogram_diagonal: bool = 
             enable_histogram_diagonal_a || enable_histogram_diagonal_b || enable_histogram_diagonal_c || 
@@ -1369,12 +1370,12 @@ impl SolveLogisticRegression {
                 denoise_type5_output_image = Some(image);
             }
 
-            let mut density_any_direction: Option<Image> = None;
-            if enable_measure_density {
+            let mut density_any_direction_of_input: Option<Image> = None;
+            if enable_measure_density_of_input {
                 let measure_density: MeasureDensity = MeasureDensity::analyze(&input)?;
-                density_any_direction = Some(measure_density.density_any_direction);
+                density_any_direction_of_input = Some(measure_density.density_any_direction);
             }
-    
+
             let mut gameoflife_images = HashMap::<u8, Image>::new();
             if enable_gameoflife {
                 for color in 0..=9u8 {
@@ -1508,6 +1509,12 @@ impl SolveLogisticRegression {
             let shape_size_images_connectivity8: Vec<Image> = Self::shape_size_images(&task_graph, pair_index_u8, width, height, PixelConnectivity::Connectivity8)?;
             _ = shape_size_images_connectivity8;
 
+            let mut density_any_direction_of_shapetype: Option<Image> = None;
+            if enable_measure_density_of_shapetype {
+                let measure_density: MeasureDensity = MeasureDensity::analyze(&shape_type_image_connectivity8)?;
+                density_any_direction_of_shapetype = Some(measure_density.density_any_direction);
+            }
+    
             // let mut repair_mask: Image = Image::zero(width, height);
             // if let Some(mask) = &pair.input.repair_mask {
             //     repair_mask = repair_mask.overlay_with_position(mask, 0, 0)?;
@@ -2723,9 +2730,17 @@ impl SolveLogisticRegression {
                         }
                     }
 
-                    if enable_measure_density {
+                    if enable_measure_density_of_input {
                         let mut color: u8 = 255;
-                        if let Some(image) = &density_any_direction {
+                        if let Some(image) = &density_any_direction_of_input {
+                            color = image.get(xx, yy).unwrap_or(255);
+                        }
+                        record.serialize_onehot_discard_overflow(color, 9);
+                    }
+
+                    if enable_measure_density_of_shapetype {
+                        let mut color: u8 = 255;
+                        if let Some(image) = &density_any_direction_of_shapetype {
                             color = image.get(xx, yy).unwrap_or(255);
                         }
                         record.serialize_onehot_discard_overflow(color, 9);
