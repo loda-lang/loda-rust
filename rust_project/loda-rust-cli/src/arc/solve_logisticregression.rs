@@ -1037,27 +1037,27 @@ impl SolveLogisticRegression {
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
 
-        let enable_scale_widthheight: bool = has_different_size_for_input_output;
+        let enable_scale_widthheight: bool = [has_different_size_for_input_output, false, false][v];
         let enable_check_pixel_in_histogram: bool = [false, false, false][v];
-        let enable_nearest_color: bool = [false, false, false][v];
+        let enable_nearest_color: bool = [false, true, false][v];
         let enable_colordirection_to_distanceimage: bool = [false, false, true][v];
         let enable_neighbour_color: bool = [false, false, false][v];
         let enable_adjacent_neighbour_same_as_center: bool = false;
         let enable_opposite_neighbour: bool = [false, true, false][v];
-        let enable_removal_color_center: bool = [false, true, false][v];
+        let enable_removal_color_center: bool = [false, false, false][v];
         let enable_detect_nonsquare: bool = false;
         
         let enable_typo_for_center_row_right_columns: bool = [!has_different_size_for_input_output, false, false][v];
-        let enable_denoise_type5_input: bool = [false, false, true][v];
+        let enable_denoise_type5_input: bool = [false, true, true][v];
         let enable_denoise_type5_output: bool = [false, false, false][v];
         let enable_same_colors_for_area3x3_and_area5x5: bool = [false, false, false][v];
         let enable_area3x3_input_8bit_mask: bool = [false, false, false][v];
         let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
-        let enable_gameoflife: bool = [false, false, false][v];
-        let enable_nonbackground_different_than_most_popular_color: bool = false;
+        let enable_gameoflife: bool = [false, true, false][v];
+        let enable_nonbackground_different_than_most_popular_color: bool = [false, true, false][v];
         let enable_shape3x3_with_trim: bool = [true, false, false][v];
         let enable_shape3x3_with_area5x5: bool = [false, true, true][v];
-        let enable_shape3x3_input: bool = [true, true, true][v];
+        let enable_shape3x3_input: bool = [true, false, true][v];
         let enable_shape3x3_input_nonbackground: bool = [false, true, true][v];
         let enable_shape3x3_output: bool = [false, true, true][v];
         let enable_shape3x3_with_different_than_input_most_popular_color: bool = [false, true, true][v];
