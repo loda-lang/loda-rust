@@ -1062,7 +1062,7 @@ impl SolveLogisticRegression {
         let enable_shape3x3_output: bool = [false, true, true][v];
         let enable_shape3x3_with_different_than_input_most_popular_color: bool = [false, true, true][v];
 
-        let enable_shape_type_image_connectivity4: bool = true;
+        let enable_shape_type_image_connectivity4: bool = [true, false, true][v];
         let enable_shape_type_image_connectivity8: bool = true;
         let enable_shape_type45_image_connectivity4: bool = true;
         let enable_shape_type45_image_connectivity8: bool = true;
@@ -1072,20 +1072,20 @@ impl SolveLogisticRegression {
         let enable_shape_size_connectivity8: bool = true;
         let enable_earlier_prediction_shapetype_connectivity4: bool = true;
         let enable_earlier_prediction_shapetype45_connectivity4: bool = true;
-        let enable_earlier_prediction_shapetype_connectivity8: bool = false;
+        let enable_earlier_prediction_shapetype_connectivity8: bool = [true, false, true][v];
         let enable_earlier_prediction_shapetype45_connectivity8: bool = false;
 
         let enable_histogram_column_row_count: bool = false;
         let enable_cluster_distance1_all_colors: bool = [false, false, false][v];
         let enable_cluster_distance2_all_colors: bool = [false, false, true][v];
-        let enable_min_inbetween_max_inside_shape_connectivity4: bool = [false, false, false][v];
+        let enable_min_inbetween_max_inside_shape_connectivity4: bool = [false, true, false][v];
         let enable_earlier_prediction_mass_connectivity4: bool = false;
         let enable_earlier_prediction_mass_connectivity8: bool = false;
         let enable_change_happens_to_single_line: bool = [false, true, true][v];
         let enable_change_happens_to_single_line_row_or_column: bool = [false, true, true][v];
         let enable_change_happens_to_single_line_diagonal: bool = [false, true, true][v];
         let enable_change_happens_to_single_line_some_diagonal: bool = [false, true, true][v];
-        let enable_change_happens_to_single_line_any_45degree_angle: bool = [false, true, true][v];
+        let enable_change_happens_to_single_line_any_45degree_angle: bool = [false, false, true][v];
         let enable_nochange_happens_to_single_line: bool = [false, true, true][v];
         let enable_nochange_happens_to_single_line_row_or_column: bool = [false, true, true][v];
         let enable_nochange_happens_to_single_line_diagonal: bool = [false, true, true][v];
@@ -1093,10 +1093,10 @@ impl SolveLogisticRegression {
         let enable_nochange_happens_to_single_line_any_45degree_angle: bool = [false, true, true][v];
         let enable_landmark_single_pixel: bool = [false, true, true][v];
         let enable_density_of_input: bool = [false, true, true][v];
-        let enable_density_of_shapetype90: bool = [false, true, true][v];
+        let enable_density_of_shapetype90: bool = [false, false, true][v];
         let enable_density_of_shapetype45: bool = [false, true, true][v];
         let enable_density_of_object_id: bool = [false, true, true][v];
-        let enable_density_any_direction_of_denoise_type5_input: bool = [false, true, true][v];
+        let enable_density_any_direction_of_denoise_type5_input: bool = [false, false, true][v];
         let enable_mostleast_popular_in_column: bool = [false, false, false][v];
         let enable_mostleast_popular_in_row: bool = [false, false, false][v];
 
