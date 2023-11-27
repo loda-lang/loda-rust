@@ -6,10 +6,7 @@
 //! 1190e5a7, 1a2e2828, 239be575, 23b5c85d, 27a28665, 3194b014, 445eab21, 44f52bb0, 5582e5ca, 642d658d,
 //! 7039b2d7, 8597cfd7, b9b7f026, d631b094, d9fac9be, de1cd16c, e872b94a, 
 //! 
-//! This solver is able to solve 14 of the 17 tasks.
-//! Where 9 is solved with some confidence.
-//! Where 5 of them is solved as a happy accident.
-//! Where 3 tasks is not solved 1a2e2828, 27a28665, b9b7f026, because it has more than 4 colors to choose from, and chooses the wrong color.
+//! Out of the 800 tasks, this solver is able to solve between 13 tasks.
 //! 
 //! Weakness:
 //! When there are 4 or more colors to choose from, then it doesn't do any prediction, and takes the 3 first colors.
@@ -499,8 +496,12 @@ impl SolveOneColor {
             bail!("Unable to make prediction for task: {} - test_index: {} there are no available colors", task.id, test_index);
         }
 
+        let mut available_colors_vec: Vec<u8> = available_colors.color_vec();
+        // The reversal is in order to try out if the last colors are better than the first colors.
+        // In the real world the algorithm should determine which colors are the best.
+        available_colors_vec.reverse();
         let mut the_colors: Vec<u8> = primary_color_predictions.color_vec();
-        the_colors.extend(available_colors.color_vec());
+        the_colors.extend(available_colors_vec);
 
         let high_confidence: bool = primary_count > 0 && primary_count <= 3;
         if high_confidence {
@@ -516,8 +517,8 @@ impl SolveOneColor {
                 // Rule out the noise color, grid color, most dense colors.
                 debug!("low confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
                 // Taking the initial 3 colors doesn't solve any of the hidden ARC tasks.
-                // Here is a crappy 2nd guess. By reversing the_colors.
-                the_colors.reverse();
+                // Taking the last 3 colors doesn't solve any of the hidden ARC tasks.
+                // I doubt there are any of the hidden ARC tasks that outputs a single color.
                 the_colors.truncate(3);
             }
         }
