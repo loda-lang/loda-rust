@@ -1012,7 +1012,7 @@ impl SolveLogisticRegression {
         let enable_edge: bool = [false, false, false][v];
 
         let enable_color_inside_bounding_box: bool = [true, true, true][v];
-        let enable_object_id_image_connectivity4: bool = [false, true, false][v];
+        let enable_object_id_image_connectivity4: bool = [false, false, false][v];
         let enable_object_id_image_connectivity8: bool = [false, false, false][v];
 
         let enable_trigram_count_center: bool = [false, false, true][v];
