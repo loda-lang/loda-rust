@@ -1015,7 +1015,7 @@ impl SolveLogisticRegression {
         let enable_object_id_image_connectivity4: bool = [false, false, false][v];
         let enable_object_id_image_connectivity8: bool = [false, false, false][v];
 
-        let enable_trigram_count_center: bool = [false, false, true][v];
+        let enable_trigram_count_center: bool = [false, true, true][v];
         let enable_trigram_count_word1_center: bool = [false, false, true][v];
         let enable_trigram_count_word012_center: bool = [false, false, true][v];
 
