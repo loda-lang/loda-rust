@@ -992,13 +992,13 @@ impl SolveLogisticRegression {
         let enable_mod3_reverse_input: bool = [false, false, false][v];
         let enable_mod3_reverse_output: bool = [false, false, false][v];
 
-        let enable_hole_type1_center: bool = [true, true, false][v];
-        let enable_hole_type1_all_colors: bool = [false, true, false][v];
+        let enable_hole_type1_center: bool = [true, false, false][v];
+        let enable_hole_type1_all_colors: bool = [false, false, false][v];
         let enable_color_repair: bool = [true, false, false][v];
         
         let enable_shape_transformation_images: bool = [false, true, false][v];
-        let enable_noisecolor_in_outline: bool = [true, true, false][v];
-        let enable_grid: bool = true;
+        let enable_noisecolor_in_outline: bool = [true, false, false][v];
+        let enable_grid: bool = [true, false, false][v];
 
         let enable_enumerated_clusters_grow_mask3: bool = [false, true, true][v];
         let enable_color_grow_mask1: bool = [false, false, true][v];
