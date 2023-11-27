@@ -948,7 +948,7 @@ impl SolveLogisticRegression {
 
 
         
-        let enable_serialize_color_complex: bool = [true, true, false][v];
+        let enable_serialize_color_complex: bool = [true, false, false][v];
         let enable_serialize_cluster_id_shakeup: bool = [false, true, true][v];
         let enable_total_clustercount: bool = [false, false, false][v];
         let enable_color_clustercount: bool = [false, false, true][v];
@@ -957,13 +957,13 @@ impl SolveLogisticRegression {
         let enable_normalized_coordinates_context_input_size: bool = false;
         let enable_normalized_coordinates_context_output_size: bool = false;
 
-        let enable_output_orientation: bool = has_different_size_for_input_output;
+        let enable_output_orientation: bool = [has_different_size_for_input_output, false, false][v];
         let enable_coordinates_xy: bool = [false, false, false][v];
         let enable_coordinates_xy_reverse_input: bool = [false, false, false][v];
         let enable_coordinates_xy_reverse_output: bool = false;
         let enable_is_outside: bool = has_different_size_for_input_output;
-        let enable_distance: bool = [!has_different_size_for_input_output, false, !has_different_size_for_input_output][v];
-        let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
+        let enable_distance: bool = [!has_different_size_for_input_output, true, !has_different_size_for_input_output][v];
+        let enable_diagonalhistogram_opposites: bool = [has_different_size_for_input_output, false, false][v];
         let enable_diagonalhistogram: bool = false;
 
         let enable_histogram_diagonal_a: bool = [false, false, true][v];
@@ -973,7 +973,7 @@ impl SolveLogisticRegression {
         let enable_histogram_diagonal_e: bool = [false, false, false][v];
         let enable_histogram_diagonal_f: bool = [false, false, false][v];
 
-        let enable_center_indicator_a: bool = false;
+        let enable_center_indicator_a: bool = [false, true, false][v];
         let enable_center_indicator_x: bool = [false, true, false][v];
         let enable_center_indicator_y: bool = [false, true, false][v];
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
