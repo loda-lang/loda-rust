@@ -1005,18 +1005,18 @@ impl SolveLogisticRegression {
         let enable_color_grow_mask2: bool = [false, true, false][v];
         let enable_color_grow_mask3: bool = [false, true, false][v];
 
-        let enable_no_change_to_color: bool = true;
-        let enable_no_change_to_center_color: bool = [false, true, false][v];
-        let enable_no_change_to_noise_color: bool = [false, false, false][v];
+        let enable_no_change_to_color: bool = [false, false, true][v];
+        let enable_no_change_to_center_color: bool = [false, true, true][v];
+        let enable_no_change_to_noise_color: bool = [false, false, true][v];
         let enable_object_center_same_as_neighbour: bool = [false, false, false][v];
-        let enable_edge: bool = [false, false, false][v];
+        let enable_edge: bool = [false, false, true][v];
 
         let enable_color_inside_bounding_box: bool = [true, true, true][v];
         let enable_object_id_image_connectivity4: bool = [false, false, false][v];
         let enable_object_id_image_connectivity8: bool = [false, false, false][v];
 
         let enable_trigram_count_center: bool = [false, true, true][v];
-        let enable_trigram_count_word1_center: bool = [false, true, true][v];
+        let enable_trigram_count_word1_center: bool = [false, true, false][v];
         let enable_trigram_count_word012_center: bool = [false, true, true][v];
 
         let enable_full_row_and_column: bool = [true, false, false][v];
@@ -1025,7 +1025,7 @@ impl SolveLogisticRegression {
         let enable_full_row: bool = [false, false, false][v];
         let enable_full_column: bool = [false, false, false][v];
 
-        let enable_symmetry_shorter: bool = [false, false, false][v];
+        let enable_symmetry_shorter: bool = [false, false, true][v];
         let enable_symmetry_masks: bool = false;
         let enable_corner_classification: bool = false;
 
@@ -1039,10 +1039,10 @@ impl SolveLogisticRegression {
 
         let enable_scale_widthheight: bool = [has_different_size_for_input_output, false, false][v];
         let enable_check_pixel_in_histogram: bool = [false, false, false][v];
-        let enable_nearest_color: bool = [false, true, false][v];
+        let enable_nearest_color: bool = [false, true, true][v];
         let enable_colordirection_to_distanceimage: bool = [false, false, true][v];
-        let enable_neighbour_color: bool = [false, false, false][v];
-        let enable_adjacent_neighbour_same_as_center: bool = false;
+        let enable_neighbour_color: bool = [false, false, true][v];
+        let enable_adjacent_neighbour_same_as_center: bool = [false, false, true][v];
         let enable_opposite_neighbour: bool = [false, true, false][v];
         let enable_removal_color_center: bool = [false, false, false][v];
         let enable_detect_nonsquare: bool = false;
