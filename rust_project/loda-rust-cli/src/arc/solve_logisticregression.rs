@@ -1044,7 +1044,7 @@ impl SolveLogisticRegression {
         let enable_neighbour_color: bool = [false, false, true][v];
         let enable_adjacent_neighbour_same_as_center: bool = [false, false, true][v];
         let enable_opposite_neighbour: bool = [false, true, false][v];
-        let enable_removal_color_center: bool = [false, false, false][v];
+        let enable_removal_color_center: bool = [false, false, true][v];
         let enable_detect_nonsquare: bool = false;
         
         let enable_typo_for_center_row_right_columns: bool = [!has_different_size_for_input_output, false, false][v];
@@ -1058,11 +1058,11 @@ impl SolveLogisticRegression {
         let enable_shape3x3_with_trim: bool = [true, false, false][v];
         let enable_shape3x3_with_area5x5: bool = [false, true, true][v];
         let enable_shape3x3_input: bool = [true, false, true][v];
-        let enable_shape3x3_input_nonbackground: bool = [false, true, true][v];
+        let enable_shape3x3_input_nonbackground: bool = [false, true, false][v];
         let enable_shape3x3_output: bool = [false, true, true][v];
         let enable_shape3x3_with_different_than_input_most_popular_color: bool = [false, true, true][v];
 
-        let enable_shape_type_image_connectivity4: bool = [true, false, true][v];
+        let enable_shape_type_image_connectivity4: bool = [true, false, false][v];
         let enable_shape_type_image_connectivity8: bool = true;
         let enable_shape_type45_image_connectivity4: bool = true;
         let enable_shape_type45_image_connectivity8: bool = true;
