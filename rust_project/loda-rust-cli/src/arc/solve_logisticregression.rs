@@ -968,10 +968,10 @@ impl SolveLogisticRegression {
 
         let enable_histogram_diagonal_a: bool = [false, false, false][v];
         let enable_histogram_diagonal_b: bool = [false, false, false][v];
-        let enable_histogram_diagonal_c: bool = [false, true, false][v];
-        let enable_histogram_diagonal_d: bool = [false, true, false][v];
-        let enable_histogram_diagonal_e: bool = [false, false, false][v];
-        let enable_histogram_diagonal_f: bool = [false, false, false][v];
+        let enable_histogram_diagonal_c: bool = [false, true, true][v];
+        let enable_histogram_diagonal_d: bool = [false, true, true][v];
+        let enable_histogram_diagonal_e: bool = [false, false, true][v];
+        let enable_histogram_diagonal_f: bool = [false, false, true][v];
 
         let enable_center_indicator_a: bool = [false, true, false][v];
         let enable_center_indicator_x: bool = [false, true, false][v];
@@ -982,7 +982,7 @@ impl SolveLogisticRegression {
         let enable_output_four_xy_pairs: bool = false;
         let enable_input_three_xy_pairs: bool = [false, false, false][v];
         let enable_output_three_xy_pairs: bool = false;
-        let enable_gravity: bool = false;
+        let enable_gravity: bool = [false, false, true][v];
 
         let enable_mod2: bool = [true, true, true][v];
         let enable_mod2_reverse_input: bool = [true, true, true][v];
@@ -992,18 +992,18 @@ impl SolveLogisticRegression {
         let enable_mod3_reverse_input: bool = [false, false, false][v];
         let enable_mod3_reverse_output: bool = [false, false, false][v];
 
-        let enable_hole_type1_center: bool = [true, false, false][v];
-        let enable_hole_type1_all_colors: bool = [false, false, false][v];
-        let enable_color_repair: bool = [true, false, false][v];
+        let enable_hole_type1_center: bool = [true, false, true][v];
+        let enable_hole_type1_all_colors: bool = [false, false, true][v];
+        let enable_color_repair: bool = [true, false, true][v];
         
         let enable_shape_transformation_images: bool = [false, true, false][v];
-        let enable_noisecolor_in_outline: bool = [true, false, false][v];
+        let enable_noisecolor_in_outline: bool = [true, false, true][v];
         let enable_grid: bool = [true, false, false][v];
 
-        let enable_enumerated_clusters_grow_mask3: bool = [false, false, true][v];
+        let enable_enumerated_clusters_grow_mask3: bool = [false, false, false][v];
         let enable_color_grow_mask1: bool = [false, true, true][v];
-        let enable_color_grow_mask2: bool = [false, true, true][v];
-        let enable_color_grow_mask3: bool = [false, true, true][v];
+        let enable_color_grow_mask2: bool = [false, true, false][v];
+        let enable_color_grow_mask3: bool = [false, true, false][v];
 
         let enable_no_change_to_color: bool = true;
         let enable_no_change_to_center_color: bool = [false, true, false][v];
