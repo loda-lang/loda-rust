@@ -950,11 +950,11 @@ impl SolveLogisticRegression {
         
         let enable_serialize_color_complex: bool = [true, false, false][v];
         let enable_serialize_cluster_id_shakeup: bool = [false, true, true][v];
-        let enable_total_clustercount: bool = [false, false, false][v];
+        let enable_total_clustercount: bool = [false, false, true][v];
         let enable_color_clustercount: bool = [false, false, true][v];
         let enable_half_context_input_size: bool = [true, false, true][v];
         let enable_half_context_output_size: bool = [false, false, false][v];
-        let enable_normalized_coordinates_context_input_size: bool = false;
+        let enable_normalized_coordinates_context_input_size: bool = [false, false, true][v];
         let enable_normalized_coordinates_context_output_size: bool = false;
 
         let enable_output_orientation: bool = [has_different_size_for_input_output, false, false][v];
@@ -966,8 +966,8 @@ impl SolveLogisticRegression {
         let enable_diagonalhistogram_opposites: bool = [has_different_size_for_input_output, false, false][v];
         let enable_diagonalhistogram: bool = false;
 
-        let enable_histogram_diagonal_a: bool = [false, false, true][v];
-        let enable_histogram_diagonal_b: bool = [false, false, true][v];
+        let enable_histogram_diagonal_a: bool = [false, false, false][v];
+        let enable_histogram_diagonal_b: bool = [false, false, false][v];
         let enable_histogram_diagonal_c: bool = [false, true, false][v];
         let enable_histogram_diagonal_d: bool = [false, true, false][v];
         let enable_histogram_diagonal_e: bool = [false, false, false][v];
