@@ -1005,7 +1005,7 @@ impl SolveLogisticRegression {
         let enable_color_grow_mask2: bool = [false, true, false][v];
         let enable_color_grow_mask3: bool = [false, true, false][v];
 
-        let enable_no_change_to_color: bool = [false, false, true][v];
+        let enable_no_change_to_color: bool = true;
         let enable_no_change_to_center_color: bool = [false, true, true][v];
         let enable_no_change_to_noise_color: bool = [false, false, true][v];
         let enable_object_center_same_as_neighbour: bool = [false, false, false][v];
