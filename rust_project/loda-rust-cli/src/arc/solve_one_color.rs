@@ -1,13 +1,15 @@
 //! Solve tasks that outputs a single color.
 //! 
+//! Solves zero of the hidden ARC tasks.
+//! 
 //! The ARC 1 dataset contains 800 tasks, where 17 of the tasks outputs a single color.
 //! 1190e5a7, 1a2e2828, 239be575, 23b5c85d, 27a28665, 3194b014, 445eab21, 44f52bb0, 5582e5ca, 642d658d,
 //! 7039b2d7, 8597cfd7, b9b7f026, d631b094, d9fac9be, de1cd16c, e872b94a, 
 //! 
-//! This solver is able to solve 16 of the 17 tasks.
-//! Where 10 is solved with some confidence.
-//! Where 6 of them is solved as a happy accident.
-//! Where 1 task is not solved b9b7f026, because it has more than 4 colors to choose from, and chooses the wrong color.
+//! This solver is able to solve 14 of the 17 tasks.
+//! Where 9 is solved with some confidence.
+//! Where 5 of them is solved as a happy accident.
+//! Where 3 tasks is not solved 1a2e2828, 27a28665, b9b7f026, because it has more than 4 colors to choose from, and chooses the wrong color.
 //! 
 //! Weakness:
 //! When there are 4 or more colors to choose from, then it doesn't do any prediction, and takes the 3 first colors.
@@ -513,6 +515,10 @@ impl SolveOneColor {
                 // Assign a low confidence score to these predictions, so they are ranked lower than other high confidence predictions.
                 // Rule out the noise color, grid color, most dense colors.
                 debug!("low confidence: task: {} - test_index: {} - available_colors: {:?}", task.id, test_index, the_colors);
+                // Taking the initial 3 colors doesn't solve any of the hidden ARC tasks.
+                // Here is a crappy 2nd guess. By reversing the_colors.
+                the_colors.reverse();
+                the_colors.truncate(3);
             }
         }
         Ok(the_colors)

@@ -106,6 +106,7 @@ pub struct Input {
 
     // Future experiments to do.
     // least_popular_intersection_color
+    // density of each color, if it's noise the density is low, if it's a solid cluster the density is high.
     //
     // Resolving these properties is similar to a package manager, a DAG (directed acyclic graph).
     // One property may depend on another property that depends on a third property.
