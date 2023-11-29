@@ -1072,7 +1072,7 @@ impl SolveLogisticRegression {
         let enable_shape_size_connectivity8: bool = true;
         let enable_earlier_prediction_shapetype_connectivity4: bool = true;
         let enable_earlier_prediction_shapetype45_connectivity4: bool = true;
-        let enable_earlier_prediction_shapetype_connectivity8: bool = [true, false, true][v];
+        let enable_earlier_prediction_shapetype_connectivity8: bool = [false, false, true][v];
         let enable_earlier_prediction_shapetype45_connectivity8: bool = false;
 
         let enable_histogram_column_row_count: bool = false;
