@@ -1604,11 +1604,11 @@ impl TraverseProgramsAndModels {
 
         // Solve tasks that outputs a single color.
         // On the hidden ARC dataset, this doesn't solve any tasks.
-        let try_solve_one_color = true;
+        let try_solve_one_color = false;
 
         // Solve `splitview` like tasks.
         // On the hidden ARC dataset, this doesn't solve any tasks.
-        let try_solve_split = true;
+        let try_solve_split = false;
 
         // Run logistic regression.
         // On the hidden ARC dataset, this solves 2 tasks.
