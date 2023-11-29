@@ -1,6 +1,11 @@
 //! Performs logistic regression of each input pixel with the corresponding classification for the output pixel.
 //! 
 //! These older commits solves some of the tasks from the hidden ARC dataset, using logistic regression:
+//! commit 2023-Nov-28: solves 1 of the hidden ARC tasks. This uses variant=0 and variant=1 and variant=2. Worse than ever.
+//! I have broken enable_earlier_prediction_shapetype_connectivity8 for variant=0, so it only solves 1 task.
+//! And variant=1 and variant=2 doesn't solve any tasks.
+//! https://github.com/loda-lang/loda-rust/commit/ba6e27dcef9b1047926a397ef2ef843f04a513b7
+//!
 //! commit 2023-Nov-26: solves 2 of the hidden ARC tasks. This uses variant=0 and variant=1 and variant=2. Only variant=0 does something useful.
 //! Since it uses multiple variants and doesn't solve more tasks than the previous commit, then it is not an improvement.
 //! https://github.com/loda-lang/loda-rust/commit/01069f3a25770d4b12f6be5b27d2266948456275
@@ -956,32 +961,32 @@ impl SolveLogisticRegression {
 
 
         
-        let enable_serialize_color_complex: bool = [true, true, false][v];
+        let enable_serialize_color_complex: bool = [true, false, false][v];
         let enable_serialize_cluster_id_shakeup: bool = [false, true, true][v];
-        let enable_total_clustercount: bool = [false, false, false][v];
+        let enable_total_clustercount: bool = [false, false, true][v];
         let enable_color_clustercount: bool = [false, false, true][v];
         let enable_half_context_input_size: bool = [true, false, true][v];
         let enable_half_context_output_size: bool = [false, false, false][v];
-        let enable_normalized_coordinates_context_input_size: bool = false;
+        let enable_normalized_coordinates_context_input_size: bool = [false, false, true][v];
         let enable_normalized_coordinates_context_output_size: bool = false;
 
-        let enable_output_orientation: bool = has_different_size_for_input_output;
+        let enable_output_orientation: bool = [has_different_size_for_input_output, false, false][v];
         let enable_coordinates_xy: bool = [false, false, false][v];
         let enable_coordinates_xy_reverse_input: bool = [false, false, false][v];
         let enable_coordinates_xy_reverse_output: bool = false;
         let enable_is_outside: bool = has_different_size_for_input_output;
-        let enable_distance: bool = [!has_different_size_for_input_output, false, !has_different_size_for_input_output][v];
-        let enable_diagonalhistogram_opposites: bool = has_different_size_for_input_output;
+        let enable_distance: bool = [!has_different_size_for_input_output, true, !has_different_size_for_input_output][v];
+        let enable_diagonalhistogram_opposites: bool = [has_different_size_for_input_output, false, false][v];
         let enable_diagonalhistogram: bool = false;
 
-        let enable_histogram_diagonal_a: bool = [false, false, true][v];
-        let enable_histogram_diagonal_b: bool = [false, false, true][v];
-        let enable_histogram_diagonal_c: bool = [false, true, false][v];
-        let enable_histogram_diagonal_d: bool = [false, true, false][v];
-        let enable_histogram_diagonal_e: bool = [false, false, false][v];
-        let enable_histogram_diagonal_f: bool = [false, false, false][v];
+        let enable_histogram_diagonal_a: bool = [false, false, false][v];
+        let enable_histogram_diagonal_b: bool = [false, false, false][v];
+        let enable_histogram_diagonal_c: bool = [false, true, true][v];
+        let enable_histogram_diagonal_d: bool = [false, true, true][v];
+        let enable_histogram_diagonal_e: bool = [false, false, true][v];
+        let enable_histogram_diagonal_f: bool = [false, false, true][v];
 
-        let enable_center_indicator_a: bool = false;
+        let enable_center_indicator_a: bool = [false, true, false][v];
         let enable_center_indicator_x: bool = [false, true, false][v];
         let enable_center_indicator_y: bool = [false, true, false][v];
         let enable_center_indicator: bool = enable_center_indicator_a || enable_center_indicator_x || enable_center_indicator_y;
@@ -990,7 +995,7 @@ impl SolveLogisticRegression {
         let enable_output_four_xy_pairs: bool = false;
         let enable_input_three_xy_pairs: bool = [false, false, false][v];
         let enable_output_three_xy_pairs: bool = false;
-        let enable_gravity: bool = false;
+        let enable_gravity: bool = [false, false, true][v];
 
         let enable_mod2: bool = [true, true, true][v];
         let enable_mod2_reverse_input: bool = [true, true, true][v];
@@ -1000,77 +1005,77 @@ impl SolveLogisticRegression {
         let enable_mod3_reverse_input: bool = [false, false, false][v];
         let enable_mod3_reverse_output: bool = [false, false, false][v];
 
-        let enable_hole_type1_center: bool = [true, true, false][v];
-        let enable_hole_type1_all_colors: bool = [false, true, false][v];
-        let enable_color_repair: bool = [true, false, false][v];
+        let enable_hole_type1_center: bool = [true, false, true][v];
+        let enable_hole_type1_all_colors: bool = [false, false, true][v];
+        let enable_color_repair: bool = [true, false, true][v];
         
         let enable_shape_transformation_images: bool = [false, true, false][v];
-        let enable_noisecolor_in_outline: bool = [true, true, false][v];
-        let enable_grid: bool = true;
+        let enable_noisecolor_in_outline: bool = [true, false, true][v];
+        let enable_grid: bool = [true, false, false][v];
 
-        let enable_enumerated_clusters_grow_mask3: bool = [false, true, true][v];
-        let enable_color_grow_mask1: bool = [false, false, true][v];
-        let enable_color_grow_mask2: bool = [false, false, true][v];
-        let enable_color_grow_mask3: bool = [false, false, true][v];
+        let enable_enumerated_clusters_grow_mask3: bool = [false, false, false][v];
+        let enable_color_grow_mask1: bool = [false, true, true][v];
+        let enable_color_grow_mask2: bool = [false, true, false][v];
+        let enable_color_grow_mask3: bool = [false, true, false][v];
 
         let enable_no_change_to_color: bool = true;
-        let enable_no_change_to_center_color: bool = false;
-        let enable_no_change_to_noise_color: bool = [false, false, false][v];
+        let enable_no_change_to_center_color: bool = [false, true, true][v];
+        let enable_no_change_to_noise_color: bool = [false, false, true][v];
         let enable_object_center_same_as_neighbour: bool = [false, false, false][v];
-        let enable_edge: bool = [false, false, false][v];
+        let enable_edge: bool = [false, false, true][v];
 
         let enable_color_inside_bounding_box: bool = [true, true, true][v];
-        let enable_object_id_image_connectivity4: bool = [false, true, false][v];
+        let enable_object_id_image_connectivity4: bool = [false, false, false][v];
         let enable_object_id_image_connectivity8: bool = [false, false, false][v];
 
-        let enable_trigram_count_center: bool = [false, false, true][v];
-        let enable_trigram_count_word1_center: bool = [false, false, true][v];
-        let enable_trigram_count_word012_center: bool = [false, false, true][v];
+        let enable_trigram_count_center: bool = [false, true, true][v];
+        let enable_trigram_count_word1_center: bool = [false, true, false][v];
+        let enable_trigram_count_word012_center: bool = [false, true, true][v];
 
-        let enable_full_row_and_column: bool = [true, true, false][v];
-        let enable_full_row_xor_column: bool = [true, true, false][v];
-        let enable_full_row_or_column: bool = [true, true, false][v];
+        let enable_full_row_and_column: bool = [true, false, false][v];
+        let enable_full_row_xor_column: bool = [true, false, false][v];
+        let enable_full_row_or_column: bool = [true, false, false][v];
         let enable_full_row: bool = [false, false, false][v];
         let enable_full_column: bool = [false, false, false][v];
 
-        let enable_symmetry_shorter: bool = [false, false, false][v];
+        let enable_symmetry_shorter: bool = [false, false, true][v];
         let enable_symmetry_masks: bool = false;
         let enable_corner_classification: bool = false;
 
         let enable_histogram_columns_rows_get_color: bool = [true, true, true][v];
-        let enable_histogram_columns_rows_lookaround: bool = [false, false, true][v];
+        let enable_histogram_columns_rows_lookaround: bool = [false, true, true][v];
 
         let enable_exterior_of_clusters: bool = [false, false, true][v];
         let enable_largest_interior_rectangle_masks: bool = [false, false, false][v];
         let enable_relative_position_topleft_xy: bool = false;
         let enable_relative_position_checkerboard: bool = false;
 
-        let enable_scale_widthheight: bool = has_different_size_for_input_output;
+        let enable_scale_widthheight: bool = [has_different_size_for_input_output, false, false][v];
         let enable_check_pixel_in_histogram: bool = [false, false, false][v];
-        let enable_nearest_color: bool = [false, false, false][v];
+        let enable_nearest_color: bool = [false, true, true][v];
         let enable_colordirection_to_distanceimage: bool = [false, false, true][v];
-        let enable_neighbour_color: bool = [false, false, false][v];
-        let enable_adjacent_neighbour_same_as_center: bool = false;
+        let enable_neighbour_color: bool = [false, false, true][v];
+        let enable_adjacent_neighbour_same_as_center: bool = [false, false, true][v];
         let enable_opposite_neighbour: bool = [false, true, false][v];
-        let enable_removal_color_center: bool = [false, true, false][v];
+        let enable_removal_color_center: bool = [false, false, true][v];
         let enable_detect_nonsquare: bool = false;
         
         let enable_typo_for_center_row_right_columns: bool = [!has_different_size_for_input_output, false, false][v];
-        let enable_denoise_type5_input: bool = [false, false, true][v];
+        let enable_denoise_type5_input: bool = [false, true, true][v];
         let enable_denoise_type5_output: bool = [false, false, false][v];
         let enable_same_colors_for_area3x3_and_area5x5: bool = [false, false, false][v];
         let enable_area3x3_input_8bit_mask: bool = [false, false, false][v];
         let enable_area3x3_output_8bit_mask: bool = [false, false, false][v];
-        let enable_gameoflife: bool = [false, false, false][v];
-        let enable_nonbackground_different_than_most_popular_color: bool = false;
+        let enable_gameoflife: bool = [false, true, false][v];
+        let enable_nonbackground_different_than_most_popular_color: bool = [false, true, false][v];
         let enable_shape3x3_with_trim: bool = [true, false, false][v];
         let enable_shape3x3_with_area5x5: bool = [false, true, true][v];
-        let enable_shape3x3_input: bool = [true, true, true][v];
-        let enable_shape3x3_input_nonbackground: bool = [false, true, true][v];
+        let enable_shape3x3_input: bool = [true, false, true][v];
+        let enable_shape3x3_input_nonbackground: bool = [false, true, false][v];
         let enable_shape3x3_output: bool = [false, true, true][v];
         let enable_shape3x3_with_different_than_input_most_popular_color: bool = [false, true, true][v];
 
-        let enable_shape_type_image_connectivity4: bool = true;
+        let enable_shape_type_image_connectivity4: bool = [true, false, false][v];
         let enable_shape_type_image_connectivity8: bool = true;
         let enable_shape_type45_image_connectivity4: bool = true;
         let enable_shape_type45_image_connectivity8: bool = true;
@@ -1080,20 +1085,20 @@ impl SolveLogisticRegression {
         let enable_shape_size_connectivity8: bool = true;
         let enable_earlier_prediction_shapetype_connectivity4: bool = true;
         let enable_earlier_prediction_shapetype45_connectivity4: bool = true;
-        let enable_earlier_prediction_shapetype_connectivity8: bool = false;
+        let enable_earlier_prediction_shapetype_connectivity8: bool = [true, false, true][v];
         let enable_earlier_prediction_shapetype45_connectivity8: bool = false;
 
         let enable_histogram_column_row_count: bool = false;
         let enable_cluster_distance1_all_colors: bool = [false, false, false][v];
         let enable_cluster_distance2_all_colors: bool = [false, false, true][v];
-        let enable_min_inbetween_max_inside_shape_connectivity4: bool = [false, false, false][v];
+        let enable_min_inbetween_max_inside_shape_connectivity4: bool = [false, true, false][v];
         let enable_earlier_prediction_mass_connectivity4: bool = false;
         let enable_earlier_prediction_mass_connectivity8: bool = false;
         let enable_change_happens_to_single_line: bool = [false, true, true][v];
         let enable_change_happens_to_single_line_row_or_column: bool = [false, true, true][v];
         let enable_change_happens_to_single_line_diagonal: bool = [false, true, true][v];
         let enable_change_happens_to_single_line_some_diagonal: bool = [false, true, true][v];
-        let enable_change_happens_to_single_line_any_45degree_angle: bool = [false, true, true][v];
+        let enable_change_happens_to_single_line_any_45degree_angle: bool = [false, false, true][v];
         let enable_nochange_happens_to_single_line: bool = [false, true, true][v];
         let enable_nochange_happens_to_single_line_row_or_column: bool = [false, true, true][v];
         let enable_nochange_happens_to_single_line_diagonal: bool = [false, true, true][v];
@@ -1101,10 +1106,10 @@ impl SolveLogisticRegression {
         let enable_nochange_happens_to_single_line_any_45degree_angle: bool = [false, true, true][v];
         let enable_landmark_single_pixel: bool = [false, true, true][v];
         let enable_density_of_input: bool = [false, true, true][v];
-        let enable_density_of_shapetype90: bool = [false, true, true][v];
+        let enable_density_of_shapetype90: bool = [false, false, true][v];
         let enable_density_of_shapetype45: bool = [false, true, true][v];
         let enable_density_of_object_id: bool = [false, true, true][v];
-        let enable_density_any_direction_of_denoise_type5_input: bool = [false, true, true][v];
+        let enable_density_any_direction_of_denoise_type5_input: bool = [false, false, true][v];
         let enable_mostleast_popular_in_column: bool = [false, false, false][v];
         let enable_mostleast_popular_in_row: bool = [false, false, false][v];
 
