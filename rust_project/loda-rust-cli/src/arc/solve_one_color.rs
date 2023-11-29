@@ -496,10 +496,9 @@ impl SolveOneColor {
             bail!("Unable to make prediction for task: {} - test_index: {} there are no available colors", task.id, test_index);
         }
 
-        let mut available_colors_vec: Vec<u8> = available_colors.color_vec();
-        // The reversal is in order to try out if the last colors are better than the first colors.
-        // In the real world the algorithm should determine which colors are the best.
-        available_colors_vec.reverse();
+        let available_colors_vec: Vec<u8> = available_colors.color_vec();
+        // The order of the secondary colors may be important, so simply picking the lowest valued colors may not be the best solution.
+        // A better solution may be to have weights for each color and confidence.
         let mut the_colors: Vec<u8> = primary_color_predictions.color_vec();
         the_colors.extend(available_colors_vec);
 
