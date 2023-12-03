@@ -4,6 +4,11 @@
 //! https://huggingface.co/datasets/neoneye/gameoflife-v1
 //! 
 //! Future experiments:
+//! Use different symbols than only . and *.
+//! Use different separator characters. Currently no separator is used.
+//! Detect of what symbols are being used, so it writes that: dead=., alive=*, separator=none.
+//! Do more prediction steps. Currently only 1 or 2 steps are being used.
+//! 
 //! Game of life: check for oscillators
 //! Game of life: recognize shapes.
 use super::{CellularAutomaton, cellular_automaton::rule};
