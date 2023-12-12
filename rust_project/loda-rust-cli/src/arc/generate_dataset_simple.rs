@@ -48,14 +48,14 @@ impl GenerateDataset {
                 println!("iteration: {} number_of_items: {} curriculum: {:?}", i, number_of_items, curriculum);
             }
             let random_seed: u64 = i as u64;
-            let dataset_item: DatasetItem = Self::generate(curriculum, random_seed, print_to_htmllog)?;
+            let dataset_item: DatasetItem = Self::generate_twocolor(curriculum, random_seed, print_to_htmllog)?;
             self.dataset_items.push(dataset_item);
         }
 
         Ok(())
     }
 
-    fn generate(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
+    fn generate_twocolor(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
         let mut pair_count_values: Vec<u8> = (3..=5).collect();
@@ -65,7 +65,9 @@ impl GenerateDataset {
         let mut available_color_values: Vec<u8> = (0..=9).collect();
         available_color_values.shuffle(&mut rng);
 
-        HtmlLog::text(format!("pair_count: {}", pair_count));
+        if print_to_htmllog {
+            HtmlLog::text(format!("pair_count: {}", pair_count));
+        }
         for _ in 0..pair_count {
 
             // Pick two random colors, different from each other
@@ -78,10 +80,18 @@ impl GenerateDataset {
     
             let mut output: Image = ReverseColorPopularity::apply_to_image(&input)?;
             output = output.rotate_cw()?;
-            // HtmlLog::image(&output);
-            HtmlLog::compare_images(vec![input.clone(), output.clone()]);
+            if print_to_htmllog {
+                HtmlLog::compare_images(vec![input.clone(), output.clone()]);
+            }
         }
 
+        // filename = "twopixels_rotate_53_91_72_08.json";
+        // filename = "twopixels_flip_53_91_72_08.json";
+        // filename = "twopixels_color0withsamesize_53_91_72_08.json";
+        // filename = "twopixels_firstcolorwithsamesize_53_91_72_08.json";
+        // filename = "twopixels_lastcolorwithsamesize_53_91_72_08.json";
+        // filename = "twopixels_fixorientation_53_91_72_08.json";
+        // Save task to file
 
         let mut dataset_item: DatasetItem = DatasetItem {
             curriculum,
