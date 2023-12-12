@@ -8,6 +8,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::io::Write;
 use std::path::Path;
+use std::path::PathBuf;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -69,6 +70,7 @@ impl GenerateDataset {
             HtmlLog::text(format!("pair_count: {}", pair_count));
         }
         let mut export = ExportARCTaskJson::new();
+        let mut color_pairs = Vec::<String>::new();
         for i in 0..pair_count {
             let is_last_iteration: bool = i + 1 == pair_count;
 
@@ -90,9 +92,16 @@ impl GenerateDataset {
             } else {
                 export.push_train(&input, &output);
             }
+
+            color_pairs.push(format!("{}{}", color0, color1));
         }
 
-        let json: String = export.to_string()?;
+        let color_pairs_joined: String = color_pairs.join("_");
+        let filename: String = format!("two_{}.json", color_pairs_joined);
+
+
+        // let json: String = export.to_string()?;
+        // println!("filename: {}", filename);
         // println!("{}", json);
 
         // filename = "twopixels_mixed_orientations_reverse_colors_53_91_72_08.json";
@@ -103,6 +112,10 @@ impl GenerateDataset {
         // filename = "twopixels_lastcolorwithsamesize_53_91_72_08.json";
         // filename = "twopixels_fixorientation_53_91_72_08.json";
         // Save task to file
+        let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/output");
+        let path: PathBuf = basedir.join(&filename);
+        // println!("path: {}", path.display());
+        export.save_json_file(&path)?;
 
         let mut dataset_item: DatasetItem = DatasetItem {
             curriculum,
@@ -119,7 +132,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
     use std::path::PathBuf;
 
-    #[test]
+    // #[test]
     fn test_10000_generate() {
         // Arrange
         let mut generate_dataset = GenerateDataset::new();
