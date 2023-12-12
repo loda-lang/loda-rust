@@ -37,6 +37,7 @@ impl ExportARCTaskJson {
     }
 
     /// Append a `train` pair to the task.
+    #[allow(dead_code)]
     pub fn push_train(&mut self, input: &Image, output: &Image) {
         let input_grid: arc_json_model::Grid = arc_json_model::Grid::from_image(input);
         let output_grid: arc_json_model::Grid = arc_json_model::Grid::from_image(output);
@@ -48,6 +49,7 @@ impl ExportARCTaskJson {
     }
 
     /// Append a `test` pair to the task.
+    #[allow(dead_code)]
     pub fn push_test(&mut self, input: &Image, output: &Image) {
         let input_grid: arc_json_model::Grid = arc_json_model::Grid::from_image(input);
         let output_grid: arc_json_model::Grid = arc_json_model::Grid::from_image(output);
@@ -58,6 +60,7 @@ impl ExportARCTaskJson {
         self.task.test_vec.push(pair);
     }
 
+    #[allow(dead_code)]
     pub fn to_string(&self) -> anyhow::Result<String> {
         let json: String = serde_json::to_string(&self.task)?;
         Ok(json)
@@ -66,6 +69,7 @@ impl ExportARCTaskJson {
     /// Save as a json file.
     /// 
     /// Returns the file size in bytes.
+    #[allow(dead_code)]
     pub fn save_json_file(&self, path: &Path) -> anyhow::Result<usize> {
         let json: String = self.to_string()?;
         let bytes: usize = json.len();
