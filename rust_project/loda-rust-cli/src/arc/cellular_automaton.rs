@@ -251,8 +251,41 @@ pub mod rule {
         }
     }
 
-} // mod rule
+    /// Create a cave system
+    /// https://www.roguebasin.com/index.php/Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels
+    /// http://pixelenvy.ca/wa/ca_cave.html
+    pub struct Cave;
 
+    impl super::CARule for Cave {
+        fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+            let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
+            if alive_count < 4 {
+                return 0;
+            }
+            if alive_count > 5 {
+                return 1;
+            }
+            center
+        }
+    }
+
+    /// Create a maze
+    /// https://conwaylife.com/wiki/OCA:Maze
+    pub struct Maze;
+
+    impl super::CARule for Maze {
+        fn apply(center: u8, neighbors: &[u8; 8]) -> u8 {
+            let alive_count: usize = neighbors.iter().filter(|&&value| value > 0).count();
+            if alive_count == 3 {
+                return 1;
+            }
+            if alive_count < 1 || alive_count > 5 {
+                return 0;
+            }
+            center
+        }
+    }
+} // mod rule
 
 #[cfg(test)]
 mod tests {
@@ -527,6 +560,84 @@ mod tests {
             0, 0, 0, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(6, 6, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_60000_cave() {
+        // Act
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 1, 0, 1, 0, 1, 1, 1,
+            1, 0, 0, 1, 0, 0, 0, 1, 0, 1,
+            0, 1, 0, 1, 1, 0, 1, 1, 0, 1,
+            0, 1, 1, 1, 0, 0, 1, 1, 1, 1,
+            0, 0, 1, 1, 1, 0, 0, 0, 1, 1,
+            0, 0, 1, 1, 1, 1, 0, 1, 0, 0,
+            0, 1, 1, 0, 0, 0, 0, 1, 1, 0,
+            0, 0, 0, 0, 1, 0, 1, 0, 1, 1,
+            1, 1, 1, 1, 0, 1, 1, 0, 0, 0,
+            1, 1, 0, 1, 0, 0, 0, 0, 0, 0
+        ];
+        let input: Image = Image::try_create(10, 10, pixels).expect("image");
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Cave>::with_image(&input, Some(0));
+
+        // Act
+        ca.step_once();
+        let actual: Image = ca.current;
+        
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+            0, 0, 0, 0, 0, 0, 0, 1, 1, 0,
+            0, 0, 1, 1, 0, 0, 1, 1, 1, 0,
+            0, 0, 1, 1, 0, 0, 0, 1, 1, 1,
+            0, 0, 1, 1, 1, 0, 0, 0, 1, 0,
+            0, 0, 1, 1, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 1, 1, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+            0, 1, 0, 0, 0, 0, 0, 0, 0, 0
+        ];
+        let expected: Image = Image::try_create(10, 10, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70000_maze() {
+        // Act
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 1, 0, 1, 1, 0, 0,
+            0, 0, 1, 1, 0, 0, 1, 1, 0, 0,
+            0, 0, 1, 1, 1, 0, 0, 0, 0, 0,
+            0, 0, 1, 1, 1, 1, 0, 1, 0, 0,
+            0, 0, 1, 0, 0, 0, 0, 1, 0, 0,
+            0, 0, 0, 0, 1, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(10, 10, pixels).expect("image");
+        let mut ca: CellularAutomaton<_> = CellularAutomaton::<rule::Maze>::with_image(&input, Some(0));
+
+        // Act
+        ca.step_once();
+        let actual: Image = ca.current;
+        
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1, 1, 1, 1, 1, 1, 0, 0,
+            0, 0, 1, 0, 0, 0, 1, 1, 0, 0,
+            0, 1, 1, 0, 1, 0, 0, 1, 0, 0,
+            0, 1, 1, 0, 1, 1, 1, 1, 0, 0,
+            0, 0, 1, 0, 0, 0, 0, 1, 0, 0,
+            0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ];
+        let expected: Image = Image::try_create(10, 10, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
