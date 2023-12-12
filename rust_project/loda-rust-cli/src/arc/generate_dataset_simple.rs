@@ -1,5 +1,5 @@
 //! Generate a dataset with basic trivial simple ARC tasks.
-use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise, ReverseColorPopularity, ImageRotate90, ImageTryCreate};
+use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise, ReverseColorPopularity, ImageRotate90, ImageTryCreate, ExportARCTaskJson};
 use rand::prelude::Distribution;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
@@ -48,14 +48,14 @@ impl GenerateDataset {
                 println!("iteration: {} number_of_items: {} curriculum: {:?}", i, number_of_items, curriculum);
             }
             let random_seed: u64 = i as u64;
-            let dataset_item: DatasetItem = Self::generate_twocolor(curriculum, random_seed, print_to_htmllog)?;
+            let dataset_item: DatasetItem = Self::generate_twopixels(curriculum, random_seed, print_to_htmllog)?;
             self.dataset_items.push(dataset_item);
         }
 
         Ok(())
     }
 
-    fn generate_twocolor(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
+    fn generate_twopixels(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
         let mut pair_count_values: Vec<u8> = (3..=5).collect();
@@ -68,7 +68,9 @@ impl GenerateDataset {
         if print_to_htmllog {
             HtmlLog::text(format!("pair_count: {}", pair_count));
         }
-        for _ in 0..pair_count {
+        let mut export = ExportARCTaskJson::new();
+        for i in 0..pair_count {
+            let is_last_iteration: bool = i + 1 == pair_count;
 
             // Pick two random colors, different from each other
             let (color0, color1) = (available_color_values[0], available_color_values[1]);
@@ -83,8 +85,17 @@ impl GenerateDataset {
             if print_to_htmllog {
                 HtmlLog::compare_images(vec![input.clone(), output.clone()]);
             }
+            if is_last_iteration {
+                export.push_test(&input, &output);
+            } else {
+                export.push_train(&input, &output);
+            }
         }
 
+        let json: String = export.to_string()?;
+        // println!("{}", json);
+
+        // filename = "twopixels_mixed_orientations_reverse_colors_53_91_72_08.json";
         // filename = "twopixels_rotate_53_91_72_08.json";
         // filename = "twopixels_flip_53_91_72_08.json";
         // filename = "twopixels_color0withsamesize_53_91_72_08.json";
