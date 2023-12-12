@@ -1,13 +1,8 @@
 //! Generate a dataset with basic trivial simple ARC tasks.
-use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise, ReverseColorPopularity, ImageRotate90, ImageTryCreate, ExportARCTaskJson};
-use rand::prelude::Distribution;
+use super::{Image, HtmlLog, ReverseColorPopularity, ImageRotate90, ImageTryCreate, ExportARCTaskJson};
 use rand::seq::SliceRandom;
-use rand::{rngs::StdRng, SeedableRng, Rng};
-use rand::distributions::WeightedIndex;
+use rand::{rngs::StdRng, SeedableRng};
 use serde::Serialize;
-use std::collections::HashMap;
-use std::io::Write;
-use std::path::Path;
 use std::path::PathBuf;
 
 #[allow(dead_code)]
@@ -16,6 +11,17 @@ enum Curriculum {
     Small,
     SmallMedium,
     SmallMediumBig,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Serialize)]
+enum TwoPixelTransformation {
+    LandscapeFlip,
+    LandscapeRotateCW,
+    LandscapeRotateCCW,
+    PortraitFlip,
+    PortraitRotateCW,
+    PortraitRotateCCW,
 }
 
 #[allow(dead_code)]
@@ -49,22 +55,33 @@ impl GenerateDataset {
                 println!("iteration: {} number_of_items: {} curriculum: {:?}", i, number_of_items, curriculum);
             }
             let random_seed: u64 = i as u64;
-            let dataset_item: DatasetItem = Self::generate_twopixels(curriculum, random_seed, print_to_htmllog)?;
+
+            let transformation: TwoPixelTransformation = match i % 6 {
+                0 => TwoPixelTransformation::LandscapeFlip,
+                1 => TwoPixelTransformation::LandscapeRotateCW,
+                2 => TwoPixelTransformation::LandscapeRotateCCW,
+                3 => TwoPixelTransformation::PortraitFlip,
+                4 => TwoPixelTransformation::PortraitRotateCW,
+                5 => TwoPixelTransformation::PortraitRotateCCW,
+                _ => unreachable!(),
+            };
+
+            let dataset_item: DatasetItem = Self::generate_twopixels(transformation, random_seed, print_to_htmllog)?;
             self.dataset_items.push(dataset_item);
         }
 
         Ok(())
     }
 
-    fn generate_twopixels(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
+    fn generate_twopixels(transformation: TwoPixelTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
         let mut pair_count_values: Vec<u8> = (3..=5).collect();
         pair_count_values.shuffle(&mut rng);
         let pair_count: u8 = pair_count_values[0];
 
-        let mut available_color_values: Vec<u8> = (0..=9).collect();
-        available_color_values.shuffle(&mut rng);
+        let mut available_colors: Vec<u8> = (0..=9).collect();
+        available_colors.shuffle(&mut rng);
 
         if print_to_htmllog {
             HtmlLog::text(format!("pair_count: {}", pair_count));
@@ -75,15 +92,35 @@ impl GenerateDataset {
             let is_last_iteration: bool = i + 1 == pair_count;
 
             // Pick two random colors, different from each other
-            let (color0, color1) = (available_color_values[0], available_color_values[1]);
-            available_color_values.remove(0);
-            available_color_values.remove(0);
+            let (color0, color1) = (available_colors[0], available_colors[1]);
+            available_colors.remove(0);
+            available_colors.remove(0);
 
-            let mut input: Image = Image::try_create(2, 1, vec![color0, color1])?;
-            input = input.rotate_cw()?;
-    
-            let mut output: Image = ReverseColorPopularity::apply_to_image(&input)?;
-            output = output.rotate_cw()?;
+            let input_landscape: Image = Image::try_create(2, 1, vec![color0, color1])?;
+            let input_portrait: Image = input_landscape.rotate_cw()?;
+
+            let input: &Image = match transformation {
+                TwoPixelTransformation::LandscapeFlip => &input_landscape,
+                TwoPixelTransformation::LandscapeRotateCW => &input_landscape,
+                TwoPixelTransformation::LandscapeRotateCCW => &input_landscape,
+                TwoPixelTransformation::PortraitFlip => &input_portrait,
+                TwoPixelTransformation::PortraitRotateCW => &input_portrait,
+                TwoPixelTransformation::PortraitRotateCCW => &input_portrait,
+            };
+
+            let output_reversed: Image = ReverseColorPopularity::apply_to_image(input)?;
+            let output_rotate_ccw: Image = input.rotate_ccw()?;
+            let output_rotate_cw: Image = input.rotate_cw()?;
+
+            let output: &Image = match transformation {
+                TwoPixelTransformation::LandscapeFlip => &output_reversed,
+                TwoPixelTransformation::PortraitFlip => &output_reversed,
+                TwoPixelTransformation::LandscapeRotateCW => &output_rotate_cw,
+                TwoPixelTransformation::PortraitRotateCW => &output_rotate_cw,
+                TwoPixelTransformation::LandscapeRotateCCW => &output_rotate_ccw,
+                TwoPixelTransformation::PortraitRotateCCW => &output_rotate_ccw,
+            };
+
             if print_to_htmllog {
                 HtmlLog::compare_images(vec![input.clone(), output.clone()]);
             }
@@ -96,8 +133,17 @@ impl GenerateDataset {
             color_pairs.push(format!("{}{}", color0, color1));
         }
 
+        let transformation_name: &str = match transformation {
+            TwoPixelTransformation::LandscapeFlip => "landscape_flip",
+            TwoPixelTransformation::LandscapeRotateCW => "landscape_cw",
+            TwoPixelTransformation::LandscapeRotateCCW => "landscape_ccw",
+            TwoPixelTransformation::PortraitFlip => "portrait_flip",
+            TwoPixelTransformation::PortraitRotateCW => "portrait_cw",
+            TwoPixelTransformation::PortraitRotateCCW => "portrait_ccw",
+        };
+
         let color_pairs_joined: String = color_pairs.join("_");
-        let filename: String = format!("two_{}.json", color_pairs_joined);
+        let filename: String = format!("two_{}_{}.json", transformation_name, color_pairs_joined);
 
 
         // let json: String = export.to_string()?;
@@ -117,8 +163,8 @@ impl GenerateDataset {
         // println!("path: {}", path.display());
         export.save_json_file(&path)?;
 
-        let mut dataset_item: DatasetItem = DatasetItem {
-            curriculum,
+        let dataset_item: DatasetItem = DatasetItem {
+            curriculum: Curriculum::Small,
             text: String::new(),
         };
         Ok(dataset_item)
@@ -129,16 +175,15 @@ impl GenerateDataset {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::ImageTryCreate;
-    use std::path::PathBuf;
 
+    #[allow(dead_code)]
     // #[test]
     fn test_10000_generate() {
         // Arrange
         let mut generate_dataset = GenerateDataset::new();
 
         // Act
-        generate_dataset.populate(Curriculum::Small, 10, true).expect("ok");
+        generate_dataset.populate(Curriculum::Small, 24, false).expect("ok");
 
         // Assert
     }
