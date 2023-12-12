@@ -1,5 +1,5 @@
 //! Generate a dataset with basic trivial simple ARC tasks.
-use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise, ReverseColorPopularity, ImageRotate90};
+use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise, ReverseColorPopularity, ImageRotate90, ImageTryCreate};
 use rand::prelude::Distribution;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
@@ -58,24 +58,19 @@ impl GenerateDataset {
     fn generate(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
-        let mut size0: ImageSize = ImageSize::new(2, 1);
-        size0 = size0.rotate();
+        // Pick two random colors, different from each other
+        let mut numbers: Vec<u8> = (0..=9).collect();
+        numbers.shuffle(&mut rng);
+        let (color0, color1) = (numbers[0], numbers[1]);
 
-        let color0: u8 = rng.gen_range(0..=9);
-        let color1: u8 = rng.gen_range(0..=9);
-        let noise_image: Image = RandomImage::two_colors(&mut rng, size0, color0, color1, 50)?;
+        let mut input: Image = Image::try_create(2, 1, vec![color0, color1])?;
+        input = input.rotate_cw()?;
 
-        let histogram: Histogram = noise_image.histogram_all();
-        if histogram.number_of_counters_greater_than_zero() != 2 {
-            return Err(anyhow::anyhow!("histogram.number_of_counters_greater_than_zero() != 2"));
-        }
 
-        // HtmlLog::image(&noise_image);
-
-        let mut output: Image = ReverseColorPopularity::apply_to_image(&noise_image)?;
+        let mut output: Image = ReverseColorPopularity::apply_to_image(&input)?;
         output = output.rotate_cw()?;
         // HtmlLog::image(&output);
-        HtmlLog::compare_images(vec![noise_image.clone(), output.clone()]);
+        HtmlLog::compare_images(vec![input.clone(), output.clone()]);
 
         let mut dataset_item: DatasetItem = DatasetItem {
             curriculum,
