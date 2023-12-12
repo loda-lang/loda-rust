@@ -58,19 +58,30 @@ impl GenerateDataset {
     fn generate(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
-        // Pick two random colors, different from each other
-        let mut numbers: Vec<u8> = (0..=9).collect();
-        numbers.shuffle(&mut rng);
-        let (color0, color1) = (numbers[0], numbers[1]);
+        let mut pair_count_values: Vec<u8> = (3..=5).collect();
+        pair_count_values.shuffle(&mut rng);
+        let pair_count: u8 = pair_count_values[0];
 
-        let mut input: Image = Image::try_create(2, 1, vec![color0, color1])?;
-        input = input.rotate_cw()?;
+        let mut available_color_values: Vec<u8> = (0..=9).collect();
+        available_color_values.shuffle(&mut rng);
 
+        HtmlLog::text(format!("pair_count: {}", pair_count));
+        for _ in 0..pair_count {
 
-        let mut output: Image = ReverseColorPopularity::apply_to_image(&input)?;
-        output = output.rotate_cw()?;
-        // HtmlLog::image(&output);
-        HtmlLog::compare_images(vec![input.clone(), output.clone()]);
+            // Pick two random colors, different from each other
+            let (color0, color1) = (available_color_values[0], available_color_values[1]);
+            available_color_values.remove(0);
+            available_color_values.remove(0);
+
+            let mut input: Image = Image::try_create(2, 1, vec![color0, color1])?;
+            input = input.rotate_cw()?;
+    
+            let mut output: Image = ReverseColorPopularity::apply_to_image(&input)?;
+            output = output.rotate_cw()?;
+            // HtmlLog::image(&output);
+            HtmlLog::compare_images(vec![input.clone(), output.clone()]);
+        }
+
 
         let mut dataset_item: DatasetItem = DatasetItem {
             curriculum,
