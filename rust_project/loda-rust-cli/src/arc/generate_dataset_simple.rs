@@ -22,6 +22,14 @@ enum TwoPixelTransformation {
     PortraitFlip,
     PortraitRotateCW,
     PortraitRotateCCW,
+
+    // Ideas for more transformations
+    // MixedOrientationFlip,
+    // MixedOrientationRotateCW,
+    // MixedOrientationRotateCCW,
+    // MixedOrientationOutputSolidColor,
+    // MixedOrientationRotateOutputSolidColor,
+    // LandscapeInputIsOneSolidColorButOutputIsTwoDifferentColors, // needs more than 5 training pairs.
 }
 
 #[allow(dead_code)]
