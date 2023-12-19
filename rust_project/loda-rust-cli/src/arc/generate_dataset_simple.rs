@@ -84,9 +84,12 @@ impl GenerateDataset {
     fn generate_twopixels(transformation: TwoPixelTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
-        let mut pair_count_values: Vec<u8> = (3..=5).collect();
-        pair_count_values.shuffle(&mut rng);
-        let pair_count: u8 = pair_count_values[0];
+        let pair_count_values: Vec<(u8, u8)> = vec![
+            (2, 1), (2, 2), (2, 3), (3, 1), (3, 2), (4, 1)
+        ];
+        let (train_count, test_count) = *pair_count_values.choose(&mut rng).unwrap();
+        let pair_count: u8 = train_count + test_count;
+        assert!(pair_count <= 5);
 
         let mut available_colors: Vec<u8> = (0..=9).collect();
         available_colors.shuffle(&mut rng);
@@ -97,12 +100,15 @@ impl GenerateDataset {
         let mut export = ExportARCTaskJson::new();
         let mut color_pairs = Vec::<String>::new();
         for i in 0..pair_count {
-            let is_last_iteration: bool = i + 1 == pair_count;
+            let is_train: bool = i < train_count;
 
             // Pick two random colors, different from each other
             let (color0, color1) = (available_colors[0], available_colors[1]);
             available_colors.remove(0);
             available_colors.remove(0);
+
+            // Future experiments
+            // If it's a test pair, then pick 2 colors that are the same, so it's ambiguous.
 
             let input_landscape: Image = Image::try_create(2, 1, vec![color0, color1])?;
             let input_portrait: Image = input_landscape.rotate_cw()?;
@@ -132,10 +138,10 @@ impl GenerateDataset {
             if print_to_htmllog {
                 HtmlLog::compare_images(vec![input.clone(), output.clone()]);
             }
-            if is_last_iteration {
-                export.push_test(&input, &output);
-            } else {
+            if is_train {
                 export.push_train(&input, &output);
+            } else {
+                export.push_test(&input, &output);
             }
 
             color_pairs.push(format!("{}{}", color0, color1));
