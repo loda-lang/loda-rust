@@ -91,8 +91,15 @@ impl GenerateDataset {
         let pair_count: u8 = train_count + test_count;
         assert!(pair_count <= 5);
 
+        // Pick two different random colors, and different from the the other pairs
         let mut available_colors: Vec<u8> = (0..=9).collect();
         available_colors.shuffle(&mut rng);
+        let mut available_color_pairs = Vec::<(u8, u8)>::new();
+        while available_colors.len() >= 2 {
+            let color0: u8 = available_colors.remove(0);
+            let color1: u8 = available_colors.remove(0);
+            available_color_pairs.push((color0, color1));
+        }
 
         if print_to_htmllog {
             HtmlLog::text(format!("pair_count: {}", pair_count));
@@ -103,9 +110,7 @@ impl GenerateDataset {
             let is_train: bool = i < train_count;
 
             // Pick two random colors, different from each other
-            let (color0, color1) = (available_colors[0], available_colors[1]);
-            available_colors.remove(0);
-            available_colors.remove(0);
+            let (color0, color1) = available_color_pairs.remove(0);
 
             // Future experiments
             // If it's a test pair, then pick 2 colors that are the same, so it's ambiguous.
