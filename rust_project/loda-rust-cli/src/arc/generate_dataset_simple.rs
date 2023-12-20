@@ -81,6 +81,24 @@ impl GenerateDataset {
         Ok(())
     }
 
+    /// The two colors inside each pair are always different.
+    /// 
+    /// The pairs are always different from each other.
+    /// 
+    /// Each color is only used once.
+    fn five_unique_color_pairs(rng: &mut StdRng) -> Vec<(u8, u8)> {
+        let mut colors: Vec<u8> = (0..=9).collect();
+        colors.shuffle(rng);
+        let mut pairs = Vec::<(u8, u8)>::new();
+        while colors.len() >= 2 {
+            let color0: u8 = colors.remove(0);
+            let color1: u8 = colors.remove(0);
+            pairs.push((color0, color1));
+        }
+        assert!(pairs.len() == 5);
+        pairs
+    }
+
     fn generate_twopixels(transformation: TwoPixelTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
@@ -92,14 +110,7 @@ impl GenerateDataset {
         assert!(pair_count <= 5);
 
         // Pick two different random colors, and different from the the other pairs
-        let mut available_colors: Vec<u8> = (0..=9).collect();
-        available_colors.shuffle(&mut rng);
-        let mut available_color_pairs = Vec::<(u8, u8)>::new();
-        while available_colors.len() >= 2 {
-            let color0: u8 = available_colors.remove(0);
-            let color1: u8 = available_colors.remove(0);
-            available_color_pairs.push((color0, color1));
-        }
+        let mut available_color_pairs: Vec<(u8, u8)> = Self::five_unique_color_pairs(&mut rng);
 
         if print_to_htmllog {
             HtmlLog::text(format!("pair_count: {}", pair_count));
@@ -195,9 +206,15 @@ impl GenerateDataset {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_10000_five_unique_color_pairs() {
+        let actual: Vec<(u8, u8)> = GenerateDataset::five_unique_color_pairs(&mut StdRng::seed_from_u64(0));
+        assert_eq!(actual, vec![(5, 2), (9, 1), (6, 3), (4, 0), (7, 8)]);
+    }
+
     #[allow(dead_code)]
     // #[test]
-    fn test_10000_generate() {
+    fn test_20000_generate() {
         // Arrange
         let mut generate_dataset = GenerateDataset::new();
 
