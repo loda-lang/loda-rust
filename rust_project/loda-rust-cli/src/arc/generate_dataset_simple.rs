@@ -1,5 +1,6 @@
 //! Generate a dataset with basic trivial simple ARC tasks.
 use super::{Image, HtmlLog, ReverseColorPopularity, ImageRotate90, ImageTryCreate, ExportARCTaskJson};
+use rand::Rng;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng};
 use serde::Serialize;
@@ -103,14 +104,28 @@ impl GenerateDataset {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
         let pair_count_values: Vec<(u8, u8)> = vec![
-            (2, 1), (2, 2), (2, 3), (3, 1), (3, 2), (4, 1)
+            (2, 1), (2, 2), (2, 3), (3, 1), (3, 2), (3, 3), (4, 1), (4, 2), (4, 3)
         ];
         let (train_count, test_count) = *pair_count_values.choose(&mut rng).unwrap();
         let pair_count: u8 = train_count + test_count;
-        assert!(pair_count <= 5);
 
-        // Pick two different random colors, and different from the the other pairs
+        // There are max 4 `train` pairs. Since there are 5 unique color pairs, we can be 
+        // certain that the `train` pairs have different colors from each other.
         let mut available_color_pairs: Vec<(u8, u8)> = Self::five_unique_color_pairs(&mut rng);
+
+        // Fill up with more random colors until there are enough color pairs.
+        // The `test` pairs comes last, so it's ok if they are not as unique as the `train` pairs.
+        while available_color_pairs.len() < pair_count as usize {
+            let color0: u8 = rng.gen_range(0..=9);
+            let color1: u8 = rng.gen_range(0..=9);
+            if color0 == color1 {
+                continue;
+            }
+            if available_color_pairs.contains(&(color0, color1)) {
+                continue;
+            }
+            available_color_pairs.push((color0, color1));
+        }
 
         if print_to_htmllog {
             HtmlLog::text(format!("pair_count: {}", pair_count));
@@ -154,6 +169,7 @@ impl GenerateDataset {
             if print_to_htmllog {
                 HtmlLog::compare_images(vec![input.clone(), output.clone()]);
             }
+            assert!(input != output, "input and output must be different");
             if is_train {
                 export.push_train(&input, &output);
             } else {
