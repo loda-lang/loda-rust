@@ -103,6 +103,9 @@ impl GenerateDataset {
     fn generate_twopixels(transformation: TwoPixelTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
+        let insert_same_color_when_reaching_this_limit: u8 = 50;
+        let insert_same_value: u8 = rng.gen_range(0..=100);
+
         let pair_count_values: Vec<(u8, u8)> = vec![
             (2, 1), (2, 2), (2, 3), (3, 1), (3, 2), (3, 3), (4, 1), (4, 2), (4, 3)
         ];
@@ -111,35 +114,55 @@ impl GenerateDataset {
 
         // There are max 4 `train` pairs. Since there are 5 unique color pairs, we can be 
         // certain that the `train` pairs have different colors from each other.
-        let mut available_color_pairs: Vec<(u8, u8)> = Self::five_unique_color_pairs(&mut rng);
+        let mut color_pairs: Vec<(u8, u8)> = Self::five_unique_color_pairs(&mut rng);
+        color_pairs.truncate(pair_count as usize);
 
         // Fill up with more random colors until there are enough color pairs.
         // The `test` pairs comes last, so it's ok if they are not as unique as the `train` pairs.
-        while available_color_pairs.len() < pair_count as usize {
+        while color_pairs.len() < pair_count as usize {
             let color0: u8 = rng.gen_range(0..=9);
             let color1: u8 = rng.gen_range(0..=9);
             if color0 == color1 {
                 continue;
             }
-            if available_color_pairs.contains(&(color0, color1)) {
+            if color_pairs.contains(&(color0, color1)) {
                 continue;
             }
-            available_color_pairs.push((color0, color1));
+            color_pairs.push((color0, color1));
+        }
+        assert!(color_pairs.len() == pair_count as usize);
+
+        // Make one of the `test` pairs slightly ambiguous so it's more tricky to solve.
+        // If it's TwoPixelTransformation::LandscapeFlip or TwoPixelTransformation::PortraitFlip
+        // then don't make it ambiguous, because it would cause input and output to be identical.
+        // we want input and output to always be different.
+        let allow_same_color: bool = match transformation {
+            TwoPixelTransformation::LandscapeFlip => false,
+            TwoPixelTransformation::LandscapeRotateCW => true,
+            TwoPixelTransformation::LandscapeRotateCCW => true,
+            TwoPixelTransformation::PortraitFlip => false,
+            TwoPixelTransformation::PortraitRotateCW => true,
+            TwoPixelTransformation::PortraitRotateCCW => true,
+        };
+        if allow_same_color && train_count >= 2 && test_count >= 1 && insert_same_value >= insert_same_color_when_reaching_this_limit {
+            // Replace a color_pair so it uses the same color for both its colors, so it's ambiguous and more tricky to solve.
+            let index: usize = rng.gen_range(train_count..pair_count) as usize;
+            let color: u8 = rng.gen_range(0..=9);
+            color_pairs[index] = (color, color);
         }
 
         if print_to_htmllog {
             HtmlLog::text(format!("pair_count: {}", pair_count));
         }
         let mut export = ExportARCTaskJson::new();
-        let mut color_pairs = Vec::<String>::new();
+        let mut color_pair_strings = Vec::<String>::new();
         for i in 0..pair_count {
             let is_train: bool = i < train_count;
 
-            // Pick two random colors, different from each other
-            let (color0, color1) = available_color_pairs.remove(0);
-
-            // Future experiments
-            // If it's a test pair, then pick 2 colors that are the same, so it's ambiguous.
+            // Pick two random colors
+            // The colors are always different from each other for the `train` pairs.
+            // The colors are sometimes the same and sometimes different for the `test` pairs.
+            let (color0, color1) = color_pairs.remove(0);
 
             let input_landscape: Image = Image::try_create(2, 1, vec![color0, color1])?;
             let input_portrait: Image = input_landscape.rotate_cw()?;
@@ -176,7 +199,7 @@ impl GenerateDataset {
                 export.push_test(&input, &output);
             }
 
-            color_pairs.push(format!("{}{}", color0, color1));
+            color_pair_strings.push(format!("{}{}", color0, color1));
         }
 
         let transformation_name: &str = match transformation {
@@ -188,8 +211,8 @@ impl GenerateDataset {
             TwoPixelTransformation::PortraitRotateCCW => "portrait_ccw",
         };
 
-        let color_pairs_joined: String = color_pairs.join("_");
-        let filename: String = format!("two_{}_{}.json", transformation_name, color_pairs_joined);
+        let color_pair_strings_joined: String = color_pair_strings.join("_");
+        let filename: String = format!("two_{}_{}.json", transformation_name, color_pair_strings_joined);
 
 
         // let json: String = export.to_string()?;
