@@ -65,16 +65,16 @@ impl GenerateDataset {
             }
             let random_seed: u64 = i as u64;
 
-            let transformation: TwoPixelTransformation = match i % 6 {
+            let transformation: TwoPixelTransformation = match i % 9 {
                 0 => TwoPixelTransformation::LandscapeOrientationFlip,
                 1 => TwoPixelTransformation::LandscapeOrientationRotateCW,
                 2 => TwoPixelTransformation::LandscapeOrientationRotateCCW,
                 3 => TwoPixelTransformation::PortraitOrientationFlip,
                 4 => TwoPixelTransformation::PortraitOrientationRotateCW,
                 5 => TwoPixelTransformation::PortraitOrientationRotateCCW,
-                // 6 => TwoPixelTransformation::MixedOrientationFlip,
-                // 7 => TwoPixelTransformation::MixedOrientationRotateCW,
-                // 8 => TwoPixelTransformation::MixedOrientationRotateCCW,
+                6 => TwoPixelTransformation::MixedOrientationFlip,
+                7 => TwoPixelTransformation::MixedOrientationRotateCW,
+                8 => TwoPixelTransformation::MixedOrientationRotateCCW,
                 _ => unreachable!(),
             };
 
@@ -103,6 +103,36 @@ impl GenerateDataset {
         pairs
     }
 
+    fn alternate(count: usize, value0: u8, value1: u8) -> Vec<u8> {
+        let mut result = Vec::<u8>::new();
+        for i in 0..count {
+            if i % 2 == 0 {
+                result.push(value0);
+            } else {
+                result.push(value1);
+            }
+        }
+        result
+    }
+
+    /// Roughly half of the items are `0` and the other half are `1`. 
+    /// 
+    /// When `N` is even there is half 0 and half 1.
+    /// 
+    /// When `N` is odd then considering `N-1` have half 0 and half 1. And the last one is either 0 or 1.
+    fn half_zero_one_vec(rng: &mut StdRng, count: usize) -> Vec<u8> {
+        let mut values: [u8; 2] = [0, 1];
+        // In case there is an even number of items, then both value0 and value1 gets used equally. Good.
+        // In case there are an odd number of items, then one of the values is used one more time than the other value. Bad.
+        // Shuffle to prevent bias.
+        values.shuffle(rng);
+        let mut items: Vec<u8> = Self::alternate(count, values[0], values[1]);
+        // Now the items are alternating. Bad.
+        // Shuffle to prevent bias.
+        items.shuffle(rng);
+        items
+    }
+
     fn generate_twopixels(transformation: TwoPixelTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
@@ -114,6 +144,11 @@ impl GenerateDataset {
         ];
         let (train_count, test_count) = *pair_count_values.choose(&mut rng).unwrap();
         let pair_count: u8 = train_count + test_count;
+
+        let mut mixed_orientation_vec = Vec::<u8>::new();
+        mixed_orientation_vec.extend(Self::half_zero_one_vec(&mut rng, train_count as usize));
+        mixed_orientation_vec.extend(Self::half_zero_one_vec(&mut rng, test_count as usize));
+        assert!(mixed_orientation_vec.len() == pair_count as usize);
 
         // There are max 4 `train` pairs. Since there are 5 unique color pairs, we can be 
         // certain that the `train` pairs have different colors from each other.
@@ -176,7 +211,7 @@ impl GenerateDataset {
             // Pick either input_landscape or input_portrait based on a random number
             // Make sure that both landscape and portrait orientations are used for the training pairs, so 2 or more train pairs.
             // Make sure that both landscape and portrait orientations are used for the test pairs, so 2 or more test pairs.
-            let input_mixed: Image = match rng.gen_range(0..=1) {
+            let input_mixed: Image = match mixed_orientation_vec[i as usize] {
                 0 => input_landscape.clone(),
                 1 => input_portrait.clone(),
                 _ => unreachable!(),
@@ -275,6 +310,25 @@ mod tests {
         assert_eq!(actual, vec![(5, 2), (9, 1), (6, 3), (4, 0), (7, 8)]);
     }
 
+    #[test]
+    fn test_20000_alternate() {
+        assert_eq!(GenerateDataset::alternate(2, 0, 1), vec![0, 1]);
+        assert_eq!(GenerateDataset::alternate(3, 0, 1), vec![0, 1, 0]);
+        assert_eq!(GenerateDataset::alternate(4, 0, 1), vec![0, 1, 0, 1]);
+        assert_eq!(GenerateDataset::alternate(3, 4, 5), vec![4, 5, 4]);
+    }
+
+    #[test]
+    fn test_30000_half_zero_one_vec() {
+        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(0), 5), vec![1, 1, 0, 0, 0]);
+        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(0), 6), vec![1, 1, 0, 0, 0, 1]);
+        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(0), 7), vec![1, 0, 0, 0, 1, 0, 1]);
+        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(1), 5), vec![0, 0, 1, 1, 0]);
+        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(1), 6), vec![0, 0, 1, 1, 0, 1]);
+        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(1), 7), vec![0, 1, 0, 1, 0, 0, 1]);
+        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(1), 8), vec![0, 0, 1, 0, 1, 0, 1, 1]);
+    }
+
     #[allow(dead_code)]
     // #[test]
     fn test_20000_generate() {
@@ -282,7 +336,7 @@ mod tests {
         let mut generate_dataset = GenerateDataset::new();
 
         // Act
-        generate_dataset.populate(Curriculum::Small, 24, false).expect("ok");
+        generate_dataset.populate(Curriculum::Small, 27, false).expect("ok");
 
         // Assert
     }
