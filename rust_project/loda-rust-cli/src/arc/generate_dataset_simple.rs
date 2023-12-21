@@ -78,8 +78,11 @@ impl GenerateDataset {
                 _ => unreachable!(),
             };
 
-            let dataset_item: DatasetItem = Self::generate_twopixels(transformation, random_seed, print_to_htmllog)?;
+            let dataset_item: DatasetItem = Self::generate_twopixels_basic(transformation, random_seed, print_to_htmllog)?;
             self.dataset_items.push(dataset_item);
+
+            // let dataset_item: DatasetItem = Self::generate_twopixels_rotate_if_same(transformation, random_seed, print_to_htmllog)?;
+            // self.dataset_items.push(dataset_item);
         }
 
         Ok(())
@@ -133,7 +136,7 @@ impl GenerateDataset {
         items
     }
 
-    fn generate_twopixels(transformation: TwoPixelTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
+    fn generate_twopixels_basic(transformation: TwoPixelTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
         let insert_same_color_when_reaching_this_limit: u8 = 50;
@@ -272,6 +275,170 @@ impl GenerateDataset {
 
         let color_pair_strings_joined: String = color_pair_strings.join("_");
         let filename: String = format!("two_{}_{}.json", transformation_name, color_pair_strings_joined);
+
+
+        // let json: String = export.to_string()?;
+        // println!("filename: {}", filename);
+        // println!("{}", json);
+
+        // filename = "twopixels_mixed_orientations_reverse_colors_53_91_72_08.json";
+        // filename = "twopixels_rotate_53_91_72_08.json";
+        // filename = "twopixels_flip_53_91_72_08.json";
+        // filename = "twopixels_color0withsamesize_53_91_72_08.json";
+        // filename = "twopixels_firstcolorwithsamesize_53_91_72_08.json";
+        // filename = "twopixels_lastcolorwithsamesize_53_91_72_08.json";
+        // filename = "twopixels_fixorientation_53_91_72_08.json";
+        // Save task to file
+        let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/output");
+        let path: PathBuf = basedir.join(&filename);
+        // println!("path: {}", path.display());
+        export.save_json_file(&path)?;
+
+        let dataset_item: DatasetItem = DatasetItem {
+            curriculum: Curriculum::Small,
+            text: String::new(),
+        };
+        Ok(dataset_item)
+    }
+
+    fn generate_twopixels_rotate_if_same(transformation: TwoPixelTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
+        let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
+
+        let pair_count_values: Vec<(u8, u8)> = vec![
+            (4, 2), (4, 3), (5, 2), (5, 3), (6, 2), (6, 3)
+        ];
+        let (train_count, test_count) = *pair_count_values.choose(&mut rng).unwrap();
+        let pair_count: u8 = train_count + test_count;
+
+        let mut assign_same_color_vec = Vec::<u8>::new();
+        assign_same_color_vec.extend(Self::half_zero_one_vec(&mut rng, train_count as usize));
+        assign_same_color_vec.extend(Self::half_zero_one_vec(&mut rng, test_count as usize));
+        assert!(assign_same_color_vec.len() == pair_count as usize);
+
+        let mut mixed_orientation_vec = Vec::<u8>::new();
+        mixed_orientation_vec.extend(Self::half_zero_one_vec(&mut rng, train_count as usize));
+        mixed_orientation_vec.extend(Self::half_zero_one_vec(&mut rng, test_count as usize));
+        assert!(mixed_orientation_vec.len() == pair_count as usize);
+
+        // There are max 4 `train` pairs. Since there are 5 unique color pairs, we can be 
+        // certain that the `train` pairs have different colors from each other.
+        let mut color_pairs: Vec<(u8, u8)> = Self::five_unique_color_pairs(&mut rng);
+        color_pairs.truncate(pair_count as usize);
+
+        // Fill up with more random colors until there are enough color pairs.
+        // The `test` pairs comes last, so it's ok if they are not as unique as the `train` pairs.
+        while color_pairs.len() < pair_count as usize {
+            let color0: u8 = rng.gen_range(0..=9);
+            let color1: u8 = rng.gen_range(0..=9);
+            if color0 == color1 {
+                continue;
+            }
+            if color_pairs.contains(&(color0, color1)) {
+                continue;
+            }
+            color_pairs.push((color0, color1));
+        }
+        assert!(color_pairs.len() == pair_count as usize);
+
+        let mut available_colors: Vec<u8> = (0..=9).collect();
+        available_colors.shuffle(&mut rng);
+
+        // color_pairs[0] = (5, 5);
+        for i in 0..pair_count {
+            if assign_same_color_vec[i as usize] == 0 {
+                continue;
+            }
+            let color: u8 = available_colors.remove(0);
+            color_pairs[i as usize] = (color, color);
+            println!("assigning same color: {} to index: {}", color, i);
+        }
+
+        if print_to_htmllog {
+            HtmlLog::text(format!("pair_count: {}", pair_count));
+        }
+        let mut export = ExportARCTaskJson::new();
+        let mut color_pair_strings = Vec::<String>::new();
+        for i in 0..pair_count {
+            let is_train: bool = i < train_count;
+
+            // Pick two random colors
+            // The colors are always different from each other for the `train` pairs.
+            // The colors are sometimes the same and sometimes different for the `test` pairs.
+            let (color0, color1) = color_pairs.remove(0);
+
+            let input_landscape: Image = Image::try_create(2, 1, vec![color0, color1])?;
+            let input_portrait: Image = input_landscape.rotate_cw()?;
+
+            // Pick either input_landscape or input_portrait based on a random number
+            // Make sure that both landscape and portrait orientations are used for the training pairs, so 2 or more train pairs.
+            // Make sure that both landscape and portrait orientations are used for the test pairs, so 2 or more test pairs.
+            // let input_mixed: Image = match mixed_orientation_vec[i as usize] {
+            //     0 => input_landscape.clone(),
+            //     1 => input_portrait.clone(),
+            //     _ => unreachable!(),
+            // };
+
+            let input: &Image = &input_landscape;
+            // let input: &Image = match transformation {
+            //     TwoPixelTransformation::LandscapeOrientationFlip => &input_landscape,
+            //     TwoPixelTransformation::LandscapeOrientationRotateCW => &input_landscape,
+            //     TwoPixelTransformation::LandscapeOrientationRotateCCW => &input_landscape,
+            //     TwoPixelTransformation::PortraitOrientationFlip => &input_portrait,
+            //     TwoPixelTransformation::PortraitOrientationRotateCW => &input_portrait,
+            //     TwoPixelTransformation::PortraitOrientationRotateCCW => &input_portrait,
+            //     TwoPixelTransformation::MixedOrientationFlip => &input_mixed,
+            //     TwoPixelTransformation::MixedOrientationRotateCW => &input_mixed,
+            //     TwoPixelTransformation::MixedOrientationRotateCCW => &input_mixed,
+            // };
+
+            let output_reversed: Image = ReverseColorPopularity::apply_to_image(input)?;
+            let output_rotate_ccw: Image = input.rotate_ccw()?;
+            let output_rotate_cw: Image = input.rotate_cw()?;
+
+            let output: &Image = if color0 == color1 {
+                &output_rotate_ccw
+            } else {
+                &output_reversed
+            };
+            // let output: &Image = match transformation {
+            //     TwoPixelTransformation::LandscapeOrientationFlip => &output_reversed,
+            //     TwoPixelTransformation::LandscapeOrientationRotateCW => &output_rotate_cw,
+            //     TwoPixelTransformation::LandscapeOrientationRotateCCW => &output_rotate_ccw,
+            //     TwoPixelTransformation::PortraitOrientationFlip => &output_reversed,
+            //     TwoPixelTransformation::PortraitOrientationRotateCW => &output_rotate_cw,
+            //     TwoPixelTransformation::PortraitOrientationRotateCCW => &output_rotate_ccw,
+            //     TwoPixelTransformation::MixedOrientationFlip => &output_reversed,
+            //     TwoPixelTransformation::MixedOrientationRotateCW => &output_rotate_cw,
+            //     TwoPixelTransformation::MixedOrientationRotateCCW => &output_rotate_ccw,
+            // };
+
+            if print_to_htmllog {
+                HtmlLog::compare_images(vec![input.clone(), output.clone()]);
+            }
+            assert!(input != output, "input and output must be different");
+            if is_train {
+                export.push_train(&input, &output);
+            } else {
+                export.push_test(&input, &output);
+            }
+
+            color_pair_strings.push(format!("{}{}", color0, color1));
+        }
+
+        let transformation_name: &str = match transformation {
+            TwoPixelTransformation::LandscapeOrientationFlip => "landscape_flip",
+            TwoPixelTransformation::LandscapeOrientationRotateCW => "landscape_cw",
+            TwoPixelTransformation::LandscapeOrientationRotateCCW => "landscape_ccw",
+            TwoPixelTransformation::PortraitOrientationFlip => "portrait_flip",
+            TwoPixelTransformation::PortraitOrientationRotateCW => "portrait_cw",
+            TwoPixelTransformation::PortraitOrientationRotateCCW => "portrait_ccw",
+            TwoPixelTransformation::MixedOrientationFlip => "mixed_flip",
+            TwoPixelTransformation::MixedOrientationRotateCW => "mixed_cw",
+            TwoPixelTransformation::MixedOrientationRotateCCW => "mixed_ccw",
+        };
+
+        let color_pair_strings_joined: String = color_pair_strings.join("_");
+        let filename: String = format!("two_special_{}_{}.json", transformation_name, color_pair_strings_joined);
 
 
         // let json: String = export.to_string()?;
