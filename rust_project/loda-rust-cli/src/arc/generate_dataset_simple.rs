@@ -34,11 +34,11 @@ enum TwoPixelBasicTransformation {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
 enum TwoPixelSpecialTransformation {
     LandscapeOrientation,
     PortraitOrientation,
-    // MixedOrientation,
+    MixedOrientation,
 }
 
 #[allow(dead_code)]
@@ -327,9 +327,14 @@ impl GenerateDataset {
     fn generate_twopixels_rotate_if_same(transformation: TwoPixelSpecialTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
-        let pair_count_values: Vec<(u8, u8)> = vec![
+        let mut pair_count_values: Vec<(u8, u8)> = vec![
             (4, 2), (4, 3), (5, 2), (5, 3), (6, 2), (6, 3)
         ];
+        if transformation == TwoPixelSpecialTransformation::MixedOrientation {
+            pair_count_values = vec![
+                (6, 2), (6, 3), (7, 2), (7, 3)
+            ];
+        }
         let (train_count, test_count) = *pair_count_values.choose(&mut rng).unwrap();
         let pair_count: u8 = train_count + test_count;
 
@@ -343,13 +348,9 @@ impl GenerateDataset {
         mixed_orientation_vec.extend(Self::half_zero_one_vec(&mut rng, test_count as usize));
         assert!(mixed_orientation_vec.len() == pair_count as usize);
 
-        // There are max 4 `train` pairs. Since there are 5 unique color pairs, we can be 
-        // certain that the `train` pairs have different colors from each other.
+        // Assign colors to each pair.
         let mut color_pairs: Vec<(u8, u8)> = Self::five_unique_color_pairs(&mut rng);
         color_pairs.truncate(pair_count as usize);
-
-        // Fill up with more random colors until there are enough color pairs.
-        // The `test` pairs comes last, so it's ok if they are not as unique as the `train` pairs.
         while color_pairs.len() < pair_count as usize {
             let color0: u8 = rng.gen_range(0..=9);
             let color1: u8 = rng.gen_range(0..=9);
@@ -373,7 +374,7 @@ impl GenerateDataset {
             }
             let color: u8 = available_colors.remove(0);
             color_pairs[i as usize] = (color, color);
-            println!("assigning same color: {} to index: {}", color, i);
+            // println!("assigning same color: {} to index: {}", color, i);
         }
 
         if print_to_htmllog {
@@ -395,21 +396,20 @@ impl GenerateDataset {
             // Pick either input_landscape or input_portrait based on a random number
             // Make sure that both landscape and portrait orientations are used for the training pairs, so 2 or more train pairs.
             // Make sure that both landscape and portrait orientations are used for the test pairs, so 2 or more test pairs.
-            // let input_mixed: Image = match mixed_orientation_vec[i as usize] {
-            //     0 => input_landscape.clone(),
-            //     1 => input_portrait.clone(),
-            //     _ => unreachable!(),
-            // };
+            let input_mixed: Image = match mixed_orientation_vec[i as usize] {
+                0 => input_landscape.clone(),
+                1 => input_portrait.clone(),
+                _ => unreachable!(),
+            };
 
             let input: &Image = match transformation {
                 TwoPixelSpecialTransformation::LandscapeOrientation => &input_landscape,
                 TwoPixelSpecialTransformation::PortraitOrientation => &input_portrait,
-                // TwoPixelSpecialTransformation::MixedOrientation => &input_mixed,
+                TwoPixelSpecialTransformation::MixedOrientation => &input_mixed,
             };
 
             let output_reversed: Image = ReverseColorPopularity::apply_to_image(input)?;
             let output_rotate_ccw: Image = input.rotate_ccw()?;
-            let output_rotate_cw: Image = input.rotate_cw()?;
 
             let output: &Image = if color0 == color1 {
                 &output_rotate_ccw
@@ -433,23 +433,12 @@ impl GenerateDataset {
         let transformation_name: &str = match transformation {
             TwoPixelSpecialTransformation::LandscapeOrientation => "landscape",
             TwoPixelSpecialTransformation::PortraitOrientation => "portrait",
+            TwoPixelSpecialTransformation::MixedOrientation => "mixed",
         };
 
         let color_pair_strings_joined: String = color_pair_strings.join("_");
         let filename: String = format!("two_special_{}_{}.json", transformation_name, color_pair_strings_joined);
 
-
-        // let json: String = export.to_string()?;
-        // println!("filename: {}", filename);
-        // println!("{}", json);
-
-        // filename = "twopixels_mixed_orientations_reverse_colors_53_91_72_08.json";
-        // filename = "twopixels_rotate_53_91_72_08.json";
-        // filename = "twopixels_flip_53_91_72_08.json";
-        // filename = "twopixels_color0withsamesize_53_91_72_08.json";
-        // filename = "twopixels_firstcolorwithsamesize_53_91_72_08.json";
-        // filename = "twopixels_lastcolorwithsamesize_53_91_72_08.json";
-        // filename = "twopixels_fixorientation_53_91_72_08.json";
         // Save task to file
         let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/output");
         let path: PathBuf = basedir.join(&filename);
