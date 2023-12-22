@@ -80,9 +80,9 @@ impl GenerateDataset {
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::MixedOrientationFlip },
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::MixedOrientationRotateCW },
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::MixedOrientationRotateCCW },
-            // TwoPixelTransformation::Special { special: TwoPixelSpecialTransformation::LandscapeOrientation },
-            // TwoPixelTransformation::Special { special: TwoPixelSpecialTransformation::PortraitOrientation },
-            // TwoPixelTransformation::Special { special: TwoPixelSpecialTransformation::MixedOrientation },
+            TwoPixelTransformation::Special { special: TwoPixelSpecialTransformation::LandscapeOrientation },
+            TwoPixelTransformation::Special { special: TwoPixelSpecialTransformation::PortraitOrientation },
+            TwoPixelTransformation::Special { special: TwoPixelSpecialTransformation::MixedOrientation },
         ];
 
         for i in 0..number_of_items {
@@ -102,7 +102,7 @@ impl GenerateDataset {
                     self.dataset_items.push(dataset_item);
                 },
                 TwoPixelTransformation::Special { special } => {
-                    let dataset_item: DatasetItem = Self::generate_twopixels_rotate_if_same(special.clone(), random_seed, print_to_htmllog)?;
+                    let dataset_item: DatasetItem = Self::generate_twopixels_special(special.clone(), random_seed, print_to_htmllog)?;
                     self.dataset_items.push(dataset_item);
                 },
             }
@@ -299,18 +299,6 @@ impl GenerateDataset {
         let color_pair_strings_joined: String = color_pair_strings.join("_");
         let filename: String = format!("two_{}_{}.json", transformation_name, color_pair_strings_joined);
 
-
-        // let json: String = export.to_string()?;
-        // println!("filename: {}", filename);
-        // println!("{}", json);
-
-        // filename = "twopixels_mixed_orientations_reverse_colors_53_91_72_08.json";
-        // filename = "twopixels_rotate_53_91_72_08.json";
-        // filename = "twopixels_flip_53_91_72_08.json";
-        // filename = "twopixels_color0withsamesize_53_91_72_08.json";
-        // filename = "twopixels_firstcolorwithsamesize_53_91_72_08.json";
-        // filename = "twopixels_lastcolorwithsamesize_53_91_72_08.json";
-        // filename = "twopixels_fixorientation_53_91_72_08.json";
         // Save task to file
         let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/output");
         let path: PathBuf = basedir.join(&filename);
@@ -324,11 +312,11 @@ impl GenerateDataset {
         Ok(dataset_item)
     }
 
-    fn generate_twopixels_rotate_if_same(transformation: TwoPixelSpecialTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
+    fn generate_twopixels_special(transformation: TwoPixelSpecialTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
         let pair_count_values: Vec<(u8, u8)> = vec![
-            (4, 2), (4, 3), (5, 2), (5, 3), (6, 2), (6, 3)
+            (4, 2), (4, 3), (5, 2), (5, 3)
         ];
         let (train_count, test_count) = *pair_count_values.choose(&mut rng).unwrap();
         let pair_count: u8 = train_count + test_count;
@@ -435,7 +423,7 @@ impl GenerateDataset {
         };
 
         let color_pair_strings_joined: String = color_pair_strings.join("_");
-        let filename: String = format!("two_special_{}_{}.json", transformation_name, color_pair_strings_joined);
+        let filename: String = format!("two_{}_special_{}.json", transformation_name, color_pair_strings_joined);
 
         // Save task to file
         let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/output");
