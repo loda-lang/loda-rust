@@ -1,4 +1,9 @@
 //! Generate a dataset with basic trivial simple ARC tasks.
+//! 
+//! Ideas for more task types:
+//! MixedOrientationOutputSolidColor,
+//! MixedOrientationRotateOutputSolidColor,
+//! LandscapeInputIsOneSolidColorButOutputIsTwoDifferentColors, // needs more than 5 training pairs.
 use super::{Image, HtmlLog, ReverseColorPopularity, ImageRotate90, ImageTryCreate, ExportARCTaskJson};
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -17,20 +22,15 @@ enum Curriculum {
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Serialize)]
 enum TwoPixelBasicTransformation {
-    LandscapeOrientationFlip,
+    LandscapeOrientationReverse,
     LandscapeOrientationRotateCW,
     LandscapeOrientationRotateCCW,
-    PortraitOrientationFlip,
+    PortraitOrientationReverse,
     PortraitOrientationRotateCW,
     PortraitOrientationRotateCCW,
-    MixedOrientationFlip,
+    MixedOrientationReverse,
     MixedOrientationRotateCW,
     MixedOrientationRotateCCW,
-
-    // Ideas for more transformations
-    // MixedOrientationOutputSolidColor,
-    // MixedOrientationRotateOutputSolidColor,
-    // LandscapeInputIsOneSolidColorButOutputIsTwoDifferentColors, // needs more than 5 training pairs.
 }
 
 #[allow(dead_code)]
@@ -71,13 +71,13 @@ impl GenerateDataset {
     #[allow(dead_code)]
     fn populate(&mut self, curriculum: Curriculum, number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
         let transformations: Vec<TwoPixelTransformation> = vec![
-            TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::LandscapeOrientationFlip },
+            TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::LandscapeOrientationReverse },
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::LandscapeOrientationRotateCW },
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::LandscapeOrientationRotateCCW },
-            TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::PortraitOrientationFlip },
+            TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::PortraitOrientationReverse },
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::PortraitOrientationRotateCW },
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::PortraitOrientationRotateCCW },
-            TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::MixedOrientationFlip },
+            TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::MixedOrientationReverse },
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::MixedOrientationRotateCW },
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::MixedOrientationRotateCCW },
             TwoPixelTransformation::Special { special: TwoPixelSpecialTransformation::LandscapeOrientation },
@@ -201,13 +201,13 @@ impl GenerateDataset {
         // then don't make it ambiguous, because it would cause input and output to be identical.
         // we want input and output to always be different.
         let allow_same_color: bool = match transformation {
-            TwoPixelBasicTransformation::LandscapeOrientationFlip => false,
+            TwoPixelBasicTransformation::LandscapeOrientationReverse => false,
             TwoPixelBasicTransformation::LandscapeOrientationRotateCW => true,
             TwoPixelBasicTransformation::LandscapeOrientationRotateCCW => true,
-            TwoPixelBasicTransformation::PortraitOrientationFlip => false,
+            TwoPixelBasicTransformation::PortraitOrientationReverse => false,
             TwoPixelBasicTransformation::PortraitOrientationRotateCW => true,
             TwoPixelBasicTransformation::PortraitOrientationRotateCCW => true,
-            TwoPixelBasicTransformation::MixedOrientationFlip => false,
+            TwoPixelBasicTransformation::MixedOrientationReverse => false,
             TwoPixelBasicTransformation::MixedOrientationRotateCW => true,
             TwoPixelBasicTransformation::MixedOrientationRotateCCW => true,
         };
@@ -244,13 +244,13 @@ impl GenerateDataset {
             };
 
             let input: &Image = match transformation {
-                TwoPixelBasicTransformation::LandscapeOrientationFlip => &input_landscape,
+                TwoPixelBasicTransformation::LandscapeOrientationReverse => &input_landscape,
                 TwoPixelBasicTransformation::LandscapeOrientationRotateCW => &input_landscape,
                 TwoPixelBasicTransformation::LandscapeOrientationRotateCCW => &input_landscape,
-                TwoPixelBasicTransformation::PortraitOrientationFlip => &input_portrait,
+                TwoPixelBasicTransformation::PortraitOrientationReverse => &input_portrait,
                 TwoPixelBasicTransformation::PortraitOrientationRotateCW => &input_portrait,
                 TwoPixelBasicTransformation::PortraitOrientationRotateCCW => &input_portrait,
-                TwoPixelBasicTransformation::MixedOrientationFlip => &input_mixed,
+                TwoPixelBasicTransformation::MixedOrientationReverse => &input_mixed,
                 TwoPixelBasicTransformation::MixedOrientationRotateCW => &input_mixed,
                 TwoPixelBasicTransformation::MixedOrientationRotateCCW => &input_mixed,
             };
@@ -260,13 +260,13 @@ impl GenerateDataset {
             let output_rotate_cw: Image = input.rotate_cw()?;
 
             let output: &Image = match transformation {
-                TwoPixelBasicTransformation::LandscapeOrientationFlip => &output_reversed,
+                TwoPixelBasicTransformation::LandscapeOrientationReverse => &output_reversed,
                 TwoPixelBasicTransformation::LandscapeOrientationRotateCW => &output_rotate_cw,
                 TwoPixelBasicTransformation::LandscapeOrientationRotateCCW => &output_rotate_ccw,
-                TwoPixelBasicTransformation::PortraitOrientationFlip => &output_reversed,
+                TwoPixelBasicTransformation::PortraitOrientationReverse => &output_reversed,
                 TwoPixelBasicTransformation::PortraitOrientationRotateCW => &output_rotate_cw,
                 TwoPixelBasicTransformation::PortraitOrientationRotateCCW => &output_rotate_ccw,
-                TwoPixelBasicTransformation::MixedOrientationFlip => &output_reversed,
+                TwoPixelBasicTransformation::MixedOrientationReverse => &output_reversed,
                 TwoPixelBasicTransformation::MixedOrientationRotateCW => &output_rotate_cw,
                 TwoPixelBasicTransformation::MixedOrientationRotateCCW => &output_rotate_ccw,
             };
@@ -285,15 +285,15 @@ impl GenerateDataset {
         }
 
         let transformation_name: &str = match transformation {
-            TwoPixelBasicTransformation::LandscapeOrientationFlip => "landscape_flip",
-            TwoPixelBasicTransformation::LandscapeOrientationRotateCW => "landscape_cw",
-            TwoPixelBasicTransformation::LandscapeOrientationRotateCCW => "landscape_ccw",
-            TwoPixelBasicTransformation::PortraitOrientationFlip => "portrait_flip",
-            TwoPixelBasicTransformation::PortraitOrientationRotateCW => "portrait_cw",
-            TwoPixelBasicTransformation::PortraitOrientationRotateCCW => "portrait_ccw",
-            TwoPixelBasicTransformation::MixedOrientationFlip => "mixed_flip",
-            TwoPixelBasicTransformation::MixedOrientationRotateCW => "mixed_cw",
-            TwoPixelBasicTransformation::MixedOrientationRotateCCW => "mixed_ccw",
+            TwoPixelBasicTransformation::LandscapeOrientationReverse => "land_rev",
+            TwoPixelBasicTransformation::LandscapeOrientationRotateCW => "land_cw",
+            TwoPixelBasicTransformation::LandscapeOrientationRotateCCW => "land_ccw",
+            TwoPixelBasicTransformation::PortraitOrientationReverse => "port_rev",
+            TwoPixelBasicTransformation::PortraitOrientationRotateCW => "port_cw",
+            TwoPixelBasicTransformation::PortraitOrientationRotateCCW => "port_ccw",
+            TwoPixelBasicTransformation::MixedOrientationReverse => "landport_rev",
+            TwoPixelBasicTransformation::MixedOrientationRotateCW => "landport_cw",
+            TwoPixelBasicTransformation::MixedOrientationRotateCCW => "landport_ccw",
         };
 
         let color_pair_strings_joined: String = color_pair_strings.join("_");
@@ -439,9 +439,9 @@ impl GenerateDataset {
         }
 
         let transformation_name: &str = match transformation {
-            TwoPixelSpecialTransformation::LandscapeOrientation => "landscape",
-            TwoPixelSpecialTransformation::PortraitOrientation => "portrait",
-            TwoPixelSpecialTransformation::MixedOrientation => "mixed",
+            TwoPixelSpecialTransformation::LandscapeOrientation => "land",
+            TwoPixelSpecialTransformation::PortraitOrientation => "port",
+            TwoPixelSpecialTransformation::MixedOrientation => "landport",
         };
 
         let color_pair_strings_joined: String = color_pair_strings.join("_");
