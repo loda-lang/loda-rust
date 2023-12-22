@@ -92,9 +92,10 @@ impl GenerateDataset {
             if i % 100000 == 0 {
                 println!("iteration: {} number_of_items: {} curriculum: {:?}", i, number_of_items, curriculum);
             }
-            let random_seed: u64 = i as u64;
-
-            let transformation: TwoPixelTransformation = transformations[i as usize % transformations.len()].clone();
+            let transform_index: usize = (i as usize) % transformations.len();
+            let transformation: TwoPixelTransformation = transformations[transform_index].clone();
+            // Introducing a new transformation does not impact the random seed.
+            let random_seed: u64 = ((i as usize / transformations.len()) + (transform_index * 1000000)) as u64;
 
             match transformation {
                 TwoPixelTransformation::Basic { basic } => {
