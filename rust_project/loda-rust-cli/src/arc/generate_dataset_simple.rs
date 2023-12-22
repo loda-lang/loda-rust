@@ -139,18 +139,18 @@ impl GenerateDataset {
         result
     }
 
-    /// Roughly half of the items are `0` and the other half are `1`. 
+    /// Example with two values: `[0, 1]`, then roughly half of the items are `0` and the other half are `1`. 
     /// 
     /// When `N` is even there is half 0 and half 1.
     /// 
     /// When `N` is odd then considering `N-1` have half 0 and half 1. And the last one is either 0 or 1.
-    fn half_zero_one_vec(rng: &mut StdRng, count: usize) -> Vec<u8> {
-        let mut values: [u8; 2] = [0, 1];
+    fn round_robin_shuffled(rng: &mut StdRng, count: usize, values: &Vec<u8>) -> Vec<u8> {
+        assert!(values.len() >= 2);
         // In case there is an even number of items, then both value0 and value1 gets used equally. Good.
         // In case there are an odd number of items, then one of the values is used one more time than the other value. Bad.
         // Shuffle to prevent bias.
+        let mut values: Vec<u8> = values.clone();
         values.shuffle(rng);
-        let values: Vec<u8> = values.to_vec();
         let mut items: Vec<u8> = Self::alternate(count, values);
         // Now the items are alternating. Bad.
         // Shuffle to prevent bias.
@@ -170,9 +170,10 @@ impl GenerateDataset {
         let (train_count, test_count) = *pair_count_values.choose(&mut rng).unwrap();
         let pair_count: u8 = train_count + test_count;
 
+        let zero_one: Vec<u8> = vec![0, 1];
         let mut mixed_orientation_vec = Vec::<u8>::new();
-        mixed_orientation_vec.extend(Self::half_zero_one_vec(&mut rng, train_count as usize));
-        mixed_orientation_vec.extend(Self::half_zero_one_vec(&mut rng, test_count as usize));
+        mixed_orientation_vec.extend(Self::round_robin_shuffled(&mut rng, train_count as usize, &zero_one));
+        mixed_orientation_vec.extend(Self::round_robin_shuffled(&mut rng, test_count as usize, &zero_one));
         assert!(mixed_orientation_vec.len() == pair_count as usize);
 
         // There are max 4 `train` pairs. Since there are 5 unique color pairs, we can be 
@@ -337,14 +338,19 @@ impl GenerateDataset {
         let (train_count, test_count) = *pair_count_values.choose(&mut rng).unwrap();
         let pair_count: u8 = train_count + test_count;
 
+        let mut values: Vec<u8> = (0..pair_count).collect();
+        values.shuffle(&mut rng);
+
+        let zero_one: Vec<u8> = vec![0, 1];
+
         let mut assign_same_color_vec = Vec::<u8>::new();
-        assign_same_color_vec.extend(Self::half_zero_one_vec(&mut rng, train_count as usize));
-        assign_same_color_vec.extend(Self::half_zero_one_vec(&mut rng, test_count as usize));
+        assign_same_color_vec.extend(Self::round_robin_shuffled(&mut rng, train_count as usize, &zero_one));
+        assign_same_color_vec.extend(Self::round_robin_shuffled(&mut rng, test_count as usize, &zero_one));
         assert!(assign_same_color_vec.len() == pair_count as usize);
 
         let mut mixed_orientation_vec = Vec::<u8>::new();
-        mixed_orientation_vec.extend(Self::half_zero_one_vec(&mut rng, train_count as usize));
-        mixed_orientation_vec.extend(Self::half_zero_one_vec(&mut rng, test_count as usize));
+        mixed_orientation_vec.extend(Self::round_robin_shuffled(&mut rng, train_count as usize, &zero_one));
+        mixed_orientation_vec.extend(Self::round_robin_shuffled(&mut rng, test_count as usize, &zero_one));
         assert!(mixed_orientation_vec.len() == pair_count as usize);
 
         // Assign colors to each pair.
@@ -473,14 +479,17 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_half_zero_one_vec() {
-        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(0), 5), vec![1, 1, 0, 0, 0]);
-        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(0), 6), vec![1, 1, 0, 0, 0, 1]);
-        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(0), 7), vec![1, 0, 0, 0, 1, 0, 1]);
-        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(1), 5), vec![0, 0, 1, 1, 0]);
-        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(1), 6), vec![0, 0, 1, 1, 0, 1]);
-        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(1), 7), vec![0, 1, 0, 1, 0, 0, 1]);
-        assert_eq!(GenerateDataset::half_zero_one_vec(&mut StdRng::seed_from_u64(1), 8), vec![0, 0, 1, 0, 1, 0, 1, 1]);
+    fn test_30000_round_robin_shuffled() {
+        let a: Vec<u8> = vec![0, 1];
+        let b: Vec<u8> = vec![5, 6, 7];
+        assert_eq!(GenerateDataset::round_robin_shuffled(&mut StdRng::seed_from_u64(0), 5, &a), vec![1, 1, 0, 0, 0]);
+        assert_eq!(GenerateDataset::round_robin_shuffled(&mut StdRng::seed_from_u64(0), 6, &a), vec![1, 1, 0, 0, 0, 1]);
+        assert_eq!(GenerateDataset::round_robin_shuffled(&mut StdRng::seed_from_u64(0), 7, &a), vec![1, 0, 0, 0, 1, 0, 1]);
+        assert_eq!(GenerateDataset::round_robin_shuffled(&mut StdRng::seed_from_u64(1), 5, &a), vec![0, 0, 1, 1, 0]);
+        assert_eq!(GenerateDataset::round_robin_shuffled(&mut StdRng::seed_from_u64(1), 6, &a), vec![0, 0, 1, 1, 0, 1]);
+        assert_eq!(GenerateDataset::round_robin_shuffled(&mut StdRng::seed_from_u64(1), 7, &a), vec![0, 1, 0, 1, 0, 0, 1]);
+        assert_eq!(GenerateDataset::round_robin_shuffled(&mut StdRng::seed_from_u64(1), 8, &a), vec![0, 0, 1, 0, 1, 0, 1, 1]);
+        assert_eq!(GenerateDataset::round_robin_shuffled(&mut StdRng::seed_from_u64(0), 3, &b), vec![7, 5, 6]);
     }
 
     #[allow(dead_code)]
