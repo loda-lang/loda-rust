@@ -315,9 +315,17 @@ impl GenerateDataset {
     fn generate_twopixels_special(transformation: TwoPixelSpecialTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
-        let pair_count_values: Vec<(u8, u8)> = vec![
-            (4, 2), (4, 3), (5, 2), (5, 3)
-        ];
+        let pair_count_values: Vec<(u8, u8)> = match transformation {
+            TwoPixelSpecialTransformation::LandscapeOrientation | TwoPixelSpecialTransformation::PortraitOrientation => vec![
+                // minimum 2 `train` pairs are needed to make sense of the rules
+                (2, 2), (2, 3), (3, 2), (3, 3)
+            ],
+            TwoPixelSpecialTransformation::MixedOrientation => vec![
+                // minimum 4 `train` pairs are needed to make sense of the rules
+                (4, 2), (4, 3), (5, 2), (5, 3)
+            ],
+        };
+
         let (train_count, test_count) = *pair_count_values.choose(&mut rng).unwrap();
         let pair_count: u8 = train_count + test_count;
 
@@ -325,7 +333,22 @@ impl GenerateDataset {
         values.shuffle(&mut rng);
 
         // Determine which orientation to use and when to assign the same color to both pixels.        
-        let zero_one_two_tree: Vec<u8> = vec![0, 1, 2, 3];
+        let zero_one_two_tree: Vec<u8> = match transformation {
+            TwoPixelSpecialTransformation::LandscapeOrientation | TwoPixelSpecialTransformation::PortraitOrientation => {
+                // bit[1] = unused, bit[0] = same color. In to total 2 combinations.
+                // 0 = same color
+                // 1 = different color
+                vec![0, 1]
+            },
+            TwoPixelSpecialTransformation::MixedOrientation => {
+                // bit[1] = orientation, bit[0] = same color. In to total 4 combinations.
+                // 0 = same color, landscape
+                // 1 = different color, landscape
+                // 2 = same color, portrait
+                // 3 = different color, portrait
+                vec![0, 1, 2, 3]
+            }
+        };
         let mut mode_vec = Vec::<u8>::new();
         mode_vec.extend(Self::round_robin_shuffled(&mut rng, train_count as usize, &zero_one_two_tree));
         mode_vec.extend(Self::round_robin_shuffled(&mut rng, test_count as usize, &zero_one_two_tree));
@@ -353,7 +376,8 @@ impl GenerateDataset {
         // Assign same color to both pixels in roughly half of the pairs.
         for i in 0..pair_count {
             let value: u8 = mode_vec[i as usize];
-            if value == 2 || value == 3 {
+            let assign_same_color: bool = (value & 1) == 0;
+            if !assign_same_color {
                 continue;
             }
             let color: u8 = available_colors.remove(0);
@@ -380,12 +404,10 @@ impl GenerateDataset {
             // Pick either input_landscape or input_portrait based on a random number
             // Make sure that both landscape and portrait orientations are used for the training pairs, so 2 or more train pairs.
             // Make sure that both landscape and portrait orientations are used for the test pairs, so 2 or more test pairs.
-            let input_mixed: Image = match mode_vec[i as usize] {
-                0 => input_landscape.clone(),
-                1 => input_portrait.clone(),
-                2 => input_landscape.clone(),
-                3 => input_portrait.clone(),
-                _ => unreachable!(),
+            let orientation: bool = mode_vec[i as usize] & 2 == 0;
+            let input_mixed: Image = match orientation {
+                false => input_landscape.clone(),
+                true => input_portrait.clone(),
             };
 
             let input: &Image = match transformation {
@@ -480,7 +502,7 @@ mod tests {
         let mut generate_dataset = GenerateDataset::new();
 
         // Act
-        generate_dataset.populate(Curriculum::Small, 27, false).expect("ok");
+        generate_dataset.populate(Curriculum::Small, 60, true).expect("ok");
 
         // Assert
     }
