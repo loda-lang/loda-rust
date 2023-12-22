@@ -129,14 +129,12 @@ impl GenerateDataset {
         pairs
     }
 
-    fn alternate(count: usize, value0: u8, value1: u8) -> Vec<u8> {
+    fn alternate(count: usize, values: Vec<u8>) -> Vec<u8> {
+        assert!(values.len() >= 2);
         let mut result = Vec::<u8>::new();
         for i in 0..count {
-            if i % 2 == 0 {
-                result.push(value0);
-            } else {
-                result.push(value1);
-            }
+            let index: usize = i % values.len();
+            result.push(values[index]);
         }
         result
     }
@@ -152,7 +150,8 @@ impl GenerateDataset {
         // In case there are an odd number of items, then one of the values is used one more time than the other value. Bad.
         // Shuffle to prevent bias.
         values.shuffle(rng);
-        let mut items: Vec<u8> = Self::alternate(count, values[0], values[1]);
+        let values: Vec<u8> = values.to_vec();
+        let mut items: Vec<u8> = Self::alternate(count, values);
         // Now the items are alternating. Bad.
         // Shuffle to prevent bias.
         items.shuffle(rng);
@@ -466,10 +465,11 @@ mod tests {
 
     #[test]
     fn test_20000_alternate() {
-        assert_eq!(GenerateDataset::alternate(2, 0, 1), vec![0, 1]);
-        assert_eq!(GenerateDataset::alternate(3, 0, 1), vec![0, 1, 0]);
-        assert_eq!(GenerateDataset::alternate(4, 0, 1), vec![0, 1, 0, 1]);
-        assert_eq!(GenerateDataset::alternate(3, 4, 5), vec![4, 5, 4]);
+        assert_eq!(GenerateDataset::alternate(2, vec![0, 1]), vec![0, 1]);
+        assert_eq!(GenerateDataset::alternate(3, vec![0, 1]), vec![0, 1, 0]);
+        assert_eq!(GenerateDataset::alternate(4, vec![0, 1]), vec![0, 1, 0, 1]);
+        assert_eq!(GenerateDataset::alternate(3, vec![4, 5]), vec![4, 5, 4]);
+        assert_eq!(GenerateDataset::alternate(6, vec![1, 2, 3]), vec![1, 2, 3, 1, 2, 3]);
     }
 
     #[test]
