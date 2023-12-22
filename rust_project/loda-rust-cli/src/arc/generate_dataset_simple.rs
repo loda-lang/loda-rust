@@ -327,31 +327,21 @@ impl GenerateDataset {
     fn generate_twopixels_rotate_if_same(transformation: TwoPixelSpecialTransformation, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
         let mut rng: StdRng = SeedableRng::seed_from_u64(random_seed);
 
-        let mut pair_count_values: Vec<(u8, u8)> = vec![
+        let pair_count_values: Vec<(u8, u8)> = vec![
             (4, 2), (4, 3), (5, 2), (5, 3), (6, 2), (6, 3)
         ];
-        if transformation == TwoPixelSpecialTransformation::MixedOrientation {
-            pair_count_values = vec![
-                (6, 2), (6, 3), (7, 2), (7, 3)
-            ];
-        }
         let (train_count, test_count) = *pair_count_values.choose(&mut rng).unwrap();
         let pair_count: u8 = train_count + test_count;
 
         let mut values: Vec<u8> = (0..pair_count).collect();
         values.shuffle(&mut rng);
 
-        let zero_one: Vec<u8> = vec![0, 1];
-
-        let mut assign_same_color_vec = Vec::<u8>::new();
-        assign_same_color_vec.extend(Self::round_robin_shuffled(&mut rng, train_count as usize, &zero_one));
-        assign_same_color_vec.extend(Self::round_robin_shuffled(&mut rng, test_count as usize, &zero_one));
-        assert!(assign_same_color_vec.len() == pair_count as usize);
-
-        let mut mixed_orientation_vec = Vec::<u8>::new();
-        mixed_orientation_vec.extend(Self::round_robin_shuffled(&mut rng, train_count as usize, &zero_one));
-        mixed_orientation_vec.extend(Self::round_robin_shuffled(&mut rng, test_count as usize, &zero_one));
-        assert!(mixed_orientation_vec.len() == pair_count as usize);
+        // Determine which orientation to use and when to assign the same color to both pixels.        
+        let zero_one_two_tree: Vec<u8> = vec![0, 1, 2, 3];
+        let mut mode_vec = Vec::<u8>::new();
+        mode_vec.extend(Self::round_robin_shuffled(&mut rng, train_count as usize, &zero_one_two_tree));
+        mode_vec.extend(Self::round_robin_shuffled(&mut rng, test_count as usize, &zero_one_two_tree));
+        assert!(mode_vec.len() == pair_count as usize);
 
         // Assign colors to each pair.
         let mut color_pairs: Vec<(u8, u8)> = Self::five_unique_color_pairs(&mut rng);
@@ -374,7 +364,8 @@ impl GenerateDataset {
 
         // Assign same color to both pixels in roughly half of the pairs.
         for i in 0..pair_count {
-            if assign_same_color_vec[i as usize] == 0 {
+            let value: u8 = mode_vec[i as usize];
+            if value == 2 || value == 3 {
                 continue;
             }
             let color: u8 = available_colors.remove(0);
@@ -401,9 +392,11 @@ impl GenerateDataset {
             // Pick either input_landscape or input_portrait based on a random number
             // Make sure that both landscape and portrait orientations are used for the training pairs, so 2 or more train pairs.
             // Make sure that both landscape and portrait orientations are used for the test pairs, so 2 or more test pairs.
-            let input_mixed: Image = match mixed_orientation_vec[i as usize] {
+            let input_mixed: Image = match mode_vec[i as usize] {
                 0 => input_landscape.clone(),
                 1 => input_portrait.clone(),
+                2 => input_landscape.clone(),
+                3 => input_portrait.clone(),
                 _ => unreachable!(),
             };
 
