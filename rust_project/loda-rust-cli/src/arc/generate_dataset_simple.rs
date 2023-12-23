@@ -10,15 +10,8 @@ use rand::Rng;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng};
 use serde::Serialize;
-use std::path::PathBuf;
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy, Serialize)]
-enum Curriculum {
-    Small,
-    SmallMedium,
-    SmallMediumBig,
-}
+use std::fs;
+use std::path::{PathBuf, Path};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -52,8 +45,9 @@ enum TwoPixelTransformation {
 #[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct DatasetItem {
-    curriculum: Curriculum,
-    text: String,
+    dirname: String,
+    filename: String,
+    json: String,
 }
 
 #[allow(dead_code)]
@@ -70,7 +64,7 @@ impl GenerateDataset {
     }
 
     #[allow(dead_code)]
-    fn populate(&mut self, curriculum: Curriculum, number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
+    fn populate(&mut self, number_of_items: u32, print_to_htmllog: bool) -> anyhow::Result<()> {
         let transformations: Vec<TwoPixelTransformation> = vec![
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::LandscapeOrientationReverse },
             TwoPixelTransformation::Basic { basic: TwoPixelBasicTransformation::LandscapeOrientationRotateCW },
@@ -91,7 +85,7 @@ impl GenerateDataset {
                 HtmlLog::text(format!("iteration: {}", i));
             }
             if i % 100000 == 0 {
-                println!("iteration: {} number_of_items: {} curriculum: {:?}", i, number_of_items, curriculum);
+                println!("iteration: {} number_of_items: {}", i, number_of_items);
             }
             let transform_index: usize = (i as usize) % transformations.len();
             let transformation: TwoPixelTransformation = transformations[transform_index].clone();
@@ -110,6 +104,20 @@ impl GenerateDataset {
             }
         }
 
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn save(&self, save_dir: &Path) -> anyhow::Result<()> {
+        if !save_dir.is_dir() {
+            fs::create_dir(save_dir)?;
+        }
+        assert!(save_dir.is_dir());
+
+        for dataset_item in &self.dataset_items {
+            let path: PathBuf = save_dir.join(&dataset_item.filename);
+            fs::write(&path, &dataset_item.json)?;
+        }
         Ok(())
     }
 
@@ -301,15 +309,10 @@ impl GenerateDataset {
         let color_pair_strings_joined: String = color_pair_strings.join("_");
         let filename: String = format!("{}_{}.json", transformation_name, color_pair_strings_joined);
 
-        // Save task to file
-        let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/output");
-        let path: PathBuf = basedir.join(&filename);
-        // println!("path: {}", path.display());
-        export.save_json_file(&path)?;
-
         let dataset_item: DatasetItem = DatasetItem {
-            curriculum: Curriculum::Small,
-            text: String::new(),
+            json: export.to_string()?,
+            dirname: transformation_name.to_string(),
+            filename,
         };
         Ok(dataset_item)
     }
@@ -449,15 +452,10 @@ impl GenerateDataset {
         let color_pair_strings_joined: String = color_pair_strings.join("_");
         let filename: String = format!("{}_special_{}.json", transformation_name, color_pair_strings_joined);
 
-        // Save task to file
-        let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/output");
-        let path: PathBuf = basedir.join(&filename);
-        // println!("path: {}", path.display());
-        export.save_json_file(&path)?;
-
         let dataset_item: DatasetItem = DatasetItem {
-            curriculum: Curriculum::Small,
-            text: String::new(),
+            json: export.to_string()?,
+            dirname: transformation_name.to_string(),
+            filename,
         };
         Ok(dataset_item)
     }
@@ -504,9 +502,11 @@ mod tests {
         let mut generate_dataset = GenerateDataset::new();
 
         // Act
-        generate_dataset.populate(Curriculum::Small, 60, true).expect("ok");
-        // generate_dataset.populate(Curriculum::Small, 1200, false).expect("ok");
+        generate_dataset.populate(60, true).expect("ok");
+        // generate_dataset.populate(1200, false).expect("ok");
 
+        generate_dataset.save(&PathBuf::from("/Users/neoneye/Downloads/output")).expect("ok");
+    
         // Assert
     }
 }
