@@ -1,4 +1,5 @@
 //! Generate a dataset with basic trivial simple ARC tasks.
+//! https://github.com/neoneye/arc-dataset-diva
 //! 
 //! Ideas for more task types:
 //! MixedOrientationOutputSolidColor,
@@ -298,7 +299,7 @@ impl GenerateDataset {
         };
 
         let color_pair_strings_joined: String = color_pair_strings.join("_");
-        let filename: String = format!("two_{}_{}.json", transformation_name, color_pair_strings_joined);
+        let filename: String = format!("{}_{}.json", transformation_name, color_pair_strings_joined);
 
         // Save task to file
         let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/output");
@@ -446,7 +447,7 @@ impl GenerateDataset {
         };
 
         let color_pair_strings_joined: String = color_pair_strings.join("_");
-        let filename: String = format!("two_{}_special_{}.json", transformation_name, color_pair_strings_joined);
+        let filename: String = format!("{}_special_{}.json", transformation_name, color_pair_strings_joined);
 
         // Save task to file
         let basedir: PathBuf = PathBuf::from("/Users/neoneye/Downloads/output");
@@ -504,6 +505,7 @@ mod tests {
 
         // Act
         generate_dataset.populate(Curriculum::Small, 60, true).expect("ok");
+        // generate_dataset.populate(Curriculum::Small, 1200, false).expect("ok");
 
         // Assert
     }
