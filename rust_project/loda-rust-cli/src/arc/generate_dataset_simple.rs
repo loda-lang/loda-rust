@@ -115,7 +115,13 @@ impl GenerateDataset {
         assert!(save_dir.is_dir());
 
         for dataset_item in &self.dataset_items {
-            let path: PathBuf = save_dir.join(&dataset_item.filename);
+            let task_type_dir: PathBuf = save_dir.join(&dataset_item.dirname);
+            if !task_type_dir.is_dir() {
+                fs::create_dir(&task_type_dir)?;
+            }
+            assert!(task_type_dir.is_dir());
+
+            let path: PathBuf = task_type_dir.join(&dataset_item.filename);
             fs::write(&path, &dataset_item.json)?;
         }
         Ok(())
@@ -444,13 +450,13 @@ impl GenerateDataset {
         }
 
         let transformation_name: &str = match transformation {
-            TwoPixelSpecialTransformation::LandscapeOrientation => "land",
-            TwoPixelSpecialTransformation::PortraitOrientation => "port",
-            TwoPixelSpecialTransformation::MixedOrientation => "landport",
+            TwoPixelSpecialTransformation::LandscapeOrientation => "land_rotrev",
+            TwoPixelSpecialTransformation::PortraitOrientation => "port_rotrev",
+            TwoPixelSpecialTransformation::MixedOrientation => "landport_rotrev",
         };
 
         let color_pair_strings_joined: String = color_pair_strings.join("_");
-        let filename: String = format!("{}_special_{}.json", transformation_name, color_pair_strings_joined);
+        let filename: String = format!("{}_{}.json", transformation_name, color_pair_strings_joined);
 
         let dataset_item: DatasetItem = DatasetItem {
             json: export.to_string()?,
