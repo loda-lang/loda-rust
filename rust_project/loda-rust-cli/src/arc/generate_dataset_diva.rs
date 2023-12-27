@@ -503,13 +503,13 @@ mod tests {
 
     #[allow(dead_code)]
     // #[test]
-    fn test_20000_generate() {
+    fn test_40000_generate() {
         // Arrange
         let mut generate_dataset = GenerateDataset::new();
 
         // Act
-        generate_dataset.populate(60, true).expect("ok");
-        // generate_dataset.populate(1200, false).expect("ok");
+        // generate_dataset.populate(60, true).expect("ok");
+        generate_dataset.populate(1200, false).expect("ok");
 
         generate_dataset.save(&PathBuf::from("/Users/neoneye/Downloads/output")).expect("ok");
     
