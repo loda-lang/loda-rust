@@ -50,4 +50,4 @@ The LODA-RUST miner is experimental, and not yet as good.
 
 If you have CPU to spare, [run the LODA miner](https://loda-lang.org/mining/) and help discover new programs.
 
-[Join the LODA community on Slack](https://loda-lang.slack.com/)
+[Join the LODA community on Discord](https://loda-lang.org/discord)
