@@ -57,7 +57,7 @@ PROMPT> cd loda-rust-web
 PROMPT> ./build.sh
 ```
 
-Open "index.html" in the browser.
+Open `index.html` in the browser.
 
 
 ## Verify integration with loda-cpp is working
