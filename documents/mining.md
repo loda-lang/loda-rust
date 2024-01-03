@@ -1,6 +1,6 @@
 # LODA-RUST - Get the miner running
 
-Warning: `LODA-RUST` mining is highly experimental.
+Warning: `LODA-RUST` mining is experimental.
 
 Question: Can `loda-rust mine` run by itself?
 
