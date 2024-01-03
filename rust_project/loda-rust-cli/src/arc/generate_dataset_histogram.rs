@@ -308,6 +308,35 @@ impl GenerateDataset {
             item_vec.push(item);
         }
 
+        let markdown: String = Self::markdown_for_comparison_items(
+            &mut rng, 
+            &item_vec, 
+            &symbol_names,
+            missing_symbol,
+            &data_separator_column,
+            &data_separator_row,
+            randomize_newlines_in_images,
+        )?;
+        if print_to_htmllog {
+            println!("{}", markdown);
+        }
+
+        let dataset_item = DatasetItem {
+            curriculum,
+            text: markdown,
+        };
+        Ok(dataset_item)
+    }
+
+    fn markdown_for_comparison_items(
+        rng: &mut StdRng, 
+        item_vec: &Vec<ComparisionItem>, 
+        symbol_names: &HashMap<u8, String>, 
+        missing_symbol: &str,
+        data_separator_column: &str,
+        data_separator_row: &str,
+        randomize_newlines_in_images: bool,
+    ) -> anyhow::Result<String> {
         let mut markdown = String::new();
         markdown.push_str("# Histogram comparisons with summary\n\n");
 
@@ -315,7 +344,7 @@ impl GenerateDataset {
             let name: char = ('A' as u8 + item_index as u8) as char;
             markdown.push_str(&format!("## Data {}\n\n", name));
     
-            Self::markdown_for_data_item(&mut rng, &mut markdown, &item, &symbol_names, missing_symbol, &data_separator_column, &data_separator_row, randomize_newlines_in_images)?;
+            Self::markdown_for_data_item(rng, &mut markdown, &item, &symbol_names, missing_symbol, &data_separator_column, &data_separator_row, randomize_newlines_in_images)?;
     
             markdown.push_str("\n\n");
         }
@@ -425,15 +454,7 @@ impl GenerateDataset {
             markdown.push_str(&Self::markdown_code(&body_image_intersection_all_histograms));
         }
 
-        if print_to_htmllog {
-            println!("{}", markdown);
-        }
-
-        let dataset_item = DatasetItem {
-            curriculum,
-            text: markdown,
-        };
-        Ok(dataset_item)
+        Ok(markdown)
     }
 
     fn number_of_comparison_items_to_generate(rng: &mut StdRng) -> usize {
