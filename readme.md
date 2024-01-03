@@ -39,7 +39,7 @@ The LODA-RUST command line interface is available for Linux/macOS/Windows. It ca
 
 # Mining using LODA-RUST
 
-Please instead use [Christian Krause's LODA miner](https://loda-lang.org/mining/), it's better.
+Please instead use [Christian Krause's c++ LODA miner](https://github.com/loda-lang/loda-cpp), it's better.
 
 The LODA-RUST miner is experimental, and not yet as good. 
 
