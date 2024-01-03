@@ -1,7 +1,10 @@
 //! Generate a dataset with histogram comparisons and a summary.
 //! 
-//! This dataset is available here:
+//! This full huge dataset is available here, 3m rows:
 //! https://huggingface.co/datasets/neoneye/histogram-comparisons-v1
+//! 
+//! This small dataset is available here, 150k rows:
+//! https://huggingface.co/datasets/neoneye/histogram-comparisons-small-v1
 //! 
 //! Given a prompt similar to ARC input/output raw pixel data.
 //! The response is histogram for every image, comparisons of input/output histograms, and a summary of the histograms.
@@ -787,9 +790,21 @@ impl GenerateDataset {
     }
 
     #[allow(dead_code)]
-    pub fn generate_fulldataset(path: &Path) -> anyhow::Result<()> {
+    pub fn generate_dataset_huge(path: &Path) -> anyhow::Result<()> {
         let mut generator = GenerateDataset::new();
         let number_of_items: u32 = 1000000;
+        generator.populate(Curriculum::Small, number_of_items, false)?;
+        generator.populate(Curriculum::SmallMedium, number_of_items, false)?;
+        generator.populate(Curriculum::SmallMediumBig, number_of_items, false)?;
+        generator.shuffle();
+        generator.save(&path)?;
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub fn generate_dataset_small(path: &Path) -> anyhow::Result<()> {
+        let mut generator = GenerateDataset::new();
+        let number_of_items: u32 = 50000;
         generator.populate(Curriculum::Small, number_of_items, false)?;
         generator.populate(Curriculum::SmallMedium, number_of_items, false)?;
         generator.populate(Curriculum::SmallMediumBig, number_of_items, false)?;

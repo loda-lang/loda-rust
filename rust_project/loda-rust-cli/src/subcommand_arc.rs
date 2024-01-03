@@ -3,7 +3,6 @@ use std::path::PathBuf;
 
 #[cfg(feature = "loda-rust-arc")]
 use crate::arc::{SubcommandARCSize, SubcommandARCWeb, TraverseProgramsAndModels};
-// use crate::arc::GenerateDataset;
 
 #[derive(Debug)]
 pub enum SubcommandARCMode {
@@ -46,6 +45,9 @@ impl SubcommandARC {
 
     #[cfg(feature = "loda-rust-arc")]
     pub fn run(mode: SubcommandARCMode) -> anyhow::Result<()> {
+        #[allow(unused_imports)]
+        use crate::arc::GenerateDataset;
+
         match mode {
             SubcommandARCMode::CheckAllExistingSolutions => {
                 return TraverseProgramsAndModels::check_all_existing_solutions();
@@ -63,8 +65,9 @@ impl SubcommandARC {
                 return TraverseProgramsAndModels::label_all_puzzles();
             },
             SubcommandARCMode::ExportDataset => {
-                // let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histograms.jsonl");
-                // GenerateDataset::generate_fulldataset(&path)?;
+                // let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histogram-comparisons.jsonl");
+                // GenerateDataset::generate_dataset_huge(&path)?;
+                // GenerateDataset::generate_dataset_small(&path)?;
                 // return Ok(());
                 return TraverseProgramsAndModels::export_dataset();
             },
