@@ -25,25 +25,25 @@ impl SubcommandARCMetadata {
 
     fn update_json(json_string: &str, dict_name: &str, insert_key_value_pairs: Vec<(String, String)>) -> anyhow::Result<String> {
         let mut json: Value = serde_json::from_str(&json_string)?;
-
+    
         // Ensure the root of the json file is a dictionary
         if let Some(obj) = json.as_object_mut() {
-            // Check if "metadata" exists, if not, create it
-            if !obj.contains_key(dict_name) {
-                obj.insert(dict_name.to_string(), Value::Object(Map::new()));
-            }
-
-            // Access the "metadata" dictionary
-            if let Some(dict) = obj.get_mut(dict_name).and_then(|v| v.as_object_mut()) {
-                // Append the new key-value pairs to "metadata"
+            // Access or create the dictionary named `dict_name`
+            let dict_entry = obj.entry(dict_name.to_string()).or_insert_with(|| Value::Object(Map::new()));
+    
+            // Ensure `dict_name` is a dictionary
+            if let Some(dict) = dict_entry.as_object_mut() {
+                // Append the new key-value pairs to the dictionary
                 for (key, value) in insert_key_value_pairs {
                     dict.insert(key, Value::from(value));
                 }
+            } else {
+                anyhow::bail!("'{}' exists but is not a dictionary.", dict_name);
             }
         } else {
             anyhow::bail!("Expected root of json file to be a dictionary, but it's not.");
         }
-
+    
         // Serialize the modified data back to JSON
         let updated_json: String = serde_json::to_string(&json)?;
         Ok(updated_json)
@@ -78,5 +78,44 @@ mod tests {
 
         // Assert
         assert_eq!(json, r#"{"b":1,"metadata":{"key0":"value0","key1":"value1"},"a":2,"x":3}"#);
+    }
+
+    #[test]
+    fn test_10002_update_json_error_handling_root_not_dictionary() {
+        // Arrange
+        let data = r#"["a", "b", "c"]"#;
+
+        // Act
+        let error = SubcommandARCMetadata::update_json(data, "metadata", vec![("key1".to_string(), "value1".to_string())]).expect_err("is supposed to fail");
+
+        // Assert
+        let message: String = format!("{}", error);
+        assert_eq!(message, "Expected root of json file to be a dictionary, but it's not.");
+    }
+
+    #[test]
+    fn test_10003_update_json_error_handling_metadata_not_dictionary() {
+        // Arrange
+        let data = r#"{"b": 1,"metadata":["key0","value0"],"a": 2,"x": 3}"#;
+
+        // Act
+        let error = SubcommandARCMetadata::update_json(data, "metadata", vec![("key1".to_string(), "value1".to_string())]).expect_err("is supposed to fail");
+
+        // Assert
+        let message: String = format!("{}", error);
+        assert_eq!(message, "'metadata' exists but is not a dictionary.");
+    }
+
+    #[test]
+    fn test_10004_update_json_error_handling_metadata_not_dictionary() {
+        // Arrange
+        let data = r#"{"b": 1,"metadata":42,"a": 2,"x": 3}"#;
+
+        // Act
+        let error = SubcommandARCMetadata::update_json(data, "metadata", vec![("key1".to_string(), "value1".to_string())]).expect_err("is supposed to fail");
+
+        // Assert
+        let message: String = format!("{}", error);
+        assert_eq!(message, "'metadata' exists but is not a dictionary.");
     }
 }
