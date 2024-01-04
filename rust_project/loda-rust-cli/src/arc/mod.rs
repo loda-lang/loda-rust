@@ -156,6 +156,7 @@ mod solve_split;
 mod split;
 mod split_to_label;
 mod stack_strings;
+mod subcommand_arc_metadata;
 mod subcommand_arc_size;
 mod subcommand_arc_web;
 mod substitution_rule;
@@ -362,6 +363,7 @@ pub use split_to_label::SplitToLabel;
 #[allow(unused_imports)]
 pub use stack_strings::StackStrings;
 
+pub use subcommand_arc_metadata::SubcommandARCMetadata;
 pub use subcommand_arc_size::SubcommandARCSize;
 pub use subcommand_arc_web::SubcommandARCWeb;
 pub use substitution_rule::SubstitutionRule;

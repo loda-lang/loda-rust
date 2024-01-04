@@ -50,6 +50,7 @@ impl SubcommandARC {
     pub fn run(mode: SubcommandARCMode) -> anyhow::Result<()> {
         #[allow(unused_imports)]
         use crate::arc::GenerateDataset;
+        use crate::arc::SubcommandARCMetadata;
 
         match mode {
             SubcommandARCMode::CheckAllExistingSolutions => {
@@ -81,18 +82,7 @@ impl SubcommandARC {
                 return SubcommandARCSize::run(&task_json_file);
             },
             SubcommandARCMode::MetadataHistogram { count, task_json_directory } => {
-                debug!("arc-metadata-histograms count: {}", count);
-                debug!("arc-metadata-histograms directory: {:?}", task_json_directory);
-                if !task_json_directory.is_dir() {
-                    anyhow::bail!("arc-metadata-histograms. Expected directory to be a directory, but it's not. path: {:?}", task_json_directory);
-                }
-                if count == 0 {
-                    anyhow::bail!("arc-metadata-histograms. Expected count to be greater than zero, but it's not. count: {}", count);
-                }
-                if count > 1000 {
-                    anyhow::bail!("arc-metadata-histograms. Expected count to be less than or equal to 1000. count: {}", count);
-                }
-                return Ok(());
+                return SubcommandARCMetadata::run(count, &task_json_directory);
             },
         }
     }
