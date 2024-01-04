@@ -1,4 +1,5 @@
 use crate::common::find_json_files_recursively;
+use super::arc_json_model::{TaskId, Task, ImagePair};
 use std::path::{Path, PathBuf};
 use serde_json::{Value, Map};
 use std::fs;
@@ -24,10 +25,54 @@ impl SubcommandARCMetadata {
 
         // Traverse the directory and find all the task json files, recursively
         let paths: Vec<PathBuf> = find_json_files_recursively(&task_json_directory);
-        println!("arc-metadata-histograms. Found {:?} task json files", paths);
+        debug!("arc-metadata-histograms. Found {:?} task json files", paths);
 
         for path in paths {
             let json_string: String = fs::read_to_string(&path)?;
+
+            // Load the json file into a Task. 
+            // If it cannot be loaded, it may not be an ARC json file, but some other json file, thus it's safer to skip the file.
+            let task_id = TaskId::Custom { identifier: "no-id".to_string() };
+            let task: Task = match Task::from_json(task_id, &json_string) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("arc-metadata-histograms. Skipping file. Unable to parse task json file. error: {:?} path: {:?}", error, path);
+                    continue;
+                }
+            };
+    
+            // Extract "train" images
+            let image_train_pairs: Vec<ImagePair> = match task.images_train() {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("arc-metadata-histograms. Skipping file. Unable to load train images. error: {:?} path: {:?}", error, path);
+                    continue;
+                }
+            };
+            debug!("train pairs: {}", image_train_pairs.len());
+
+            // Extract "test" images
+            let image_test_pairs: Vec<ImagePair> = match task.images_test() {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("arc-metadata-histograms. Skipping file. Unable to load test images. error: {:?} path: {:?}", error, path);
+                    continue;
+                }
+            };
+            debug!("test pairs: {}", image_test_pairs.len());
+
+            // Sanity check
+            if image_train_pairs.is_empty() || image_test_pairs.is_empty() {
+                error!("arc-metadata-histograms. Skipping file. Either 'train' or 'test' have zero images. path: {:?}", path);
+                continue;
+            }
+
+            // Generate a number of histogram comparisons.
+            println!("arc-metadata-histograms. Generating {} histogram comparisons. path: {:?}", count, path);
+
+            // Invoke the generate_dataset_histogram::GenerateDataset::markdown_for_comparison_items() function.
+
+            // Update the json file with the new metadata
             let updated_json: String = SubcommandARCMetadata::update_json(
                 &json_string, 
                 "metadata", 
