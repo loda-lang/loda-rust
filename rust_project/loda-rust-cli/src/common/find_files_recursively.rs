@@ -1,3 +1,8 @@
+//! Find all files with a given extension in a directory and its subdirectories.
+//! 
+//! Future experiment
+//! Currently returns a list in whatever order the OS returns the files. May be non-deterministic.
+//! Sort the files by their path, so that the order of the files is deterministic.
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
