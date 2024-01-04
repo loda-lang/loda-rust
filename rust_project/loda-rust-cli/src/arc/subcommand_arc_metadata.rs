@@ -1,4 +1,5 @@
-use std::path::Path;
+use crate::common::find_json_files_recursively;
+use std::path::{Path, PathBuf};
 use serde_json::{Value, Map};
 use std::fs;
 
@@ -20,6 +21,21 @@ impl SubcommandARCMetadata {
         if count > 1000 {
             anyhow::bail!("arc-metadata-histograms. Expected count to be less than or equal to 1000. count: {}", count);
         }
+
+        // Traverse the directory and find all the task json files, recursively
+        let paths: Vec<PathBuf> = find_json_files_recursively(&task_json_directory);
+        println!("arc-metadata-histograms. Found {:?} task json files", paths);
+
+        for path in paths {
+            let json_string: String = fs::read_to_string(&path)?;
+            let updated_json: String = SubcommandARCMetadata::update_json(
+                &json_string, 
+                "metadata", 
+                vec![("histograms".to_string(), count.to_string())]
+            )?;
+            fs::write(&path, updated_json)?;
+        }
+
         Ok(())
     }
 
