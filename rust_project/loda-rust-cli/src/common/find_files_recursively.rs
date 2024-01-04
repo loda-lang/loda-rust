@@ -1,8 +1,4 @@
 //! Find all files with a given extension in a directory and its subdirectories.
-//! 
-//! Future experiment
-//! Currently returns a list in whatever order the OS returns the files. May be non-deterministic.
-//! Sort the files by their path, so that the order of the files is deterministic.
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
@@ -60,6 +56,7 @@ fn find_files_recursively(rootdir: &Path, file_extension: &str) -> Vec<PathBuf> 
         paths.push(path);
     }
     // debug!("number of paths: {} in dir: {}", paths.len(), rootdir.display());
+    paths.sort();
     paths
 }
 
@@ -148,6 +145,23 @@ mod tests {
         fs::write(basedir.join("file4.asm"), b"I'm also an asm file")?;
         let paths = find_asm_files_recursively(&basedir);
         assert_eq!(paths.len(), 3);
+        Ok(())
+    }
+
+    #[test]
+    fn test_40000_find_files_sorted() -> Result<(), Box<dyn Error>> {
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_40000_find_files_sorted");
+        fs::create_dir(&basedir)?;
+        fs::write(basedir.join("a.json"), b"I'm an json file")?;
+        fs::write(basedir.join("b.json"), b"I'm an json file")?;
+        fs::write(basedir.join("c.json"), b"I'm an json file")?;
+        fs::write(basedir.join("d.json"), b"I'm an json file")?;
+        fs::write(basedir.join("e.json"), b"I'm an json file")?;
+        let paths = find_json_files_recursively(&basedir);
+        assert_eq!(paths.len(), 5);
+        let names: Vec<String> = paths.iter().map(|path| path.file_name().unwrap().to_str().unwrap().to_string()).collect();
+        assert_eq!(names, vec!["a.json", "b.json", "c.json", "d.json", "e.json"]);
         Ok(())
     }
 }
