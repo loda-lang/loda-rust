@@ -34,7 +34,7 @@ use std::path::Path;
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Serialize, PartialEq)]
 enum SymbolNameId {
-    ZeroTo255,
+    Digit,
     LowercaseHex,
     LowercaseAZ,
     UppercaseAZ,
@@ -110,9 +110,11 @@ pub struct DatasetItemForTask {
 }
 
 struct GeneratorParameters {
+    symbol_name_id: SymbolNameId,
     symbol_names: HashMap<u8, String>,
     data_separator_column: String,
     data_separator_row: String,
+    separator_name: String,
     max_color_value: u8,
     shuffled_color_replacements: HashMap<u8, u8>,
     overall_max_color_value0: u8,
@@ -122,6 +124,36 @@ struct GeneratorParameters {
     same_left_right_histograms_with_shuffled_pixels: bool,
     color_strategy_id: usize,
     item_count: usize,
+}
+
+impl GeneratorParameters {
+    #[allow(dead_code)]
+    fn metadata_id(&self) -> String {
+        let name: &str = match self.symbol_name_id {
+            SymbolNameId::Digit => "digit",
+            SymbolNameId::LowercaseHex => "hex",
+            SymbolNameId::LowercaseAZ => "az",
+            SymbolNameId::UppercaseAZ => "AZ",
+            SymbolNameId::SpecialAscii => "special",
+        };
+        let mut id: String = format!("{}-{}", name, self.separator_name);
+        if self.randomize_newlines_in_images {
+            id.push_str("-randomnewline");
+        }
+        let mut symbols = Vec::<String>::new();
+        for i in 0..=self.max_color_value {
+            if let Some(shuffled_index) = self.shuffled_color_replacements.get(&i) {
+                if let Some(value) = self.symbol_names.get(&shuffled_index) {
+                    symbols.push(value.clone());
+                    continue;
+                }
+            }
+            symbols.push("unknown".to_string());
+        }
+        id.push_str(" ");
+        id.push_str(&symbols.join(""));
+        id
+    }
 }
 
 #[allow(dead_code)]
@@ -159,7 +191,7 @@ impl GenerateDataset {
         // Generate symbol names that fits with this curriculum
         let symbol_name_id: SymbolNameId = Self::choose_symbol_name_id(rng, curriculum);
         let symbol_names: HashMap<u8, String> = match symbol_name_id {
-            SymbolNameId::ZeroTo255    => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
+            SymbolNameId::Digit        => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
             SymbolNameId::LowercaseHex => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_hex),
             SymbolNameId::LowercaseAZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_a_z),
             SymbolNameId::UppercaseAZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z),
@@ -167,14 +199,14 @@ impl GenerateDataset {
         };
 
         let is_symbol_name_special_ascii: bool = symbol_name_id == SymbolNameId::SpecialAscii;
-        let (data_separator_column, data_separator_row) = Self::random_data_separator_column_and_row(rng, symbol_name_id);
+        let (data_separator_column, data_separator_row, separator_name) = Self::random_data_separator_column_and_row(rng, symbol_name_id);
 
         // println!("data_separator_column: {:?}", data_separator_column);
         // println!("data_separator_row: {:?}", data_separator_row);
 
         // The symbol names to pick from
         let symbols_available: Vec<u8> = match symbol_name_id {
-            SymbolNameId::ZeroTo255    => (0..=9).collect(), // 0-9, only 1 digit
+            SymbolNameId::Digit        => (0..=9).collect(), // 0-9, only 1 digit
             SymbolNameId::LowercaseHex => (0..=255).collect(), // 00-ff, 2 digits
             SymbolNameId::LowercaseAZ  => (0..=25).collect(), // a-z, only 1 digit
             SymbolNameId::UppercaseAZ  => (0..=25).collect(), // A-Z, only 1 digit
@@ -185,7 +217,7 @@ impl GenerateDataset {
 
         // Taken N symbols from the symbols to use
         let use_number_of_symbols: usize = match symbol_name_id {
-            SymbolNameId::ZeroTo255    => 10, // 0-9, only 1 digit
+            SymbolNameId::Digit        => 10, // 0-9, only 1 digit
             SymbolNameId::LowercaseHex => 14, // 00-ff, 2 digits
             SymbolNameId::LowercaseAZ  => 12, // a-z, only 1 digit
             SymbolNameId::UppercaseAZ  => 12, // A-Z, only 1 digit
@@ -220,9 +252,11 @@ impl GenerateDataset {
         let item_count: usize = Self::number_of_comparison_items_to_generate(rng);
 
         GeneratorParameters {
+            symbol_name_id,
             symbol_names,
             data_separator_column,
             data_separator_row,
+            separator_name,
             max_color_value,
             shuffled_color_replacements,
             overall_max_color_value0,
@@ -602,7 +636,7 @@ impl GenerateDataset {
         items[dist.sample(rng)]
     }
 
-    fn random_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: SymbolNameId) -> (String, String) {
+    fn random_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: SymbolNameId) -> (String, String, String) {
         let separator_id: u8 = Self::id_data_separator_column_and_row(rng, symbol_name_id);
         Self::data_separator_column_and_row(separator_id)
     }
@@ -623,62 +657,72 @@ impl GenerateDataset {
         separator_id
     }
 
-    fn data_separator_column_and_row(separator_id: u8) -> (String, String) {
+    fn data_separator_column_and_row(separator_id: u8) -> (String, String, String) {
         let separator_column: &str;
         let separator_row: &str;
+        let separator_name: &str;
         match separator_id {
             1 => {
                 // No separator between columns. Space for separating rows.
                 separator_column = "";
                 separator_row = " ";
+                separator_name = "none-space";
             },
             2 => {
                 // No separators. It's a single line of pixels.
                 separator_column = "";
                 separator_row = "";
+                separator_name = "none-none";
             },
             3 => {
                 // No separator between columns. Comma for separating rows.
                 separator_column = "";
                 separator_row = ",";
+                separator_name = "none-comma";
             },
             4 => {
                 // No separator between columns. Newline for separating rows.
                 separator_column = "";
                 separator_row = "\n";
+                separator_name = "none-newline";
             },
             5 => {
                 // Space separator between columns. Semicolon for separating rows.
                 separator_column = " ";
                 separator_row = ";";
+                separator_name = "space-semicolon";
             },
             6 => {
                 // Colon separator between columns. Newline for separating rows.
                 separator_column = ":";
                 separator_row = "\n";
+                separator_name = "colon-newline";
             },
             7 => {
                 // Comma separator between columns. Newline for separating rows.
                 separator_column = ",";
                 separator_row = "\n";
+                separator_name = "comma-newline";
             },
             8 => {
                 // Comma separator between columns. Comma newline for separating rows.
                 separator_column = ",";
                 separator_row = ",\n";
+                separator_name = "comma-commanewline";
             },
             _ => {
                 // Space separator between columns. Newline for separating rows.
                 separator_column = " ";
                 separator_row = "\n";
+                separator_name = "space-newline";
             },
         }
-        (separator_column.to_string(), separator_row.to_string())
+        (separator_column.to_string(), separator_row.to_string(), separator_name.to_string())
     }
 
     fn choose_symbol_name_id(rng: &mut StdRng, curriculum: Curriculum) -> SymbolNameId {
         let items: [SymbolNameId; 5] = [
-            SymbolNameId::ZeroTo255,
+            SymbolNameId::Digit,
             SymbolNameId::LowercaseHex,
             SymbolNameId::LowercaseAZ,
             SymbolNameId::UppercaseAZ,
@@ -1280,7 +1324,7 @@ mod tests {
         let mut max_value: u8 = 0;
         let mut rng = StdRng::seed_from_u64(0);
         for _ in 0..20 {
-            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SymbolNameId::ZeroTo255);
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SymbolNameId::Digit);
             min_value = min_value.min(value);
             max_value = max_value.max(value);
         }
@@ -1323,57 +1367,109 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_data_separator_column_and_row() {
+    fn test_40003_data_separator_column_row_name() {
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(0);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(0);
             assert_eq!(col, " ");
             assert_eq!(row, "\n");
+            assert_eq!(name, "space-newline");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(1);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(1);
             assert_eq!(col, "");
             assert_eq!(row, " ");
+            assert_eq!(name, "none-space");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(2);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(2);
             assert_eq!(col, "");
             assert_eq!(row, "");
+            assert_eq!(name, "none-none");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(3);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(3);
             assert_eq!(col, "");
             assert_eq!(row, ",");
+            assert_eq!(name, "none-comma");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(4);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(4);
             assert_eq!(col, "");
             assert_eq!(row, "\n");
+            assert_eq!(name, "none-newline");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(5);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(5);
             assert_eq!(col, " ");
             assert_eq!(row, ";");
+            assert_eq!(name, "space-semicolon");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(6);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(6);
             assert_eq!(col, ":");
             assert_eq!(row, "\n");
+            assert_eq!(name, "colon-newline");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(7);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(7);
             assert_eq!(col, ",");
             assert_eq!(row, "\n");
+            assert_eq!(name, "comma-newline");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(8);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(8);
             assert_eq!(col, ",");
             assert_eq!(row, ",\n");
+            assert_eq!(name, "comma-commanewline");
         }
+    }
+
+    #[test]
+    fn test_50000_metadata_id() {
+        // Arrange
+        let seeds: Vec<u64> = vec![
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+        ];
+
+        // Act
+        let mut actual = Vec::<String>::new();
+        for seed in seeds {
+            let mut rng = StdRng::seed_from_u64(seed);
+            let params: GeneratorParameters = GenerateDataset::generator_parameters(&mut rng, Curriculum::SmallMediumBig);
+            actual.push(params.metadata_id());
+        }
+
+        // Assert
+        let expected_str = [
+            "special-none-newline @:~|+_*-.%$&", 
+            "special-none-comma ?_+!|@/*$.;:", 
+            "digit-comma-commanewline 5971683420",
+            "AZ-none-comma RWCYSNVJQBXL", 
+            "AZ-colon-newline SJBRKECIUDLV", 
+            "digit-none-comma 7936281540", 
+            "digit-none-comma 4301285967",
+            "az-space-newline-randomnewline triksupcwavg", 
+            "AZ-none-comma ULRQKZVADCES",
+            "az-comma-newline-randomnewline ryknlsbgzfic", 
+            "hex-comma-newline 5fd7cd60b958dc076fd3e22f9c57"
+        ];
+        let expected: Vec<String> = expected_str.iter().map(|s| s.to_string()).collect();
+        assert_eq!(actual, expected);
     }
 
     #[allow(dead_code)]
     // #[test]
-    fn test_40000_generate() {
+    fn test_60000_generate() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histograms.jsonl");
         let mut generator = GenerateDataset::new();
         let number_of_items: u32 = 100;
