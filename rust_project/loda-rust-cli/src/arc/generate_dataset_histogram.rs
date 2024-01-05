@@ -232,8 +232,6 @@ impl GenerateDataset {
 
     #[allow(dead_code)]
     fn generate(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
-        let missing_symbol: &str = "missing";
-
         let sizes: Vec<u8> = match curriculum {
             Curriculum::Small => vec![3, 4, 5, 6],
             Curriculum::SmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
@@ -354,7 +352,6 @@ impl GenerateDataset {
             &mut rng, 
             &item_vec, 
             &params.symbol_names,
-            missing_symbol,
             &params.data_separator_column,
             &params.data_separator_row,
             params.randomize_newlines_in_images,
@@ -409,8 +406,6 @@ impl GenerateDataset {
 
         let image_pairs: Vec<arc_json_model::ImagePair> = image_train_pairs.into_iter().chain(image_test_pairs.into_iter()).collect();
 
-        let missing_symbol: &str = "missing";
-
         let mut rng = StdRng::seed_from_u64(random_seed);
 
         let params: GeneratorParameters = Self::generator_parameters(&mut rng, Curriculum::SmallMediumBig);
@@ -442,7 +437,6 @@ impl GenerateDataset {
             &mut rng, 
             &item_vec, 
             &params.symbol_names,
-            missing_symbol,
             &params.data_separator_column,
             &params.data_separator_row,
             params.randomize_newlines_in_images,
@@ -462,11 +456,12 @@ impl GenerateDataset {
         rng: &mut StdRng, 
         item_vec: &Vec<ComparisionItem>, 
         symbol_names: &HashMap<u8, String>, 
-        missing_symbol: &str,
         data_separator_column: &str,
         data_separator_row: &str,
         randomize_newlines_in_images: bool,
     ) -> anyhow::Result<String> {
+        let missing_symbol: &str = "missing";
+
         let mut markdown = String::new();
         markdown.push_str("# Histogram comparisons with summary\n\n");
 
