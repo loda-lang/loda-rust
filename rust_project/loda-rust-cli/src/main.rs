@@ -403,7 +403,10 @@ async fn main() -> anyhow::Result<()> {
             None => 1
         };
         let mode = SubcommandARCMode::MetadataHistogram { count, task_json_directory };
-        SubcommandARC::run(mode)?;
+        let blocking_task = tokio::task::spawn_blocking(|| {
+            SubcommandARC::run(mode).expect("ok");
+        });
+        blocking_task.await?;
         return Ok(());
     }
 
