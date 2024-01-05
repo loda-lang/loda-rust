@@ -68,6 +68,7 @@ impl SubcommandARCMetadata {
             for dataset_item in dataset_items {
                 let key: String = dataset_item.metadata_id.clone();
                 let value: String = dataset_item.markdown.clone();
+                println!("arc-metadata-histograms. key: {} value: {} bytes", key, value.as_bytes().len());
                 insert_key_value_pairs.push((key, value));
             }
 

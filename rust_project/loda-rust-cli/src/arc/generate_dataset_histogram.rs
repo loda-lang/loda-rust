@@ -415,7 +415,7 @@ impl GenerateDataset {
                 anyhow::bail!("Unable to load 'train' images. error: {:?}", error);
             }
         };
-        debug!("train pairs: {}", image_train_pairs.len());
+        // debug!("train pairs: {}", image_train_pairs.len());
 
         // Extract "test" images
         let image_test_pairs: Vec<arc_json_model::ImagePair> = match task.images_test() {
@@ -424,7 +424,7 @@ impl GenerateDataset {
                 anyhow::bail!("Unable to load 'test' images. error: {:?}", error);
             }
         };
-        debug!("test pairs: {}", image_test_pairs.len());
+        // debug!("test pairs: {}", image_test_pairs.len());
 
         // Sanity check
         if image_train_pairs.is_empty() || image_test_pairs.is_empty() {
@@ -432,7 +432,6 @@ impl GenerateDataset {
         }
 
         let train_count: usize = image_train_pairs.len();
-        let test_count: usize = image_test_pairs.len();
 
         if print_to_htmllog {
             for image_pair in &image_train_pairs {
@@ -452,7 +451,9 @@ impl GenerateDataset {
         let mut item_vec = Vec::<ComparisionItem>::new();
         for (index, image_pair) in image_pairs.iter().enumerate() {
             if index >= train_count {
-                println!("skipping test image");
+                // Skip test images
+                // The hidden ARC dataset does not have any output image available,
+                // so it's not possible to generate a histogram for the test images.
                 continue;
             }
 
@@ -480,12 +481,10 @@ impl GenerateDataset {
             &params.data_separator_row,
             params.randomize_newlines_in_images,
         )?;
-        if print_to_htmllog {
-            println!("{}", markdown);
-        }
 
+        let metadata_id: String = format!("histogram-{}", params.metadata_id());
         let dataset_item = DatasetItemForTask {
-            metadata_id: format!("histogram-{}", random_seed),
+            metadata_id,
             markdown,
         };
         Ok(dataset_item)
