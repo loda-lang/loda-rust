@@ -21,7 +21,7 @@
 //! Images with the same foreground color, where the goal is to identify the shared foreground color.
 //! Splitview where the goal is to identify the separator color.
 //! Crop out an area from the input image, so that the output image is a subset of the input image.
-use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise};
+use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise, arc_json_model};
 use rand::prelude::Distribution;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
@@ -95,6 +95,13 @@ impl ComparisionItem {
 struct DatasetItem {
     curriculum: Curriculum,
     text: String,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Serialize)]
+pub struct DatasetItemForTask {
+    pub metadata_id: String,
+    pub markdown: String,
 }
 
 #[allow(dead_code)]
@@ -324,6 +331,240 @@ impl GenerateDataset {
         let dataset_item = DatasetItem {
             curriculum,
             text: markdown,
+        };
+        Ok(dataset_item)
+    }
+
+    #[allow(dead_code)]
+    pub fn generate_with_task(task: &arc_json_model::Task, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItemForTask> {
+        let curriculum: Curriculum = Curriculum::SmallMediumBig;
+
+        // Extract "train" images
+        let image_train_pairs: Vec<arc_json_model::ImagePair> = match task.images_train() {
+            Ok(value) => value,
+            Err(error) => {
+                anyhow::bail!("Unable to load 'train' images. error: {:?}", error);
+            }
+        };
+        debug!("train pairs: {}", image_train_pairs.len());
+
+        // Extract "test" images
+        let image_test_pairs: Vec<arc_json_model::ImagePair> = match task.images_test() {
+            Ok(value) => value,
+            Err(error) => {
+                anyhow::bail!("Unable to load 'test' images. error: {:?}", error);
+            }
+        };
+        debug!("test pairs: {}", image_test_pairs.len());
+
+        // Sanity check
+        if image_train_pairs.is_empty() || image_test_pairs.is_empty() {
+            anyhow::bail!("Either 'train' or 'test' have zero images.");
+        }
+
+        if print_to_htmllog {
+            for image_pair in &image_train_pairs {
+                HtmlLog::compare_images(vec![image_pair.input.clone(), image_pair.output.clone()]);
+            }
+            for image_pair in &image_test_pairs {
+                HtmlLog::compare_images(vec![image_pair.input.clone(), image_pair.output.clone()]);
+            }
+        }
+
+        let missing_symbol: &str = "missing";
+
+        let sizes: Vec<u8> = match curriculum {
+            Curriculum::Small => vec![3, 4, 5, 6],
+            Curriculum::SmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
+            Curriculum::SmallMediumBig => vec![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+        };
+
+        let mut rng = StdRng::seed_from_u64(random_seed);
+
+        // Generate symbol names that fits with this curriculum
+        let symbol_name_id: usize = Self::choose_symbol_name_id(&mut rng, curriculum);
+        let symbol_names: HashMap<u8, String> = match symbol_name_id {
+            SYMBOL_NAME_LOWERCASE_HEX => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_hex),
+            SYMBOL_NAME_LOWERCASE_AZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_a_z),
+            SYMBOL_NAME_UPPERCASE_AZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z),
+            SYMBOL_NAME_SPECIAL_ASCII => Self::generate_symbol_names_with_callback(Self::symbol_name_special_ascii),
+            _ => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
+        };
+
+        let is_symbol_name_special_ascii: bool = symbol_name_id == SYMBOL_NAME_SPECIAL_ASCII;
+        let (data_separator_column, data_separator_row) = Self::random_data_separator_column_and_row(&mut rng, symbol_name_id);
+
+        // println!("data_separator_column: {:?}", data_separator_column);
+        // println!("data_separator_row: {:?}", data_separator_row);
+
+        // The symbol names to pick from
+        let symbols_available: Vec<u8> = match symbol_name_id {
+            SYMBOL_NAME_LOWERCASE_HEX => (0..=255).collect(), // 00-ff, 2 digits
+            SYMBOL_NAME_LOWERCASE_AZ  => (0..=25).collect(), // a-z, only 1 digit
+            SYMBOL_NAME_UPPERCASE_AZ  => (0..=25).collect(), // A-Z, only 1 digit
+            SYMBOL_NAME_SPECIAL_ASCII => (0..=15).collect(), // Special ascii, only 1 digit
+            _ => (0..=9).collect(), // 0-9, only 1 digit
+        };
+        let mut shuffled_symbols_available: Vec<u8> = symbols_available.clone();
+        shuffled_symbols_available.shuffle(&mut rng);
+
+        // Taken N symbols from the symbols to use
+        let use_number_of_symbols: usize = match symbol_name_id {
+            SYMBOL_NAME_LOWERCASE_HEX => 14, // 00-ff, 2 digits
+            SYMBOL_NAME_LOWERCASE_AZ  => 12, // a-z, only 1 digit
+            SYMBOL_NAME_UPPERCASE_AZ  => 12, // A-Z, only 1 digit
+            SYMBOL_NAME_SPECIAL_ASCII => 12, // Special ascii, only 1 digit
+            _ => 10, // 0-9, only 1 digit
+        };
+
+        // Take N random symbols from the available symbols.
+        let mut shuffled_symbols_to_use: Vec<u8> = shuffled_symbols_available.clone();
+        shuffled_symbols_to_use.truncate(use_number_of_symbols);
+
+        let max_color_value: u8 = (shuffled_symbols_to_use.len().max(1) - 1).min(255) as u8;
+
+        let mut shuffled_color_replacements = HashMap::<u8, u8>::new();
+        for source_color in 0..=max_color_value {
+            let destination_color: u8 = shuffled_symbols_to_use[source_color as usize];
+            shuffled_color_replacements.insert(source_color, destination_color);
+        }
+
+        let overall_max_color_value0: u8 = rng.gen_range(2..=max_color_value);
+        let overall_max_color_value1: u8 = rng.gen_range(2..=max_color_value);
+
+        let use_overall_max_color_value: bool = rng.gen_bool(0.2); // 20% chance
+
+        let mut randomize_newlines_in_images: bool = rng.gen_bool(0.5); // 50% chance
+        if is_symbol_name_special_ascii {
+            randomize_newlines_in_images = false;
+        }
+        let same_left_right_histograms_with_shuffled_pixels: bool = rng.gen_bool(0.05); // 5% chance
+
+        let color_strategy_id: usize = Self::color_strategy_id(&mut rng);
+
+        let item_count: usize = Self::number_of_comparison_items_to_generate(&mut rng);
+        let mut item_vec = Vec::<ComparisionItem>::new();
+        for _ in 0..item_count {
+            // Size of the image
+            let width0: u8 = *sizes.choose(&mut rng).unwrap();
+            let height0: u8 = *sizes.choose(&mut rng).unwrap();
+            let width1: u8 = *sizes.choose(&mut rng).unwrap();
+            let height1: u8 = *sizes.choose(&mut rng).unwrap();
+            let size0 = ImageSize::new(width0, height0);
+            let size1 = ImageSize::new(width1, height1);
+
+            let mut min_color_value0: u8 = 0;
+            let mut min_color_value1: u8 = 0;
+            let mut max_color_value0: u8 = rng.gen_range(2..=max_color_value);
+            let mut max_color_value1: u8 = rng.gen_range(2..=max_color_value);
+
+            if use_overall_max_color_value {
+                max_color_value0 = overall_max_color_value0;
+                max_color_value1 = overall_max_color_value1;
+            }
+
+            match color_strategy_id {
+                1 => {
+                    // same number of colors for left image and right image
+                    max_color_value1 = max_color_value0;
+                },
+                2 => {
+                    // one more color for the right image
+                    if max_color_value0 < max_color_value {
+                        max_color_value1 = max_color_value0 + 1;
+                    }
+                },
+                3 => {
+                    // one more color for the left image
+                    if max_color_value1 < max_color_value {
+                        max_color_value0 = max_color_value1 + 1;
+                    }
+                },
+                4 => {
+                    // split the color space into 2 parts, so there is no overlap between colors in left image and right image
+                    if max_color_value1 > 4 {
+                        min_color_value0 = 0;
+                        max_color_value0 = max_color_value1 / 2;
+                        min_color_value1 = max_color_value1 / 2 + 1;
+                        max_color_value1 = max_color_value1;
+                        if min_color_value0 == max_color_value0 || min_color_value1 == max_color_value1 {
+                            error!("split. Identical colors");
+                            continue;
+                        }
+                    }
+                },
+                5 => {
+                    // split the color space into 2 parts, so there is 1 color overlap between colors in left image and right image
+                    if max_color_value1 > 5 {
+                        min_color_value0 = 0;
+                        max_color_value0 = max_color_value1 / 2;
+                        min_color_value1 = max_color_value1 / 2;
+                        max_color_value1 = max_color_value1;
+                        if min_color_value0 == max_color_value0 || min_color_value1 == max_color_value1 {
+                            error!("split. Identical colors");
+                            continue;
+                        }
+                    }
+                },
+                6 => {
+                    // split the color space into 2 parts, so there are 2 colors overlap between colors in left image and right image
+                    if max_color_value1 > 5 {
+                        min_color_value0 = 0;
+                        max_color_value0 = max_color_value1 / 2 + 1;
+                        min_color_value1 = max_color_value1 / 2;
+                        max_color_value1 = max_color_value1;
+                        if min_color_value0 == max_color_value0 || min_color_value1 == max_color_value1 {
+                            error!("split. Identical colors");
+                            continue;
+                        }
+                    }
+                },
+                _ => {
+                    // do nothing, use uniform colors for left image and right image
+                },
+            }
+
+            // All noise
+            let noise_image_left: Image = RandomImage::uniform_colors(&mut rng, size0, min_color_value0, max_color_value0)?;
+            let noise_image_right: Image = RandomImage::uniform_colors(&mut rng, size1, min_color_value1, max_color_value1)?;
+
+            // Denoised, and the images have some 2d structure, resembling ARC tasks
+            let mut random_image_left: Image = noise_image_left.denoise_type5()?;
+            let random_image_right: Image = noise_image_right.denoise_type5()?;
+
+            if same_left_right_histograms_with_shuffled_pixels {
+                random_image_left = RandomImage::shuffle_pixels(&mut rng, &random_image_right)?;
+            }
+
+            // Change color range from `0..color_count` to the shuffled colors
+            let image_left: Image = random_image_left.replace_colors_with_hashmap(&shuffled_color_replacements)?;
+            let image_right: Image = random_image_right.replace_colors_with_hashmap(&shuffled_color_replacements)?;
+
+            if print_to_htmllog {
+                HtmlLog::compare_images(vec![random_image_left.clone(), random_image_right.clone()]);
+                // HtmlLog::compare_images(vec![image_left.clone(), image_right.clone()]);
+            }
+    
+            let item: ComparisionItem = ComparisionItem::create(&image_left, &image_right)?;
+            item_vec.push(item);
+        }
+
+        let markdown: String = Self::markdown_for_comparison_items(
+            &mut rng, 
+            &item_vec, 
+            &symbol_names,
+            missing_symbol,
+            &data_separator_column,
+            &data_separator_row,
+            randomize_newlines_in_images,
+        )?;
+        if print_to_htmllog {
+            println!("{}", markdown);
+        }
+
+        let dataset_item = DatasetItemForTask {
+            metadata_id: format!("histogram-{}", random_seed),
+            markdown,
         };
         Ok(dataset_item)
     }
