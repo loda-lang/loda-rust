@@ -31,10 +31,15 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::path::Path;
 
-const SYMBOL_NAME_LOWERCASE_HEX: usize = 1;
-const SYMBOL_NAME_LOWERCASE_AZ: usize = 2;
-const SYMBOL_NAME_UPPERCASE_AZ: usize = 3;
-const SYMBOL_NAME_SPECIAL_ASCII: usize = 4;
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
+enum SymbolNameId {
+    ZeroTo255,
+    LowercaseHex,
+    LowercaseAZ,
+    UppercaseAZ,
+    SpecialAscii,
+}
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -152,16 +157,16 @@ impl GenerateDataset {
 
     fn generator_parameters(rng: &mut StdRng, curriculum: Curriculum) -> GeneratorParameters {
         // Generate symbol names that fits with this curriculum
-        let symbol_name_id: usize = Self::choose_symbol_name_id(rng, curriculum);
+        let symbol_name_id: SymbolNameId = Self::choose_symbol_name_id(rng, curriculum);
         let symbol_names: HashMap<u8, String> = match symbol_name_id {
-            SYMBOL_NAME_LOWERCASE_HEX => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_hex),
-            SYMBOL_NAME_LOWERCASE_AZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_a_z),
-            SYMBOL_NAME_UPPERCASE_AZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z),
-            SYMBOL_NAME_SPECIAL_ASCII => Self::generate_symbol_names_with_callback(Self::symbol_name_special_ascii),
-            _ => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
+            SymbolNameId::ZeroTo255    => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
+            SymbolNameId::LowercaseHex => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_hex),
+            SymbolNameId::LowercaseAZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_a_z),
+            SymbolNameId::UppercaseAZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z),
+            SymbolNameId::SpecialAscii => Self::generate_symbol_names_with_callback(Self::symbol_name_special_ascii),
         };
 
-        let is_symbol_name_special_ascii: bool = symbol_name_id == SYMBOL_NAME_SPECIAL_ASCII;
+        let is_symbol_name_special_ascii: bool = symbol_name_id == SymbolNameId::SpecialAscii;
         let (data_separator_column, data_separator_row) = Self::random_data_separator_column_and_row(rng, symbol_name_id);
 
         // println!("data_separator_column: {:?}", data_separator_column);
@@ -169,22 +174,22 @@ impl GenerateDataset {
 
         // The symbol names to pick from
         let symbols_available: Vec<u8> = match symbol_name_id {
-            SYMBOL_NAME_LOWERCASE_HEX => (0..=255).collect(), // 00-ff, 2 digits
-            SYMBOL_NAME_LOWERCASE_AZ  => (0..=25).collect(), // a-z, only 1 digit
-            SYMBOL_NAME_UPPERCASE_AZ  => (0..=25).collect(), // A-Z, only 1 digit
-            SYMBOL_NAME_SPECIAL_ASCII => (0..=15).collect(), // Special ascii, only 1 digit
-            _ => (0..=9).collect(), // 0-9, only 1 digit
+            SymbolNameId::ZeroTo255    => (0..=9).collect(), // 0-9, only 1 digit
+            SymbolNameId::LowercaseHex => (0..=255).collect(), // 00-ff, 2 digits
+            SymbolNameId::LowercaseAZ  => (0..=25).collect(), // a-z, only 1 digit
+            SymbolNameId::UppercaseAZ  => (0..=25).collect(), // A-Z, only 1 digit
+            SymbolNameId::SpecialAscii => (0..=15).collect(), // Special ascii, only 1 digit
         };
         let mut shuffled_symbols_available: Vec<u8> = symbols_available.clone();
         shuffled_symbols_available.shuffle(rng);
 
         // Taken N symbols from the symbols to use
         let use_number_of_symbols: usize = match symbol_name_id {
-            SYMBOL_NAME_LOWERCASE_HEX => 14, // 00-ff, 2 digits
-            SYMBOL_NAME_LOWERCASE_AZ  => 12, // a-z, only 1 digit
-            SYMBOL_NAME_UPPERCASE_AZ  => 12, // A-Z, only 1 digit
-            SYMBOL_NAME_SPECIAL_ASCII => 12, // Special ascii, only 1 digit
-            _ => 10, // 0-9, only 1 digit
+            SymbolNameId::ZeroTo255    => 10, // 0-9, only 1 digit
+            SymbolNameId::LowercaseHex => 14, // 00-ff, 2 digits
+            SymbolNameId::LowercaseAZ  => 12, // a-z, only 1 digit
+            SymbolNameId::UppercaseAZ  => 12, // A-Z, only 1 digit
+            SymbolNameId::SpecialAscii => 12, // Special ascii, only 1 digit
         };
 
         // Take N random symbols from the available symbols.
@@ -597,18 +602,18 @@ impl GenerateDataset {
         items[dist.sample(rng)]
     }
 
-    fn random_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: usize) -> (String, String) {
+    fn random_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: SymbolNameId) -> (String, String) {
         let separator_id: u8 = Self::id_data_separator_column_and_row(rng, symbol_name_id);
         Self::data_separator_column_and_row(separator_id)
     }
 
-    fn id_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: usize) -> u8 {
+    fn id_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: SymbolNameId) -> u8 {
         let indexes: Vec<u8> = match symbol_name_id {
-            SYMBOL_NAME_SPECIAL_ASCII => {
+            SymbolNameId::SpecialAscii => {
                 // To prevent clashes when it's `symbol_name_special_ascii` then avoid using special characters for the separators.
                 vec![0, 1, 2, 3, 4]
             },
-            SYMBOL_NAME_LOWERCASE_HEX => {
+            SymbolNameId::LowercaseHex => {
                 // To ensure there is a separator between the columns, then avoid the empty separator.
                 vec![0, 5, 6, 7, 8]
             },
@@ -671,8 +676,14 @@ impl GenerateDataset {
         (separator_column.to_string(), separator_row.to_string())
     }
 
-    fn choose_symbol_name_id(rng: &mut StdRng, curriculum: Curriculum) -> usize {
-        let items: [usize; 5] = [0, 1, 2, 3, 4];
+    fn choose_symbol_name_id(rng: &mut StdRng, curriculum: Curriculum) -> SymbolNameId {
+        let items: [SymbolNameId; 5] = [
+            SymbolNameId::ZeroTo255,
+            SymbolNameId::LowercaseHex,
+            SymbolNameId::LowercaseAZ,
+            SymbolNameId::UppercaseAZ,
+            SymbolNameId::SpecialAscii
+        ];
         let weights: [u8; 5] = match curriculum {
             Curriculum::Small => [1, 0, 0, 0, 0],
             Curriculum::SmallMedium => [1, 1, 1, 0, 0],
@@ -1269,7 +1280,7 @@ mod tests {
         let mut max_value: u8 = 0;
         let mut rng = StdRng::seed_from_u64(0);
         for _ in 0..20 {
-            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, 0);
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SymbolNameId::ZeroTo255);
             min_value = min_value.min(value);
             max_value = max_value.max(value);
         }
@@ -1283,7 +1294,7 @@ mod tests {
         let mut max_value: u8 = 0;
         let mut rng = StdRng::seed_from_u64(0);
         for _ in 0..20 {
-            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SYMBOL_NAME_SPECIAL_ASCII);
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SymbolNameId::SpecialAscii);
             min_value = min_value.min(value);
             max_value = max_value.max(value);
         }
@@ -1298,7 +1309,7 @@ mod tests {
         let mut histogram = Histogram::new();
         let mut rng = StdRng::seed_from_u64(0);
         for _ in 0..20 {
-            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SYMBOL_NAME_LOWERCASE_HEX);
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SymbolNameId::LowercaseHex);
             histogram.increment(value);
             min_value = min_value.min(value);
             max_value = max_value.max(value);
