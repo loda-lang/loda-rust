@@ -33,6 +33,9 @@ pub enum SubcommandARCMode {
     
     /// Predict the output sizes for a single ARC task.
     PredictOutputSizesForSingleTask { task_json_file: PathBuf },
+    
+    /// Traverse the task json files, and assign a number of histogram comparisons.
+    MetadataHistogram { count: u16, seed: u64, task_json_directory: PathBuf },
 }
 
 pub struct SubcommandARC;
@@ -47,6 +50,7 @@ impl SubcommandARC {
     pub fn run(mode: SubcommandARCMode) -> anyhow::Result<()> {
         #[allow(unused_imports)]
         use crate::arc::GenerateDataset;
+        use crate::arc::SubcommandARCMetadata;
 
         match mode {
             SubcommandARCMode::CheckAllExistingSolutions => {
@@ -76,6 +80,9 @@ impl SubcommandARC {
             },
             SubcommandARCMode::PredictOutputSizesForSingleTask { task_json_file } => {
                 return SubcommandARCSize::run(&task_json_file);
+            },
+            SubcommandARCMode::MetadataHistogram { count, seed, task_json_directory } => {
+                return SubcommandARCMetadata::run(count, seed, &task_json_directory);
             },
         }
     }

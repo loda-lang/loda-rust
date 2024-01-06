@@ -156,6 +156,7 @@ mod solve_split;
 mod split;
 mod split_to_label;
 mod stack_strings;
+mod subcommand_arc_metadata;
 mod subcommand_arc_size;
 mod subcommand_arc_web;
 mod substitution_rule;
@@ -169,20 +170,37 @@ mod traverse_programs_and_models;
 mod verify_prediction;
 
 pub use action_label_util::ActionLabelUtil;
+
+#[allow(unused_imports)]
 pub use arc_json_model_to_html::ModelToHTML;
+
+#[allow(unused_imports)]
 pub use arcathon_solution_coordinator::{ArcathonSolutionCoordinator, PredictionType, TaskNameToPredictionVec};
+
+#[allow(unused_imports)]
 pub use arcathon_solution_json::{Prediction, TestItem, TaskItem, ArcathonSolutionJsonFile};
+
 pub use auto_repair_symmetry::AutoRepairSymmetry;
+
+#[allow(unused_imports)]
 pub use cellular_automaton::{CellularAutomaton, CARule, rule};
+
 pub use center_of_mass::CenterOfMass;
 pub use color::Color;
 pub use color_map::ColorMap;
 pub use compare_input_output::CompareInputOutput;
+
+#[allow(unused_imports)]
 pub use connected_component::{ConnectedComponent, ConnectedComponentItem};
 pub use convolution2x2::convolution2x2;
 pub use convolution3x3::convolution3x3;
+
+#[allow(unused_imports)]
 pub use convolution3x3_with_mask::convolution3x3_with_mask;
+
+#[allow(unused_imports)]
 pub use convolution5x5_special::convolution5x5_special;
+
 pub use create_task_with_same_size::CreateTaskWithSameSize;
 pub use diagonal_histogram::DiagonalHistogram;
 pub use experiment_with_convolution::ExperimentWithConvolution;
@@ -192,7 +210,10 @@ pub use generate_pattern::GeneratePattern;
 pub use generate_dataset_histogram::GenerateDataset;
 pub use grid::{Grid, GridPattern};
 pub use grid_to_label::GridToLabel;
+
+#[allow(unused_imports)]
 pub use histogram::{Histogram, HistogramPair};
+
 pub use html_log::HtmlLog;
 pub use image::Image;
 pub use image_border::ImageBorder;
@@ -233,7 +254,10 @@ pub use image_overlay::{ImageOverlay, OverlayPositionId};
 pub use image_padding::ImagePadding;
 pub use image_palette::ImageCreatePalette;
 pub use image_periodicity::ImagePeriodicity;
+
+#[allow(unused_imports)]
 pub use image_position::ImagePosition;
+
 pub use image_remove_duplicates::ImageRemoveDuplicates;
 pub use image_remove_rowcolumn::ImageRemoveRowColumn;
 pub use image_repair_offset::ImageRepairOffset;
@@ -242,8 +266,13 @@ pub use image_repair_symmetry::ImageRepairSymmetry;
 pub use image_repair_trigram::ImageRepairTrigram;
 pub use image_repeat::ImageRepeat;
 pub use image_replace_color::ImageReplaceColor;
+
+#[allow(unused_imports)]
 pub use image_replace_pattern::ImageReplacePattern;
+
+#[allow(unused_imports)]
 pub use image_replace_regex::{ImageReplaceRegex, ImageReplaceRegexToColor};
+
 pub use image_replace_simple::ImageReplaceSimple;
 pub use image_resize::ImageResize;
 pub use image_rotate45::ImageRotate45;
@@ -255,7 +284,10 @@ pub use image_skew::ImageSkew;
 pub use image_sort::{ImageSort, ImageSortMode};
 pub use image_split::{ImageSplit, ImageSplitDirection};
 pub use image_stack::ImageStack;
+
+#[allow(unused_imports)]
 pub use image_stats::{ImageStats, ImageStatsMode, Stats};
+
 pub use image_symmetry::ImageSymmetry;
 pub use image_tile::ImageTile;
 pub use image_to_html::ImageToHTML;
@@ -270,38 +302,68 @@ pub use landmark_single_pixel::LandmarkSinglePixel;
 pub use largest_interior_rectangle::LargestInteriorRectangle;
 pub use linespan::{LineSpan, LineSpanDirection, LineSpanMode};
 pub use measure_density::MeasureDensity;
+
+#[allow(unused_imports)]
 pub use ngram::{ImageNgram, RecordBigram, RecordTrigram};
+
 pub use number_to_image::NumberToImage;
 pub use object_with_different_color::ObjectWithDifferentColor;
 pub use object_with_smallest_value::ObjectWithSmallestValue;
+
+#[allow(unused_imports)]
 pub use objects_and_gravity::{ObjectsAndGravity, ObjectsAndGravityDirection};
+
 pub use objects_and_mass::ObjectsAndMass;
 pub use objects_and_position::{ObjectsAndPosition, ObjectsAndPositionMode};
+
+#[allow(unused_imports)]
 pub use objects_measure_mass::ObjectsMeasureMass;
+
 pub use objects_sort_by_property::ObjectsSortByProperty;
+
+#[allow(unused_imports)]
 pub use objects_to_grid::{ObjectsToGrid, ObjectsToGridMode};
+
 pub use objects_unique_color_count::ObjectsUniqueColorCount;
 pub use output_specification::*;
 pub use pixel_connectivity::PixelConnectivity;
 pub use popular_objects::PopularObjects;
 pub use random_image::RandomImage;
+
+#[allow(unused_imports)]
 pub use read_testdata::{path_testdata, read_testdata};
+
 pub use rectangle::Rectangle;
 pub use register_arc_functions::register_arc_functions;
 pub use reverse_color_popularity::ReverseColorPopularity;
+
+#[allow(unused_imports)]
 pub use run_with_program::{AnalyzeAndSolve, RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData};
+
 pub use shape3x3::Shape3x3;
 pub use shape_identification::{ShapeIdentification, ShapeTransformation, ShapeType};
 pub use shape_identification_from_single_color_object::{ShapeIdentificationFromSingleColorObject, ColorAndShape};
+
+#[allow(unused_imports)]
 pub use single_color_object::{SingleColorObject, SingleColorObjectRectangle, SingleColorObjectSparse, SingleColorObjectCluster, SingleColorObjectClusterContainer};
+
 pub use single_color_object_satisfies_label::SingleColorObjectSatisfiesLabel;
 pub use single_color_object_to_label::SingleColorObjectToLabel;
 pub use solve_logisticregression::SolveLogisticRegression;
 pub use solve_one_color::SolveOneColor;
+
+#[allow(unused_imports)]
 pub use solve_split::{Operation, SolveSplit, SolveSplitFoundSolution};
+
+#[allow(unused_imports)]
 pub use split::{EvenSplit, Split, SplitCandidate, SplitCandidateContainer};
+
 pub use split_to_label::SplitToLabel;
+
+#[allow(unused_imports)]
 pub use stack_strings::StackStrings;
+
+pub use subcommand_arc_metadata::SubcommandARCMetadata;
 pub use subcommand_arc_size::SubcommandARCSize;
 pub use subcommand_arc_web::SubcommandARCWeb;
 pub use substitution_rule::SubstitutionRule;
@@ -310,4 +372,6 @@ pub use symmetry_to_label::SymmetryToLabel;
 pub use task_graph::*;
 pub use time_util::*;
 pub use traverse_programs_and_models::TraverseProgramsAndModels;
+
+#[allow(unused_imports)]
 pub use verify_prediction::{VerifyPrediction, VerifyPredictionIncorrectData, VerifyPredictionWithTask};

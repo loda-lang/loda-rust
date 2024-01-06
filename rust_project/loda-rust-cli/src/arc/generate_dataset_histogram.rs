@@ -21,7 +21,7 @@
 //! Images with the same foreground color, where the goal is to identify the shared foreground color.
 //! Splitview where the goal is to identify the separator color.
 //! Crop out an area from the input image, so that the output image is a subset of the input image.
-use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise};
+use super::{RandomImage, Image, ImageSize, ImageHistogram, Histogram, HtmlLog, ImageReplaceColor, ImageDenoise, arc_json_model};
 use rand::prelude::Distribution;
 use rand::seq::SliceRandom;
 use rand::{rngs::StdRng, SeedableRng, Rng};
@@ -31,10 +31,15 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::path::Path;
 
-const SYMBOL_NAME_LOWERCASE_HEX: usize = 1;
-const SYMBOL_NAME_LOWERCASE_AZ: usize = 2;
-const SYMBOL_NAME_UPPERCASE_AZ: usize = 3;
-const SYMBOL_NAME_SPECIAL_ASCII: usize = 4;
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
+enum SymbolNameId {
+    Digit,
+    LowercaseHex,
+    LowercaseAZ,
+    UppercaseAZ,
+    SpecialAscii,
+}
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -98,6 +103,60 @@ struct DatasetItem {
 }
 
 #[allow(dead_code)]
+#[derive(Debug, Serialize)]
+pub struct DatasetItemForTask {
+    pub metadata_id: String,
+    pub markdown: String,
+}
+
+struct GeneratorParameters {
+    symbol_name_id: SymbolNameId,
+    symbol_names: HashMap<u8, String>,
+    data_separator_column: String,
+    data_separator_row: String,
+    separator_name: String,
+    max_color_value: u8,
+    shuffled_color_replacements: HashMap<u8, u8>,
+    overall_max_color_value0: u8,
+    overall_max_color_value1: u8,
+    use_overall_max_color_value: bool,
+    randomize_newlines_in_images: bool,
+    same_left_right_histograms_with_shuffled_pixels: bool,
+    color_strategy_id: usize,
+    item_count: usize,
+}
+
+impl GeneratorParameters {
+    #[allow(dead_code)]
+    fn metadata_id(&self) -> String {
+        let name: &str = match self.symbol_name_id {
+            SymbolNameId::Digit => "digit",
+            SymbolNameId::LowercaseHex => "hex",
+            SymbolNameId::LowercaseAZ => "az",
+            SymbolNameId::UppercaseAZ => "AZ",
+            SymbolNameId::SpecialAscii => "special",
+        };
+        let mut id: String = format!("{}-{}", name, self.separator_name);
+        if self.randomize_newlines_in_images {
+            id.push_str("-randomnewline");
+        }
+        let mut symbols = Vec::<String>::new();
+        for i in 0..=self.max_color_value {
+            if let Some(shuffled_index) = self.shuffled_color_replacements.get(&i) {
+                if let Some(value) = self.symbol_names.get(&shuffled_index) {
+                    symbols.push(value.clone());
+                    continue;
+                }
+            }
+            symbols.push("unknown".to_string());
+        }
+        id.push_str(" ");
+        id.push_str(&symbols.join(""));
+        id
+    }
+}
+
+#[allow(dead_code)]
 pub struct GenerateDataset {
     dataset_items: Vec<DatasetItem>,
 }
@@ -128,52 +187,41 @@ impl GenerateDataset {
         Ok(())
     }
 
-    #[allow(dead_code)]
-    fn generate(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
-        let missing_symbol: &str = "missing";
-
-        let sizes: Vec<u8> = match curriculum {
-            Curriculum::Small => vec![3, 4, 5, 6],
-            Curriculum::SmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
-            Curriculum::SmallMediumBig => vec![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-        };
-
-        let mut rng = StdRng::seed_from_u64(random_seed);
-
+    fn generator_parameters(rng: &mut StdRng, curriculum: Curriculum) -> GeneratorParameters {
         // Generate symbol names that fits with this curriculum
-        let symbol_name_id: usize = Self::choose_symbol_name_id(&mut rng, curriculum);
+        let symbol_name_id: SymbolNameId = Self::choose_symbol_name_id(rng, curriculum);
         let symbol_names: HashMap<u8, String> = match symbol_name_id {
-            SYMBOL_NAME_LOWERCASE_HEX => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_hex),
-            SYMBOL_NAME_LOWERCASE_AZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_a_z),
-            SYMBOL_NAME_UPPERCASE_AZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z),
-            SYMBOL_NAME_SPECIAL_ASCII => Self::generate_symbol_names_with_callback(Self::symbol_name_special_ascii),
-            _ => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
+            SymbolNameId::Digit        => Self::generate_symbol_names_with_callback(Self::symbol_name_0_255),
+            SymbolNameId::LowercaseHex => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_hex),
+            SymbolNameId::LowercaseAZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_lowercase_a_z),
+            SymbolNameId::UppercaseAZ  => Self::generate_symbol_names_with_callback(Self::symbol_name_uppercase_a_z),
+            SymbolNameId::SpecialAscii => Self::generate_symbol_names_with_callback(Self::symbol_name_special_ascii),
         };
 
-        let is_symbol_name_special_ascii: bool = symbol_name_id == SYMBOL_NAME_SPECIAL_ASCII;
-        let (data_separator_column, data_separator_row) = Self::random_data_separator_column_and_row(&mut rng, symbol_name_id);
+        let is_symbol_name_special_ascii: bool = symbol_name_id == SymbolNameId::SpecialAscii;
+        let (data_separator_column, data_separator_row, separator_name) = Self::random_data_separator_column_and_row(rng, symbol_name_id);
 
         // println!("data_separator_column: {:?}", data_separator_column);
         // println!("data_separator_row: {:?}", data_separator_row);
 
         // The symbol names to pick from
         let symbols_available: Vec<u8> = match symbol_name_id {
-            SYMBOL_NAME_LOWERCASE_HEX => (0..=255).collect(), // 00-ff, 2 digits
-            SYMBOL_NAME_LOWERCASE_AZ  => (0..=25).collect(), // a-z, only 1 digit
-            SYMBOL_NAME_UPPERCASE_AZ  => (0..=25).collect(), // A-Z, only 1 digit
-            SYMBOL_NAME_SPECIAL_ASCII => (0..=15).collect(), // Special ascii, only 1 digit
-            _ => (0..=9).collect(), // 0-9, only 1 digit
+            SymbolNameId::Digit        => (0..=9).collect(), // 0-9, only 1 digit
+            SymbolNameId::LowercaseHex => (0..=255).collect(), // 00-ff, 2 digits
+            SymbolNameId::LowercaseAZ  => (0..=25).collect(), // a-z, only 1 digit
+            SymbolNameId::UppercaseAZ  => (0..=25).collect(), // A-Z, only 1 digit
+            SymbolNameId::SpecialAscii => (0..=15).collect(), // Special ascii, only 1 digit
         };
         let mut shuffled_symbols_available: Vec<u8> = symbols_available.clone();
-        shuffled_symbols_available.shuffle(&mut rng);
+        shuffled_symbols_available.shuffle(rng);
 
         // Taken N symbols from the symbols to use
         let use_number_of_symbols: usize = match symbol_name_id {
-            SYMBOL_NAME_LOWERCASE_HEX => 14, // 00-ff, 2 digits
-            SYMBOL_NAME_LOWERCASE_AZ  => 12, // a-z, only 1 digit
-            SYMBOL_NAME_UPPERCASE_AZ  => 12, // A-Z, only 1 digit
-            SYMBOL_NAME_SPECIAL_ASCII => 12, // Special ascii, only 1 digit
-            _ => 10, // 0-9, only 1 digit
+            SymbolNameId::Digit        => 10, // 0-9, only 1 digit
+            SymbolNameId::LowercaseHex => 14, // 00-ff, 2 digits
+            SymbolNameId::LowercaseAZ  => 12, // a-z, only 1 digit
+            SymbolNameId::UppercaseAZ  => 12, // A-Z, only 1 digit
+            SymbolNameId::SpecialAscii => 12, // Special ascii, only 1 digit
         };
 
         // Take N random symbols from the available symbols.
@@ -199,11 +247,42 @@ impl GenerateDataset {
         }
         let same_left_right_histograms_with_shuffled_pixels: bool = rng.gen_bool(0.05); // 5% chance
 
-        let color_strategy_id: usize = Self::color_strategy_id(&mut rng);
+        let color_strategy_id: usize = Self::color_strategy_id(rng);
 
-        let item_count: usize = Self::number_of_comparison_items_to_generate(&mut rng);
+        let item_count: usize = Self::number_of_comparison_items_to_generate(rng);
+
+        GeneratorParameters {
+            symbol_name_id,
+            symbol_names,
+            data_separator_column,
+            data_separator_row,
+            separator_name,
+            max_color_value,
+            shuffled_color_replacements,
+            overall_max_color_value0,
+            overall_max_color_value1,
+            use_overall_max_color_value,
+            randomize_newlines_in_images,
+            same_left_right_histograms_with_shuffled_pixels,
+            color_strategy_id,
+            item_count,
+        }
+    }
+
+    #[allow(dead_code)]
+    fn generate(curriculum: Curriculum, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItem> {
+        let sizes: Vec<u8> = match curriculum {
+            Curriculum::Small => vec![3, 4, 5, 6],
+            Curriculum::SmallMedium => vec![3, 4, 5, 6, 7, 8, 9, 10],
+            Curriculum::SmallMediumBig => vec![3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+        };
+
+        let mut rng = StdRng::seed_from_u64(random_seed);
+
+        let params: GeneratorParameters = Self::generator_parameters(&mut rng, curriculum);
+
         let mut item_vec = Vec::<ComparisionItem>::new();
-        for _ in 0..item_count {
+        for _ in 0..params.item_count {
             // Size of the image
             let width0: u8 = *sizes.choose(&mut rng).unwrap();
             let height0: u8 = *sizes.choose(&mut rng).unwrap();
@@ -214,28 +293,28 @@ impl GenerateDataset {
 
             let mut min_color_value0: u8 = 0;
             let mut min_color_value1: u8 = 0;
-            let mut max_color_value0: u8 = rng.gen_range(2..=max_color_value);
-            let mut max_color_value1: u8 = rng.gen_range(2..=max_color_value);
+            let mut max_color_value0: u8 = rng.gen_range(2..=params.max_color_value);
+            let mut max_color_value1: u8 = rng.gen_range(2..=params.max_color_value);
 
-            if use_overall_max_color_value {
-                max_color_value0 = overall_max_color_value0;
-                max_color_value1 = overall_max_color_value1;
+            if params.use_overall_max_color_value {
+                max_color_value0 = params.overall_max_color_value0;
+                max_color_value1 = params.overall_max_color_value1;
             }
 
-            match color_strategy_id {
+            match params.color_strategy_id {
                 1 => {
                     // same number of colors for left image and right image
                     max_color_value1 = max_color_value0;
                 },
                 2 => {
                     // one more color for the right image
-                    if max_color_value0 < max_color_value {
+                    if max_color_value0 < params.max_color_value {
                         max_color_value1 = max_color_value0 + 1;
                     }
                 },
                 3 => {
                     // one more color for the left image
-                    if max_color_value1 < max_color_value {
+                    if max_color_value1 < params.max_color_value {
                         max_color_value0 = max_color_value1 + 1;
                     }
                 },
@@ -291,13 +370,13 @@ impl GenerateDataset {
             let mut random_image_left: Image = noise_image_left.denoise_type5()?;
             let random_image_right: Image = noise_image_right.denoise_type5()?;
 
-            if same_left_right_histograms_with_shuffled_pixels {
+            if params.same_left_right_histograms_with_shuffled_pixels {
                 random_image_left = RandomImage::shuffle_pixels(&mut rng, &random_image_right)?;
             }
 
             // Change color range from `0..color_count` to the shuffled colors
-            let image_left: Image = random_image_left.replace_colors_with_hashmap(&shuffled_color_replacements)?;
-            let image_right: Image = random_image_right.replace_colors_with_hashmap(&shuffled_color_replacements)?;
+            let image_left: Image = random_image_left.replace_colors_with_hashmap(&params.shuffled_color_replacements)?;
+            let image_right: Image = random_image_right.replace_colors_with_hashmap(&params.shuffled_color_replacements)?;
 
             if print_to_htmllog {
                 HtmlLog::compare_images(vec![random_image_left.clone(), random_image_right.clone()]);
@@ -308,6 +387,119 @@ impl GenerateDataset {
             item_vec.push(item);
         }
 
+        let markdown: String = Self::markdown_for_comparison_items(
+            &mut rng, 
+            &item_vec, 
+            &params.symbol_names,
+            &params.data_separator_column,
+            &params.data_separator_row,
+            params.randomize_newlines_in_images,
+        )?;
+        if print_to_htmllog {
+            println!("{}", markdown);
+        }
+
+        let dataset_item = DatasetItem {
+            curriculum,
+            text: markdown,
+        };
+        Ok(dataset_item)
+    }
+
+    #[allow(dead_code)]
+    pub fn generate_with_task(task: &arc_json_model::Task, random_seed: u64, print_to_htmllog: bool) -> anyhow::Result<DatasetItemForTask> {
+        // Extract "train" images
+        let image_train_pairs: Vec<arc_json_model::ImagePair> = match task.images_train() {
+            Ok(value) => value,
+            Err(error) => {
+                anyhow::bail!("Unable to load 'train' images. error: {:?}", error);
+            }
+        };
+        // debug!("train pairs: {}", image_train_pairs.len());
+
+        // Extract "test" images
+        let image_test_pairs: Vec<arc_json_model::ImagePair> = match task.images_test() {
+            Ok(value) => value,
+            Err(error) => {
+                anyhow::bail!("Unable to load 'test' images. error: {:?}", error);
+            }
+        };
+        // debug!("test pairs: {}", image_test_pairs.len());
+
+        // Sanity check
+        if image_train_pairs.is_empty() || image_test_pairs.is_empty() {
+            anyhow::bail!("Either 'train' or 'test' have zero images.");
+        }
+
+        let train_count: usize = image_train_pairs.len();
+
+        if print_to_htmllog {
+            for image_pair in &image_train_pairs {
+                HtmlLog::compare_images(vec![image_pair.input.clone(), image_pair.output.clone()]);
+            }
+            for image_pair in &image_test_pairs {
+                HtmlLog::compare_images(vec![image_pair.input.clone(), image_pair.output.clone()]);
+            }
+        }
+
+        let image_pairs: Vec<arc_json_model::ImagePair> = image_train_pairs.into_iter().chain(image_test_pairs.into_iter()).collect();
+
+        let mut rng = StdRng::seed_from_u64(random_seed);
+
+        let params: GeneratorParameters = Self::generator_parameters(&mut rng, Curriculum::SmallMediumBig);
+
+        let mut item_vec = Vec::<ComparisionItem>::new();
+        for (index, image_pair) in image_pairs.iter().enumerate() {
+            if index >= train_count {
+                // Skip test images
+                // The hidden ARC dataset does not have any output image available,
+                // so it's not possible to generate a histogram for the test images.
+                continue;
+            }
+
+            let original_image_left: Image = image_pair.input.clone();
+            let original_image_right: Image = image_pair.output.clone();
+
+            // Change color range from `0..color_count` to the shuffled colors
+            let image_left: Image = original_image_left.replace_colors_with_hashmap(&params.shuffled_color_replacements)?;
+            let image_right: Image = original_image_right.replace_colors_with_hashmap(&params.shuffled_color_replacements)?;
+
+            if print_to_htmllog {
+                HtmlLog::compare_images(vec![original_image_left.clone(), original_image_right.clone()]);
+                // HtmlLog::compare_images(vec![image_left.clone(), image_right.clone()]);
+            }
+    
+            let item: ComparisionItem = ComparisionItem::create(&image_left, &image_right)?;
+            item_vec.push(item);
+        }
+
+        let markdown: String = Self::markdown_for_comparison_items(
+            &mut rng, 
+            &item_vec, 
+            &params.symbol_names,
+            &params.data_separator_column,
+            &params.data_separator_row,
+            params.randomize_newlines_in_images,
+        )?;
+
+        let metadata_id: String = format!("histogram-{}", params.metadata_id());
+        let dataset_item = DatasetItemForTask {
+            metadata_id,
+            markdown,
+        };
+        Ok(dataset_item)
+    }
+
+    fn markdown_for_comparison_items(
+        rng: &mut StdRng, 
+        item_vec: &Vec<ComparisionItem>, 
+        symbol_names: &HashMap<u8, String>, 
+        data_separator_column: &str,
+        data_separator_row: &str,
+        randomize_newlines_in_images: bool,
+    ) -> anyhow::Result<String> {
+        let missing_symbol: &str = "missing";
+
         let mut markdown = String::new();
         markdown.push_str("# Histogram comparisons with summary\n\n");
 
@@ -315,7 +507,7 @@ impl GenerateDataset {
             let name: char = ('A' as u8 + item_index as u8) as char;
             markdown.push_str(&format!("## Data {}\n\n", name));
     
-            Self::markdown_for_data_item(&mut rng, &mut markdown, &item, &symbol_names, missing_symbol, &data_separator_column, &data_separator_row, randomize_newlines_in_images)?;
+            Self::markdown_for_data_item(rng, &mut markdown, &item, &symbol_names, missing_symbol, &data_separator_column, &data_separator_row, randomize_newlines_in_images)?;
     
             markdown.push_str("\n\n");
         }
@@ -425,15 +617,7 @@ impl GenerateDataset {
             markdown.push_str(&Self::markdown_code(&body_image_intersection_all_histograms));
         }
 
-        if print_to_htmllog {
-            println!("{}", markdown);
-        }
-
-        let dataset_item = DatasetItem {
-            curriculum,
-            text: markdown,
-        };
-        Ok(dataset_item)
+        Ok(markdown)
     }
 
     fn number_of_comparison_items_to_generate(rng: &mut StdRng) -> usize {
@@ -451,18 +635,18 @@ impl GenerateDataset {
         items[dist.sample(rng)]
     }
 
-    fn random_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: usize) -> (String, String) {
+    fn random_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: SymbolNameId) -> (String, String, String) {
         let separator_id: u8 = Self::id_data_separator_column_and_row(rng, symbol_name_id);
         Self::data_separator_column_and_row(separator_id)
     }
 
-    fn id_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: usize) -> u8 {
+    fn id_data_separator_column_and_row(rng: &mut StdRng, symbol_name_id: SymbolNameId) -> u8 {
         let indexes: Vec<u8> = match symbol_name_id {
-            SYMBOL_NAME_SPECIAL_ASCII => {
+            SymbolNameId::SpecialAscii => {
                 // To prevent clashes when it's `symbol_name_special_ascii` then avoid using special characters for the separators.
                 vec![0, 1, 2, 3, 4]
             },
-            SYMBOL_NAME_LOWERCASE_HEX => {
+            SymbolNameId::LowercaseHex => {
                 // To ensure there is a separator between the columns, then avoid the empty separator.
                 vec![0, 5, 6, 7, 8]
             },
@@ -472,61 +656,77 @@ impl GenerateDataset {
         separator_id
     }
 
-    fn data_separator_column_and_row(separator_id: u8) -> (String, String) {
+    fn data_separator_column_and_row(separator_id: u8) -> (String, String, String) {
         let separator_column: &str;
         let separator_row: &str;
+        let separator_name: &str;
         match separator_id {
             1 => {
                 // No separator between columns. Space for separating rows.
                 separator_column = "";
                 separator_row = " ";
+                separator_name = "none-space";
             },
             2 => {
                 // No separators. It's a single line of pixels.
                 separator_column = "";
                 separator_row = "";
+                separator_name = "none-none";
             },
             3 => {
                 // No separator between columns. Comma for separating rows.
                 separator_column = "";
                 separator_row = ",";
+                separator_name = "none-comma";
             },
             4 => {
                 // No separator between columns. Newline for separating rows.
                 separator_column = "";
                 separator_row = "\n";
+                separator_name = "none-newline";
             },
             5 => {
                 // Space separator between columns. Semicolon for separating rows.
                 separator_column = " ";
                 separator_row = ";";
+                separator_name = "space-semicolon";
             },
             6 => {
                 // Colon separator between columns. Newline for separating rows.
                 separator_column = ":";
                 separator_row = "\n";
+                separator_name = "colon-newline";
             },
             7 => {
                 // Comma separator between columns. Newline for separating rows.
                 separator_column = ",";
                 separator_row = "\n";
+                separator_name = "comma-newline";
             },
             8 => {
                 // Comma separator between columns. Comma newline for separating rows.
                 separator_column = ",";
                 separator_row = ",\n";
+                separator_name = "comma-commanewline";
             },
             _ => {
                 // Space separator between columns. Newline for separating rows.
                 separator_column = " ";
                 separator_row = "\n";
+                separator_name = "space-newline";
             },
         }
-        (separator_column.to_string(), separator_row.to_string())
+        (separator_column.to_string(), separator_row.to_string(), separator_name.to_string())
     }
 
-    fn choose_symbol_name_id(rng: &mut StdRng, curriculum: Curriculum) -> usize {
-        let items: [usize; 5] = [0, 1, 2, 3, 4];
+    fn choose_symbol_name_id(rng: &mut StdRng, curriculum: Curriculum) -> SymbolNameId {
+        let items: [SymbolNameId; 5] = [
+            SymbolNameId::Digit,
+            SymbolNameId::LowercaseHex,
+            SymbolNameId::LowercaseAZ,
+            SymbolNameId::UppercaseAZ,
+            SymbolNameId::SpecialAscii
+        ];
         let weights: [u8; 5] = match curriculum {
             Curriculum::Small => [1, 0, 0, 0, 0],
             Curriculum::SmallMedium => [1, 1, 1, 0, 0],
@@ -1123,7 +1323,7 @@ mod tests {
         let mut max_value: u8 = 0;
         let mut rng = StdRng::seed_from_u64(0);
         for _ in 0..20 {
-            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, 0);
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SymbolNameId::Digit);
             min_value = min_value.min(value);
             max_value = max_value.max(value);
         }
@@ -1137,7 +1337,7 @@ mod tests {
         let mut max_value: u8 = 0;
         let mut rng = StdRng::seed_from_u64(0);
         for _ in 0..20 {
-            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SYMBOL_NAME_SPECIAL_ASCII);
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SymbolNameId::SpecialAscii);
             min_value = min_value.min(value);
             max_value = max_value.max(value);
         }
@@ -1152,7 +1352,7 @@ mod tests {
         let mut histogram = Histogram::new();
         let mut rng = StdRng::seed_from_u64(0);
         for _ in 0..20 {
-            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SYMBOL_NAME_LOWERCASE_HEX);
+            let value: u8 = GenerateDataset::id_data_separator_column_and_row(&mut rng, SymbolNameId::LowercaseHex);
             histogram.increment(value);
             min_value = min_value.min(value);
             max_value = max_value.max(value);
@@ -1166,57 +1366,109 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_data_separator_column_and_row() {
+    fn test_40003_data_separator_column_row_name() {
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(0);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(0);
             assert_eq!(col, " ");
             assert_eq!(row, "\n");
+            assert_eq!(name, "space-newline");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(1);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(1);
             assert_eq!(col, "");
             assert_eq!(row, " ");
+            assert_eq!(name, "none-space");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(2);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(2);
             assert_eq!(col, "");
             assert_eq!(row, "");
+            assert_eq!(name, "none-none");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(3);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(3);
             assert_eq!(col, "");
             assert_eq!(row, ",");
+            assert_eq!(name, "none-comma");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(4);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(4);
             assert_eq!(col, "");
             assert_eq!(row, "\n");
+            assert_eq!(name, "none-newline");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(5);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(5);
             assert_eq!(col, " ");
             assert_eq!(row, ";");
+            assert_eq!(name, "space-semicolon");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(6);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(6);
             assert_eq!(col, ":");
             assert_eq!(row, "\n");
+            assert_eq!(name, "colon-newline");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(7);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(7);
             assert_eq!(col, ",");
             assert_eq!(row, "\n");
+            assert_eq!(name, "comma-newline");
         }
         {
-            let (col, row) = GenerateDataset::data_separator_column_and_row(8);
+            let (col, row, name) = GenerateDataset::data_separator_column_and_row(8);
             assert_eq!(col, ",");
             assert_eq!(row, ",\n");
+            assert_eq!(name, "comma-commanewline");
         }
+    }
+
+    #[test]
+    fn test_50000_metadata_id() {
+        // Arrange
+        let seeds: Vec<u64> = vec![
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+        ];
+
+        // Act
+        let mut actual = Vec::<String>::new();
+        for seed in seeds {
+            let mut rng = StdRng::seed_from_u64(seed);
+            let params: GeneratorParameters = GenerateDataset::generator_parameters(&mut rng, Curriculum::SmallMediumBig);
+            actual.push(params.metadata_id());
+        }
+
+        // Assert
+        let expected_str = [
+            "special-none-newline @:~|+_*-.%$&", 
+            "special-none-comma ?_+!|@/*$.;:", 
+            "digit-comma-commanewline 5971683420",
+            "AZ-none-comma RWCYSNVJQBXL", 
+            "AZ-colon-newline SJBRKECIUDLV", 
+            "digit-none-comma 7936281540", 
+            "digit-none-comma 4301285967",
+            "az-space-newline-randomnewline triksupcwavg", 
+            "AZ-none-comma ULRQKZVADCES",
+            "az-comma-newline-randomnewline ryknlsbgzfic", 
+            "hex-comma-newline 5fd7cd60b958dc076fd3e22f9c57"
+        ];
+        let expected: Vec<String> = expected_str.iter().map(|s| s.to_string()).collect();
+        assert_eq!(actual, expected);
     }
 
     #[allow(dead_code)]
     // #[test]
-    fn test_40000_generate() {
+    fn test_60000_generate() {
         let path: PathBuf = PathBuf::from("/Users/neoneye/Downloads/histograms.jsonl");
         let mut generator = GenerateDataset::new();
         let number_of_items: u32 = 100;

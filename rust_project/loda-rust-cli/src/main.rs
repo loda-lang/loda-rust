@@ -200,6 +200,30 @@ async fn main() -> anyhow::Result<()> {
                 )
         )
         .subcommand(
+            Command::new("arc-metadata-histograms")
+                .about("Generate metadata with histogram comparisons. Traverse all ARC task json files recursively with the provided directory path.")
+                .hide(true)
+                .arg(
+                    Arg::new("count")
+                        .help("Number of histogram items to insert into the metadata. default: 1")
+                        .long("count")
+                        .takes_value(true)
+                )
+                .arg(
+                    Arg::new("seed")
+                        .help("Random seed is a 64 bit unsigned integer. default: 0")
+                        .long("seed")
+                        .takes_value(true)
+                )
+                .arg(
+                    Arg::new("directory")
+                        .help("Absolute path to the directory containing ARC task json files. Example: /home/arc-dataset/evaluation")
+                        .long("directory")
+                        .required(true)
+                        .takes_value(true)
+                )
+        )
+        .subcommand(
             Command::new("arc-web")
                 .about("Web server with UI for ARC.")
                 .hide(true)
@@ -370,6 +394,33 @@ async fn main() -> anyhow::Result<()> {
         let task_json_file: PathBuf = PathBuf::from(path_raw);
         let mode = SubcommandARCMode::PredictOutputSizesForSingleTask { task_json_file };
         SubcommandARC::run(mode)?;
+        return Ok(());
+    }
+
+    if let Some(sub_m) = matches.subcommand_matches("arc-metadata-histograms") {
+        let path_raw: &str = sub_m.value_of("directory").expect("path to directory containing task json files");
+        let task_json_directory: PathBuf = PathBuf::from(path_raw);
+        let count: u16 = match sub_m.value_of("count") {
+            Some(raw) => {
+                let count: u16 = raw.parse()
+                    .map_err(|e| anyhow::anyhow!("Unable to parse count as u16, error: {:?}", e))?;
+                count
+            },
+            None => 1
+        };
+        let seed: u64 = match sub_m.value_of("seed") {
+            Some(raw) => {
+                let seed: u64 = raw.parse()
+                    .map_err(|e| anyhow::anyhow!("Unable to parse seed as u64, error: {:?}", e))?;
+                seed
+            },
+            None => 0
+        };
+        let mode = SubcommandARCMode::MetadataHistogram { count, seed, task_json_directory };
+        let blocking_task = tokio::task::spawn_blocking(|| {
+            SubcommandARC::run(mode).expect("ok");
+        });
+        blocking_task.await?;
         return Ok(());
     }
 
