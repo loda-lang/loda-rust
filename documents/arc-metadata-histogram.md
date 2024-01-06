@@ -14,11 +14,22 @@ The inserted histogram rows looks like this:
 
 ## Usage
 
-Build an executable
+### Step 1 - Enable ARC feature
+
+Open the file `loda-rust-cli/Cargo.toml` in a text editor.
+
+Enable the `loda-rust-arc` feature. By remove the dash in front of the line: `default = ["loda-rust-arc"]`
+
+Save and close `loda-rust-cli/Cargo.toml`.
+
+
+### Build an executable
 
 ```sh
 PROMPT> cargo build --release -p loda-rust
 ```
+
+### Run the executable
 
 Provide the path to the directory containing ARC json files.
 
