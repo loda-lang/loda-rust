@@ -2,6 +2,8 @@ use crate::{common::find_json_files_recursively, arc::generate_dataset_histogram
 use super::arc_json_model::{TaskId, Task};
 use std::{path::{Path, PathBuf}, collections::HashSet};
 use anyhow::Context;
+use indicatif::{ProgressBar, ProgressStyle};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde_json::{Value, Map};
 use std::fs;
 
@@ -12,9 +14,7 @@ impl SubcommandARCMetadata {
     /// 
     /// Traverses the task json files, and assign a number of histogram comparisons.
     pub fn run(count: u16, seed: u64, task_json_directory: &Path) -> anyhow::Result<()> {
-        debug!("count: {}", count);
-        debug!("seed: {:?}", seed);
-        debug!("directory: {:?}", task_json_directory);
+        debug!("count: {} seed: {} directory: {:?}", count, seed, task_json_directory);
         if !task_json_directory.is_dir() {
             anyhow::bail!("arc-metadata-histograms. Expected directory to be a directory, but it's not. path: {:?}", task_json_directory);
         }
@@ -27,17 +27,26 @@ impl SubcommandARCMetadata {
 
         // Traverse the directory and find all the task json files, recursively
         let paths: Vec<PathBuf> = find_json_files_recursively(&task_json_directory);
-        debug!("arc-metadata-histograms. Found {:?} task json files", paths);
-
-        for path in &paths {
+        debug!("arc-metadata-histograms. Found {} task json files", paths.len());
+        if paths.len() > 10000 {
+            anyhow::bail!("arc-metadata-histograms. Aborting. Found way too many json files. We don't want to cause too much havoc. count: {}", paths.len());
+        }
+        
+        let pb = ProgressBar::new(paths.len() as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
+            .progress_chars("#>-")
+        );
+        
+        paths.par_iter().for_each(|path| {
+            pb.inc(1);
             match Self::generate_metadata_for_task(count, seed, path) {
                 Ok(()) => {},
                 Err(error) => {
-                    error!("arc-metadata-histograms. Skipping file. error: {:?} path: {:?}", error, path);
-                    continue;
+                    error!("arc-metadata-histograms. Problem with file. error: {:?} path: {:?}", error, path);
                 }
             }
-        }
+        });
         Ok(())
     }
 
@@ -134,8 +143,6 @@ impl SubcommandARCMetadata {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::path_testdata;
-    use std::path::PathBuf;
 
     #[test]
     fn test_10000_update_json_preserve_ordering() {
