@@ -1,6 +1,7 @@
 use crate::{common::find_json_files_recursively, arc::generate_dataset_histogram::{self, DatasetItemForTask}};
 use super::arc_json_model::{TaskId, Task};
-use std::path::{Path, PathBuf};
+use std::{path::{Path, PathBuf}, collections::HashSet};
+use anyhow::Context;
 use serde_json::{Value, Map};
 use std::fs;
 
@@ -27,59 +28,70 @@ impl SubcommandARCMetadata {
         let paths: Vec<PathBuf> = find_json_files_recursively(&task_json_directory);
         debug!("arc-metadata-histograms. Found {:?} task json files", paths);
 
-        for path in paths {
-            let json_string: String = fs::read_to_string(&path)?;
+        for path in &paths {
+            match Self::generate_metadata_for_task(path, count) {
+                Ok(()) => {},
+                Err(error) => {
+                    error!("arc-metadata-histograms. Skipping file. error: {:?} path: {:?}", error, path);
+                    continue;
+                }
+            }
+        }
+        Ok(())
+    }
 
-            // Load the json file into a Task. 
-            // If it cannot be loaded, it may not be an ARC json file, but some other json file, thus it's safer to skip the file.
-            let task_id = TaskId::Custom { identifier: "no-id".to_string() };
-            let task: Task = match Task::from_json(task_id, &json_string) {
+    fn generate_metadata_for_task(path: &Path, count: u16) -> anyhow::Result<()> {
+        let json_string: String = fs::read_to_string(&path)?;
+
+        // Load the json file into a Task. 
+        // If it cannot be loaded, it may not be an ARC json file, but some other json file, thus it's safer to skip the file.
+        let task_id = TaskId::Custom { identifier: "no-id".to_string() };
+        let task: Task = Task::from_json(task_id, &json_string)
+            .with_context(|| format!("Unable to parse task json file. path: {:?}", path))?;
+
+        // Generate a number of histogram comparisons.
+        debug!("arc-metadata-histograms. Generating {} histogram comparisons. path: {:?}", count, path);
+
+        // Invoke the generate_dataset_histogram::GenerateDataset::markdown_for_comparison_items() function.
+        let mut dataset_items: Vec<DatasetItemForTask> = vec!();
+        let mut metadata_ids = HashSet::<String>::new();
+        for i in 0..(count * 2) {
+            let seed = i as u64;
+            let result = generate_dataset_histogram::GenerateDataset::generate_with_task(
+                &task,
+                seed,
+                false,
+            );
+            let dataset_item: DatasetItemForTask = match result {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("arc-metadata-histograms. Skipping file. Unable to parse task json file. error: {:?} path: {:?}", error, path);
+                    error!("arc-metadata-histograms. Something went wrong generating histogram. seed: {} error: {:?} path: {:?}", seed, error, path);
                     continue;
                 }
             };
-
-            // Generate a number of histogram comparisons.
-            println!("arc-metadata-histograms. Generating {} histogram comparisons. path: {:?}", count, path);
-
-            // Invoke the generate_dataset_histogram::GenerateDataset::markdown_for_comparison_items() function.
-            let mut dataset_items: Vec<DatasetItemForTask> = vec!();
-            for i in 0..count {
-                let seed = i as u64;
-                let result = generate_dataset_histogram::GenerateDataset::generate_with_task(
-                    &task,
-                    seed,
-                    true,
-                );
-                let dataset_item: DatasetItemForTask = match result {
-                    Ok(value) => value,
-                    Err(error) => {
-                        error!("arc-metadata-histograms. Skipping file. error: {:?} path: {:?}", error, path);
-                        continue;
-                    }
-                };
-                dataset_items.push(dataset_item);
+            metadata_ids.insert(dataset_item.metadata_id.clone());
+            dataset_items.push(dataset_item);
+            if metadata_ids.len() == count as usize {
+                break;
             }
-
-            // Convert dataset items to key value pairs
-            let mut insert_key_value_pairs: Vec<(String, String)> = vec!();
-            for dataset_item in dataset_items {
-                let key: String = dataset_item.metadata_id.clone();
-                let value: String = dataset_item.markdown.clone();
-                println!("arc-metadata-histograms. key: {} value: {} bytes", key, value.as_bytes().len());
-                insert_key_value_pairs.push((key, value));
-            }
-
-            // Update the json file with the new metadata
-            let updated_json: String = SubcommandARCMetadata::update_json(
-                &json_string, 
-                "metadata", 
-                insert_key_value_pairs
-            )?;
-            fs::write(&path, updated_json)?;
         }
+
+        // Convert dataset items to key value pairs
+        let mut insert_key_value_pairs: Vec<(String, String)> = vec!();
+        for dataset_item in dataset_items {
+            let key: String = dataset_item.metadata_id.clone();
+            let value: String = dataset_item.markdown.clone();
+            println!("arc-metadata-histograms. key: {} value: {} bytes", key, value.as_bytes().len());
+            insert_key_value_pairs.push((key, value));
+        }
+
+        // Update the json file with the new metadata
+        let updated_json: String = SubcommandARCMetadata::update_json(
+            &json_string, 
+            "metadata", 
+            insert_key_value_pairs
+        )?;
+        fs::write(&path, updated_json)?;
 
         Ok(())
     }
