@@ -11,9 +11,10 @@ impl SubcommandARCMetadata {
     /// The `arc-metadata-histograms` subcommand when invoked from the command line.
     /// 
     /// Traverses the task json files, and assign a number of histogram comparisons.
-    pub fn run(count: u16, task_json_directory: &Path) -> anyhow::Result<()> {
-        debug!("arc-metadata-histograms count: {}", count);
-        debug!("arc-metadata-histograms directory: {:?}", task_json_directory);
+    pub fn run(count: u16, seed: u64, task_json_directory: &Path) -> anyhow::Result<()> {
+        debug!("count: {}", count);
+        debug!("seed: {:?}", seed);
+        debug!("directory: {:?}", task_json_directory);
         if !task_json_directory.is_dir() {
             anyhow::bail!("arc-metadata-histograms. Expected directory to be a directory, but it's not. path: {:?}", task_json_directory);
         }
@@ -29,7 +30,7 @@ impl SubcommandARCMetadata {
         debug!("arc-metadata-histograms. Found {:?} task json files", paths);
 
         for path in &paths {
-            match Self::generate_metadata_for_task(path, count) {
+            match Self::generate_metadata_for_task(count, seed, path) {
                 Ok(()) => {},
                 Err(error) => {
                     error!("arc-metadata-histograms. Skipping file. error: {:?} path: {:?}", error, path);
@@ -40,7 +41,7 @@ impl SubcommandARCMetadata {
         Ok(())
     }
 
-    fn generate_metadata_for_task(path: &Path, count: u16) -> anyhow::Result<()> {
+    fn generate_metadata_for_task(count: u16, seed: u64, path: &Path) -> anyhow::Result<()> {
         let json_string: String = fs::read_to_string(&path)?;
 
         // Load the json file into a Task. 
@@ -50,22 +51,22 @@ impl SubcommandARCMetadata {
             .with_context(|| format!("Unable to parse task json file. path: {:?}", path))?;
 
         // Generate a number of histogram comparisons.
-        debug!("arc-metadata-histograms. Generating {} histogram comparisons. path: {:?}", count, path);
+        debug!("arc-metadata-histograms. Generating {} histogram comparisons. seed: {} path: {:?}", count, seed, path);
 
         // Invoke the generate_dataset_histogram::GenerateDataset::markdown_for_comparison_items() function.
         let mut dataset_items: Vec<DatasetItemForTask> = vec!();
         let mut metadata_ids = HashSet::<String>::new();
         for i in 0..(count * 2) {
-            let seed = i as u64;
+            let seed_plus_i = seed + (i as u64);
             let result = generate_dataset_histogram::GenerateDataset::generate_with_task(
                 &task,
-                seed,
+                seed_plus_i,
                 false,
             );
             let dataset_item: DatasetItemForTask = match result {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("arc-metadata-histograms. Something went wrong generating histogram. seed: {} error: {:?} path: {:?}", seed, error, path);
+                    error!("arc-metadata-histograms. Something went wrong generating histogram. seed_plus_i: {} error: {:?} path: {:?}", seed_plus_i, error, path);
                     continue;
                 }
             };

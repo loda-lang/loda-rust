@@ -35,7 +35,7 @@ pub enum SubcommandARCMode {
     PredictOutputSizesForSingleTask { task_json_file: PathBuf },
     
     /// Traverse the task json files, and assign a number of histogram comparisons.
-    MetadataHistogram { count: u16, task_json_directory: PathBuf },
+    MetadataHistogram { count: u16, seed: u64, task_json_directory: PathBuf },
 }
 
 pub struct SubcommandARC;
@@ -81,8 +81,8 @@ impl SubcommandARC {
             SubcommandARCMode::PredictOutputSizesForSingleTask { task_json_file } => {
                 return SubcommandARCSize::run(&task_json_file);
             },
-            SubcommandARCMode::MetadataHistogram { count, task_json_directory } => {
-                return SubcommandARCMetadata::run(count, &task_json_directory);
+            SubcommandARCMode::MetadataHistogram { count, seed, task_json_directory } => {
+                return SubcommandARCMetadata::run(count, seed, &task_json_directory);
             },
         }
     }

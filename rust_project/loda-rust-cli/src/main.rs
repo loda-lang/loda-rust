@@ -210,6 +210,12 @@ async fn main() -> anyhow::Result<()> {
                         .takes_value(true)
                 )
                 .arg(
+                    Arg::new("seed")
+                        .help("Random seed is a 64 bit unsigned integer. default: 0")
+                        .long("seed")
+                        .takes_value(true)
+                )
+                .arg(
                     Arg::new("directory")
                         .help("Absolute path to the directory containing ARC task json files. Example: /home/arc-dataset/evaluation")
                         .long("directory")
@@ -395,14 +401,22 @@ async fn main() -> anyhow::Result<()> {
         let path_raw: &str = sub_m.value_of("directory").expect("path to directory containing task json files");
         let task_json_directory: PathBuf = PathBuf::from(path_raw);
         let count: u16 = match sub_m.value_of("count") {
-            Some(count_raw) => {
-                let count: u16 = count_raw.parse()
+            Some(raw) => {
+                let count: u16 = raw.parse()
                     .map_err(|e| anyhow::anyhow!("Unable to parse count as u16, error: {:?}", e))?;
                 count
             },
             None => 1
         };
-        let mode = SubcommandARCMode::MetadataHistogram { count, task_json_directory };
+        let seed: u64 = match sub_m.value_of("seed") {
+            Some(raw) => {
+                let seed: u64 = raw.parse()
+                    .map_err(|e| anyhow::anyhow!("Unable to parse seed as u64, error: {:?}", e))?;
+                seed
+            },
+            None => 0
+        };
+        let mode = SubcommandARCMode::MetadataHistogram { count, seed, task_json_directory };
         let blocking_task = tokio::task::spawn_blocking(|| {
             SubcommandARC::run(mode).expect("ok");
         });
