@@ -42,16 +42,17 @@ impl SubcommandARCMetadata {
     }
 
     fn generate_metadata_for_task(count: u16, seed: u64, path: &Path) -> anyhow::Result<()> {
-        let json_string: String = fs::read_to_string(&path)?;
+        let original_json_string: String = fs::read_to_string(&path)?;
+        let original_size: usize = original_json_string.as_bytes().len();
 
         // Load the json file into a Task. 
         // If it cannot be loaded, it may not be an ARC json file, but some other json file, thus it's safer to skip the file.
         let task_id = TaskId::Custom { identifier: "no-id".to_string() };
-        let task: Task = Task::from_json(task_id, &json_string)
+        let task: Task = Task::from_json(task_id, &original_json_string)
             .with_context(|| format!("Unable to parse task json file. path: {:?}", path))?;
 
         // Generate a number of histogram comparisons.
-        debug!("arc-metadata-histograms. Generating {} histogram comparisons. seed: {} path: {:?}", count, seed, path);
+        debug!("arc-metadata-histograms. Start generating. count: {} seed: {} path: {:?}", count, seed, path);
 
         // Invoke the generate_dataset_histogram::GenerateDataset::markdown_for_comparison_items() function.
         let mut dataset_items: Vec<DatasetItemForTask> = vec!();
@@ -82,17 +83,23 @@ impl SubcommandARCMetadata {
         for dataset_item in dataset_items {
             let key: String = dataset_item.metadata_id.clone();
             let value: String = dataset_item.markdown.clone();
-            println!("arc-metadata-histograms. key: {} value: {} bytes", key, value.as_bytes().len());
+            debug!("arc-metadata-histograms. key: {} value: {} bytes path: {:?}", key, value.as_bytes().len(), path);
             insert_key_value_pairs.push((key, value));
         }
 
         // Update the json file with the new metadata
         let updated_json: String = SubcommandARCMetadata::update_json(
-            &json_string, 
+            &original_json_string, 
             "metadata", 
             insert_key_value_pairs
         )?;
-        fs::write(&path, updated_json)?;
+
+        let bytes_written: usize = updated_json.as_bytes().len();
+        let bytes_inserted: i64 = bytes_written as i64 - original_size as i64;
+        debug!("arc-metadata-histograms. Inserted {} bytes into json file. path: {:?}", bytes_inserted, path);
+
+        fs::write(&path, updated_json)
+            .with_context(|| format!("Unable to write to task json file. path: {:?}", path))?;
 
         Ok(())
     }
