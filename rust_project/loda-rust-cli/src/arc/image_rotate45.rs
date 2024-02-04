@@ -26,8 +26,12 @@ impl ImageRotate45 for Image {
 }
 
 fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Result<Image> {
-    if original.width() <= 1 && original.height() <= 1 {
-        // No point in processing an empty image or a 1x1 image.
+    if original.is_empty() {
+        // No point in processing an empty image.
+        return Ok(original.clone());
+    }
+    if original.width() == 1 && original.height() == 1 {
+        // No point in processing an 1x1 image.
         return Ok(original.clone());
     }
 
@@ -38,7 +42,7 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
 
     let mut image = Image::color(combined_u16 as u8, combined_u16 as u8, fill_color);
 
-    // Copy the element from the original image to the rotated image
+    // Copy pixels from the original image to the rotated image
     for get_y in 0..original.height() {
         for get_x in 0..original.width() {
             let pixel_value: u8 = original.get(get_x as i32, get_y as i32).unwrap_or(255);
@@ -68,7 +72,19 @@ mod tests {
     use num_integer::Integer;
 
     #[test]
-    fn test_10000_rotate_ccw_square() {
+    fn test_10000_rotate_tiny_images() {
+        {
+            let actual: Image = Image::empty().rotate_cw_45(0).expect("image");
+            assert_eq!(actual, Image::empty());
+        }
+        {
+            let actual: Image = Image::color(1, 1, 9).rotate_cw_45(0).expect("image");
+            assert_eq!(actual, Image::color(1, 1, 9));
+        }
+    }
+
+    #[test]
+    fn test_10001_rotate_ccw_square() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2, 3,
@@ -93,7 +109,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_rotate_ccw_landscape_onerow() {
+    fn test_10002_rotate_ccw_landscape_onerow() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2, 3,
@@ -114,7 +130,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_rotate_ccw_landscape_tworows() {
+    fn test_10003_rotate_ccw_landscape_tworows() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2, 3,
@@ -137,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_rotate_ccw_portrait_onecolumn() {
+    fn test_10004_rotate_ccw_portrait_onecolumn() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 
@@ -160,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_rotate_ccw_portrait_twocolumns() {
+    fn test_10005_rotate_ccw_portrait_twocolumns() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 4,
