@@ -1,5 +1,5 @@
 //! Rotate an image by 45 degrees.
-use super::Image;
+use super::{Image, ImageSymmetry};
 
 pub trait ImageRotate45 {
     /// Rotate an image by 45 degrees. clockwise (CW)
@@ -36,38 +36,26 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
         return Err(anyhow::anyhow!("Unable to rotate image. The combined width and height is too large: {}", combined_u16));
     }
 
-    // Rotate by 45 degrees
-    let rads_amount: f32 = std::f32::consts::FRAC_PI_4; // pi divided by 4
-    let rads: f32 = if is_clockwise { -rads_amount } else { rads_amount };
-
-    let source_center_x: f32 = ((original.width() - 1) as f32) / 2.0;
-    let source_center_y: f32 = ((original.height() - 1) as f32) / 2.0;
-    let dest_center_x: f32 = ((combined_u16 - 1) as f32) / 2.0;
-    let dest_center_y: f32 = ((combined_u16 - 1) as f32) / 2.0;
-
-    // Increase the spacing between the points in the grid from 1 to sqrt(2)
-    let scale: f32 = std::f32::consts::SQRT_2;
-
     let mut image = Image::color(combined_u16 as u8, combined_u16 as u8, fill_color);
+
+    // Copy the element from the original image to the rotated image
     for get_y in 0..original.height() {
         for get_x in 0..original.width() {
             let pixel_value: u8 = original.get(get_x as i32, get_y as i32).unwrap_or(255);
-
-            let x = (get_x as f32) - source_center_x;
-            let y = (get_y as f32) - source_center_y;
-
-            let rotated_x: f32 = (rads.cos() * x + rads.sin() * y) * scale;
-            let rotated_y: f32 = (rads.cos() * y - rads.sin() * x) * scale;
-            
-            let set_x: i32 = (dest_center_x + rotated_x).round() as i32;
-            let set_y: i32 = (dest_center_y + rotated_y).round() as i32;
+            let set_x: i32 = get_x as i32 + get_y as i32;
+            let set_y: i32 = get_x as i32 - get_y as i32 + (original.height() - 1) as i32;
             match image.set(set_x, set_y, pixel_value) {
                 Some(()) => {},
                 None => {
-                    return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result image", set_x, y));
+                    return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result image", set_x, set_y));
                 }
             }
         }
+    }
+    if is_clockwise {
+        image = image.flip_diagonal_a()?;
+    } else {
+        image = image.flip_y()?;
     }
     Ok(image)
 }
