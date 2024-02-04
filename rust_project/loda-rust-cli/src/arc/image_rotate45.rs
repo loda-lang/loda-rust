@@ -75,8 +75,9 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::{Histogram, ImageHistogram, ImageRemoveRowColumn, ImageTryCreate};
+    use crate::arc::{Histogram, ImageHistogram, ImageRemoveRowColumn, ImageTrim, ImageTryCreate, Rectangle};
     use bit_set::BitSet;
+    use num_integer::Integer;
 
     #[test]
     fn test_10000_rotate_ccw_square() {
@@ -219,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_reversable_rotate_cw() {
+    fn test_30000_reversable_rotate_remove_empty_lines() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 0,
@@ -276,6 +277,80 @@ mod tests {
         let expected_pixels1: Vec<u8> = vec![
             1, 4,
             2, 5,
+            3, 6,
+        ];
+        let expected1: Image = Image::try_create(2, 3, expected_pixels1).expect("image");
+        assert_eq!(actual1, expected1);
+    }
+
+    #[test]
+    fn test_30001_reversable_rotate_keep_empty_lines_inside_object() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 0,
+            0, 0, 0, 4,
+            3, 0, 0, 0,
+            0, 6, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        let space_color: u8 = 0;
+        
+        // Act - part 1
+        let actual0: Image = input.rotate_ccw_45(space_color).expect("image");
+        let expected_pixels0: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 1, 0, 4, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 3, 0, 6, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 
+        ];
+        let expected0: Image = Image::try_create(7, 7, expected_pixels0).expect("image");
+        assert_eq!(actual0, expected0);
+
+        // Act - part 2
+        let rect: Rectangle = actual0.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
+        assert_eq!(rect, Rectangle::new(2, 1, 3, 5));
+
+        // Keep every second row and column
+        let mut keep_ys = BitSet::new();
+        for y in 0..rect.height() {
+            if y.is_even() {
+                keep_ys.insert((y as usize) + rect.y() as usize);
+            }
+        }
+        let mut keep_xs = BitSet::new();
+        for x in 0..rect.width() {
+            if x.is_even() {
+                keep_xs.insert((x as usize) + rect.x() as usize);
+            }
+        }
+
+        // Identify the rows and columns that can be removed
+        let mut delete_row_indexes = BitSet::new();
+        let mut delete_column_indexes = BitSet::new();
+        for x in 0..actual0.width() {
+            if keep_xs.contains(x as usize) {
+                continue;
+            }
+            delete_column_indexes.insert(x as usize);
+        }
+        for y in 0..actual0.height() {
+            if keep_ys.contains(y as usize) {
+                continue;
+            }
+            delete_row_indexes.insert(y as usize);
+        }
+
+        // Remove the rows and columns
+        let actual1: Image = actual0.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
+
+        // Assert
+        let expected_pixels1: Vec<u8> = vec![
+            1, 4,
+            0, 0,
             3, 6,
         ];
         let expected1: Image = Image::try_create(2, 3, expected_pixels1).expect("image");
