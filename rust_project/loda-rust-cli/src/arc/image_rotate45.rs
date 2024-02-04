@@ -355,5 +355,9 @@ mod tests {
         ];
         let expected1: Image = Image::try_create(2, 3, expected_pixels1).expect("image");
         assert_eq!(actual1, expected1);
+
+        // Rotating again, should yield the input image
+        let actual2: Image = actual1.rotate_cw_45(space_color).expect("image");
+        assert_eq!(actual2, input);
     }
 }
