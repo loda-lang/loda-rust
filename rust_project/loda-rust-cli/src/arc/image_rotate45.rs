@@ -75,7 +75,8 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::ImageTryCreate;
+    use crate::arc::{Histogram, ImageHistogram, ImageRemoveRowColumn, ImageTryCreate};
+    use bit_set::BitSet;
 
     #[test]
     fn test_10000_rotate_ccw_square() {
@@ -215,5 +216,69 @@ mod tests {
         ];
         let expected: Image = Image::try_create(4, 4, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_reversable_rotate_cw() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 0,
+            0, 2, 0, 4,
+            3, 0, 5, 0,
+            0, 6, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act - part 1
+        let actual0: Image = input.rotate_ccw_45(0).expect("image");
+        let expected_pixels0: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 1, 0, 4, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 2, 0, 5, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 3, 0, 6, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 
+        ];
+        let expected0: Image = Image::try_create(7, 7, expected_pixels0).expect("image");
+        assert_eq!(actual0, expected0);
+
+        // Act - part 2
+        let histogram_columns: Vec<Histogram> = actual0.histogram_columns();
+        let histogram_rows: Vec<Histogram> = actual0.histogram_rows();
+
+        let space_color: u8 = 0;
+
+        // Identify the rows and columns that can be removed
+        let mut delete_row_indexes = BitSet::new();
+        for (index, histogram) in histogram_rows.iter().enumerate() {
+            if histogram.number_of_counters_greater_than_zero() > 1 {
+                continue;
+            }
+            if histogram.most_popular_color_disallow_ambiguous() == Some(space_color) {
+                delete_row_indexes.insert(index as usize);
+            }
+        }
+        let mut delete_column_indexes = BitSet::new();
+        for (index, histogram) in histogram_columns.iter().enumerate() {
+            if histogram.number_of_counters_greater_than_zero() > 1 {
+                continue;
+            }
+            if histogram.most_popular_color_disallow_ambiguous() == Some(space_color) {
+                delete_column_indexes.insert(index as usize);
+            }
+        }
+
+        // Remove the rows and columns
+        let actual1: Image = actual0.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
+
+        // Assert
+        let expected_pixels1: Vec<u8> = vec![
+            1, 4,
+            2, 5,
+            3, 6,
+        ];
+        let expected1: Image = Image::try_create(2, 3, expected_pixels1).expect("image");
+        assert_eq!(actual1, expected1);
     }
 }
