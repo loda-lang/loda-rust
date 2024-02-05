@@ -72,6 +72,11 @@ pub struct Rotate45Extract {
 }
 
 impl Rotate45Extract {
+    /// The usual rotate by 45 degrees introduces a checkerboard of gaps in the image.
+    /// An question is, can the gaps be eliminated? 
+    /// The answer is `Yes`, this is the code.
+    /// 
+    /// Rotate by 45 degrees, and extract the primary/secondary lattice.
     #[allow(dead_code)]
     pub fn process(image: &Image, verbose: bool, triangle_color: u8, is_clockwise: bool) -> anyhow::Result<Self> {
         if verbose {
@@ -125,11 +130,11 @@ impl Rotate45Extract {
         // Bounding box
         let rect: Rectangle = rotated_image.outer_bounding_box_after_trim_with_color(magic_space_color)?;
 
-        // Determine where in the lattice the image is located
+        // Determine where in the lattice is located inside the image
         let keep_x: u8 = rect.x() & 1;
         let keep_y: u8 = rect.y() & 1;
 
-        // Keep every second row and column        
+        // Keep every second row and column
         let mut delete_row_indexes = BitSet::new();
         let mut delete_column_indexes = BitSet::new();
         for x in 0..rotated_image.width() {
@@ -145,7 +150,7 @@ impl Rotate45Extract {
             delete_row_indexes.insert(y as usize);
         }
 
-        // Remove rows and columns
+        // Remove rows and columns from the lattice.
         let extracted_image: Image = rotated_image.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes)?;
 
         // Assign color to the corner triangles
