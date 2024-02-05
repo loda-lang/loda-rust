@@ -73,12 +73,12 @@ struct ReverseRotate45 {
 
 impl ReverseRotate45 {
     #[allow(dead_code)]
-    fn process(image: &Image, verbose: bool, triangle_color: u8) -> anyhow::Result<Self> {
+    fn process(image: &Image, verbose: bool, triangle_color: u8, is_clockwise: bool) -> anyhow::Result<Self> {
         if verbose {
             HtmlLog::image(&image);
         }
-        let rotated_a: Image = Self::extract_lattice(image, verbose, triangle_color, false)?;
-        let rotated_b: Image = Self::extract_lattice(image, verbose, triangle_color, true)?;
+        let rotated_a: Image = Self::extract_lattice(image, verbose, triangle_color, is_clockwise, false)?;
+        let rotated_b: Image = Self::extract_lattice(image, verbose, triangle_color, is_clockwise, true)?;
         if verbose {
             HtmlLog::compare_images(vec![rotated_a.clone(), rotated_b.clone()]);
         }
@@ -90,46 +90,48 @@ impl ReverseRotate45 {
     }
 
     #[allow(dead_code)]
-    fn extract_lattice(input_raw: &Image, verbose: bool, triangle_color: u8, extract_second: bool) -> anyhow::Result<Image> {
+    fn extract_lattice(input: &Image, verbose: bool, triangle_color: u8, is_clockwise: bool, extract_second: bool) -> anyhow::Result<Image> {
         let space_color: u8 = 255;
         
         let color0: u8 = if extract_second { 0 } else { 1 };
         let color1: u8 = if extract_second { 1 } else { 0 };
-        let checkerboard: Image = Checkerboard::checkerboard(input_raw.width(), input_raw.height(), color0, color1);
-        let input: Image = checkerboard.select_from_image_and_color(&input_raw, space_color).expect("image");
+        let mask: Image = Checkerboard::checkerboard(input.width(), input.height(), color0, color1);
+        let masked_input: Image = mask.select_from_image_and_color(&input, space_color).expect("image");
         // if verbose {
-        //     HtmlLog::image(&input);
+        //     HtmlLog::image(&masked_input);
         // }
 
-        // Act - part 1
-        let actual0: Image = input.rotate_ccw_45(space_color).expect("image");
+        // Rotate CW or CCW
+        let rotated_image: Image = rotate_45(&masked_input, space_color, is_clockwise)?;
         // if verbose {
-        //     HtmlLog::image(&actual0);
+        //     HtmlLog::image(&rotated_image);
         // }
 
-        // Act - part 2
-        let rect: Rectangle = actual0.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
+        // Bounding box
+        let rect: Rectangle = rotated_image.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
 
-        // Keep every second row and column        
+        // Determine where in the lattice the image is located
         let keep_x: u8 = rect.x() & 1;
         let keep_y: u8 = rect.y() & 1;
+
+        // Keep every second row and column        
         let mut delete_row_indexes = BitSet::new();
         let mut delete_column_indexes = BitSet::new();
-        for x in 0..actual0.width() {
+        for x in 0..rotated_image.width() {
             if x & 1 == keep_x {
                 continue;
             }
             delete_column_indexes.insert(x as usize);
         }
-        for y in 0..actual0.height() {
+        for y in 0..rotated_image.height() {
             if y & 1 == keep_y {
                 continue;
             }
             delete_row_indexes.insert(y as usize);
         }
 
-        // Remove the rows and columns
-        let actual1: Image = actual0.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
+        // Remove rows and columns
+        let actual1: Image = rotated_image.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
         // if verbose {
         //     HtmlLog::image(&actual1);
         // }
@@ -685,6 +687,7 @@ mod tests {
 
     #[test]
     fn test_30006_reversable_ccw() {
+        // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 3, 0, 0,
             0, 2, 0, 6, 0,
@@ -694,11 +697,12 @@ mod tests {
         ];
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
-        // let input: Image = Checkerboard::checkerboard(6, 3, 1, 3);
-
         let verbose = false;
+        let is_clockwise = false;
         let triangle_color: u8 = 11;
-        let actual: ReverseRotate45 = ReverseRotate45::process(&input, verbose, triangle_color).expect("reverse rotate");
+
+        // Act
+        let actual: ReverseRotate45 = ReverseRotate45::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
 
         // Assert
         let expected_pixels0: Vec<u8> = vec![
@@ -728,6 +732,7 @@ mod tests {
 
         let verbose = true;
         let triangle_color: u8 = 11;
-        let actual: ReverseRotate45 = ReverseRotate45::process(&input, verbose, triangle_color).expect("reverse rotate");
+        let is_clockwise = false;
+        let actual: ReverseRotate45 = ReverseRotate45::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
     }
 }
