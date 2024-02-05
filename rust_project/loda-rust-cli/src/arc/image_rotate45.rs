@@ -107,8 +107,8 @@ impl Rotate45Extract {
 
         let magic_space_color: u8 = 255;
         
-        let color0: u8 = if extract_second { 0 } else { 1 };
-        let color1: u8 = if extract_second { 1 } else { 0 };
+        let color0: u8 = if extract_second { 1 } else { 0 };
+        let color1: u8 = if extract_second { 0 } else { 1 };
         let checkerboard_mask: Image = Checkerboard::checkerboard(input.width(), input.height(), color0, color1);
         let masked_input: Image = checkerboard_mask.select_from_image_and_color(&input, magic_space_color).expect("image");
 
@@ -349,7 +349,7 @@ mod tests {
         let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
 
         // Assert
-        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![Image::color(1, 1, 8), Image::color(1, 1, 7)]);
+        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![Image::color(1, 1, 7), Image::color(1, 1, 8)]);
     }
 
     #[test]
@@ -365,7 +365,7 @@ mod tests {
         let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
 
         // Assert
-        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![Image::color(1, 1, 8), Image::color(1, 1, 7)]);
+        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![Image::color(1, 1, 7), Image::color(1, 1, 8)]);
     }
 
     #[test]
@@ -381,8 +381,8 @@ mod tests {
         let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
 
         // Assert
-        let expected0: Image = Image::try_create(1, 2, vec![2, 3]).expect("image");
-        let expected1: Image = Image::try_create(2, 1, vec![1, 4]).expect("image");
+        let expected0: Image = Image::try_create(2, 1, vec![1, 4]).expect("image");
+        let expected1: Image = Image::try_create(1, 2, vec![2, 3]).expect("image");
         assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![expected0, expected1]);
     }
 
@@ -407,21 +407,21 @@ mod tests {
 
         // Assert
         let expected_pixels0: Vec<u8> = vec![
-            11, 0, 0, 11,
-             0, 0, 0, 0,
-             0, 0, 0, 0,
-            11, 0, 0, 11,
-        ];
-        let expected0: Image = Image::try_create(4, 4, expected_pixels0).expect("image");
-
-        let expected_pixels1: Vec<u8> = vec![
             11, 11,  0, 11, 11,
             11,  3,  6,  9, 11,
              0,  2,  5,  8,  0,
             11,  1,  4,  7, 11,
             11, 11,  0, 11, 11,
         ];
-        let expected1: Image = Image::try_create(5, 5, expected_pixels1).expect("image");
+        let expected0: Image = Image::try_create(5, 5, expected_pixels0).expect("image");
+
+        let expected_pixels1: Vec<u8> = vec![
+            11, 0, 0, 11,
+             0, 0, 0, 0,
+             0, 0, 0, 0,
+            11, 0, 0, 11,
+        ];
+        let expected1: Image = Image::try_create(4, 4, expected_pixels1).expect("image");
         assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![expected0, expected1]);
     }
 
@@ -446,21 +446,22 @@ mod tests {
 
         // Assert
         let expected_pixels0: Vec<u8> = vec![
-            11, 0, 0, 11,
-             0, 0, 0, 0,
-             0, 0, 0, 0,
-            11, 0, 0, 11,
-        ];
-        let expected0: Image = Image::try_create(4, 4, expected_pixels0).expect("image");
-
-        let expected_pixels1: Vec<u8> = vec![
             11, 11,  0, 11, 11,
             11,  1,  2,  3, 11,
              0,  4,  5,  6,  0,
             11,  7,  8,  9, 11,
             11, 11,  0, 11, 11,
         ];
-        let expected1: Image = Image::try_create(5, 5, expected_pixels1).expect("image");
+        let expected0: Image = Image::try_create(5, 5, expected_pixels0).expect("image");
+
+        let expected_pixels1: Vec<u8> = vec![
+            11, 0, 0, 11,
+             0, 0, 0, 0,
+             0, 0, 0, 0,
+            11, 0, 0, 11,
+        ];
+        let expected1: Image = Image::try_create(4, 4, expected_pixels1).expect("image");
+
         assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![expected0, expected1]);
     }
 
@@ -485,20 +486,20 @@ mod tests {
 
         // Assert
         let expected_pixels0: Vec<u8> = vec![
-            11, 11,  0, 11, 11,
-            11,  2,  2,  2, 11,
-             0,  2,  0,  2,  0,
-             0,  2,  2,  2, 11,
-            11,  0,  0, 11, 11,
-        ];
-        let expected0: Image = Image::try_create(5, 5, expected_pixels0).expect("image");
-
-        let expected_pixels1: Vec<u8> = vec![
             11, 11,  0,  0, 11,
             11,  1,  1,  1,  0,
              0,  1,  0,  1,  0,
             11,  1,  1,  1, 11,
             11, 11,  0, 11, 11,
+        ];
+        let expected0: Image = Image::try_create(5, 5, expected_pixels0).expect("image");
+
+        let expected_pixels1: Vec<u8> = vec![
+            11, 11,  0, 11, 11,
+            11,  2,  2,  2, 11,
+             0,  2,  0,  2,  0,
+             0,  2,  2,  2, 11,
+            11,  0,  0, 11, 11,
         ];
         let expected1: Image = Image::try_create(5, 5, expected_pixels1).expect("image");
         assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![expected0, expected1]);
