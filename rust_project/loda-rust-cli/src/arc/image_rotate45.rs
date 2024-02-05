@@ -109,8 +109,8 @@ impl Rotate45Extract {
         
         let color0: u8 = if extract_second { 0 } else { 1 };
         let color1: u8 = if extract_second { 1 } else { 0 };
-        let mask: Image = Checkerboard::checkerboard(input.width(), input.height(), color0, color1);
-        let masked_input: Image = mask.select_from_image_and_color(&input, magic_space_color).expect("image");
+        let checkerboard_mask: Image = Checkerboard::checkerboard(input.width(), input.height(), color0, color1);
+        let masked_input: Image = checkerboard_mask.select_from_image_and_color(&input, magic_space_color).expect("image");
 
         // Rotate CW or CCW
         let rotated_image: Image = rotate_45(&masked_input, magic_space_color, is_clockwise)?;
