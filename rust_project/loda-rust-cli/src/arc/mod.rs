@@ -280,7 +280,10 @@ pub use image_replace_regex::{ImageReplaceRegex, ImageReplaceRegexToColor};
 
 pub use image_replace_simple::ImageReplaceSimple;
 pub use image_resize::ImageResize;
-pub use image_rotate45::ImageRotate45;
+
+#[allow(unused_imports)]
+pub use image_rotate45::{ImageRotate45, Rotate45Extract};
+
 pub use image_rotate90::ImageRotate90;
 pub use image_rowcolumn_order::ImageRowColumnOrder;
 pub use image_set_pixel_where::ImageSetPixelWhere;

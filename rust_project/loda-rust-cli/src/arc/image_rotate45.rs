@@ -66,19 +66,19 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
 }
 
 #[allow(dead_code)]
-struct Rotate45Extract {
-    rotated_a: Image,
-    rotated_b: Image,
+pub struct Rotate45Extract {
+    pub rotated_a: Image,
+    pub rotated_b: Image,
 }
 
 impl Rotate45Extract {
     #[allow(dead_code)]
-    fn process(image: &Image, verbose: bool, triangle_color: u8, is_clockwise: bool) -> anyhow::Result<Self> {
+    pub fn process(image: &Image, verbose: bool, triangle_color: u8, is_clockwise: bool) -> anyhow::Result<Self> {
         if verbose {
             HtmlLog::image(&image);
         }
-        let rotated_a: Image = Self::extract_lattice(image, triangle_color, is_clockwise, false)?;
-        let rotated_b: Image = Self::extract_lattice(image, triangle_color, is_clockwise, true)?;
+        let rotated_a: Image = Self::rotate_and_extract(image, triangle_color, is_clockwise, false)?;
+        let rotated_b: Image = Self::rotate_and_extract(image, triangle_color, is_clockwise, true)?;
         if verbose {
             HtmlLog::compare_images(vec![rotated_a.clone(), rotated_b.clone()]);
         }
@@ -89,7 +89,14 @@ impl Rotate45Extract {
         Ok(instance)
     }
 
-    fn extract_lattice(input: &Image, triangle_color: u8, is_clockwise: bool, extract_second: bool) -> anyhow::Result<Image> {
+    /// Rotate by 45 degrees, and extract the primary/secondary lattice.
+    /// 
+    /// - When `extract_second == false`, then extract the primary lattice.
+    /// - When `extract_second == true`, then extract the secondary lattice.
+    /// 
+    /// The `triangle_color` is assigned to the corner triangles.
+    /// When rotating by 45 degrees, the bigger images usually gets triangles in the corners.
+    fn rotate_and_extract(input: &Image, triangle_color: u8, is_clockwise: bool, extract_second: bool) -> anyhow::Result<Image> {
         if input.is_empty() {
             // Nothing to extract from an empty image.
             return Ok(input.clone());
