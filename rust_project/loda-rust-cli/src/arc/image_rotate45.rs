@@ -625,9 +625,9 @@ mod tests {
         let space_color: u8 = 255;
         let staircase_color: u8 = 2;
         
-        // let input_raw: Image = Checkerboard::checkerboard(7, 8, 1, 2);
-        let input_raw: Image = Image::color(7, 8, 1);
-        // HtmlLog::image(&input_raw);
+        let input_raw: Image = Checkerboard::checkerboard(7, 8, 1, 3);
+        // let input_raw: Image = Image::color(7, 8, 1);
+        HtmlLog::image(&input_raw);
 
         let extract_second = false;
 
@@ -644,31 +644,19 @@ mod tests {
         // Act - part 2
         let rect: Rectangle = actual0.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
 
-        // Keep every second row and column
-        let mut keep_ys = BitSet::new();
-        for y in 0..rect.height() {
-            if y.is_even() {
-                keep_ys.insert((y as usize) + rect.y() as usize);
-            }
-        }
-        let mut keep_xs = BitSet::new();
-        for x in 0..rect.width() {
-            if x.is_even() {
-                keep_xs.insert((x as usize) + rect.x() as usize);
-            }
-        }
-
-        // Identify the rows and columns that can be removed
+        // Keep every second row and column        
+        let keep_x: u8 = rect.x() & 1;
+        let keep_y: u8 = rect.y() & 1;
         let mut delete_row_indexes = BitSet::new();
         let mut delete_column_indexes = BitSet::new();
         for x in 0..actual0.width() {
-            if keep_xs.contains(x as usize) {
+            if x & 1 == keep_x {
                 continue;
             }
             delete_column_indexes.insert(x as usize);
         }
         for y in 0..actual0.height() {
-            if keep_ys.contains(y as usize) {
+            if y & 1 == keep_y {
                 continue;
             }
             delete_row_indexes.insert(y as usize);
