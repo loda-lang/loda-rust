@@ -66,12 +66,12 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
 }
 
 #[allow(dead_code)]
-struct ReverseRotate45 {
+struct Rotate45Extract {
     rotated_a: Image,
     rotated_b: Image,
 }
 
-impl ReverseRotate45 {
+impl Rotate45Extract {
     #[allow(dead_code)]
     fn process(image: &Image, verbose: bool, triangle_color: u8, is_clockwise: bool) -> anyhow::Result<Self> {
         if verbose {
@@ -686,7 +686,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30006_reversable_ccw() {
+    fn test_30006_rotate45extract_ccw() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 3, 0, 0,
@@ -702,7 +702,7 @@ mod tests {
         let triangle_color: u8 = 11;
 
         // Act
-        let actual: ReverseRotate45 = ReverseRotate45::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
+        let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
 
         // Assert
         let expected_pixels0: Vec<u8> = vec![
@@ -712,7 +712,6 @@ mod tests {
             11, 0, 0, 11,
         ];
         let expected0: Image = Image::try_create(4, 4, expected_pixels0).expect("image");
-        assert_eq!(actual.rotated_a, expected0);
 
         let expected_pixels1: Vec<u8> = vec![
             11, 11,  0, 11, 11,
@@ -722,7 +721,7 @@ mod tests {
             11, 11,  0, 11, 11,
         ];
         let expected1: Image = Image::try_create(5, 5, expected_pixels1).expect("image");
-        assert_eq!(actual.rotated_b, expected1);
+        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![expected0, expected1]);
     }
 
     #[allow(dead_code)]
@@ -733,6 +732,6 @@ mod tests {
         let verbose = true;
         let triangle_color: u8 = 11;
         let is_clockwise = false;
-        let actual: ReverseRotate45 = ReverseRotate45::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
+        let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
     }
 }
