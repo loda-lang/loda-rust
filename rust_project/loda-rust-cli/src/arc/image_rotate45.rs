@@ -439,4 +439,118 @@ mod tests {
         let actual2: Image = actual1.rotate_cw_45(space_color).expect("image");
         assert_eq!(actual2, input);
     }
+
+    #[test]
+    fn test_30003_reversable_rotate_two_images_interleaved() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 3, 8,
+            0, 2, 7, 8,
+            1, 0, 5, 8,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+
+        let space_color: u8 = 0;
+        
+        // Act - part 1
+        let actual0: Image = input.rotate_ccw_45(space_color).expect("image");
+        let expected_pixels0: Vec<u8> = vec![
+            0, 0, 0, 8, 0, 0,
+            0, 0, 3, 0, 8, 0,
+            0, 0, 0, 7, 0, 8,
+            0, 0, 2, 0, 5, 0,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 1, 0, 0, 0,
+        ];
+        let expected0: Image = Image::try_create(6, 6, expected_pixels0).expect("image");
+        assert_eq!(actual0, expected0);
+
+        // Act - part 2
+        let rect: Rectangle = actual0.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
+        assert_eq!(rect, Rectangle::new(2, 0, 4, 6));
+
+        // Keep every second row and column
+        let mut keep_ys_even = BitSet::new();
+        let mut keep_ys_odd = BitSet::new();
+        for y in 0..rect.height() {
+            if y.is_even() {
+                keep_ys_even.insert((y as usize) + rect.y() as usize);
+            } else {
+                keep_ys_odd.insert((y as usize) + rect.y() as usize);
+            }
+        }
+        let mut keep_xs_even = BitSet::new();
+        let mut keep_xs_odd = BitSet::new();
+        for x in 0..rect.width() {
+            if x.is_even() {
+                keep_xs_even.insert((x as usize) + rect.x() as usize);
+            } else {
+                keep_xs_odd.insert((x as usize) + rect.x() as usize);
+            }
+        }
+
+        let mut images = Vec::<Image>::new();
+        for i in 0..=3u8 {
+            let keep_ys: &BitSet = if (i & 1) == 1 { &keep_ys_even } else { &keep_ys_odd };
+            let keep_xs: &BitSet = if (i & 2) == 2 { &keep_xs_even } else { &keep_xs_odd };
+
+            // Identify the rows and columns that can be removed
+            let mut delete_row_indexes = BitSet::new();
+            let mut delete_column_indexes = BitSet::new();
+            for x in 0..actual0.width() {
+                if keep_xs.contains(x as usize) {
+                    continue;
+                }
+                delete_column_indexes.insert(x as usize);
+            }
+            for y in 0..actual0.height() {
+                if keep_ys.contains(y as usize) {
+                    continue;
+                }
+                delete_row_indexes.insert(y as usize);
+            }
+    
+            // Remove the rows and columns
+            let image: Image = actual0.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
+            images.push(image);
+        }
+
+        // Assert
+        {
+            let expected_pixels: Vec<u8> = vec![
+                0, 0,
+                0, 0,
+                0, 0,
+            ];
+            let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
+            assert_eq!(images[0], expected);
+        }
+        {
+            let expected_pixels: Vec<u8> = vec![
+                8, 0,
+                7, 8,
+                0, 0,
+            ];
+            let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
+            assert_eq!(images[1], expected);
+        }
+        {
+            let expected_pixels: Vec<u8> = vec![
+                3, 8,
+                2, 5,
+                1, 0,
+            ];
+            let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
+            assert_eq!(images[2], expected);
+        }
+        {
+            let expected_pixels: Vec<u8> = vec![
+                0, 0,
+                0, 0,
+                0, 0,
+            ];
+            let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
+            assert_eq!(images[3], expected);
+        }
+    }
 }
