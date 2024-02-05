@@ -73,9 +73,12 @@ struct ReverseRotate45 {
 
 impl ReverseRotate45 {
     #[allow(dead_code)]
-    fn process(image: &Image, verbose: bool) -> anyhow::Result<Self> {
-        let rotated_a: Image = Self::extract_lattice(verbose, image, false)?;
-        let rotated_b: Image = Self::extract_lattice(verbose, image, true)?;
+    fn process(image: &Image, verbose: bool, triangle_color: u8) -> anyhow::Result<Self> {
+        if verbose {
+            HtmlLog::image(&image);
+        }
+        let rotated_a: Image = Self::extract_lattice(image, verbose, triangle_color, false)?;
+        let rotated_b: Image = Self::extract_lattice(image, verbose, triangle_color, true)?;
         if verbose {
             HtmlLog::compare_images(vec![rotated_a.clone(), rotated_b.clone()]);
         }
@@ -87,9 +90,8 @@ impl ReverseRotate45 {
     }
 
     #[allow(dead_code)]
-    fn extract_lattice(verbose: bool, input_raw: &Image, extract_second: bool) -> anyhow::Result<Image> {
+    fn extract_lattice(input_raw: &Image, verbose: bool, triangle_color: u8, extract_second: bool) -> anyhow::Result<Image> {
         let space_color: u8 = 255;
-        let staircase_color: u8 = 2;
         
         let color0: u8 = if extract_second { 0 } else { 1 };
         let color1: u8 = if extract_second { 1 } else { 0 };
@@ -132,8 +134,8 @@ impl ReverseRotate45 {
         //     HtmlLog::image(&actual1);
         // }
 
-        // Replace the spacer color with the staircase color
-        let actual2: Image = actual1.replace_color(space_color, staircase_color).expect("image");
+        // Assign color to the corner triangles
+        let actual2: Image = actual1.replace_color(space_color, triangle_color).expect("image");
         Ok(actual2)
     }
 }
@@ -681,13 +683,51 @@ mod tests {
         HtmlLog::image(&actual2);
     }
 
+    #[test]
+    fn test_30006_reversable_ccw() {
+        let pixels: Vec<u8> = vec![
+            0, 0, 3, 0, 0,
+            0, 2, 0, 6, 0,
+            1, 0, 5, 0, 9,
+            0, 4, 0, 8, 0,
+            0, 0, 7, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // let input: Image = Checkerboard::checkerboard(6, 3, 1, 3);
+
+        let verbose = false;
+        let triangle_color: u8 = 11;
+        let actual: ReverseRotate45 = ReverseRotate45::process(&input, verbose, triangle_color).expect("reverse rotate");
+
+        // Assert
+        let expected_pixels0: Vec<u8> = vec![
+            11, 0, 0, 11,
+             0, 0, 0, 0,
+             0, 0, 0, 0,
+            11, 0, 0, 11,
+        ];
+        let expected0: Image = Image::try_create(4, 4, expected_pixels0).expect("image");
+        assert_eq!(actual.rotated_a, expected0);
+
+        let expected_pixels1: Vec<u8> = vec![
+            11, 11,  0, 11, 11,
+            11,  3,  6,  9, 11,
+             0,  2,  5,  8,  0,
+            11,  1,  4,  7, 11,
+            11, 11,  0, 11, 11,
+        ];
+        let expected1: Image = Image::try_create(5, 5, expected_pixels1).expect("image");
+        assert_eq!(actual.rotated_b, expected1);
+    }
+
     #[allow(dead_code)]
     // #[test]
-    fn test_30006_reversable_rotate_two_images_interleaved_using_checkerboard() {
-        let input_raw: Image = Checkerboard::checkerboard(7, 1, 1, 3);
-        HtmlLog::image(&input_raw);
+    fn test_30007_reversable_ccw() {
+        let input: Image = Checkerboard::checkerboard(6, 3, 1, 3);
 
         let verbose = true;
-        let actual: ReverseRotate45 = ReverseRotate45::process(&input_raw, verbose).expect("reverse rotate");
+        let triangle_color: u8 = 11;
+        let actual: ReverseRotate45 = ReverseRotate45::process(&input, verbose, triangle_color).expect("reverse rotate");
     }
 }
