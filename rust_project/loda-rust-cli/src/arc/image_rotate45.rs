@@ -77,8 +77,8 @@ impl Rotate45Extract {
         if verbose {
             HtmlLog::image(&image);
         }
-        let rotated_a: Image = Self::extract_lattice(image, verbose, triangle_color, is_clockwise, false)?;
-        let rotated_b: Image = Self::extract_lattice(image, verbose, triangle_color, is_clockwise, true)?;
+        let rotated_a: Image = Self::extract_lattice(image, triangle_color, is_clockwise, false)?;
+        let rotated_b: Image = Self::extract_lattice(image, triangle_color, is_clockwise, true)?;
         if verbose {
             HtmlLog::compare_images(vec![rotated_a.clone(), rotated_b.clone()]);
         }
@@ -89,26 +89,34 @@ impl Rotate45Extract {
         Ok(instance)
     }
 
-    #[allow(dead_code)]
-    fn extract_lattice(input: &Image, verbose: bool, triangle_color: u8, is_clockwise: bool, extract_second: bool) -> anyhow::Result<Image> {
-        let space_color: u8 = 255;
+    fn extract_lattice(input: &Image, triangle_color: u8, is_clockwise: bool, extract_second: bool) -> anyhow::Result<Image> {
+        if input.is_empty() {
+            // Nothing to extract from an empty image.
+            return Ok(input.clone());
+        }
+        if input.width() == 1 && input.height() == 1 {
+            // When the input is 1x1, then there is a special case.
+            if extract_second {
+                // For the secondary lattice, return an empty image. Since there is no secondary lattice to extract.
+                return Ok(Image::empty());
+            } else {
+                // For the primary lattice, return the input 1x1 image.
+                return Ok(input.clone());
+            }
+        }
+
+        let magic_space_color: u8 = 255;
         
         let color0: u8 = if extract_second { 0 } else { 1 };
         let color1: u8 = if extract_second { 1 } else { 0 };
         let mask: Image = Checkerboard::checkerboard(input.width(), input.height(), color0, color1);
-        let masked_input: Image = mask.select_from_image_and_color(&input, space_color).expect("image");
-        // if verbose {
-        //     HtmlLog::image(&masked_input);
-        // }
+        let masked_input: Image = mask.select_from_image_and_color(&input, magic_space_color).expect("image");
 
         // Rotate CW or CCW
-        let rotated_image: Image = rotate_45(&masked_input, space_color, is_clockwise)?;
-        // if verbose {
-        //     HtmlLog::image(&rotated_image);
-        // }
+        let rotated_image: Image = rotate_45(&masked_input, magic_space_color, is_clockwise)?;
 
         // Bounding box
-        let rect: Rectangle = rotated_image.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
+        let rect: Rectangle = rotated_image.outer_bounding_box_after_trim_with_color(magic_space_color).expect("rectangle");
 
         // Determine where in the lattice the image is located
         let keep_x: u8 = rect.x() & 1;
@@ -131,14 +139,11 @@ impl Rotate45Extract {
         }
 
         // Remove rows and columns
-        let actual1: Image = rotated_image.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
-        // if verbose {
-        //     HtmlLog::image(&actual1);
-        // }
+        let extracted_image: Image = rotated_image.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
 
         // Assign color to the corner triangles
-        let actual2: Image = actual1.replace_color(space_color, triangle_color).expect("image");
-        Ok(actual2)
+        let extracted_image_with_corner_triangles: Image = extracted_image.replace_color(magic_space_color, triangle_color).expect("image");
+        Ok(extracted_image_with_corner_triangles)
     }
 }
 
@@ -300,7 +305,89 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_rotate45extract_ccw_square() {
+    fn test_30000_rotate45extract_empty() {
+        // Arrange
+        let input: Image = Image::empty();
+
+        let verbose = false;
+        let is_clockwise = false;
+        let triangle_color: u8 = 11;
+
+        // Act
+        let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
+
+        // Assert
+        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![Image::empty(), Image::empty()]);
+    }
+
+    #[test]
+    fn test_30001_rotate45extract_tiny1x1() {
+        // Arrange
+        let input: Image = Image::color(1, 1, 7);
+
+        let verbose = false;
+        let is_clockwise = false;
+        let triangle_color: u8 = 11;
+
+        // Act
+        let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
+
+        // Assert
+        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![Image::color(1, 1, 7), Image::empty()]);
+    }
+
+    #[test]
+    fn test_30002_rotate45extract_tiny2x1() {
+        // Arrange
+        let input: Image = Image::try_create(2, 1, vec![7, 8]).expect("image");
+
+        let verbose = false;
+        let is_clockwise = false;
+        let triangle_color: u8 = 11;
+
+        // Act
+        let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
+
+        // Assert
+        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![Image::color(1, 1, 8), Image::color(1, 1, 7)]);
+    }
+
+    #[test]
+    fn test_30003_rotate45extract_tiny1x2() {
+        // Arrange
+        let input: Image = Image::try_create(1, 2, vec![7, 8]).expect("image");
+
+        let verbose = false;
+        let is_clockwise = false;
+        let triangle_color: u8 = 11;
+
+        // Act
+        let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
+
+        // Assert
+        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![Image::color(1, 1, 8), Image::color(1, 1, 7)]);
+    }
+
+    #[test]
+    fn test_30004_rotate45extract_tiny2x2() {
+        // Arrange
+        let input: Image = Image::try_create(2, 2, vec![1, 2, 3, 4]).expect("image");
+
+        let verbose = false;
+        let is_clockwise = false;
+        let triangle_color: u8 = 11;
+
+        // Act
+        let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
+
+        // Assert
+        let expected0: Image = Image::try_create(1, 2, vec![2, 3]).expect("image");
+        let expected1: Image = Image::try_create(2, 1, vec![1, 4]).expect("image");
+        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![expected0, expected1]);
+    }
+
+    #[test]
+    fn test_30005_rotate45extract_ccw_square() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 3, 0, 0,
@@ -339,7 +426,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30001_rotate45extract_cw_square() {
+    fn test_30006_rotate45extract_cw_square() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 3, 0, 0,
@@ -378,7 +465,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30002_rotate45extract_ccw_nonsquare() {
+    fn test_30007_rotate45extract_ccw_nonsquare() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 2, 0, 0,
@@ -419,12 +506,12 @@ mod tests {
 
     #[allow(dead_code)]
     // #[test]
-    fn test_30007_reversable_ccw() {
+    fn test_30008_reversable_ccw() {
         let input: Image = Checkerboard::checkerboard(6, 3, 1, 3);
 
         let verbose = true;
         let triangle_color: u8 = 11;
         let is_clockwise = false;
-        let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
+        let _actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
     }
 }
