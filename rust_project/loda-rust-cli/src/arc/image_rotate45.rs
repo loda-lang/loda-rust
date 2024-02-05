@@ -67,7 +67,7 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::{Histogram, ImageHistogram, ImageRemoveRowColumn, ImageTrim, ImageTryCreate, Rectangle};
+    use crate::arc::{Histogram, HtmlLog, ImageHistogram, ImageRemoveRowColumn, ImageTrim, ImageTryCreate, Rectangle};
     use bit_set::BitSet;
     use num_integer::Integer;
 
@@ -551,6 +551,68 @@ mod tests {
             ];
             let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
             assert_eq!(images[3], expected);
+        }
+    }
+
+    // #[test]
+    fn test_30004_reversable_rotate_two_images_interleaved() {
+        // Arrange
+        let input: Image = Image::color(7, 8, 1);
+
+        let space_color: u8 = 0;
+        
+        // Act - part 1
+        let actual0: Image = input.rotate_ccw_45(space_color).expect("image");
+
+        // Act - part 2
+        let rect: Rectangle = actual0.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
+
+        // Keep every second row and column
+        let mut keep_ys_even = BitSet::new();
+        let mut keep_ys_odd = BitSet::new();
+        for y in 0..rect.height() {
+            if y.is_even() {
+                keep_ys_even.insert((y as usize) + rect.y() as usize);
+            } else {
+                keep_ys_odd.insert((y as usize) + rect.y() as usize);
+            }
+        }
+        let mut keep_xs_even = BitSet::new();
+        let mut keep_xs_odd = BitSet::new();
+        for x in 0..rect.width() {
+            if x.is_even() {
+                keep_xs_even.insert((x as usize) + rect.x() as usize);
+            } else {
+                keep_xs_odd.insert((x as usize) + rect.x() as usize);
+            }
+        }
+
+        let mut images = Vec::<Image>::new();
+        for i in 0..=3u8 {
+            let keep_ys: &BitSet = if (i & 1) == 1 { &keep_ys_even } else { &keep_ys_odd };
+            let keep_xs: &BitSet = if (i & 2) == 2 { &keep_xs_even } else { &keep_xs_odd };
+
+            // Identify the rows and columns that can be removed
+            let mut delete_row_indexes = BitSet::new();
+            let mut delete_column_indexes = BitSet::new();
+            for x in 0..actual0.width() {
+                if keep_xs.contains(x as usize) {
+                    continue;
+                }
+                delete_column_indexes.insert(x as usize);
+            }
+            for y in 0..actual0.height() {
+                if keep_ys.contains(y as usize) {
+                    continue;
+                }
+                delete_row_indexes.insert(y as usize);
+            }
+    
+            // Remove the rows and columns
+            let image: Image = actual0.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
+            HtmlLog::text(&format!("Image {}", i));
+            HtmlLog::image(&image);
+            images.push(image);
         }
     }
 }
