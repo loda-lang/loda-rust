@@ -110,13 +110,13 @@ impl Rotate45Extract {
         let color0: u8 = if extract_second { 1 } else { 0 };
         let color1: u8 = if extract_second { 0 } else { 1 };
         let checkerboard_mask: Image = Checkerboard::checkerboard(input.width(), input.height(), color0, color1);
-        let masked_input: Image = checkerboard_mask.select_from_image_and_color(&input, magic_space_color).expect("image");
+        let masked_input: Image = checkerboard_mask.select_from_image_and_color(&input, magic_space_color)?;
 
         // Rotate CW or CCW
         let rotated_image: Image = rotate_45(&masked_input, magic_space_color, is_clockwise)?;
 
         // Bounding box
-        let rect: Rectangle = rotated_image.outer_bounding_box_after_trim_with_color(magic_space_color).expect("rectangle");
+        let rect: Rectangle = rotated_image.outer_bounding_box_after_trim_with_color(magic_space_color)?;
 
         // Determine where in the lattice the image is located
         let keep_x: u8 = rect.x() & 1;
@@ -139,10 +139,10 @@ impl Rotate45Extract {
         }
 
         // Remove rows and columns
-        let extracted_image: Image = rotated_image.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
+        let extracted_image: Image = rotated_image.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes)?;
 
         // Assign color to the corner triangles
-        let extracted_image_with_corner_triangles: Image = extracted_image.replace_color(magic_space_color, triangle_color).expect("image");
+        let extracted_image_with_corner_triangles: Image = extracted_image.replace_color(magic_space_color, triangle_color)?;
         Ok(extracted_image_with_corner_triangles)
     }
 }
