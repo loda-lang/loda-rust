@@ -1,5 +1,6 @@
 //! Rotate an image by 45 degrees.
-use super::{Image, ImageSymmetry};
+use super::{Checkerboard, HtmlLog, Image, ImageMask, ImageRemoveRowColumn, ImageReplaceColor, ImageSymmetry, ImageTrim, Rectangle};
+use bit_set::BitSet;
 
 pub trait ImageRotate45 {
     /// Rotate an image by 45 degrees. clockwise (CW)
@@ -62,6 +63,79 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
         image = image.flip_y()?;
     }
     Ok(image)
+}
+
+#[allow(dead_code)]
+struct ReverseRotate45 {
+    rotated_a: Image,
+    rotated_b: Image,
+}
+
+impl ReverseRotate45 {
+    #[allow(dead_code)]
+    fn process(image: &Image, verbose: bool) -> anyhow::Result<Self> {
+        let rotated_a: Image = Self::extract_lattice(verbose, image, false)?;
+        let rotated_b: Image = Self::extract_lattice(verbose, image, true)?;
+        if verbose {
+            HtmlLog::compare_images(vec![rotated_a.clone(), rotated_b.clone()]);
+        }
+        let instance = Self {
+            rotated_a,
+            rotated_b,
+        };
+        Ok(instance)
+    }
+
+    #[allow(dead_code)]
+    fn extract_lattice(verbose: bool, input_raw: &Image, extract_second: bool) -> anyhow::Result<Image> {
+        let space_color: u8 = 255;
+        let staircase_color: u8 = 2;
+        
+        let color0: u8 = if extract_second { 0 } else { 1 };
+        let color1: u8 = if extract_second { 1 } else { 0 };
+        let checkerboard: Image = Checkerboard::checkerboard(input_raw.width(), input_raw.height(), color0, color1);
+        let input: Image = checkerboard.select_from_image_and_color(&input_raw, space_color).expect("image");
+        // if verbose {
+        //     HtmlLog::image(&input);
+        // }
+
+        // Act - part 1
+        let actual0: Image = input.rotate_ccw_45(space_color).expect("image");
+        // if verbose {
+        //     HtmlLog::image(&actual0);
+        // }
+
+        // Act - part 2
+        let rect: Rectangle = actual0.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
+
+        // Keep every second row and column        
+        let keep_x: u8 = rect.x() & 1;
+        let keep_y: u8 = rect.y() & 1;
+        let mut delete_row_indexes = BitSet::new();
+        let mut delete_column_indexes = BitSet::new();
+        for x in 0..actual0.width() {
+            if x & 1 == keep_x {
+                continue;
+            }
+            delete_column_indexes.insert(x as usize);
+        }
+        for y in 0..actual0.height() {
+            if y & 1 == keep_y {
+                continue;
+            }
+            delete_row_indexes.insert(y as usize);
+        }
+
+        // Remove the rows and columns
+        let actual1: Image = actual0.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
+        // if verbose {
+        //     HtmlLog::image(&actual1);
+        // }
+
+        // Replace the spacer color with the staircase color
+        let actual2: Image = actual1.replace_color(space_color, staircase_color).expect("image");
+        Ok(actual2)
+    }
 }
 
 #[cfg(test)]
@@ -605,5 +679,15 @@ mod tests {
         // Replace the spacer color with the staircase color
         let actual2: Image = actual1.replace_color(space_color, staircase_color).expect("image");
         HtmlLog::image(&actual2);
+    }
+
+    #[allow(dead_code)]
+    // #[test]
+    fn test_30006_reversable_rotate_two_images_interleaved_using_checkerboard() {
+        let input_raw: Image = Checkerboard::checkerboard(7, 1, 1, 3);
+        HtmlLog::image(&input_raw);
+
+        let verbose = true;
+        let actual: ReverseRotate45 = ReverseRotate45::process(&input_raw, verbose).expect("reverse rotate");
     }
 }
