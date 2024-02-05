@@ -67,8 +67,9 @@ fn rotate_45(original: &Image, fill_color: u8, is_clockwise: bool) -> anyhow::Re
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::{Histogram, HtmlLog, ImageHistogram, ImageRemoveRowColumn, ImageTrim, ImageTryCreate, Rectangle};
+    use crate::arc::{checkerboard, Histogram, HtmlLog, ImageHistogram, ImageMask, ImageRemoveRowColumn, ImageReplaceColor, ImageTrim, ImageTryCreate, Rectangle};
     use bit_set::BitSet;
+    use checkerboard::Checkerboard;
     use num_integer::Integer;
 
     #[test]
@@ -554,6 +555,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     // #[test]
     fn test_30004_reversable_rotate_two_images_interleaved() {
         // Arrange
@@ -563,6 +565,140 @@ mod tests {
         
         // Act - part 1
         let actual0: Image = input.rotate_ccw_45(space_color).expect("image");
+
+        // Act - part 2
+        let rect: Rectangle = actual0.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
+
+        // Keep every second row and column
+        let mut keep_ys_even = BitSet::new();
+        let mut keep_ys_odd = BitSet::new();
+        for y in 0..rect.height() {
+            if y.is_even() {
+                keep_ys_even.insert((y as usize) + rect.y() as usize);
+            } else {
+                keep_ys_odd.insert((y as usize) + rect.y() as usize);
+            }
+        }
+        let mut keep_xs_even = BitSet::new();
+        let mut keep_xs_odd = BitSet::new();
+        for x in 0..rect.width() {
+            if x.is_even() {
+                keep_xs_even.insert((x as usize) + rect.x() as usize);
+            } else {
+                keep_xs_odd.insert((x as usize) + rect.x() as usize);
+            }
+        }
+
+        let mut images = Vec::<Image>::new();
+        for i in 0..=3u8 {
+            let keep_ys: &BitSet = if (i & 1) == 1 { &keep_ys_even } else { &keep_ys_odd };
+            let keep_xs: &BitSet = if (i & 2) == 2 { &keep_xs_even } else { &keep_xs_odd };
+
+            // Identify the rows and columns that can be removed
+            let mut delete_row_indexes = BitSet::new();
+            let mut delete_column_indexes = BitSet::new();
+            for x in 0..actual0.width() {
+                if keep_xs.contains(x as usize) {
+                    continue;
+                }
+                delete_column_indexes.insert(x as usize);
+            }
+            for y in 0..actual0.height() {
+                if keep_ys.contains(y as usize) {
+                    continue;
+                }
+                delete_row_indexes.insert(y as usize);
+            }
+    
+            // Remove the rows and columns
+            let image: Image = actual0.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
+            HtmlLog::text(&format!("Image {}", i));
+            HtmlLog::image(&image);
+            images.push(image);
+        }
+    }
+
+    #[allow(dead_code)]
+    // #[test]
+    fn test_30005_reversable_rotate_two_images_interleaved_using_checkerboard() {
+        // Arrange
+        let space_color: u8 = 255;
+        let staircase_color: u8 = 2;
+        
+        // let input_raw: Image = Checkerboard::checkerboard(7, 8, 1, 2);
+        let input_raw: Image = Image::color(7, 8, 1);
+        // HtmlLog::image(&input_raw);
+
+        let extract_second = false;
+
+        let color0: u8 = if extract_second { 0 } else { 1 };
+        let color1: u8 = if extract_second { 1 } else { 0 };
+        let checkerboard: Image = Checkerboard::checkerboard(input_raw.width(), input_raw.height(), color0, color1);
+        let input: Image = checkerboard.select_from_image_and_color(&input_raw, space_color).expect("image");
+        HtmlLog::image(&input);
+
+        // Act - part 1
+        let actual0: Image = input.rotate_ccw_45(space_color).expect("image");
+        HtmlLog::image(&actual0);
+
+        // Act - part 2
+        let rect: Rectangle = actual0.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
+
+        // Keep every second row and column
+        let mut keep_ys = BitSet::new();
+        for y in 0..rect.height() {
+            if y.is_even() {
+                keep_ys.insert((y as usize) + rect.y() as usize);
+            }
+        }
+        let mut keep_xs = BitSet::new();
+        for x in 0..rect.width() {
+            if x.is_even() {
+                keep_xs.insert((x as usize) + rect.x() as usize);
+            }
+        }
+
+        // Identify the rows and columns that can be removed
+        let mut delete_row_indexes = BitSet::new();
+        let mut delete_column_indexes = BitSet::new();
+        for x in 0..actual0.width() {
+            if keep_xs.contains(x as usize) {
+                continue;
+            }
+            delete_column_indexes.insert(x as usize);
+        }
+        for y in 0..actual0.height() {
+            if keep_ys.contains(y as usize) {
+                continue;
+            }
+            delete_row_indexes.insert(y as usize);
+        }
+
+        // Remove the rows and columns
+        let actual1: Image = actual0.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
+        HtmlLog::image(&actual1);
+
+        // Replace the spacer color with the staircase color
+        let actual2: Image = actual1.replace_color(space_color, staircase_color).expect("image");
+        HtmlLog::image(&actual2);
+    }
+
+    #[allow(dead_code)]
+    // #[test]
+    fn test_30006_reversable_rotate_two_images_interleaved_using_checkerboard() {
+        // Arrange
+        let space_color: u8 = 0;
+        
+        // let input: Image = Checkerboard::checkerboard(7, 8, 1, 2);
+        let input: Image = Image::color(7, 8, 1);
+        // HtmlLog::image(&input);
+
+
+        // Act - part 1
+        let input_rotated: Image = input.rotate_ccw_45(space_color).expect("image");
+        let checkerboard: Image = Checkerboard::checkerboard(input_rotated.width(), input_rotated.height(), 0, 1);
+        let actual0: Image = checkerboard.select_from_image_and_color(&input_rotated, space_color).expect("image");
+        HtmlLog::image(&actual0);
 
         // Act - part 2
         let rect: Rectangle = actual0.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
