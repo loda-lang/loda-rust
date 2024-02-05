@@ -505,6 +505,44 @@ mod tests {
         assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![expected0, expected1]);
     }
 
+    #[test]
+    fn test_30008_rotate45extract_cw_nonsquare() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 0, 0,
+            0, 2, 0, 0, 0, 6,
+            0, 0, 3, 0, 5, 0,
+            0, 0, 0, 4, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 4, pixels).expect("image");
+
+        let verbose = false;
+        let is_clockwise = false;
+        let triangle_color: u8 = 11;
+
+        // Act
+        let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
+
+        // Assert
+        let expected_pixels0: Vec<u8> = vec![
+            11, 11,  0,  6, 11,
+            11,  0,  0,  5,  0,
+             1,  2,  3,  4, 11,
+            11,  0,  0, 11, 11,
+        ];
+        let expected0: Image = Image::try_create(5, 4, expected_pixels0).expect("image");
+
+        let expected_pixels1: Vec<u8> = vec![
+            11, 11,  0, 11,
+            11,  0,  0,  0,
+             0,  0,  0,  0,
+             0,  0,  0, 11,
+            11,  0, 11, 11,
+        ];
+        let expected1: Image = Image::try_create(4, 5, expected_pixels1).expect("image");
+        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![expected0, expected1]);
+    }
+
     #[allow(dead_code)]
     // #[test]
     fn test_30008_reversable_ccw() {
