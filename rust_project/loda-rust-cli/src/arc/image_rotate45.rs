@@ -364,4 +364,79 @@ mod tests {
         let actual2: Image = actual1.rotate_cw_45(space_color).expect("image");
         assert_eq!(actual2, input);
     }
+
+    #[test]
+    fn test_30002_reversable_rotate_keep_empty_lines_inside_object() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 3,
+            0, 2, 0,
+            1, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        let space_color: u8 = 0;
+        
+        // Act - part 1
+        let actual0: Image = input.rotate_ccw_45(space_color).expect("image");
+        let expected_pixels0: Vec<u8> = vec![
+            0, 0, 3, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 2, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 1, 0, 0,
+        ];
+        let expected0: Image = Image::try_create(5, 5, expected_pixels0).expect("image");
+        assert_eq!(actual0, expected0);
+
+        // Act - part 2
+        let rect: Rectangle = actual0.outer_bounding_box_after_trim_with_color(space_color).expect("rectangle");
+        assert_eq!(rect, Rectangle::new(2, 0, 1, 5));
+
+        // Keep every second row and column
+        let mut keep_ys = BitSet::new();
+        for y in 0..rect.height() {
+            if y.is_even() {
+                keep_ys.insert((y as usize) + rect.y() as usize);
+            }
+        }
+        let mut keep_xs = BitSet::new();
+        for x in 0..rect.width() {
+            if x.is_even() {
+                keep_xs.insert((x as usize) + rect.x() as usize);
+            }
+        }
+
+        // Identify the rows and columns that can be removed
+        let mut delete_row_indexes = BitSet::new();
+        let mut delete_column_indexes = BitSet::new();
+        for x in 0..actual0.width() {
+            if keep_xs.contains(x as usize) {
+                continue;
+            }
+            delete_column_indexes.insert(x as usize);
+        }
+        for y in 0..actual0.height() {
+            if keep_ys.contains(y as usize) {
+                continue;
+            }
+            delete_row_indexes.insert(y as usize);
+        }
+
+        // Remove the rows and columns
+        let actual1: Image = actual0.remove_rowcolumn(&delete_row_indexes, &delete_column_indexes).expect("image");
+
+        // Assert
+        let expected_pixels1: Vec<u8> = vec![
+            3,
+            2, 
+            1, 
+        ];
+        let expected1: Image = Image::try_create(1, 3, expected_pixels1).expect("image");
+        assert_eq!(actual1, expected1);
+
+        // Rotating again, should yield the input image
+        let actual2: Image = actual1.rotate_cw_45(space_color).expect("image");
+        assert_eq!(actual2, input);
+    }
 }
