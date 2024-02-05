@@ -150,7 +150,7 @@ impl Rotate45Extract {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::{Checkerboard, ImageTryCreate};
+    use crate::arc::ImageTryCreate;
 
     #[test]
     fn test_10000_rotate_tiny_images() {
@@ -541,16 +541,5 @@ mod tests {
         ];
         let expected1: Image = Image::try_create(4, 5, expected_pixels1).expect("image");
         assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![expected0, expected1]);
-    }
-
-    #[allow(dead_code)]
-    // #[test]
-    fn test_30008_reversable_ccw() {
-        let input: Image = Checkerboard::checkerboard(6, 3, 1, 3);
-
-        let verbose = true;
-        let triangle_color: u8 = 11;
-        let is_clockwise = false;
-        let _actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
     }
 }
