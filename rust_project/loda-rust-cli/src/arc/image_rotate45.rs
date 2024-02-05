@@ -300,7 +300,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_rotate45extract_ccw() {
+    fn test_30000_rotate45extract_ccw_square() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 3, 0, 0,
@@ -339,7 +339,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30001_rotate45extract_cw() {
+    fn test_30001_rotate45extract_cw_square() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 3, 0, 0,
@@ -371,6 +371,46 @@ mod tests {
             11,  1,  2,  3, 11,
              0,  4,  5,  6,  0,
             11,  7,  8,  9, 11,
+            11, 11,  0, 11, 11,
+        ];
+        let expected1: Image = Image::try_create(5, 5, expected_pixels1).expect("image");
+        assert_eq!(vec![actual.rotated_a, actual.rotated_b], vec![expected0, expected1]);
+    }
+
+    #[test]
+    fn test_30002_rotate45extract_ccw_nonsquare() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 2, 0, 0,
+            0, 1, 2, 1, 2, 0,
+            1, 2, 0, 0, 1, 2,
+            0, 1, 2, 1, 2, 0,
+            0, 0, 1, 2, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 5, pixels).expect("image");
+
+        let verbose = false;
+        let is_clockwise = false;
+        let triangle_color: u8 = 11;
+
+        // Act
+        let actual: Rotate45Extract = Rotate45Extract::process(&input, verbose, triangle_color, is_clockwise).expect("reverse rotate");
+
+        // Assert
+        let expected_pixels0: Vec<u8> = vec![
+            11, 11,  0, 11, 11,
+            11,  2,  2,  2, 11,
+             0,  2,  0,  2,  0,
+             0,  2,  2,  2, 11,
+            11,  0,  0, 11, 11,
+        ];
+        let expected0: Image = Image::try_create(5, 5, expected_pixels0).expect("image");
+
+        let expected_pixels1: Vec<u8> = vec![
+            11, 11,  0,  0, 11,
+            11,  1,  1,  1,  0,
+             0,  1,  0,  1,  0,
+            11,  1,  1,  1, 11,
             11, 11,  0, 11, 11,
         ];
         let expected1: Image = Image::try_create(5, 5, expected_pixels1).expect("image");
