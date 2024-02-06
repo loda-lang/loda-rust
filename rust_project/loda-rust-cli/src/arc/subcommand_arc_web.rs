@@ -75,7 +75,7 @@ impl SubcommandARCWeb {
     }
 
     async fn run_web_server_inner(&self) -> anyhow::Result<()> {
-        let webserver_address = "127.0.0.1:8090";
+        let webserver_address = "0.0.0.0:8090";
         println!("Open this manually in a browser: {}/task", webserver_address);
         println!("Press CTRL-C to stop the web server");
         let e = env!("CARGO_MANIFEST_DIR");
