@@ -130,7 +130,7 @@ impl Rotate45Extract {
         // Bounding box
         let rect: Rectangle = rotated_image.outer_bounding_box_after_trim_with_color(magic_space_color)?;
 
-        // Determine where in the lattice is located inside the image
+        // Determine where the lattice is located inside the image
         let keep_x: u8 = rect.x() & 1;
         let keep_y: u8 = rect.y() & 1;
 
