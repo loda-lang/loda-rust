@@ -73,7 +73,7 @@ pub struct Rotate45Extract {
 
 impl Rotate45Extract {
     /// The usual rotate by 45 degrees introduces a checkerboard of gaps in the image.
-    /// An question is, can the gaps be eliminated? 
+    /// A question is; can these gaps be eliminated? 
     /// The answer is `Yes`, this is the code.
     /// 
     /// Rotate by 45 degrees, and extract the primary/secondary lattice.
