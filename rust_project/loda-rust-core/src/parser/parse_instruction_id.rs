@@ -26,6 +26,7 @@ impl ParseInstructionId for InstructionId {
             "bin" => Ok(Self::Binomial),
             "cmp" => Ok(Self::Compare),
             "dif" => Ok(Self::DivideIf),
+            "dir" => Ok(Self::DigitalRoot),
             "dis" => Ok(Self::DigitSum),
             "div" => Ok(Self::Divide),
             "gcd" => Ok(Self::GCD),

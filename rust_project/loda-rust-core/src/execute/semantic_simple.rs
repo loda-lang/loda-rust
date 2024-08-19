@@ -306,6 +306,58 @@ pub trait SemanticSimpleConfig {
         }
         Ok(result)
     }
+
+    fn compute_digitalroot(&self, n: &BigInt, base: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if n.bits() >= value_max_bits || base.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+
+        if !base.is_positive() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        if base.is_one() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        // "base" is 2 or greater
+
+        let is_negative_result: bool = n.is_negative();
+    
+        // Cast base and n from BigInt to BigUint
+        let base: BigUint = match base.to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        let mut remaining: BigUint = match n.abs().to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        let mut sum = BigUint::zero();    
+        loop {
+            while remaining > BigUint::zero() {
+                let digit: BigUint = &remaining % &base;
+                sum += &digit;
+                remaining /= &base;
+            }
+
+            if sum < base {
+                // Stop iterating when the sum is less than the base
+                break;
+            }
+            remaining = sum.clone();
+            sum = BigUint::zero();
+        }
+
+        // Adjust sign of the result
+        let mut result = BigInt::from(sum);
+        if is_negative_result {
+            result = -result;
+        }
+        Ok(result)
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -354,6 +406,7 @@ mod tests {
         Logarithm,
         NthRoot,
         DigitSum,
+        DigitalRoot,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -364,20 +417,21 @@ mod tests {
 
     fn compute_bigint(config: &dyn SemanticSimpleConfig, mode: ComputeMode, x: BigInt, y: BigInt) -> String {
         let result = match mode {
-            ComputeMode::Add       => config.compute_add(&x, &y),
-            ComputeMode::Subtract  => config.compute_subtract(&x, &y),
-            ComputeMode::Truncate  => config.compute_truncate(&x, &y),
-            ComputeMode::Multiply  => config.compute_multiply(&x, &y),
-            ComputeMode::Divide    => config.compute_divide(&x, &y),
-            ComputeMode::DivideIf  => config.compute_divide_if(&x, &y),
-            ComputeMode::Modulo    => config.compute_modulo(&x, &y),
-            ComputeMode::GCD       => config.compute_gcd(&x, &y),
-            ComputeMode::Compare   => config.compute_compare(&x, &y),
-            ComputeMode::Min       => config.compute_min(&x, &y),
-            ComputeMode::Max       => config.compute_max(&x, &y),
-            ComputeMode::Logarithm => config.compute_logarithm(&x, &y),
-            ComputeMode::NthRoot   => config.compute_nthroot(&x, &y),
-            ComputeMode::DigitSum  => config.compute_digitsum(&x, &y),
+            ComputeMode::Add         => config.compute_add(&x, &y),
+            ComputeMode::Subtract    => config.compute_subtract(&x, &y),
+            ComputeMode::Truncate    => config.compute_truncate(&x, &y),
+            ComputeMode::Multiply    => config.compute_multiply(&x, &y),
+            ComputeMode::Divide      => config.compute_divide(&x, &y),
+            ComputeMode::DivideIf    => config.compute_divide_if(&x, &y),
+            ComputeMode::Modulo      => config.compute_modulo(&x, &y),
+            ComputeMode::GCD         => config.compute_gcd(&x, &y),
+            ComputeMode::Compare     => config.compute_compare(&x, &y),
+            ComputeMode::Min         => config.compute_min(&x, &y),
+            ComputeMode::Max         => config.compute_max(&x, &y),
+            ComputeMode::Logarithm   => config.compute_logarithm(&x, &y),
+            ComputeMode::NthRoot     => config.compute_nthroot(&x, &y),
+            ComputeMode::DigitSum    => config.compute_digitsum(&x, &y),
+            ComputeMode::DigitalRoot => config.compute_digitalroot(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -933,5 +987,46 @@ mod tests {
         assert_eq!(compute_digitsum("19", 3), "3");
         assert_eq!(compute_digitsum("18446744073709551615", 2), "64");
         assert_eq!(compute_digitsum("18446744073709551615", 4), "96");
+    }
+
+    fn compute_digitalroot(left: &str, right: i64) -> String {
+        let left_bigint = BigInt::parse_bytes(left.as_bytes(), 10).unwrap();
+        let right_bigint = right.to_bigint().unwrap();
+        let config = SemanticSimpleConfigLimited::new(128);
+        compute_bigint(&config, ComputeMode::DigitalRoot, left_bigint, right_bigint)
+    }
+
+    #[test]
+    fn test_150000_digitalroot() {
+        assert_eq!(compute_digitalroot("10", -5), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("10", -1), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("10", 0), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("-1", 1), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("0", 1), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("1", 1), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("2", 1), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("5", 10), "5");
+        assert_eq!(compute_digitalroot("15", 10), "6");
+        assert_eq!(compute_digitalroot("125", 10), "8");
+        assert_eq!(compute_digitalroot("1235", 10), "2");
+        assert_eq!(compute_digitalroot("12345", 10), "6");
+        assert_eq!(compute_digitalroot("-5", 10), "-5");
+        assert_eq!(compute_digitalroot("-15", 10), "-6");
+        assert_eq!(compute_digitalroot("-125", 10), "-8");
+        assert_eq!(compute_digitalroot("-1235", 10), "-2");
+        assert_eq!(compute_digitalroot("-12345", 10), "-6");
+        assert_eq!(compute_digitalroot("1", 2), "1");
+        assert_eq!(compute_digitalroot("3", 2), "1");
+        assert_eq!(compute_digitalroot("7", 2), "1");
+        assert_eq!(compute_digitalroot("15", 2), "1");
+        assert_eq!(compute_digitalroot("31", 2), "1");
+        assert_eq!(compute_digitalroot("-1", 2), "-1");
+        assert_eq!(compute_digitalroot("-3", 2), "-1");
+        assert_eq!(compute_digitalroot("-7", 2), "-1");
+        assert_eq!(compute_digitalroot("-15", 2), "-1");
+        assert_eq!(compute_digitalroot("-31", 2), "-1");
+        assert_eq!(compute_digitalroot("19", 3), "1");
+        assert_eq!(compute_digitalroot("18446744073709551615", 2), "1");
+        assert_eq!(compute_digitalroot("18446744073709551615", 4), "3");
     }
 }
