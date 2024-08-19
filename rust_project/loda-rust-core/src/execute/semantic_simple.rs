@@ -1,8 +1,9 @@
 use super::EvalError;
 use num_bigint::BigInt;
 use num_bigint::BigUint;
-use num_traits::{One, Zero, Signed};
+use num_traits::{One, Zero, Signed, ToPrimitive};
 use num_integer::Integer;
+use std::cmp::Ordering;
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -213,6 +214,53 @@ pub trait SemanticSimpleConfig {
         let result: BigInt = BigInt::from(count);
         Ok(result)
     }
+
+    fn compute_nthroot(&self, n: &BigInt, base: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if n.bits() >= value_max_bits || base.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+
+        if n.is_negative() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        if !base.is_positive() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        let max_base: BigInt = BigInt::from(u32::MAX);
+        if base > &max_base {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        let exponent: u32 = base.to_u32().unwrap();
+    
+        // Cast from signed integers to BigUint
+        let n: BigUint = match n.to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        // Initialize binary search bounds
+        let mut low = BigUint::zero();
+        let mut high = n.clone();
+        let mut result = BigUint::zero();
+    
+        while low <= high {
+            let mid: BigUint = (&low + &high) >> 1; // Equivalent to (low + high) / 2
+            let mid_pow = mid.pow(exponent); // Compute mid^base
+    
+            match mid_pow.cmp(&n) {
+                Ordering::Less => {
+                    result = mid.clone();
+                    low = mid + 1u32;
+                }
+                Ordering::Greater => high = mid - 1u32,
+                Ordering::Equal => return Ok(BigInt::from(mid)),
+            }
+        }
+    
+        Ok(BigInt::from(result))
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -259,11 +307,16 @@ mod tests {
         Min,
         Max,
         Logarithm,
+        NthRoot,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
         let x = left.to_bigint().unwrap();
         let y = right.to_bigint().unwrap();
+        self::compute_bigint(config, mode, x, y)
+    }
+
+    fn compute_bigint(config: &dyn SemanticSimpleConfig, mode: ComputeMode, x: BigInt, y: BigInt) -> String {
         let result = match mode {
             ComputeMode::Add       => config.compute_add(&x, &y),
             ComputeMode::Subtract  => config.compute_subtract(&x, &y),
@@ -277,6 +330,7 @@ mod tests {
             ComputeMode::Min       => config.compute_min(&x, &y),
             ComputeMode::Max       => config.compute_max(&x, &y),
             ComputeMode::Logarithm => config.compute_logarithm(&x, &y),
+            ComputeMode::NthRoot   => config.compute_nthroot(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -694,5 +748,102 @@ mod tests {
         assert_eq!(compute_logarithm(9999999999, 10), "9");
         assert_eq!(compute_logarithm(10000000000, 10), "10");
         assert_eq!(compute_logarithm(10000000001, 10), "10");
+    }
+
+    fn compute_nthroot(left: &str, right: i64) -> String {
+        let left_bigint = BigInt::parse_bytes(left.as_bytes(), 10).unwrap();
+        let right_bigint = right.to_bigint().unwrap();
+        let config = SemanticSimpleConfigLimited::new(256);
+        compute_bigint(&config, ComputeMode::NthRoot, left_bigint, right_bigint)
+    }
+
+    #[test]
+    fn test_130000_nthroot() {
+        assert_eq!(compute_nthroot("-1", 0), "InputOutOfRange");
+        assert_eq!(compute_nthroot("-1", 1), "InputOutOfRange");
+        assert_eq!(compute_nthroot("-1", 2), "InputOutOfRange");
+        assert_eq!(compute_nthroot("0", 1), "0");
+        assert_eq!(compute_nthroot("0", 2), "0");
+        assert_eq!(compute_nthroot("0", 3), "0");
+        assert_eq!(compute_nthroot("1", 0), "InputOutOfRange");
+        assert_eq!(compute_nthroot("1", 1), "1");
+        assert_eq!(compute_nthroot("1", 2), "1");
+        assert_eq!(compute_nthroot("1", 3), "1");
+        assert_eq!(compute_nthroot("1", 4), "1");
+        assert_eq!(compute_nthroot("2", -1), "InputOutOfRange");
+        assert_eq!(compute_nthroot("2", 0), "InputOutOfRange");
+        assert_eq!(compute_nthroot("2", 1), "2");
+        assert_eq!(compute_nthroot("2", 2), "1");
+        assert_eq!(compute_nthroot("2", 3), "1");
+        assert_eq!(compute_nthroot("2", 4), "1");
+        assert_eq!(compute_nthroot("3", 2), "1");
+        assert_eq!(compute_nthroot("3", 3), "1");
+        assert_eq!(compute_nthroot("3", 4), "1");
+        assert_eq!(compute_nthroot("4", -1), "InputOutOfRange");
+        assert_eq!(compute_nthroot("4", 0), "InputOutOfRange");
+        assert_eq!(compute_nthroot("4", 1), "4");
+        assert_eq!(compute_nthroot("4", 2), "2");
+        assert_eq!(compute_nthroot("4", 3), "1");
+        assert_eq!(compute_nthroot("4", 4), "1");
+        assert_eq!(compute_nthroot("5", 2), "2");
+        assert_eq!(compute_nthroot("5", 3), "1");
+        assert_eq!(compute_nthroot("5", 4), "1");
+        assert_eq!(compute_nthroot("5", 5), "1");
+        assert_eq!(compute_nthroot("5", 6), "1");
+        assert_eq!(compute_nthroot("6", 2), "2");
+        assert_eq!(compute_nthroot("6", 3), "1");
+        assert_eq!(compute_nthroot("6", 4), "1");
+        assert_eq!(compute_nthroot("7", 2), "2");
+        assert_eq!(compute_nthroot("7", 3), "1");
+        assert_eq!(compute_nthroot("8", 2), "2");
+        assert_eq!(compute_nthroot("8", 3), "2");
+        assert_eq!(compute_nthroot("8", 4), "1");
+        assert_eq!(compute_nthroot("9", 2), "3");
+        assert_eq!(compute_nthroot("9", 3), "2");
+        assert_eq!(compute_nthroot("9", 4), "1");
+        assert_eq!(compute_nthroot("10", 2), "3");
+        assert_eq!(compute_nthroot("10", 3), "2");
+        assert_eq!(compute_nthroot("10", 4), "1");
+        assert_eq!(compute_nthroot("10", 5), "1");
+        assert_eq!(compute_nthroot("11", 2), "3");
+        assert_eq!(compute_nthroot("12", 2), "3");
+        assert_eq!(compute_nthroot("13", 2), "3");
+        assert_eq!(compute_nthroot("14", 2), "3");
+        assert_eq!(compute_nthroot("15", 2), "3");
+        assert_eq!(compute_nthroot("16", 2), "4");
+        assert_eq!(compute_nthroot("64", 2), "8");
+        assert_eq!(compute_nthroot("64", 3), "4");
+        assert_eq!(compute_nthroot("64", 4), "2");
+        assert_eq!(compute_nthroot("64", 6), "2");
+        assert_eq!(compute_nthroot("64", 7), "1");
+        assert_eq!(compute_nthroot("80", 2), "8");
+        assert_eq!(compute_nthroot("81", 2), "9");
+        assert_eq!(compute_nthroot("81", 4), "3");
+        assert_eq!(compute_nthroot("82", 2), "9");
+        assert_eq!(compute_nthroot("82", 4), "3");
+        assert_eq!(compute_nthroot("100", 2), "10");
+        assert_eq!(compute_nthroot("1000", 3), "10");
+        assert_eq!(compute_nthroot("10000", 4), "10");
+        assert_eq!(compute_nthroot("100000", 5), "10");
+        assert_eq!(compute_nthroot("1000000", 6), "10");
+        assert_eq!(compute_nthroot("10000000", 7), "10");
+        assert_eq!(compute_nthroot("100000000", 8), "10");
+        assert_eq!(compute_nthroot("1000000000", 9), "10");
+        assert_eq!(compute_nthroot("10000000000", 10), "10");
+        assert_eq!(compute_nthroot("100000000000", 11), "10");
+        assert_eq!(compute_nthroot("1000000000000", 12), "10");
+        assert_eq!(compute_nthroot("10000000000000", 13), "10");
+        assert_eq!(compute_nthroot("100000000000000", 14), "10");
+        assert_eq!(compute_nthroot("1000000000000000", 15), "10");
+        assert_eq!(compute_nthroot("10000000000000000", 16), "10");
+        assert_eq!(compute_nthroot("100000000000000000", 17), "10");
+        assert_eq!(compute_nthroot("1000000000000000000", 18), "10");
+        assert_eq!(compute_nthroot("10000000000000000000", 19), "10");
+        assert_eq!(compute_nthroot("100000000000000000000", 20), "10");
+        assert_eq!(compute_nthroot("1000000000000000000000", 21), "10");
+        assert_eq!(compute_nthroot("10000000000000000000000", 22), "10");
+        assert_eq!(compute_nthroot("100000000000000000000000", 23), "10");
+        assert_eq!(compute_nthroot("1000000000000000000000000", 24), "10");
+        assert_eq!(compute_nthroot("10000000000000000000000000", 25), "10");
     }
 }

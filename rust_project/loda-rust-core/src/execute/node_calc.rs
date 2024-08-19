@@ -54,6 +54,7 @@ impl NodeCalc {
             InstructionId::Min       => S::min(target, source),
             InstructionId::Max       => S::max(target, source),
             InstructionId::Logarithm => S::logarithm(target, source),
+            InstructionId::NthRoot   => S::nthroot(target, source),
             _ => {
                 error!("unsupported instruction: {:?}", self.instruction_id);
                 return Err(EvalError::UnsupportedInstruction);
