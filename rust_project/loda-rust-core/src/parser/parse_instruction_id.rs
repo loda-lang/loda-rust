@@ -29,6 +29,7 @@ impl ParseInstructionId for InstructionId {
             "dir" => Ok(Self::DigitalRoot),
             "dis" => Ok(Self::DigitSum),
             "div" => Ok(Self::Divide),
+            "equ" => Ok(Self::Equal),
             "gcd" => Ok(Self::GCD),
             "log" => Ok(Self::Logarithm),
             "lpb" => Ok(Self::LoopBegin),

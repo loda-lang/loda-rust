@@ -22,6 +22,7 @@ pub trait Semantics {
     fn nthroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn digitsum(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn digitalroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn equal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
 }
 
 pub struct SemanticsWithoutLimits {}
@@ -128,6 +129,12 @@ impl Semantics for SemanticsWithoutLimits {
         let value = result?;
         Ok(value)
     }
+
+    fn equal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_equal(x, y);
+        let value = result?;
+        Ok(value)
+    }
 }
 
 pub struct SemanticsWithSmallLimits {}
@@ -231,6 +238,12 @@ impl Semantics for SemanticsWithSmallLimits {
 
     fn digitalroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_digitalroot(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn equal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_equal(x, y);
         let value = result?;
         Ok(value)
     }

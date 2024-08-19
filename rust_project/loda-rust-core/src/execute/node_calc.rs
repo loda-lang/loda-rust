@@ -57,6 +57,7 @@ impl NodeCalc {
             InstructionId::NthRoot     => S::nthroot(target, source),
             InstructionId::DigitSum    => S::digitsum(target, source),
             InstructionId::DigitalRoot => S::digitalroot(target, source),
+            InstructionId::Equal       => S::equal(target, source),
             _ => {
                 error!("unsupported instruction: {:?}", self.instruction_id);
                 return Err(EvalError::UnsupportedInstruction);

@@ -358,6 +358,19 @@ pub trait SemanticSimpleConfig {
         }
         Ok(result)
     }
+
+    fn compute_equal(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if x == y {
+            return Ok(BigInt::one());
+        } else {
+            return Ok(BigInt::zero());
+        }
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -407,6 +420,7 @@ mod tests {
         NthRoot,
         DigitSum,
         DigitalRoot,
+        Equal,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -432,6 +446,7 @@ mod tests {
             ComputeMode::NthRoot     => config.compute_nthroot(&x, &y),
             ComputeMode::DigitSum    => config.compute_digitsum(&x, &y),
             ComputeMode::DigitalRoot => config.compute_digitalroot(&x, &y),
+            ComputeMode::Equal       => config.compute_equal(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -1028,5 +1043,23 @@ mod tests {
         assert_eq!(compute_digitalroot("19", 3), "1");
         assert_eq!(compute_digitalroot("18446744073709551615", 2), "1");
         assert_eq!(compute_digitalroot("18446744073709551615", 4), "3");
+    }
+
+    fn compute_equal(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(64);
+        compute(&config, ComputeMode::Equal, left, right)
+    }
+
+    #[test]
+    fn test_160000_equal() {
+        assert_eq!(compute_equal(0, 0), "1");
+        assert_eq!(compute_equal(1, 1), "1");
+        assert_eq!(compute_equal(2, 2), "1");
+        assert_eq!(compute_equal(-1, -1), "1");
+        assert_eq!(compute_equal(-2, -2), "1");
+        assert_eq!(compute_equal(1, 0), "0");
+        assert_eq!(compute_equal(0, 1), "0");
+        assert_eq!(compute_equal(-1, 0), "0");
+        assert_eq!(compute_equal(0, -1), "0");
     }
 }
