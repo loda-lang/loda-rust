@@ -31,6 +31,7 @@ impl ParseInstructionId for InstructionId {
             "div" => Ok(Self::Divide),
             "equ" => Ok(Self::Equal),
             "gcd" => Ok(Self::GCD),
+            "geq" => Ok(Self::GreaterOrEqual),
             "log" => Ok(Self::Logarithm),
             "lpb" => Ok(Self::LoopBegin),
             "lpe" => Ok(Self::LoopEnd),

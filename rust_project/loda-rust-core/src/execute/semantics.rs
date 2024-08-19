@@ -25,6 +25,7 @@ pub trait Semantics {
     fn equal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn notequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn lessorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn greaterorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
 }
 
 pub struct SemanticsWithoutLimits {}
@@ -149,6 +150,12 @@ impl Semantics for SemanticsWithoutLimits {
         let value = result?;
         Ok(value)
     }
+
+    fn greaterorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_greaterorequal(x, y);
+        let value = result?;
+        Ok(value)
+    }
 }
 
 pub struct SemanticsWithSmallLimits {}
@@ -270,6 +277,12 @@ impl Semantics for SemanticsWithSmallLimits {
 
     fn lessorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_lessorequal(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn greaterorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_greaterorequal(x, y);
         let value = result?;
         Ok(value)
     }

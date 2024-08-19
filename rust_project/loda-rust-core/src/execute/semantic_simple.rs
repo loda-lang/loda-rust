@@ -397,6 +397,19 @@ pub trait SemanticSimpleConfig {
             return Ok(BigInt::zero());
         }
     }
+
+    fn compute_greaterorequal(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if x >= y {
+            return Ok(BigInt::one());
+        } else {
+            return Ok(BigInt::zero());
+        }
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -449,6 +462,7 @@ mod tests {
         Equal,
         NotEqual,
         LessOrEqual,
+        GreaterOrEqual,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -459,24 +473,25 @@ mod tests {
 
     fn compute_bigint(config: &dyn SemanticSimpleConfig, mode: ComputeMode, x: BigInt, y: BigInt) -> String {
         let result = match mode {
-            ComputeMode::Add         => config.compute_add(&x, &y),
-            ComputeMode::Subtract    => config.compute_subtract(&x, &y),
-            ComputeMode::Truncate    => config.compute_truncate(&x, &y),
-            ComputeMode::Multiply    => config.compute_multiply(&x, &y),
-            ComputeMode::Divide      => config.compute_divide(&x, &y),
-            ComputeMode::DivideIf    => config.compute_divide_if(&x, &y),
-            ComputeMode::Modulo      => config.compute_modulo(&x, &y),
-            ComputeMode::GCD         => config.compute_gcd(&x, &y),
-            ComputeMode::Compare     => config.compute_compare(&x, &y),
-            ComputeMode::Min         => config.compute_min(&x, &y),
-            ComputeMode::Max         => config.compute_max(&x, &y),
-            ComputeMode::Logarithm   => config.compute_logarithm(&x, &y),
-            ComputeMode::NthRoot     => config.compute_nthroot(&x, &y),
-            ComputeMode::DigitSum    => config.compute_digitsum(&x, &y),
-            ComputeMode::DigitalRoot => config.compute_digitalroot(&x, &y),
-            ComputeMode::Equal       => config.compute_equal(&x, &y),
-            ComputeMode::NotEqual    => config.compute_notequal(&x, &y),
-            ComputeMode::LessOrEqual => config.compute_lessorequal(&x, &y),
+            ComputeMode::Add            => config.compute_add(&x, &y),
+            ComputeMode::Subtract       => config.compute_subtract(&x, &y),
+            ComputeMode::Truncate       => config.compute_truncate(&x, &y),
+            ComputeMode::Multiply       => config.compute_multiply(&x, &y),
+            ComputeMode::Divide         => config.compute_divide(&x, &y),
+            ComputeMode::DivideIf       => config.compute_divide_if(&x, &y),
+            ComputeMode::Modulo         => config.compute_modulo(&x, &y),
+            ComputeMode::GCD            => config.compute_gcd(&x, &y),
+            ComputeMode::Compare        => config.compute_compare(&x, &y),
+            ComputeMode::Min            => config.compute_min(&x, &y),
+            ComputeMode::Max            => config.compute_max(&x, &y),
+            ComputeMode::Logarithm      => config.compute_logarithm(&x, &y),
+            ComputeMode::NthRoot        => config.compute_nthroot(&x, &y),
+            ComputeMode::DigitSum       => config.compute_digitsum(&x, &y),
+            ComputeMode::DigitalRoot    => config.compute_digitalroot(&x, &y),
+            ComputeMode::Equal          => config.compute_equal(&x, &y),
+            ComputeMode::NotEqual       => config.compute_notequal(&x, &y),
+            ComputeMode::LessOrEqual    => config.compute_lessorequal(&x, &y),
+            ComputeMode::GreaterOrEqual => config.compute_greaterorequal(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -1127,5 +1142,23 @@ mod tests {
         assert_eq!(compute_lessorequal(0, 1), "1");
         assert_eq!(compute_lessorequal(-1, 0), "1");
         assert_eq!(compute_lessorequal(0, -1), "0");
+    }
+
+    fn compute_greaterorequal(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(64);
+        compute(&config, ComputeMode::GreaterOrEqual, left, right)
+    }
+
+    #[test]
+    fn test_190000_greaterorequal() {
+        assert_eq!(compute_greaterorequal(0, 0), "1");
+        assert_eq!(compute_greaterorequal(1, 1), "1");
+        assert_eq!(compute_greaterorequal(2, 2), "1");
+        assert_eq!(compute_greaterorequal(-1, -1), "1");
+        assert_eq!(compute_greaterorequal(-2, -2), "1");
+        assert_eq!(compute_greaterorequal(1, 0), "1");
+        assert_eq!(compute_greaterorequal(0, 1), "0");
+        assert_eq!(compute_greaterorequal(-1, 0), "0");
+        assert_eq!(compute_greaterorequal(0, -1), "1");
     }
 }
