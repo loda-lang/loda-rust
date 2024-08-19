@@ -371,6 +371,19 @@ pub trait SemanticSimpleConfig {
             return Ok(BigInt::zero());
         }
     }
+
+    fn compute_notequal(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if x == y {
+            return Ok(BigInt::zero());
+        } else {
+            return Ok(BigInt::one());
+        }
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -421,6 +434,7 @@ mod tests {
         DigitSum,
         DigitalRoot,
         Equal,
+        NotEqual,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -447,6 +461,7 @@ mod tests {
             ComputeMode::DigitSum    => config.compute_digitsum(&x, &y),
             ComputeMode::DigitalRoot => config.compute_digitalroot(&x, &y),
             ComputeMode::Equal       => config.compute_equal(&x, &y),
+            ComputeMode::NotEqual    => config.compute_notequal(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -1061,5 +1076,23 @@ mod tests {
         assert_eq!(compute_equal(0, 1), "0");
         assert_eq!(compute_equal(-1, 0), "0");
         assert_eq!(compute_equal(0, -1), "0");
+    }
+
+    fn compute_notequal(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(64);
+        compute(&config, ComputeMode::NotEqual, left, right)
+    }
+
+    #[test]
+    fn test_170000_notequal() {
+        assert_eq!(compute_notequal(0, 0), "0");
+        assert_eq!(compute_notequal(1, 1), "0");
+        assert_eq!(compute_notequal(2, 2), "0");
+        assert_eq!(compute_notequal(-1, -1), "0");
+        assert_eq!(compute_notequal(-2, -2), "0");
+        assert_eq!(compute_notequal(1, 0), "1");
+        assert_eq!(compute_notequal(0, 1), "1");
+        assert_eq!(compute_notequal(-1, 0), "1");
+        assert_eq!(compute_notequal(0, -1), "1");
     }
 }

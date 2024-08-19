@@ -39,6 +39,7 @@ impl ParseInstructionId for InstructionId {
             "mod" => Ok(Self::Modulo),
             "mov" => Ok(Self::Move),
             "mul" => Ok(Self::Multiply),
+            "neq" => Ok(Self::NotEqual),
             "nrt" => Ok(Self::NthRoot),
             "pow" => Ok(Self::Power),
             "seq" => Ok(Self::EvalSequence),
