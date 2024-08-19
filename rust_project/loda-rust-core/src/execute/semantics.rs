@@ -18,6 +18,7 @@ pub trait Semantics {
     fn compare(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn min(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn max(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn logarithm(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
 }
 
 pub struct SemanticsWithoutLimits {}
@@ -100,6 +101,12 @@ impl Semantics for SemanticsWithoutLimits {
         let value = result?;
         Ok(value)
     }
+
+    fn logarithm(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_logarithm(x, y);
+        let value = result?;
+        Ok(value)
+    }
 }
 
 pub struct SemanticsWithSmallLimits {}
@@ -179,6 +186,12 @@ impl Semantics for SemanticsWithSmallLimits {
 
     fn max(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_max(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn logarithm(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_logarithm(x, y);
         let value = result?;
         Ok(value)
     }

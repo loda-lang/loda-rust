@@ -1,5 +1,6 @@
 use super::EvalError;
 use num_bigint::BigInt;
+use num_bigint::BigUint;
 use num_traits::{One, Zero, Signed};
 use num_integer::Integer;
 use lazy_static::lazy_static;
@@ -175,6 +176,43 @@ pub trait SemanticSimpleConfig {
         }
         Ok(x.max(y).clone())
     }
+
+    fn compute_logarithm(&self, n: &BigInt, base: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if n.bits() >= value_max_bits || base.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+
+        if !n.is_positive() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        if !base.is_positive() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        if base.is_one() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+
+        // Cast from signed integers to BigUint
+        let base: BigUint = match base.to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+        let mut current_n: BigUint = match n.to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        let mut count: u64 = 0;
+        while current_n >= base {
+            current_n /= &base;
+            count += 1;
+        }
+    
+        let result: BigInt = BigInt::from(count);
+        Ok(result)
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -220,23 +258,25 @@ mod tests {
         Compare,
         Min,
         Max,
+        Logarithm,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
         let x = left.to_bigint().unwrap();
         let y = right.to_bigint().unwrap();
         let result = match mode {
-            ComputeMode::Add      => config.compute_add(&x, &y),
-            ComputeMode::Subtract => config.compute_subtract(&x, &y),
-            ComputeMode::Truncate => config.compute_truncate(&x, &y),
-            ComputeMode::Multiply => config.compute_multiply(&x, &y),
-            ComputeMode::Divide   => config.compute_divide(&x, &y),
-            ComputeMode::DivideIf => config.compute_divide_if(&x, &y),
-            ComputeMode::Modulo   => config.compute_modulo(&x, &y),
-            ComputeMode::GCD      => config.compute_gcd(&x, &y),
-            ComputeMode::Compare  => config.compute_compare(&x, &y),
-            ComputeMode::Min      => config.compute_min(&x, &y),
-            ComputeMode::Max      => config.compute_max(&x, &y),
+            ComputeMode::Add       => config.compute_add(&x, &y),
+            ComputeMode::Subtract  => config.compute_subtract(&x, &y),
+            ComputeMode::Truncate  => config.compute_truncate(&x, &y),
+            ComputeMode::Multiply  => config.compute_multiply(&x, &y),
+            ComputeMode::Divide    => config.compute_divide(&x, &y),
+            ComputeMode::DivideIf  => config.compute_divide_if(&x, &y),
+            ComputeMode::Modulo    => config.compute_modulo(&x, &y),
+            ComputeMode::GCD       => config.compute_gcd(&x, &y),
+            ComputeMode::Compare   => config.compute_compare(&x, &y),
+            ComputeMode::Min       => config.compute_min(&x, &y),
+            ComputeMode::Max       => config.compute_max(&x, &y),
+            ComputeMode::Logarithm => config.compute_logarithm(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -605,4 +645,54 @@ mod tests {
         assert_eq!(compute_max(-100, 100), "100");
     }
 
+    fn compute_logarithm(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(64);
+        compute(&config, ComputeMode::Logarithm, left, right)
+    }
+
+    #[test]
+    fn test_120000_logarithm() {
+        assert_eq!(compute_logarithm(-1, 1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(-1, 2), "InputOutOfRange");
+        assert_eq!(compute_logarithm(0, 1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(0, 2), "InputOutOfRange");
+        assert_eq!(compute_logarithm(1,-1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(1, 0), "InputOutOfRange");
+        assert_eq!(compute_logarithm(1, 1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(1, 2), "0");
+        assert_eq!(compute_logarithm(1, 3), "0");
+        assert_eq!(compute_logarithm(1, 4), "0");
+        assert_eq!(compute_logarithm(2,-1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(2, 0), "InputOutOfRange");
+        assert_eq!(compute_logarithm(2, 1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(2, 2), "1");
+        assert_eq!(compute_logarithm(2, 3), "0");
+        assert_eq!(compute_logarithm(2, 4), "0");
+        assert_eq!(compute_logarithm(3, 2), "1");
+        assert_eq!(compute_logarithm(3, 3), "1");
+        assert_eq!(compute_logarithm(3, 4), "0");
+        assert_eq!(compute_logarithm(4,-1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(4, 0), "InputOutOfRange");
+        assert_eq!(compute_logarithm(4, 1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(4, 2), "2");
+        assert_eq!(compute_logarithm(4, 3), "1");
+        assert_eq!(compute_logarithm(4, 4), "1");
+        assert_eq!(compute_logarithm(4, 5), "0");
+        assert_eq!(compute_logarithm(8, 2), "3");
+        assert_eq!(compute_logarithm(9, 3), "2");
+        assert_eq!(compute_logarithm(16, 4), "2");
+        assert_eq!(compute_logarithm(16, 2), "4");
+        assert_eq!(compute_logarithm(10, 10), "1");
+        assert_eq!(compute_logarithm(100, 10), "2");
+        assert_eq!(compute_logarithm(1000, 10), "3");
+        assert_eq!(compute_logarithm(10000, 10), "4");
+        assert_eq!(compute_logarithm(100000, 10), "5");
+        assert_eq!(compute_logarithm(1000000, 10), "6");
+        assert_eq!(compute_logarithm(10000000, 10), "7");
+        assert_eq!(compute_logarithm(100000000, 10), "8");
+        assert_eq!(compute_logarithm(1000000000, 10), "9");
+        assert_eq!(compute_logarithm(9999999999, 10), "9");
+        assert_eq!(compute_logarithm(10000000000, 10), "10");
+        assert_eq!(compute_logarithm(10000000001, 10), "10");
+    }
 }

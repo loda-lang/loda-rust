@@ -28,6 +28,7 @@ impl ParseInstructionId for InstructionId {
             "dif" => Ok(Self::DivideIf),
             "div" => Ok(Self::Divide),
             "gcd" => Ok(Self::GCD),
+            "log" => Ok(Self::Logarithm),
             "lpb" => Ok(Self::LoopBegin),
             "lpe" => Ok(Self::LoopEnd),
             "max" => Ok(Self::Max),
@@ -90,6 +91,10 @@ mod tests {
         {
             let instruction_id: InstructionId = InstructionId::parse("seq", 1).expect("InstructionId");
             assert_eq!(instruction_id, InstructionId::EvalSequence);
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("log", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::Logarithm);
         }
         {
             let instruction_id: InstructionId = InstructionId::parse("lps", 1).expect("InstructionId");

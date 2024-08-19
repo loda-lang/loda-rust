@@ -39,20 +39,21 @@ impl NodeCalc {
 
     fn calc_with_semantics<S: Semantics>(&self, target: &BigInt, source: &BigInt) -> Result<BigInt, EvalError> {
         match self.instruction_id {
-            InstructionId::Move     => Ok(source.clone()),
-            InstructionId::Add      => S::add(target, source),
-            InstructionId::Subtract => S::subtract(target, source),
-            InstructionId::Truncate => S::truncate(target, source),
-            InstructionId::Multiply => S::multiply(target, source),
-            InstructionId::Divide   => S::divide(target, source),
-            InstructionId::DivideIf => S::divide_if(target, source),
-            InstructionId::Modulo   => S::modulo(target, source),
-            InstructionId::Power    => S::power(target, source),
-            InstructionId::GCD      => S::gcd(target, source),
-            InstructionId::Binomial => S::binomial(target, source),
-            InstructionId::Compare  => S::compare(target, source),
-            InstructionId::Min      => S::min(target, source),
-            InstructionId::Max      => S::max(target, source),
+            InstructionId::Move      => Ok(source.clone()),
+            InstructionId::Add       => S::add(target, source),
+            InstructionId::Subtract  => S::subtract(target, source),
+            InstructionId::Truncate  => S::truncate(target, source),
+            InstructionId::Multiply  => S::multiply(target, source),
+            InstructionId::Divide    => S::divide(target, source),
+            InstructionId::DivideIf  => S::divide_if(target, source),
+            InstructionId::Modulo    => S::modulo(target, source),
+            InstructionId::Power     => S::power(target, source),
+            InstructionId::GCD       => S::gcd(target, source),
+            InstructionId::Binomial  => S::binomial(target, source),
+            InstructionId::Compare   => S::compare(target, source),
+            InstructionId::Min       => S::min(target, source),
+            InstructionId::Max       => S::max(target, source),
+            InstructionId::Logarithm => S::logarithm(target, source),
             _ => {
                 error!("unsupported instruction: {:?}", self.instruction_id);
                 return Err(EvalError::UnsupportedInstruction);
