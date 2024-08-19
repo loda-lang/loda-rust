@@ -34,6 +34,7 @@ impl ParseInstructionId for InstructionId {
             "log" => Ok(Self::Logarithm),
             "lpb" => Ok(Self::LoopBegin),
             "lpe" => Ok(Self::LoopEnd),
+            "leq" => Ok(Self::LessOrEqual),
             "max" => Ok(Self::Max),
             "min" => Ok(Self::Min),
             "mod" => Ok(Self::Modulo),
