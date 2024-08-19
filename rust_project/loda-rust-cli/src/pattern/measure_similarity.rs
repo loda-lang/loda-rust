@@ -2,6 +2,8 @@ use loda_rust_core::parser::{Instruction, InstructionParameter, ParameterType};
 
 pub enum ProgramSimilarity {
     NotSimilar,
+    
+    #[allow(dead_code)]
     SimilarWithDifferentConstants(usize),
 }
 

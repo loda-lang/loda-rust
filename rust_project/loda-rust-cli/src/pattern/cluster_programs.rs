@@ -89,6 +89,7 @@ impl Clusters {
     }
 }
 
+#[allow(dead_code)]
 trait ConvertToString {
     fn convert_to_string(&self) -> String;
 }
