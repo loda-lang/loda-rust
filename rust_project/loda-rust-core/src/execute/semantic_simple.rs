@@ -261,6 +261,51 @@ pub trait SemanticSimpleConfig {
     
         Ok(BigInt::from(result))
     }
+
+    fn compute_digitsum(&self, n: &BigInt, base: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if n.bits() >= value_max_bits || base.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+
+        if !base.is_positive() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        if base.is_one() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        // "base" is 2 or greater
+
+        let is_negative_result: bool = n.is_negative();
+    
+        // Cast base and n from BigInt to BigUint
+        let base: BigUint = match base.to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        let mut remaining: BigUint = match n.abs().to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        let mut sum = BigUint::zero();
+    
+        // Calculate the digit sum by repeatedly dividing by the base
+        while remaining > BigUint::zero() {
+            let digit = &remaining % &base;
+            sum += &digit;
+            remaining /= &base;
+        }
+
+        // Adjust sign of the result
+        let mut result = BigInt::from(sum);
+        if is_negative_result {
+            result = -result;
+        }
+        Ok(result)
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -308,6 +353,7 @@ mod tests {
         Max,
         Logarithm,
         NthRoot,
+        DigitSum,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -331,6 +377,7 @@ mod tests {
             ComputeMode::Max       => config.compute_max(&x, &y),
             ComputeMode::Logarithm => config.compute_logarithm(&x, &y),
             ComputeMode::NthRoot   => config.compute_nthroot(&x, &y),
+            ComputeMode::DigitSum  => config.compute_digitsum(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -845,5 +892,46 @@ mod tests {
         assert_eq!(compute_nthroot("100000000000000000000000", 23), "10");
         assert_eq!(compute_nthroot("1000000000000000000000000", 24), "10");
         assert_eq!(compute_nthroot("10000000000000000000000000", 25), "10");
+    }
+
+    fn compute_digitsum(left: &str, right: i64) -> String {
+        let left_bigint = BigInt::parse_bytes(left.as_bytes(), 10).unwrap();
+        let right_bigint = right.to_bigint().unwrap();
+        let config = SemanticSimpleConfigLimited::new(128);
+        compute_bigint(&config, ComputeMode::DigitSum, left_bigint, right_bigint)
+    }
+
+    #[test]
+    fn test_140000_digitsum() {
+        assert_eq!(compute_digitsum("10", -5), "InputOutOfRange");
+        assert_eq!(compute_digitsum("10", -1), "InputOutOfRange");
+        assert_eq!(compute_digitsum("10", 0), "InputOutOfRange");
+        assert_eq!(compute_digitsum("-1", 1), "InputOutOfRange");
+        assert_eq!(compute_digitsum("0", 1), "InputOutOfRange");
+        assert_eq!(compute_digitsum("1", 1), "InputOutOfRange");
+        assert_eq!(compute_digitsum("2", 1), "InputOutOfRange");
+        assert_eq!(compute_digitsum("5", 10), "5");
+        assert_eq!(compute_digitsum("15", 10), "6");
+        assert_eq!(compute_digitsum("125", 10), "8");
+        assert_eq!(compute_digitsum("1235", 10), "11");
+        assert_eq!(compute_digitsum("12345", 10), "15");
+        assert_eq!(compute_digitsum("-5", 10), "-5");
+        assert_eq!(compute_digitsum("-15", 10), "-6");
+        assert_eq!(compute_digitsum("-125", 10), "-8");
+        assert_eq!(compute_digitsum("-1235", 10), "-11");
+        assert_eq!(compute_digitsum("-12345", 10), "-15");
+        assert_eq!(compute_digitsum("1", 2), "1");
+        assert_eq!(compute_digitsum("3", 2), "2");
+        assert_eq!(compute_digitsum("7", 2), "3");
+        assert_eq!(compute_digitsum("15", 2), "4");
+        assert_eq!(compute_digitsum("31", 2), "5");
+        assert_eq!(compute_digitsum("-1", 2), "-1");
+        assert_eq!(compute_digitsum("-3", 2), "-2");
+        assert_eq!(compute_digitsum("-7", 2), "-3");
+        assert_eq!(compute_digitsum("-15", 2), "-4");
+        assert_eq!(compute_digitsum("-31", 2), "-5");
+        assert_eq!(compute_digitsum("19", 3), "3");
+        assert_eq!(compute_digitsum("18446744073709551615", 2), "64");
+        assert_eq!(compute_digitsum("18446744073709551615", 4), "96");
     }
 }

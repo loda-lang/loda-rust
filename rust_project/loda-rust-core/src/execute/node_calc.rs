@@ -55,6 +55,7 @@ impl NodeCalc {
             InstructionId::Max       => S::max(target, source),
             InstructionId::Logarithm => S::logarithm(target, source),
             InstructionId::NthRoot   => S::nthroot(target, source),
+            InstructionId::DigitSum  => S::digitsum(target, source),
             _ => {
                 error!("unsupported instruction: {:?}", self.instruction_id);
                 return Err(EvalError::UnsupportedInstruction);

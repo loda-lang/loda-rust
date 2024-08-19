@@ -26,6 +26,7 @@ impl ParseInstructionId for InstructionId {
             "bin" => Ok(Self::Binomial),
             "cmp" => Ok(Self::Compare),
             "dif" => Ok(Self::DivideIf),
+            "dis" => Ok(Self::DigitSum),
             "div" => Ok(Self::Divide),
             "gcd" => Ok(Self::GCD),
             "log" => Ok(Self::Logarithm),
@@ -100,6 +101,10 @@ mod tests {
         {
             let instruction_id: InstructionId = InstructionId::parse("nrt", 1).expect("InstructionId");
             assert_eq!(instruction_id, InstructionId::NthRoot);
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("dis", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::DigitSum);
         }
         {
             let instruction_id: InstructionId = InstructionId::parse("lps", 1).expect("InstructionId");
