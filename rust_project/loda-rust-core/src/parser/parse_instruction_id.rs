@@ -26,6 +26,7 @@ impl ParseInstructionId for InstructionId {
             "ban" => Ok(Self::BitwiseAnd),
             "bin" => Ok(Self::Binomial),
             "bor" => Ok(Self::BitwiseOr),
+            "bxo" => Ok(Self::BitwiseXor),
             "cmp" => Ok(Self::Compare),
             "dif" => Ok(Self::DivideIf),
             "dir" => Ok(Self::DigitalRoot),

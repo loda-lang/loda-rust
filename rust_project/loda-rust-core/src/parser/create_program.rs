@@ -485,6 +485,10 @@ impl CreateProgram {
                     let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
+                InstructionId::BitwiseXor => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
                 InstructionId::EvalSequence => {
                     let node = create_node_seq(&instruction)?;
                     program.push_boxed(node);
