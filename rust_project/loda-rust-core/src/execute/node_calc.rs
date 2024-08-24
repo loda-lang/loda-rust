@@ -62,6 +62,7 @@ impl NodeCalc {
             InstructionId::LessOrEqual    => S::lessorequal(target, source),
             InstructionId::GreaterOrEqual => S::greaterorequal(target, source),
             InstructionId::BitwiseAnd     => S::bitwiseand(target, source),
+            InstructionId::BitwiseOr      => S::bitwiseor(target, source),
             _ => {
                 error!("unsupported instruction: {:?}", self.instruction_id);
                 return Err(EvalError::UnsupportedInstruction);

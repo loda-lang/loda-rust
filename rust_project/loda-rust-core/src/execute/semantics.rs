@@ -27,6 +27,7 @@ pub trait Semantics {
     fn lessorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn greaterorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn bitwiseand(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn bitwiseor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
 }
 
 pub struct SemanticsWithoutLimits {}
@@ -163,6 +164,12 @@ impl Semantics for SemanticsWithoutLimits {
         let value = result?;
         Ok(value)
     }
+
+    fn bitwiseor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_bitwiseor(x, y);
+        let value = result?;
+        Ok(value)
+    }
 }
 
 pub struct SemanticsWithSmallLimits {}
@@ -296,6 +303,12 @@ impl Semantics for SemanticsWithSmallLimits {
 
     fn bitwiseand(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_bitwiseand(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn bitwiseor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_bitwiseor(x, y);
         let value = result?;
         Ok(value)
     }

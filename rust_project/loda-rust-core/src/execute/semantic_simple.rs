@@ -425,6 +425,21 @@ pub trait SemanticSimpleConfig {
         }
         Ok(x_and_y)
     }
+
+    fn compute_bitwiseor(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        let x_abs: BigInt = x.abs();
+        let y_abs: BigInt = y.abs();
+        let mut x_or_y: BigInt = x_abs | y_abs;
+        if x.is_negative() || y.is_negative() {
+            x_or_y = -x_or_y;
+        }
+        Ok(x_or_y)
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -479,6 +494,7 @@ mod tests {
         LessOrEqual,
         GreaterOrEqual,
         BitwiseAnd,
+        BitwiseOr,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -515,6 +531,7 @@ mod tests {
             ComputeMode::LessOrEqual    => config.compute_lessorequal(&x, &y),
             ComputeMode::GreaterOrEqual => config.compute_greaterorequal(&x, &y),
             ComputeMode::BitwiseAnd     => config.compute_bitwiseand(&x, &y),
+            ComputeMode::BitwiseOr      => config.compute_bitwiseor(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -1205,5 +1222,28 @@ mod tests {
         assert_eq!(compute_bitwiseand("9223372036854775807", "9223372036854775808"), "0");
         assert_eq!(compute_bitwiseand("9223372036854775807", "-9223372036854775808"), "0");
         assert_eq!(compute_bitwiseand("3148244321913096809130", "1574122160956548404565"), "0");
+    }
+
+    fn compute_bitwiseor(left: &str, right: &str) -> String {
+        let config = SemanticSimpleConfigLimited::new(128);
+        compute_with_strings(&config, ComputeMode::BitwiseOr, left, right)
+    }
+
+    #[test]
+    fn test_210000_bitwiseor() {
+        assert_eq!(compute_bitwiseor("0", "0"), "0");
+        assert_eq!(compute_bitwiseor("0", "1"), "1");
+        assert_eq!(compute_bitwiseor("1", "0"), "1");
+        assert_eq!(compute_bitwiseor("1", "1"), "1");
+        assert_eq!(compute_bitwiseor("1", "2"), "3");
+        assert_eq!(compute_bitwiseor("1", "3"), "3");
+        assert_eq!(compute_bitwiseor("-1", "1"), "-1");
+        assert_eq!(compute_bitwiseor("-1", "-1"), "-1");
+        assert_eq!(compute_bitwiseor("-1", "2"), "-3");
+        assert_eq!(compute_bitwiseor("-1", "-2"), "-3");
+        assert_eq!(compute_bitwiseor("9223372036854775807", "9223372036854775808"), "18446744073709551615");
+        assert_eq!(compute_bitwiseor("-9223372036854775807", "9223372036854775808"), "-18446744073709551615");
+        assert_eq!(compute_bitwiseor("-9223372036854775807", "-9223372036854775808"), "-18446744073709551615");
+        assert_eq!(compute_bitwiseor("3148244321913096809130", "1574122160956548404565"), "4722366482869645213695");        
     }
 }
