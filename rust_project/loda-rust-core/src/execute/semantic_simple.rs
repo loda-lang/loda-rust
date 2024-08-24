@@ -487,6 +487,12 @@ mod tests {
         self::compute_bigint(config, mode, x, y)
     }
 
+    fn compute_with_strings(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: &str, right: &str) -> String {
+        let left_bigint = BigInt::parse_bytes(left.as_bytes(), 10).unwrap();
+        let right_bigint = BigInt::parse_bytes(right.as_bytes(), 10).unwrap();
+        self::compute_bigint(config, mode, left_bigint, right_bigint)
+    }
+
     fn compute_bigint(config: &dyn SemanticSimpleConfig, mode: ComputeMode, x: BigInt, y: BigInt) -> String {
         let result = match mode {
             ComputeMode::Add            => config.compute_add(&x, &y),
@@ -1180,10 +1186,8 @@ mod tests {
     }
 
     fn compute_bitwiseand(left: &str, right: &str) -> String {
-        let left_bigint = BigInt::parse_bytes(left.as_bytes(), 10).unwrap();
-        let right_bigint = BigInt::parse_bytes(right.as_bytes(), 10).unwrap();
         let config = SemanticSimpleConfigLimited::new(128);
-        compute_bigint(&config, ComputeMode::BitwiseAnd, left_bigint, right_bigint)
+        compute_with_strings(&config, ComputeMode::BitwiseAnd, left, right)
     }
 
     #[test]
