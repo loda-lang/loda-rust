@@ -4,6 +4,7 @@ use std::fmt;
 pub enum InstructionId {
     Add,
     Binomial,
+    BitwiseAnd,
     EvalSequence,
     Compare,
     DigitSum,
@@ -36,6 +37,7 @@ impl fmt::Display for InstructionId {
         let s: &'static str = match self {
             Self::Add            => "add",
             Self::Binomial       => "bin",
+            Self::BitwiseAnd     => "ban",
             Self::EvalSequence   => "seq",
             Self::Compare        => "cmp",
             Self::DigitalRoot    => "dir",

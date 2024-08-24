@@ -23,6 +23,7 @@ impl ParseInstructionId for InstructionId {
     fn parse(input: &str, line_number: usize) -> Result<InstructionId,ParseInstructionIdError> {
         match input {
             "add" => Ok(Self::Add),
+            "ban" => Ok(Self::BitwiseAnd),
             "bin" => Ok(Self::Binomial),
             "cmp" => Ok(Self::Compare),
             "dif" => Ok(Self::DivideIf),
