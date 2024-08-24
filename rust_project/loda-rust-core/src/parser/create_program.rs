@@ -445,6 +445,50 @@ impl CreateProgram {
                     let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
+                InstructionId::Logarithm => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::NthRoot => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::DigitSum => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::DigitalRoot => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Equal => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::NotEqual => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::LessOrEqual => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::GreaterOrEqual => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::BitwiseAnd => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::BitwiseOr => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::BitwiseXor => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
                 InstructionId::EvalSequence => {
                     let node = create_node_seq(&instruction)?;
                     program.push_boxed(node);

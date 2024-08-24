@@ -230,7 +230,8 @@ body {
 .page-footer-item {
     flex: 1;
 }
-#page-footer-item0 {
+#page-footer-item0,
+#page-footer-item1 {
     text-align: center;
 }
 .copy-program-link-to-clipboard-tooltip-area {

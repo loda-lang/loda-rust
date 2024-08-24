@@ -5,6 +5,7 @@ extern crate log;
 
 extern crate env_logger;
 
+#[allow(unused_imports)]
 #[macro_use]
 extern crate assert_float_eq;
 

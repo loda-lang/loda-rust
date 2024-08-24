@@ -18,6 +18,17 @@ pub trait Semantics {
     fn compare(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn min(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn max(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn logarithm(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn nthroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn digitsum(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn digitalroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn equal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn notequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn lessorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn greaterorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn bitwiseand(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn bitwiseor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn bitwisexor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
 }
 
 pub struct SemanticsWithoutLimits {}
@@ -100,6 +111,72 @@ impl Semantics for SemanticsWithoutLimits {
         let value = result?;
         Ok(value)
     }
+
+    fn logarithm(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_logarithm(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn nthroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_nthroot(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn digitsum(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_digitsum(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn digitalroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_digitalroot(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn equal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_equal(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn notequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_notequal(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn lessorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_lessorequal(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn greaterorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_greaterorequal(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn bitwiseand(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_bitwiseand(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn bitwiseor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_bitwiseor(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn bitwisexor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_bitwisexor(x, y);
+        let value = result?;
+        Ok(value)
+    }
 }
 
 pub struct SemanticsWithSmallLimits {}
@@ -179,6 +256,72 @@ impl Semantics for SemanticsWithSmallLimits {
 
     fn max(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_max(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn logarithm(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_logarithm(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn nthroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_nthroot(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn digitsum(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_digitsum(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn digitalroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_digitalroot(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn equal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_equal(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn notequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_notequal(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn lessorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_lessorequal(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn greaterorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_greaterorequal(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn bitwiseand(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_bitwiseand(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn bitwiseor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_bitwiseor(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn bitwisexor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_bitwisexor(x, y);
         let value = result?;
         Ok(value)
     }

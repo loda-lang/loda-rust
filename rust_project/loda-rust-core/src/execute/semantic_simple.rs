@@ -1,7 +1,9 @@
 use super::EvalError;
 use num_bigint::BigInt;
-use num_traits::{One, Zero, Signed};
+use num_bigint::BigUint;
+use num_traits::{One, Zero, Signed, ToPrimitive};
 use num_integer::Integer;
+use std::cmp::Ordering;
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -175,6 +177,284 @@ pub trait SemanticSimpleConfig {
         }
         Ok(x.max(y).clone())
     }
+
+    fn compute_logarithm(&self, n: &BigInt, base: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if n.bits() >= value_max_bits || base.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+
+        if !n.is_positive() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        if !base.is_positive() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        if base.is_one() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+
+        // Cast from signed integers to BigUint
+        let base: BigUint = match base.to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+        let mut current_n: BigUint = match n.to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        let mut count: u64 = 0;
+        while current_n >= base {
+            current_n /= &base;
+            count += 1;
+        }
+    
+        let result: BigInt = BigInt::from(count);
+        Ok(result)
+    }
+
+    fn compute_nthroot(&self, n: &BigInt, base: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if n.bits() >= value_max_bits || base.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+
+        if n.is_negative() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        if !base.is_positive() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        let max_base: BigInt = BigInt::from(u32::MAX);
+        if base > &max_base {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        let exponent: u32 = base.to_u32().unwrap();
+    
+        // Cast from signed integers to BigUint
+        let n: BigUint = match n.to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        // Initialize binary search bounds
+        let mut low = BigUint::zero();
+        let mut high = n.clone();
+        let mut result = BigUint::zero();
+    
+        while low <= high {
+            let mid: BigUint = (&low + &high) >> 1; // Equivalent to (low + high) / 2
+            let mid_pow = mid.pow(exponent); // Compute mid^base
+    
+            match mid_pow.cmp(&n) {
+                Ordering::Less => {
+                    result = mid.clone();
+                    low = mid + 1u32;
+                }
+                Ordering::Greater => high = mid - 1u32,
+                Ordering::Equal => return Ok(BigInt::from(mid)),
+            }
+        }
+    
+        Ok(BigInt::from(result))
+    }
+
+    fn compute_digitsum(&self, n: &BigInt, base: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if n.bits() >= value_max_bits || base.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+
+        if !base.is_positive() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        if base.is_one() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        // "base" is 2 or greater
+
+        let is_negative_result: bool = n.is_negative();
+    
+        // Cast base and n from BigInt to BigUint
+        let base: BigUint = match base.to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        let mut remaining: BigUint = match n.abs().to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        let mut sum = BigUint::zero();
+    
+        // Calculate the digit sum by repeatedly dividing by the base
+        while remaining > BigUint::zero() {
+            let digit = &remaining % &base;
+            sum += &digit;
+            remaining /= &base;
+        }
+
+        // Adjust sign of the result
+        let mut result = BigInt::from(sum);
+        if is_negative_result {
+            result = -result;
+        }
+        Ok(result)
+    }
+
+    fn compute_digitalroot(&self, n: &BigInt, base: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if n.bits() >= value_max_bits || base.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+
+        if !base.is_positive() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        if base.is_one() {
+            return Err(SemanticSimpleError::InputOutOfRange);
+        }
+        // "base" is 2 or greater
+
+        let is_negative_result: bool = n.is_negative();
+    
+        // Cast base and n from BigInt to BigUint
+        let base: BigUint = match base.to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        let mut remaining: BigUint = match n.abs().to_biguint() {
+            Some(value) => value,
+            None => return Err(SemanticSimpleError::InputOutOfRange),
+        };
+    
+        let mut sum = BigUint::zero();    
+        loop {
+            while remaining > BigUint::zero() {
+                let digit: BigUint = &remaining % &base;
+                sum += &digit;
+                remaining /= &base;
+            }
+
+            if sum < base {
+                // Stop iterating when the sum is less than the base
+                break;
+            }
+            remaining = sum.clone();
+            sum = BigUint::zero();
+        }
+
+        // Adjust sign of the result
+        let mut result = BigInt::from(sum);
+        if is_negative_result {
+            result = -result;
+        }
+        Ok(result)
+    }
+
+    fn compute_equal(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if x == y {
+            return Ok(BigInt::one());
+        } else {
+            return Ok(BigInt::zero());
+        }
+    }
+
+    fn compute_notequal(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if x == y {
+            return Ok(BigInt::zero());
+        } else {
+            return Ok(BigInt::one());
+        }
+    }
+
+    fn compute_lessorequal(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if x <= y {
+            return Ok(BigInt::one());
+        } else {
+            return Ok(BigInt::zero());
+        }
+    }
+
+    fn compute_greaterorequal(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if x >= y {
+            return Ok(BigInt::one());
+        } else {
+            return Ok(BigInt::zero());
+        }
+    }
+
+    fn compute_bitwiseand(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        let x_abs: BigInt = x.abs();
+        let y_abs: BigInt = y.abs();
+        let mut x_and_y: BigInt = x_abs & y_abs;
+        if x.is_negative() && y.is_negative() {
+            x_and_y = -x_and_y;
+        }
+        Ok(x_and_y)
+    }
+
+    fn compute_bitwiseor(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        let x_abs: BigInt = x.abs();
+        let y_abs: BigInt = y.abs();
+        let mut x_or_y: BigInt = x_abs | y_abs;
+        if x.is_negative() || y.is_negative() {
+            x_or_y = -x_or_y;
+        }
+        Ok(x_or_y)
+    }
+
+    fn compute_bitwisexor(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        let x_abs: BigInt = x.abs();
+        let y_abs: BigInt = y.abs();
+        let mut x_xor_y: BigInt = x_abs ^ y_abs;
+        if x.is_negative() != y.is_negative() {
+            x_xor_y = -x_xor_y;
+        }
+        Ok(x_xor_y)
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -220,23 +500,55 @@ mod tests {
         Compare,
         Min,
         Max,
+        Logarithm,
+        NthRoot,
+        DigitSum,
+        DigitalRoot,
+        Equal,
+        NotEqual,
+        LessOrEqual,
+        GreaterOrEqual,
+        BitwiseAnd,
+        BitwiseOr,
+        BitwiseXor,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
         let x = left.to_bigint().unwrap();
         let y = right.to_bigint().unwrap();
+        self::compute_bigint(config, mode, x, y)
+    }
+
+    fn compute_with_strings(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: &str, right: &str) -> String {
+        let left_bigint = BigInt::parse_bytes(left.as_bytes(), 10).unwrap();
+        let right_bigint = BigInt::parse_bytes(right.as_bytes(), 10).unwrap();
+        self::compute_bigint(config, mode, left_bigint, right_bigint)
+    }
+
+    fn compute_bigint(config: &dyn SemanticSimpleConfig, mode: ComputeMode, x: BigInt, y: BigInt) -> String {
         let result = match mode {
-            ComputeMode::Add      => config.compute_add(&x, &y),
-            ComputeMode::Subtract => config.compute_subtract(&x, &y),
-            ComputeMode::Truncate => config.compute_truncate(&x, &y),
-            ComputeMode::Multiply => config.compute_multiply(&x, &y),
-            ComputeMode::Divide   => config.compute_divide(&x, &y),
-            ComputeMode::DivideIf => config.compute_divide_if(&x, &y),
-            ComputeMode::Modulo   => config.compute_modulo(&x, &y),
-            ComputeMode::GCD      => config.compute_gcd(&x, &y),
-            ComputeMode::Compare  => config.compute_compare(&x, &y),
-            ComputeMode::Min      => config.compute_min(&x, &y),
-            ComputeMode::Max      => config.compute_max(&x, &y),
+            ComputeMode::Add            => config.compute_add(&x, &y),
+            ComputeMode::Subtract       => config.compute_subtract(&x, &y),
+            ComputeMode::Truncate       => config.compute_truncate(&x, &y),
+            ComputeMode::Multiply       => config.compute_multiply(&x, &y),
+            ComputeMode::Divide         => config.compute_divide(&x, &y),
+            ComputeMode::DivideIf       => config.compute_divide_if(&x, &y),
+            ComputeMode::Modulo         => config.compute_modulo(&x, &y),
+            ComputeMode::GCD            => config.compute_gcd(&x, &y),
+            ComputeMode::Compare        => config.compute_compare(&x, &y),
+            ComputeMode::Min            => config.compute_min(&x, &y),
+            ComputeMode::Max            => config.compute_max(&x, &y),
+            ComputeMode::Logarithm      => config.compute_logarithm(&x, &y),
+            ComputeMode::NthRoot        => config.compute_nthroot(&x, &y),
+            ComputeMode::DigitSum       => config.compute_digitsum(&x, &y),
+            ComputeMode::DigitalRoot    => config.compute_digitalroot(&x, &y),
+            ComputeMode::Equal          => config.compute_equal(&x, &y),
+            ComputeMode::NotEqual       => config.compute_notequal(&x, &y),
+            ComputeMode::LessOrEqual    => config.compute_lessorequal(&x, &y),
+            ComputeMode::GreaterOrEqual => config.compute_greaterorequal(&x, &y),
+            ComputeMode::BitwiseAnd     => config.compute_bitwiseand(&x, &y),
+            ComputeMode::BitwiseOr      => config.compute_bitwiseor(&x, &y),
+            ComputeMode::BitwiseXor     => config.compute_bitwisexor(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -605,4 +917,373 @@ mod tests {
         assert_eq!(compute_max(-100, 100), "100");
     }
 
+    fn compute_logarithm(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(64);
+        compute(&config, ComputeMode::Logarithm, left, right)
+    }
+
+    #[test]
+    fn test_120000_logarithm() {
+        assert_eq!(compute_logarithm(-1, 1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(-1, 2), "InputOutOfRange");
+        assert_eq!(compute_logarithm(0, 1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(0, 2), "InputOutOfRange");
+        assert_eq!(compute_logarithm(1,-1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(1, 0), "InputOutOfRange");
+        assert_eq!(compute_logarithm(1, 1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(1, 2), "0");
+        assert_eq!(compute_logarithm(1, 3), "0");
+        assert_eq!(compute_logarithm(1, 4), "0");
+        assert_eq!(compute_logarithm(2,-1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(2, 0), "InputOutOfRange");
+        assert_eq!(compute_logarithm(2, 1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(2, 2), "1");
+        assert_eq!(compute_logarithm(2, 3), "0");
+        assert_eq!(compute_logarithm(2, 4), "0");
+        assert_eq!(compute_logarithm(3, 2), "1");
+        assert_eq!(compute_logarithm(3, 3), "1");
+        assert_eq!(compute_logarithm(3, 4), "0");
+        assert_eq!(compute_logarithm(4,-1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(4, 0), "InputOutOfRange");
+        assert_eq!(compute_logarithm(4, 1), "InputOutOfRange");
+        assert_eq!(compute_logarithm(4, 2), "2");
+        assert_eq!(compute_logarithm(4, 3), "1");
+        assert_eq!(compute_logarithm(4, 4), "1");
+        assert_eq!(compute_logarithm(4, 5), "0");
+        assert_eq!(compute_logarithm(8, 2), "3");
+        assert_eq!(compute_logarithm(9, 3), "2");
+        assert_eq!(compute_logarithm(16, 4), "2");
+        assert_eq!(compute_logarithm(16, 2), "4");
+        assert_eq!(compute_logarithm(10, 10), "1");
+        assert_eq!(compute_logarithm(100, 10), "2");
+        assert_eq!(compute_logarithm(1000, 10), "3");
+        assert_eq!(compute_logarithm(10000, 10), "4");
+        assert_eq!(compute_logarithm(100000, 10), "5");
+        assert_eq!(compute_logarithm(1000000, 10), "6");
+        assert_eq!(compute_logarithm(10000000, 10), "7");
+        assert_eq!(compute_logarithm(100000000, 10), "8");
+        assert_eq!(compute_logarithm(1000000000, 10), "9");
+        assert_eq!(compute_logarithm(9999999999, 10), "9");
+        assert_eq!(compute_logarithm(10000000000, 10), "10");
+        assert_eq!(compute_logarithm(10000000001, 10), "10");
+    }
+
+    fn compute_nthroot(left: &str, right: i64) -> String {
+        let left_bigint = BigInt::parse_bytes(left.as_bytes(), 10).unwrap();
+        let right_bigint = right.to_bigint().unwrap();
+        let config = SemanticSimpleConfigLimited::new(256);
+        compute_bigint(&config, ComputeMode::NthRoot, left_bigint, right_bigint)
+    }
+
+    #[test]
+    fn test_130000_nthroot() {
+        assert_eq!(compute_nthroot("-1", 0), "InputOutOfRange");
+        assert_eq!(compute_nthroot("-1", 1), "InputOutOfRange");
+        assert_eq!(compute_nthroot("-1", 2), "InputOutOfRange");
+        assert_eq!(compute_nthroot("0", 1), "0");
+        assert_eq!(compute_nthroot("0", 2), "0");
+        assert_eq!(compute_nthroot("0", 3), "0");
+        assert_eq!(compute_nthroot("1", 0), "InputOutOfRange");
+        assert_eq!(compute_nthroot("1", 1), "1");
+        assert_eq!(compute_nthroot("1", 2), "1");
+        assert_eq!(compute_nthroot("1", 3), "1");
+        assert_eq!(compute_nthroot("1", 4), "1");
+        assert_eq!(compute_nthroot("2", -1), "InputOutOfRange");
+        assert_eq!(compute_nthroot("2", 0), "InputOutOfRange");
+        assert_eq!(compute_nthroot("2", 1), "2");
+        assert_eq!(compute_nthroot("2", 2), "1");
+        assert_eq!(compute_nthroot("2", 3), "1");
+        assert_eq!(compute_nthroot("2", 4), "1");
+        assert_eq!(compute_nthroot("3", 2), "1");
+        assert_eq!(compute_nthroot("3", 3), "1");
+        assert_eq!(compute_nthroot("3", 4), "1");
+        assert_eq!(compute_nthroot("4", -1), "InputOutOfRange");
+        assert_eq!(compute_nthroot("4", 0), "InputOutOfRange");
+        assert_eq!(compute_nthroot("4", 1), "4");
+        assert_eq!(compute_nthroot("4", 2), "2");
+        assert_eq!(compute_nthroot("4", 3), "1");
+        assert_eq!(compute_nthroot("4", 4), "1");
+        assert_eq!(compute_nthroot("5", 2), "2");
+        assert_eq!(compute_nthroot("5", 3), "1");
+        assert_eq!(compute_nthroot("5", 4), "1");
+        assert_eq!(compute_nthroot("5", 5), "1");
+        assert_eq!(compute_nthroot("5", 6), "1");
+        assert_eq!(compute_nthroot("6", 2), "2");
+        assert_eq!(compute_nthroot("6", 3), "1");
+        assert_eq!(compute_nthroot("6", 4), "1");
+        assert_eq!(compute_nthroot("7", 2), "2");
+        assert_eq!(compute_nthroot("7", 3), "1");
+        assert_eq!(compute_nthroot("8", 2), "2");
+        assert_eq!(compute_nthroot("8", 3), "2");
+        assert_eq!(compute_nthroot("8", 4), "1");
+        assert_eq!(compute_nthroot("9", 2), "3");
+        assert_eq!(compute_nthroot("9", 3), "2");
+        assert_eq!(compute_nthroot("9", 4), "1");
+        assert_eq!(compute_nthroot("10", 2), "3");
+        assert_eq!(compute_nthroot("10", 3), "2");
+        assert_eq!(compute_nthroot("10", 4), "1");
+        assert_eq!(compute_nthroot("10", 5), "1");
+        assert_eq!(compute_nthroot("11", 2), "3");
+        assert_eq!(compute_nthroot("12", 2), "3");
+        assert_eq!(compute_nthroot("13", 2), "3");
+        assert_eq!(compute_nthroot("14", 2), "3");
+        assert_eq!(compute_nthroot("15", 2), "3");
+        assert_eq!(compute_nthroot("16", 2), "4");
+        assert_eq!(compute_nthroot("64", 2), "8");
+        assert_eq!(compute_nthroot("64", 3), "4");
+        assert_eq!(compute_nthroot("64", 4), "2");
+        assert_eq!(compute_nthroot("64", 6), "2");
+        assert_eq!(compute_nthroot("64", 7), "1");
+        assert_eq!(compute_nthroot("80", 2), "8");
+        assert_eq!(compute_nthroot("81", 2), "9");
+        assert_eq!(compute_nthroot("81", 4), "3");
+        assert_eq!(compute_nthroot("82", 2), "9");
+        assert_eq!(compute_nthroot("82", 4), "3");
+        assert_eq!(compute_nthroot("100", 2), "10");
+        assert_eq!(compute_nthroot("1000", 3), "10");
+        assert_eq!(compute_nthroot("10000", 4), "10");
+        assert_eq!(compute_nthroot("100000", 5), "10");
+        assert_eq!(compute_nthroot("1000000", 6), "10");
+        assert_eq!(compute_nthroot("10000000", 7), "10");
+        assert_eq!(compute_nthroot("100000000", 8), "10");
+        assert_eq!(compute_nthroot("1000000000", 9), "10");
+        assert_eq!(compute_nthroot("10000000000", 10), "10");
+        assert_eq!(compute_nthroot("100000000000", 11), "10");
+        assert_eq!(compute_nthroot("1000000000000", 12), "10");
+        assert_eq!(compute_nthroot("10000000000000", 13), "10");
+        assert_eq!(compute_nthroot("100000000000000", 14), "10");
+        assert_eq!(compute_nthroot("1000000000000000", 15), "10");
+        assert_eq!(compute_nthroot("10000000000000000", 16), "10");
+        assert_eq!(compute_nthroot("100000000000000000", 17), "10");
+        assert_eq!(compute_nthroot("1000000000000000000", 18), "10");
+        assert_eq!(compute_nthroot("10000000000000000000", 19), "10");
+        assert_eq!(compute_nthroot("100000000000000000000", 20), "10");
+        assert_eq!(compute_nthroot("1000000000000000000000", 21), "10");
+        assert_eq!(compute_nthroot("10000000000000000000000", 22), "10");
+        assert_eq!(compute_nthroot("100000000000000000000000", 23), "10");
+        assert_eq!(compute_nthroot("1000000000000000000000000", 24), "10");
+        assert_eq!(compute_nthroot("10000000000000000000000000", 25), "10");
+    }
+
+    fn compute_digitsum(left: &str, right: i64) -> String {
+        let left_bigint = BigInt::parse_bytes(left.as_bytes(), 10).unwrap();
+        let right_bigint = right.to_bigint().unwrap();
+        let config = SemanticSimpleConfigLimited::new(128);
+        compute_bigint(&config, ComputeMode::DigitSum, left_bigint, right_bigint)
+    }
+
+    #[test]
+    fn test_140000_digitsum() {
+        assert_eq!(compute_digitsum("10", -5), "InputOutOfRange");
+        assert_eq!(compute_digitsum("10", -1), "InputOutOfRange");
+        assert_eq!(compute_digitsum("10", 0), "InputOutOfRange");
+        assert_eq!(compute_digitsum("-1", 1), "InputOutOfRange");
+        assert_eq!(compute_digitsum("0", 1), "InputOutOfRange");
+        assert_eq!(compute_digitsum("1", 1), "InputOutOfRange");
+        assert_eq!(compute_digitsum("2", 1), "InputOutOfRange");
+        assert_eq!(compute_digitsum("5", 10), "5");
+        assert_eq!(compute_digitsum("15", 10), "6");
+        assert_eq!(compute_digitsum("125", 10), "8");
+        assert_eq!(compute_digitsum("1235", 10), "11");
+        assert_eq!(compute_digitsum("12345", 10), "15");
+        assert_eq!(compute_digitsum("-5", 10), "-5");
+        assert_eq!(compute_digitsum("-15", 10), "-6");
+        assert_eq!(compute_digitsum("-125", 10), "-8");
+        assert_eq!(compute_digitsum("-1235", 10), "-11");
+        assert_eq!(compute_digitsum("-12345", 10), "-15");
+        assert_eq!(compute_digitsum("1", 2), "1");
+        assert_eq!(compute_digitsum("3", 2), "2");
+        assert_eq!(compute_digitsum("7", 2), "3");
+        assert_eq!(compute_digitsum("15", 2), "4");
+        assert_eq!(compute_digitsum("31", 2), "5");
+        assert_eq!(compute_digitsum("-1", 2), "-1");
+        assert_eq!(compute_digitsum("-3", 2), "-2");
+        assert_eq!(compute_digitsum("-7", 2), "-3");
+        assert_eq!(compute_digitsum("-15", 2), "-4");
+        assert_eq!(compute_digitsum("-31", 2), "-5");
+        assert_eq!(compute_digitsum("19", 3), "3");
+        assert_eq!(compute_digitsum("18446744073709551615", 2), "64");
+        assert_eq!(compute_digitsum("18446744073709551615", 4), "96");
+    }
+
+    fn compute_digitalroot(left: &str, right: i64) -> String {
+        let left_bigint = BigInt::parse_bytes(left.as_bytes(), 10).unwrap();
+        let right_bigint = right.to_bigint().unwrap();
+        let config = SemanticSimpleConfigLimited::new(128);
+        compute_bigint(&config, ComputeMode::DigitalRoot, left_bigint, right_bigint)
+    }
+
+    #[test]
+    fn test_150000_digitalroot() {
+        assert_eq!(compute_digitalroot("10", -5), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("10", -1), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("10", 0), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("-1", 1), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("0", 1), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("1", 1), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("2", 1), "InputOutOfRange");
+        assert_eq!(compute_digitalroot("5", 10), "5");
+        assert_eq!(compute_digitalroot("15", 10), "6");
+        assert_eq!(compute_digitalroot("125", 10), "8");
+        assert_eq!(compute_digitalroot("1235", 10), "2");
+        assert_eq!(compute_digitalroot("12345", 10), "6");
+        assert_eq!(compute_digitalroot("-5", 10), "-5");
+        assert_eq!(compute_digitalroot("-15", 10), "-6");
+        assert_eq!(compute_digitalroot("-125", 10), "-8");
+        assert_eq!(compute_digitalroot("-1235", 10), "-2");
+        assert_eq!(compute_digitalroot("-12345", 10), "-6");
+        assert_eq!(compute_digitalroot("1", 2), "1");
+        assert_eq!(compute_digitalroot("3", 2), "1");
+        assert_eq!(compute_digitalroot("7", 2), "1");
+        assert_eq!(compute_digitalroot("15", 2), "1");
+        assert_eq!(compute_digitalroot("31", 2), "1");
+        assert_eq!(compute_digitalroot("-1", 2), "-1");
+        assert_eq!(compute_digitalroot("-3", 2), "-1");
+        assert_eq!(compute_digitalroot("-7", 2), "-1");
+        assert_eq!(compute_digitalroot("-15", 2), "-1");
+        assert_eq!(compute_digitalroot("-31", 2), "-1");
+        assert_eq!(compute_digitalroot("19", 3), "1");
+        assert_eq!(compute_digitalroot("18446744073709551615", 2), "1");
+        assert_eq!(compute_digitalroot("18446744073709551615", 4), "3");
+    }
+
+    fn compute_equal(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(64);
+        compute(&config, ComputeMode::Equal, left, right)
+    }
+
+    #[test]
+    fn test_160000_equal() {
+        assert_eq!(compute_equal(0, 0), "1");
+        assert_eq!(compute_equal(1, 1), "1");
+        assert_eq!(compute_equal(2, 2), "1");
+        assert_eq!(compute_equal(-1, -1), "1");
+        assert_eq!(compute_equal(-2, -2), "1");
+        assert_eq!(compute_equal(1, 0), "0");
+        assert_eq!(compute_equal(0, 1), "0");
+        assert_eq!(compute_equal(-1, 0), "0");
+        assert_eq!(compute_equal(0, -1), "0");
+    }
+
+    fn compute_notequal(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(64);
+        compute(&config, ComputeMode::NotEqual, left, right)
+    }
+
+    #[test]
+    fn test_170000_notequal() {
+        assert_eq!(compute_notequal(0, 0), "0");
+        assert_eq!(compute_notequal(1, 1), "0");
+        assert_eq!(compute_notequal(2, 2), "0");
+        assert_eq!(compute_notequal(-1, -1), "0");
+        assert_eq!(compute_notequal(-2, -2), "0");
+        assert_eq!(compute_notequal(1, 0), "1");
+        assert_eq!(compute_notequal(0, 1), "1");
+        assert_eq!(compute_notequal(-1, 0), "1");
+        assert_eq!(compute_notequal(0, -1), "1");
+    }
+
+    fn compute_lessorequal(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(64);
+        compute(&config, ComputeMode::LessOrEqual, left, right)
+    }
+
+    #[test]
+    fn test_180000_lessorequal() {
+        assert_eq!(compute_lessorequal(0, 0), "1");
+        assert_eq!(compute_lessorequal(1, 1), "1");
+        assert_eq!(compute_lessorequal(2, 2), "1");
+        assert_eq!(compute_lessorequal(-1, -1), "1");
+        assert_eq!(compute_lessorequal(-2, -2), "1");
+        assert_eq!(compute_lessorequal(1, 0), "0");
+        assert_eq!(compute_lessorequal(0, 1), "1");
+        assert_eq!(compute_lessorequal(-1, 0), "1");
+        assert_eq!(compute_lessorequal(0, -1), "0");
+    }
+
+    fn compute_greaterorequal(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(64);
+        compute(&config, ComputeMode::GreaterOrEqual, left, right)
+    }
+
+    #[test]
+    fn test_190000_greaterorequal() {
+        assert_eq!(compute_greaterorequal(0, 0), "1");
+        assert_eq!(compute_greaterorequal(1, 1), "1");
+        assert_eq!(compute_greaterorequal(2, 2), "1");
+        assert_eq!(compute_greaterorequal(-1, -1), "1");
+        assert_eq!(compute_greaterorequal(-2, -2), "1");
+        assert_eq!(compute_greaterorequal(1, 0), "1");
+        assert_eq!(compute_greaterorequal(0, 1), "0");
+        assert_eq!(compute_greaterorequal(-1, 0), "0");
+        assert_eq!(compute_greaterorequal(0, -1), "1");
+    }
+
+    fn compute_bitwiseand(left: &str, right: &str) -> String {
+        let config = SemanticSimpleConfigLimited::new(128);
+        compute_with_strings(&config, ComputeMode::BitwiseAnd, left, right)
+    }
+
+    #[test]
+    fn test_200000_bitwiseand() {
+        assert_eq!(compute_bitwiseand("0", "0"), "0");
+        assert_eq!(compute_bitwiseand("0", "1"), "0");
+        assert_eq!(compute_bitwiseand("1", "0"), "0");
+        assert_eq!(compute_bitwiseand("1", "1"), "1");
+        assert_eq!(compute_bitwiseand("1", "2"), "0");
+        assert_eq!(compute_bitwiseand("1", "3"), "1");
+        assert_eq!(compute_bitwiseand("-1", "1"), "1");
+        assert_eq!(compute_bitwiseand("-1", "-1"), "-1");
+        assert_eq!(compute_bitwiseand("-1", "2"), "0");
+        assert_eq!(compute_bitwiseand("-1", "-2"), "0");
+        assert_eq!(compute_bitwiseand("9223372036854775807", "9223372036854775808"), "0");
+        assert_eq!(compute_bitwiseand("9223372036854775807", "-9223372036854775808"), "0");
+        assert_eq!(compute_bitwiseand("3148244321913096809130", "1574122160956548404565"), "0");
+    }
+
+    fn compute_bitwiseor(left: &str, right: &str) -> String {
+        let config = SemanticSimpleConfigLimited::new(128);
+        compute_with_strings(&config, ComputeMode::BitwiseOr, left, right)
+    }
+
+    #[test]
+    fn test_210000_bitwiseor() {
+        assert_eq!(compute_bitwiseor("0", "0"), "0");
+        assert_eq!(compute_bitwiseor("0", "1"), "1");
+        assert_eq!(compute_bitwiseor("1", "0"), "1");
+        assert_eq!(compute_bitwiseor("1", "1"), "1");
+        assert_eq!(compute_bitwiseor("1", "2"), "3");
+        assert_eq!(compute_bitwiseor("1", "3"), "3");
+        assert_eq!(compute_bitwiseor("-1", "1"), "-1");
+        assert_eq!(compute_bitwiseor("-1", "-1"), "-1");
+        assert_eq!(compute_bitwiseor("-1", "2"), "-3");
+        assert_eq!(compute_bitwiseor("-1", "-2"), "-3");
+        assert_eq!(compute_bitwiseor("9223372036854775807", "9223372036854775808"), "18446744073709551615");
+        assert_eq!(compute_bitwiseor("-9223372036854775807", "9223372036854775808"), "-18446744073709551615");
+        assert_eq!(compute_bitwiseor("-9223372036854775807", "-9223372036854775808"), "-18446744073709551615");
+        assert_eq!(compute_bitwiseor("3148244321913096809130", "1574122160956548404565"), "4722366482869645213695");        
+    }
+
+    fn compute_bitwisexor(left: &str, right: &str) -> String {
+        let config = SemanticSimpleConfigLimited::new(128);
+        compute_with_strings(&config, ComputeMode::BitwiseXor, left, right)
+    }
+
+    #[test]
+    fn test_220000_bitwisexor() {
+        assert_eq!(compute_bitwisexor("0", "0"), "0");
+        assert_eq!(compute_bitwisexor("0", "1"), "1");
+        assert_eq!(compute_bitwisexor("1", "0"), "1");
+        assert_eq!(compute_bitwisexor("1", "1"), "0");
+        assert_eq!(compute_bitwisexor("1", "2"), "3");
+        assert_eq!(compute_bitwisexor("1", "3"), "2");
+        assert_eq!(compute_bitwisexor("-1", "1"), "0");
+        assert_eq!(compute_bitwisexor("-1", "-1"), "0");
+        assert_eq!(compute_bitwisexor("-1", "2"), "-3");
+        assert_eq!(compute_bitwisexor("-1", "-2"), "3");
+        assert_eq!(compute_bitwisexor("9223372036854775807", "9223372036854775808"), "18446744073709551615");
+        assert_eq!(compute_bitwisexor("-9223372036854775807", "9223372036854775808"), "-18446744073709551615");
+        assert_eq!(compute_bitwisexor("-9223372036854775807", "-9223372036854775808"), "18446744073709551615");
+        assert_eq!(compute_bitwisexor("3148244321913096809130", "1574122160956548404565"), "4722366482869645213695");
+    }
 }

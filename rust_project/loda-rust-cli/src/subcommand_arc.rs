@@ -13,6 +13,7 @@ pub enum SubcommandARCMode {
     GenerateSolutionCSV,
 
     /// Eval a single task with all the existing solutions.
+    #[allow(dead_code)]
     EvalSingleTask { pattern: String },
 
     /// The code being executed inside the docker image submitted for the `ARCathon` contest.
@@ -29,12 +30,15 @@ pub enum SubcommandARCMode {
     /// where `name_of_solver` is one of:
     /// - `lr` is logistic regression.
     /// - `one` is `SolveOneColor`.
+    #[allow(dead_code)]
     SolveWithSpecificSolver { name_of_solver: String },
     
     /// Predict the output sizes for a single ARC task.
+    #[allow(dead_code)]
     PredictOutputSizesForSingleTask { task_json_file: PathBuf },
     
     /// Traverse the task json files, and assign a number of histogram comparisons.
+    #[allow(dead_code)]
     MetadataHistogram { count: u16, seed: u64, task_json_directory: PathBuf },
 }
 

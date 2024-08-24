@@ -23,18 +23,29 @@ impl ParseInstructionId for InstructionId {
     fn parse(input: &str, line_number: usize) -> Result<InstructionId,ParseInstructionIdError> {
         match input {
             "add" => Ok(Self::Add),
+            "ban" => Ok(Self::BitwiseAnd),
             "bin" => Ok(Self::Binomial),
+            "bor" => Ok(Self::BitwiseOr),
+            "bxo" => Ok(Self::BitwiseXor),
             "cmp" => Ok(Self::Compare),
             "dif" => Ok(Self::DivideIf),
+            "dir" => Ok(Self::DigitalRoot),
+            "dis" => Ok(Self::DigitSum),
             "div" => Ok(Self::Divide),
+            "equ" => Ok(Self::Equal),
             "gcd" => Ok(Self::GCD),
+            "geq" => Ok(Self::GreaterOrEqual),
+            "log" => Ok(Self::Logarithm),
             "lpb" => Ok(Self::LoopBegin),
             "lpe" => Ok(Self::LoopEnd),
+            "leq" => Ok(Self::LessOrEqual),
             "max" => Ok(Self::Max),
             "min" => Ok(Self::Min),
             "mod" => Ok(Self::Modulo),
             "mov" => Ok(Self::Move),
             "mul" => Ok(Self::Multiply),
+            "neq" => Ok(Self::NotEqual),
+            "nrt" => Ok(Self::NthRoot),
             "pow" => Ok(Self::Power),
             "seq" => Ok(Self::EvalSequence),
             "sub" => Ok(Self::Subtract),
@@ -90,6 +101,18 @@ mod tests {
         {
             let instruction_id: InstructionId = InstructionId::parse("seq", 1).expect("InstructionId");
             assert_eq!(instruction_id, InstructionId::EvalSequence);
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("log", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::Logarithm);
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("nrt", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::NthRoot);
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("dis", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::DigitSum);
         }
         {
             let instruction_id: InstructionId = InstructionId::parse("lps", 1).expect("InstructionId");
