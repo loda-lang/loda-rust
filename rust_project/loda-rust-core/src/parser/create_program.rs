@@ -342,6 +342,9 @@ impl CreateProgram {
     
         let mut stack_vec: Vec<(Program, LoopScope)> = vec!();
         let mut program = Program::new();
+        if let Some(offset) = parsed_program.optional_offset {
+            program.set_offset(offset);
+        }
         for instruction in &parsed_program.instruction_vec {
             let id: InstructionId = instruction.instruction_id.clone();
             match id {
