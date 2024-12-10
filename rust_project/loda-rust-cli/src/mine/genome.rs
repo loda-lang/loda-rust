@@ -132,6 +132,7 @@ impl Genome {
         }
 
         ParsedProgram {
+            optional_offset: None,
             instruction_vec: instruction_vec
         }
     }

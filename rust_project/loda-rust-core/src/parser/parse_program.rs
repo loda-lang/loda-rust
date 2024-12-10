@@ -1,15 +1,17 @@
 use std::fmt;
-use super::{EXTRACT_ROW_RE,Instruction,InstructionParameter,ParameterType,ParseParametersError,parse_parameters,remove_comment};
+use super::{EXTRACT_ROW_RE,Instruction,InstructionParameter,ParameterType,ParseParametersError,parse_parameters,remove_comment,extract_offset,ExtractOffsetError};
 use super::{InstructionId,ParseInstructionIdError,ParseInstructionId};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParsedProgram {
+    pub optional_offset: Option<i32>,
     pub instruction_vec: Vec<Instruction>,
 }
 
 impl ParsedProgram {
     pub fn new() -> Self {
         Self {
+            optional_offset: None,
             instruction_vec: vec!()
         }
     }
@@ -17,11 +19,15 @@ impl ParsedProgram {
 
 impl fmt::Display for ParsedProgram {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let instructions: Vec<String> = self.instruction_vec.iter().map(|instruction| {
-            instruction.to_string()
-        }).collect();
-        let instructions_joined: String = instructions.join("\n");
-        write!(f, "{}", instructions_joined)
+        let mut rows: Vec<String> = vec!();
+        if let Some(offset) = &self.optional_offset {
+            rows.push(format!("#offset {}", offset));
+        }
+        for instruction in &self.instruction_vec {
+            rows.push(instruction.to_string());
+        }
+        let rows_joined: String = rows.join("\n");
+        write!(f, "{}", rows_joined)
     }
 }
 
@@ -30,6 +36,7 @@ pub enum ParseProgramError {
     SyntaxError(usize),
     ParseInstructionId(ParseInstructionIdError),
     ParseParameters(ParseParametersError),
+    ExtractOffset(ExtractOffsetError),
 }
 
 impl fmt::Display for ParseProgramError {
@@ -38,6 +45,7 @@ impl fmt::Display for ParseProgramError {
             Self::SyntaxError(line_number) => write!(f, "Syntax error in line {}", line_number),
             Self::ParseInstructionId(ref err) => write!(f, "ParseInstructionId error: {}", err),
             Self::ParseParameters(ref err) => write!(f, "ParseParameters error: {}", err),
+            Self::ExtractOffset(ref err) => write!(f, "ExtractOffset error: {}", err),
         }
     }
 }
@@ -54,26 +62,50 @@ impl From<ParseParametersError> for ParseProgramError {
     }
 }
 
+impl From<ExtractOffsetError> for ParseProgramError {
+    fn from(err: ExtractOffsetError) -> ParseProgramError {
+        ParseProgramError::ExtractOffset(err)
+    }
+}
+
 impl ParsedProgram {
     /// Returns `Ok` if the program can be parsed.
     /// 
     /// Returns `Err` if there is a problem during parsing.
     pub fn parse_program(raw_input: &str) -> Result<ParsedProgram, ParseProgramError> {
         let re = &EXTRACT_ROW_RE;
+        let mut optional_offset: Option<i32> = None;
         let mut instruction_vec: Vec<Instruction> = vec!();
         for (index, raw_input_line) in raw_input.split("\n").enumerate() {
             let line_number: usize = index + 1;
+
+            // Extract the `#offset` if present.
+            let (line0, extracted_offset) = extract_offset(raw_input_line, line_number)?;
+            if let Some(value) = extracted_offset {
+                if optional_offset.is_some() {
+                    // The `#offset` line must occur only once.
+                    return Err(ParseProgramError::SyntaxError(line_number));
+                }
+                if instruction_vec.is_empty() == false {
+                    // The `#offset` line must occur before the instructions.
+                    return Err(ParseProgramError::SyntaxError(line_number));
+                }
+                optional_offset = Some(value);
+                continue;
+            }
     
-            let line0 = remove_comment(raw_input_line);
-            let line1: &str = line0.trim_end();
-            if line1.is_empty() {
+            // Discard comments and trim the line.
+            let line1 = remove_comment(&line0);
+            let line2: &str = line1.trim_end();
+            if line2.is_empty() {
                 // skip lines without code
                 // if it's a line with just a comment, then skip the line.
                 // if it's a line with just blank spaces, then skip the line.
                 continue;
             }
     
-            let captures = match re.captures(line1) {
+            // Parse the instruction
+            let captures = match re.captures(line2) {
                 Some(value) => value,
                 None => {
                     return Err(ParseProgramError::SyntaxError(line_number));
@@ -97,6 +129,7 @@ impl ParsedProgram {
         }
     
         let parsed_program = Self {
+            optional_offset: optional_offset,
             instruction_vec: instruction_vec
         };
         Ok(parsed_program)
@@ -185,6 +218,9 @@ mod tests {
         assert_eq!(process("  mov  $1, -2\n\tmov $3\t, $44"), "mov $1,-2\nmov $3,$44");
         assert_eq!(process("\tmov $1,2 ; comment"), "mov $1,2");
         assert_eq!(process("add $$1,2\nsub $2,$$1"), "add $$1,2\nsub $2,$$1");
+        assert_eq!(process("#offset 0"), "#offset 0");
+        assert_eq!(process("#offset 42\n; comment"), "#offset 42");
+        assert_eq!(process("#offset  42\nadd  $0 , 1"), "#offset 42\nadd $0,1");
 
         // UnofficialFunction
         assert_eq!(process("\n\nf11 $1,22 ; comment"), "f11 $1,22");
@@ -205,6 +241,13 @@ mod tests {
         assert_eq!(process("mov $1,$-3"), "ParseParameters(NegativeValueNotAllowedForThisParameterType(1))");
         assert_eq!(process("mov $0,00"), "ParseParameters(StrictIncorrectParameterValue(1))");
         assert_eq!(process("mov $00,-0"), "ParseParameters(StrictIncorrectParameterValue(1))");
+        assert_eq!(process("#offset -0"), "ExtractOffset(InvalidSyntax(1))");
+        assert_eq!(process("#offset 007"), "ExtractOffset(InvalidSyntax(1))");
+        assert_eq!(process("#offset 123 ; comment"), "ExtractOffset(InvalidSyntax(1))");
+        assert_eq!(process(" #offset 123"), "SyntaxError(1)");
+        assert_eq!(process("#offset 123 "), "ExtractOffset(InvalidSyntax(1))");
+        assert_eq!(process("add $0,1\n#offset 1"), "SyntaxError(2)");
+        assert_eq!(process("#offset 42\n#offset 42"), "SyntaxError(2)");
     }
     
     #[test]
