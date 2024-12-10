@@ -24,7 +24,8 @@ pub fn extract_offset(input: &str, line_number: usize) -> Result<(String, Option
         ).unwrap();
     }
 
-    if input.starts_with("#offset") == false {
+    let input_trimmed: &str = input.trim_start();
+    if input_trimmed.starts_with("#offset") == false {
         return Ok((String::from(input), None));
     }
 
@@ -64,6 +65,7 @@ mod tests {
         "#offset",
         "#offset3",
         "#offset 3 ; comment",
+        " #offset 1",
         // not offsets
         "mov $0,1 ; comment",
         "#junk 123",
@@ -83,6 +85,7 @@ mod tests {
         "InvalidSyntax(8)",
         "InvalidSyntax(9)",
         "InvalidSyntax(10)",
+        "InvalidSyntax(11)",
         // not offsets
         "mov $0,1 ; comment",
         "#junk 123",

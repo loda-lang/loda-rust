@@ -244,7 +244,7 @@ mod tests {
         assert_eq!(process("#offset -0"), "ExtractOffset(InvalidSyntax(1))");
         assert_eq!(process("#offset 007"), "ExtractOffset(InvalidSyntax(1))");
         assert_eq!(process("#offset 123 ; comment"), "ExtractOffset(InvalidSyntax(1))");
-        assert_eq!(process(" #offset 123"), "SyntaxError(1)");
+        assert_eq!(process(" #offset 123"), "ExtractOffset(InvalidSyntax(1))");
         assert_eq!(process("#offset 123 "), "ExtractOffset(InvalidSyntax(1))");
         assert_eq!(process("add $0,1\n#offset 1"), "SyntaxError(2)");
         assert_eq!(process("#offset 42\n#offset 42"), "SyntaxError(2)");
