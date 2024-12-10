@@ -226,7 +226,7 @@ impl DependencyManager {
             ExecuteProfile::SmallLimits => NodeCalcSemanticMode::SmallLimits
         };
         let create_program = CreateProgram::new(node_calc_semantic_mode);
-        let mut program: Program = match create_program.create_program(&parsed_program.instruction_vec, &self.unofficial_function_registry) {
+        let mut program: Program = match create_program.create_program(parsed_program, &self.unofficial_function_registry) {
             Ok(value) => value,
             Err(error) => {
                 return Err(DependencyManagerError::CreateProgram(error));

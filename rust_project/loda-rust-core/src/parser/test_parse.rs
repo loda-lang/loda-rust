@@ -143,7 +143,7 @@ mod tests {
       let parsed_program: ParsedProgram = ParsedProgram::parse_program(input)?;
       let create_program = CreateProgram::new(NodeCalcSemanticMode::Unlimited);
       let unofficial_function_registry = UnofficialFunctionRegistry::new();
-      let program: Program = create_program.create_program(&parsed_program.instruction_vec, &unofficial_function_registry)?;
+      let program: Program = create_program.create_program(&parsed_program, &unofficial_function_registry)?;
       Ok(program)
     }
 
