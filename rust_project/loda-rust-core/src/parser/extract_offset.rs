@@ -63,6 +63,7 @@ mod tests {
         "#offset 4.5",
         "#offset",
         "#offset3",
+        "#offset 3 ; comment",
         // not offsets
         "mov $0,1 ; comment",
         "#junk 123",
@@ -81,6 +82,7 @@ mod tests {
         "InvalidSyntax(7)",
         "InvalidSyntax(8)",
         "InvalidSyntax(9)",
+        "InvalidSyntax(10)",
         // not offsets
         "mov $0,1 ; comment",
         "#junk 123",
