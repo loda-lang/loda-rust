@@ -1,5 +1,6 @@
 //! Translate from LODA source code to a program instance.
 mod create_program;
+mod extract_offset;
 mod extract_row_re;
 mod instruction;
 mod instruction_id;
@@ -12,6 +13,7 @@ mod parse_program;
 mod remove_comment;
 
 pub use create_program::CreateProgram;
+pub use extract_offset::{extract_offset, ExtractOffsetError};
 pub use extract_row_re::EXTRACT_ROW_RE;
 pub use instruction::Instruction;
 pub use instruction_id::InstructionId;
