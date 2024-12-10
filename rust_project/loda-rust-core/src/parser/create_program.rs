@@ -343,7 +343,17 @@ impl CreateProgram {
         let mut stack_vec: Vec<(Program, LoopScope)> = vec!();
         let mut program = Program::new();
         if let Some(offset) = parsed_program.optional_offset {
-            program.set_offset(offset);
+            // Insert an add instruction at the beginning of the program, if offset is provided.
+            let instruction = Instruction {
+                instruction_id: InstructionId::Add,
+                parameter_vec: vec![
+                    InstructionParameter::new(ParameterType::Direct, 0),
+                    InstructionParameter::new(ParameterType::Constant, offset as i64),
+                ],
+                line_number: 0,
+            };
+            let node = self.create_node_calc(&instruction)?;
+            program.push_boxed(node);
         }
         for instruction in &parsed_program.instruction_vec {
             let id: InstructionId = instruction.instruction_id.clone();
