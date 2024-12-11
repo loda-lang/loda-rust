@@ -524,4 +524,11 @@ mod tests {
         let runner: Rc::<ProgramRunner> = dm.load(247).unwrap();
         assert_eq!(runner.inspect(10), "0,3,10,25,56,119,246,501,1012,2035");
     }
+
+    #[test]
+    fn test_70001_offset_positive() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/offset");
+        let runner: Rc::<ProgramRunner> = dm.load(183634).unwrap();
+        assert_eq!(runner.inspect(6), "44,136,452,1576,5684,21016");
+    }
 }
