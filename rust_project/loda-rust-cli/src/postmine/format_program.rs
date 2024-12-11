@@ -253,7 +253,7 @@ mod tests {
         let mut oeis_id_name_map = OeisIdStringMap::new();
         oeis_id_name_map.insert(OeisId::from(40), "The primes".to_string());
         oeis_id_name_map.insert(OeisId::from(72677), "a(n) = prime(prime(n)+1)".to_string());
-        let program = "seq $0,40\nseq $0,40".to_string();
+        let program = "#offset -123\nseq $0,40\nseq $0,40".to_string();
         let mut fp = FormatProgram::new(program);
         fp.program_oeis_id(OeisId::from(72677));
         fp.oeis_id_name_map(oeis_id_name_map);
@@ -268,6 +268,8 @@ mod tests {
 r#"; A072677: a(n) = prime(prime(n)+1)
 ; Submitted by Euler
 ; 5,7,13,19,37,43,61,71,89
+
+#offset -123
 
 seq $0,40 ; The primes
 seq $0,40 ; The primes
