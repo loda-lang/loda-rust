@@ -531,4 +531,12 @@ mod tests {
         let runner: Rc::<ProgramRunner> = dm.load(183634).unwrap();
         assert_eq!(runner.inspect(6), "44,136,452,1576,5684,21016");
     }
+
+    // Nested programs with offset doesn't compute the correct values.
+    // #[test]
+    // fn test_70002_offset_depends_on_another_program_with_offset() {
+    //     let mut dm: DependencyManager = dependency_manager_mock("tests/offset");
+    //     let runner: Rc::<ProgramRunner> = dm.load(223069).unwrap();
+    //     assert_eq!(runner.inspect(5), "16,150,1080,6627,36552");
+    // }
 }
