@@ -62,12 +62,15 @@ impl FormatProgram {
     }
 
     pub fn build(&self) -> anyhow::Result<String> {
-        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&self.program_content) {
+        let parsed_program_with_optional_offset: ParsedProgram = match ParsedProgram::parse_program(&self.program_content) {
             Ok(value) => value,
             Err(error) => {
                 return Err(anyhow::anyhow!("Parse program from {:?} error: {:?} content: {:?}", &self.program_path, error, self.program_content));
             }
         };
+        let offset: Option<i32> = parsed_program_with_optional_offset.optional_offset;
+        let parsed_program: ParsedProgram = parsed_program_with_optional_offset.without_offset();
+
     
         // Don't load dependencies from the file system,
         // by pretending that all the dependencies are empty programs
@@ -125,10 +128,16 @@ impl FormatProgram {
         if let Some(loda_submitted_by) = &self.loda_submitted_by {
             serializer.append_comment(format!("Submitted by {}", loda_submitted_by));
         }
-    
+
         // The initital terms
         if let Some(terms) = &self.terms {
             serializer.append_comment(terms);
+        }
+
+        // Optional offset
+        if let Some(offset) = offset {
+            serializer.append_empty_line();
+            serializer.append_raw(format!("#offset {}", offset));
         }
     
         serializer.append_empty_line();
@@ -174,7 +183,17 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_format_program_sequence_name() -> Result<(), Box<dyn Error>> {
+    fn test_40000_format_program_offset() -> Result<(), Box<dyn Error>> {
+        let program = "#offset -42\nmul $0,-1".to_string();
+        let mut fp = FormatProgram::new(program);
+        fp.terms("42,43,44,45,46".to_string());
+        let formatted_program: String = fp.build()?;
+        assert_eq!(formatted_program, "; 42,43,44,45,46\n\n#offset -42\n\nmul $0,-1\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_50000_format_program_sequence_name() -> Result<(), Box<dyn Error>> {
         let mut oeis_id_name_map = OeisIdStringMap::new();
         oeis_id_name_map.insert(OeisId::from(40), "The primes".to_string());
         let program = "mul $0,-1".to_string();
@@ -187,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_format_program_seq_instructions() -> Result<(), Box<dyn Error>> {
+    fn test_50001_format_program_seq_instructions() -> Result<(), Box<dyn Error>> {
         let mut oeis_id_name_map = OeisIdStringMap::new();
         oeis_id_name_map.insert(OeisId::from(45), "Fibonacci".to_string());
         let program = "seq $0,45".to_string();
@@ -199,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_format_program_without_name_for_program_oeis_id() -> Result<(), Box<dyn Error>> {
+    fn test_50002_format_program_without_name_for_program_oeis_id() -> Result<(), Box<dyn Error>> {
         let oeis_id_name_map = OeisIdStringMap::new();
         let program = "mul $0,2".to_string();
         let mut fp = FormatProgram::new(program);
@@ -211,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_format_program_trim_comments_and_blanks() -> Result<(), Box<dyn Error>> {
+    fn test_60000_format_program_trim_comments_and_blanks() -> Result<(), Box<dyn Error>> {
         let program = "; ignore\n   mul $0,-1 ; ignore\n\n; ignore".to_string();
         let fp = FormatProgram::new(program);
         let formatted_program: String = fp.build()?;
@@ -220,7 +239,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_format_program_parameter_type_indirect() -> Result<(), Box<dyn Error>> {
+    fn test_70000_format_program_parameter_type_indirect() -> Result<(), Box<dyn Error>> {
         let program = "add $$0,1\n\n\nmul $1,$$0".to_string();
         let fp = FormatProgram::new(program);
         let formatted_program: String = fp.build()?;
@@ -234,7 +253,7 @@ mod tests {
         let mut oeis_id_name_map = OeisIdStringMap::new();
         oeis_id_name_map.insert(OeisId::from(40), "The primes".to_string());
         oeis_id_name_map.insert(OeisId::from(72677), "a(n) = prime(prime(n)+1)".to_string());
-        let program = "seq $0,40\nseq $0,40".to_string();
+        let program = "#offset -123\nseq $0,40\nseq $0,40".to_string();
         let mut fp = FormatProgram::new(program);
         fp.program_oeis_id(OeisId::from(72677));
         fp.oeis_id_name_map(oeis_id_name_map);
@@ -249,6 +268,8 @@ mod tests {
 r#"; A072677: a(n) = prime(prime(n)+1)
 ; Submitted by Euler
 ; 5,7,13,19,37,43,61,71,89
+
+#offset -123
 
 seq $0,40 ; The primes
 seq $0,40 ; The primes

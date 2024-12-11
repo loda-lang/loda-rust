@@ -226,7 +226,7 @@ impl DependencyManager {
             ExecuteProfile::SmallLimits => NodeCalcSemanticMode::SmallLimits
         };
         let create_program = CreateProgram::new(node_calc_semantic_mode);
-        let mut program: Program = match create_program.create_program(&parsed_program.instruction_vec, &self.unofficial_function_registry) {
+        let mut program: Program = match create_program.create_program(parsed_program, &self.unofficial_function_registry) {
             Ok(value) => value,
             Err(error) => {
                 return Err(DependencyManagerError::CreateProgram(error));
@@ -516,5 +516,12 @@ mod tests {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_lpb_with_range_direct");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.inspect(10), "5,5,5,5,5,5,5,5,5,5");
+    }
+
+    #[test]
+    fn test_70000_offset_positive() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/offset");
+        let runner: Rc::<ProgramRunner> = dm.load(247).unwrap();
+        assert_eq!(runner.inspect(10), "0,3,10,25,56,119,246,501,1012,2035");
     }
 }

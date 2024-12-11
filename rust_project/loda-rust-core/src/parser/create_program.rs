@@ -1,4 +1,4 @@
-use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
+use super::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
 use super::validate_loops::*;
 use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, Program, LOOP_RANGE_MAX_BITS};
 use crate::execute::node_calc::*;
@@ -337,12 +337,25 @@ impl CreateProgram {
         }
     }
 
-    pub fn create_program(&self, instruction_vec: &Vec<Instruction>, unofficial_function_registry: &UnofficialFunctionRegistry) -> Result<Program, CreateProgramError> {
-        validate_loops(instruction_vec)?;
+    pub fn create_program(&self, parsed_program: &ParsedProgram, unofficial_function_registry: &UnofficialFunctionRegistry) -> Result<Program, CreateProgramError> {
+        validate_loops(&parsed_program.instruction_vec)?;
     
         let mut stack_vec: Vec<(Program, LoopScope)> = vec!();
         let mut program = Program::new();
-        for instruction in instruction_vec {
+        if let Some(offset) = parsed_program.optional_offset {
+            // Insert an add instruction at the beginning of the program, if offset is provided.
+            let instruction = Instruction {
+                instruction_id: InstructionId::Add,
+                parameter_vec: vec![
+                    InstructionParameter::new(ParameterType::Direct, 0),
+                    InstructionParameter::new(ParameterType::Constant, offset as i64),
+                ],
+                line_number: 0,
+            };
+            let node = self.create_node_calc(&instruction)?;
+            program.push_boxed(node);
+        }
+        for instruction in &parsed_program.instruction_vec {
             let id: InstructionId = instruction.instruction_id.clone();
             match id {
                 InstructionId::LoopBegin => {
