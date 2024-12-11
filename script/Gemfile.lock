@@ -1,0 +1,15 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    parslet (2.0.0)
+    toml (0.3.0)
+      parslet (>= 1.8.0, < 3.0.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  toml (~> 0.3.0)
+
+BUNDLED WITH
+   2.2.26

@@ -1,0 +1,14 @@
+<td class="edge">
+    <div class="dot">
+        <div 
+            class="dotinner"
+
+            {% if infoid %}
+            data-infoid="{{ infoid }}"
+            {% endif %}
+
+            onmouseover="showInfoOnMouseOver(this)"
+            onmouseout="hideInfoOnMouseOut(this)"
+        >{{ htmlcharacter|safe }}</div>
+    </div>
+</td>

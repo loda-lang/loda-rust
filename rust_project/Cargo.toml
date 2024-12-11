@@ -1,0 +1,8 @@
+[workspace]
+resolver = "2"
+
+members = [
+  "loda-rust-core",
+  "loda-rust-cli",
+  "loda-rust-web"
+]

@@ -2,6 +2,8 @@
 
 These scripts for automation uses the [Ruby programming_language](https://www.ruby-lang.org/en/).
 
+Run `bundle install` to install the dependencies listed in the `Gemfile`.
+
 
 # Usage - Basics
 
@@ -9,43 +11,14 @@ These scripts for automation uses the [Ruby programming_language](https://www.ru
 
 ```
 PROMPT> rake
-rake data/bigram.csv                # generate a bigram
-rake data/caller_callee_list.csv    # obtain all the dependencies between programs, comma separated list
-rake data/caller_callee_pairs.csv   # obtain all the dependencies between programs, for use as input to PageRank algorithm
-rake data/compare_loda_vs_lab.csv   # compare terms between "LODA official" and "LODA Lab"
-rake data/most_called_programs.csv  # determine the most called programs
-rake data/pagerank.csv              # run the PageRank algorithm and ranking the most influential programs
-rake data/program_ids.csv           # obtain all the program ids
-rake data/skipgram.csv              # generate a skipgram
-rake data/terms_lab.csv             # compute terms with "LODA Lab"
-rake data/terms_loda.csv            # compute terms with "LODA Official"
-rake data/trigram.csv               # generate a trigram
+rake clean_mineevent_dir                     # Remove already processed programs with suffix .keep.asm and .reject.asm
+rake data/compare_loda_cpp_vs_loda_rust.csv  # compare terms between "loda-cpp" and "loda-rust"
+rake data/program_creation_dates.csv         # extract creation date for all programs
+rake data/program_ids.csv                    # obtain all the program ids
+rake data/terms_loda_cpp.csv                 # compute terms with "loda-cpp"
+rake data/terms_loda_rust.csv                # compute terms with "loda-rust"
+rake data/top100.md                          # create a markdown document with the 100 most popular LODA programs
+rake process_mined_programs                  # Process the mined programs
 PROMPT>
 ```
-
-### Generate a CSV file with the most used programs
-
-```
-PROMPT> rake data/most_called_programs.csv
-... snip, this task takes 3 minutes ...
-PROMPT>
-```
-
-On successful completion there should be the file: `data/most_called_programs.csv`.
-
-
-# Usage - Advanced
-
-### Generate a CSV file with PageRank
-
-This depends on the [PageRank tool](https://github.com/louridas/pagerank) being installed in the path.
-See the `task_pagerank.rb` for instructions how to install the pagerank tool.
-
-```
-PROMPT> rake data/pagerank.csv
-... snip, this task takes 3 minutes ...
-PROMPT>
-```
-
-On successful completion there should be the file: `data/pagerank.csv`.
 

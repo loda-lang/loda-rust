@@ -1,12 +1,9 @@
 #!/usr/bin/env ruby
 
 =begin
-Prerequisits:
-The 'dotenv' gem. Install it using `$ gem install dotenv`
-https://github.com/bkeepers/dotenv
 
-This script traverses all the programs inside the LODA program rootdir.
-It looks for all the LODA assembly programs there are.
+This script traverses all the programs inside the "loda-programs/oeis" dir.
+It looks through all the LODA assembly programs there are.
 When encountering a program that contains a problematic instruction, then it's appended to the CSV file.
 
 This script outputs a `programs_using_clear_instruction_with_variable_length.csv` file, with this format:
@@ -21,12 +18,11 @@ This script outputs a `programs_using_clear_instruction_with_variable_length.csv
 =end
 
 require 'csv'
-require 'dotenv'
-Dotenv.load('../.env')
+require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = ENV['LODA_PROGRAM_ROOTDIR']
+LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 
-output_filename = 'programs_using_clear_instruction_with_variable_length.csv'
+output_filename = 'data/programs_using_clear_instruction_with_variable_length.csv'
 
 def absolute_paths_for_all_programs(rootdir)
     relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir).sort
@@ -54,11 +50,11 @@ def obtain_info_rows(paths)
     info_rows
 end
 
-paths = absolute_paths_for_all_programs(LODA_PROGRAM_ROOTDIR)
+paths = absolute_paths_for_all_programs(LODA_PROGRAMS_OEIS)
 info_rows = obtain_info_rows(paths)
 puts "count: #{info_rows.count}"
 
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id"]
     info_rows.each_with_index do |info_row, index|
         csv << info_row

@@ -1,0 +1,114 @@
+.themearc.model.row {
+    display: flex;
+    column-gap: 20px;
+}
+
+.themearc.image {
+}
+
+.themearc.image.rows-container {
+}
+
+.themearc.image.rows {
+    border-right: 1px solid var(--image-pixel-border);
+    border-bottom: 1px solid var(--image-pixel-border);
+    display: inline-block;
+}
+
+.themearc.image.row {
+    display: flex;
+}
+
+.themearc.image.row span {
+    width: 15px;
+    height: 15px;
+    border-left: 1px solid var(--image-pixel-border);
+    border-top: 1px solid var(--image-pixel-border);
+    overflow: hidden;
+}
+
+.themearc.image .json-data {
+    display: none;
+}
+
+.interactive-image .themearc.image.row span {
+    cursor: pointer;
+}
+.interactive-image .themearc.image.row span:hover {
+    background-color: white;
+}
+.interactive-image .themearc.rows:hover {
+    outline: 2px solid var(--image-pixel-border);
+    outline-offset: 2px;
+}
+
+.themearc.symbol_0 {
+    background-color: #000;
+}
+.themearc.symbol_1 {
+    background-color: #0074D9; /* blue */
+}
+.themearc.symbol_2 {
+    background-color: #FF4136; /* red */
+}
+.themearc.symbol_3 {
+    background-color: #2ECC40; /* green */
+}
+.themearc.symbol_4 {
+    background-color: #FFDC00; /* yellow */
+}
+.themearc.symbol_5 {
+    background-color: #AAAAAA; /* grey */
+}
+.themearc.symbol_6 {
+    background-color: #F012BE; /* fuschia */
+}
+.themearc.symbol_7 {
+    background-color: #FF851B; /* orange */
+}
+.themearc.symbol_8 {
+    background-color: #7FDBFF; /* teal */
+}
+.themearc.symbol_9 {
+    background-color: #870C25; /* brown */
+}
+
+.themearc.symbol_0,
+.themearc.symbol_1,
+.themearc.symbol_2,
+.themearc.symbol_3,
+.themearc.symbol_4,
+.themearc.symbol_5,
+.themearc.symbol_6,
+.themearc.symbol_7,
+.themearc.symbol_8,
+.themearc.symbol_9 {
+    color: transparent !important;
+}
+
+.arc_work_model_task {
+    border-collapse: collapse;
+}
+
+.arc_work_model_task tr:hover {
+    background-color: white;
+}
+
+col.arc_column_analysis {
+    background-color: #eae8e6;
+    border-left: 1px solid #c8bdbd;
+}
+
+td.arc_column_analysis {
+    padding-left: 0.5em; 
+}
+
+ul.without_bullets {
+    list-style-type: none;
+    padding-left: 0;
+    margin-right: 0.5em;
+}
+
+#main-inner {
+    padding: 0.5em;
+}

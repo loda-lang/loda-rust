@@ -3,54 +3,40 @@ file 'data/program_ids.csv' do
     ruby 'task_program_ids.rb'
 end
 
-desc 'obtain all the dependencies between programs, for use as input to PageRank algorithm'
-file 'data/caller_callee_pairs.csv' => 'data/program_ids.csv' do
-    ruby 'task_caller_callee_pairs.rb'
+desc 'compute terms with "loda-rust"'
+file 'data/terms_loda_rust.csv' => 'data/program_ids.csv' do
+    ruby 'task_terms_loda_rust.rb'
 end
 
-desc 'obtain all the dependencies between programs, comma separated list'
-file 'data/caller_callee_list.csv' => 'data/program_ids.csv' do
-    ruby 'task_caller_callee_list.rb'
+desc 'compute terms with "loda-cpp"'
+file 'data/terms_loda_cpp.csv' => 'data/program_ids.csv' do
+    ruby 'task_terms_loda_cpp.rb'
 end
 
-desc 'determine the most called programs'
-file 'data/most_called_programs.csv' => 'data/caller_callee_list.csv' do
-    ruby 'task_most_called_programs.rb'
+desc 'compare terms between "loda-cpp" and "loda-rust"'
+file 'data/compare_loda_cpp_vs_loda_rust.csv' => ['data/terms_loda_rust.csv', 'data/terms_loda_cpp.csv'] do
+    ruby 'task_compare_loda_cpp_vs_loda_rust.rb'
 end
 
-desc 'compute terms with "LODA Lab"'
-file 'data/terms_lab.csv' => 'data/program_ids.csv' do
-    ruby 'task_terms_lab.rb'
+desc "create a markdown document with the 100 most popular LODA programs"
+file 'data/top100.md' do
+    ruby 'task_top100.rb'
 end
 
-desc 'compute terms with "LODA Official"'
-file 'data/terms_loda.csv' => 'data/program_ids.csv' do
-    ruby 'task_terms_loda.rb'
+desc "Process the mined programs"
+task :process_mined_programs do
+    ruby 'task_add_mined_programs_to_repo.rb'
+    ruby 'task_maintenance_of_outlier_programs_repo.rb'
 end
 
-desc 'compare terms between "LODA official" and "LODA Lab"'
-file 'data/compare_loda_vs_lab.csv' => ['data/terms_lab.csv', 'data/terms_loda.csv'] do
-    ruby 'task_compare_loda_vs_lab.rb'
+desc "Remove already processed programs with suffix .keep.asm and .reject.asm"
+task :clean_mineevent_dir do
+    ruby 'task_cleanup_processed_files_from_mineevent_dir.rb'
 end
 
-desc 'run the PageRank algorithm and ranking the most influential programs'
-file 'data/pagerank.csv' => ['data/program_ids.csv', 'data/caller_callee_pairs.csv'] do
-    ruby 'task_pagerank.rb'
-end
-
-desc 'generate a bigram'
-file 'data/bigram.csv' do
-    ruby 'task_bigram.rb'
-end
-
-desc 'generate a trigram'
-file 'data/trigram.csv' do
-    ruby 'task_trigram.rb'
-end
-
-desc 'generate a skipgram'
-file 'data/skipgram.csv' do
-    ruby 'task_skipgram.rb'
+desc "Image with an overview of what files already exist and what is yet to be mined"
+file 'data/loda_file_status_image.pbm' do
+    ruby 'task_file_status_image.rb'
 end
 
 task :default do

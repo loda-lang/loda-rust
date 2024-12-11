@@ -1,0 +1,90 @@
+# Configuration for LODA Rust
+
+# Who to be credited when discovering new programs.
+loda_submitted_by = "John Doe"
+
+# Absolute path to the "loda-programs" repository dir.
+loda_programs_repository = "$HOME/loda/programs"
+
+# Absolute path to the "loda-cpp" executable file.
+loda_cpp_executable = "$HOME/loda/bin/loda"
+
+# Absolute path to the "loda-rust" repository dir.
+loda_rust_repository = "$HOME/git/loda-rust"
+
+# Absolute path to the "loda-rust" executable file.
+loda_rust_executable = "$HOME/git/loda-rust/rust_project/target/release/loda-rust"
+
+# On Windows the shebang line is not used, here it has to be "ruby" or absolute path to the "C://ruby.exe" file.
+miner_sync_executable_command_windows = "ruby"
+
+# Absolute path to the "sync" executable file.
+# While mining, this executable is run every hour. 
+# This executable is also run the moment the miner is launched. 
+# This executable is responsible for fetching the newest online data into the local file system.
+# This way the local "loda-programs" repository gets updated with the online repository.
+# The "simple" way - replaces the entire loda-programs repo with the latest, and discards local changes.
+miner_sync_executable = "$HOME/git/loda-rust/script/miner_sync_simple.rb"
+# The "advanced" way - requires several steps of setup, never discards local changes.
+#miner_sync_executable = "$HOME/git/loda-rust/script/miner_sync_advanced.rb"
+
+# For developers that have their own fork of the "loda-programs" repo
+# miner_sync_executable = "$HOME/git/loda-rust/script/miner_sync_own_fork_loda_programs_repo.rb"
+
+# Absolute path to the unzipped OEIS stripped file.
+oeis_stripped_file = "$HOME/loda/oeis/stripped"
+
+# Absolute path to the unzipped OEIS names file.
+oeis_names_file = "$HOME/loda/oeis/names"
+
+# When mining with metrics enabled, this is the port that the metrics can be accessed.
+miner_metrics_listen_port = 8090
+
+# Patterns that are frequently used in loda programs.
+loda_patterns_repository = "$HOME/git/loda-patterns"
+
+# Absolute path to the "loda-outlier-programs" repository dir.
+loda_outlier_programs_repository = "$HOME/git/loda-outlier-programs"
+
+# When a program has been mined, then upload it to the loda-programs repository.
+miner_program_upload_endpoint = "http://api.loda-lang.org/miner/v1/programs"
+
+# Absolute path to the dir containing the "ARC" datasets.
+# Local clone of this repo: https://github.com/neoneye/arc-dataset-collection
+arc_repository_data = "$HOME/git/arc-dataset-collection/dataset"
+
+# Absolute path to the "loda-arc-challenge" repository dir.
+# it can be cloned from https://github.com/neoneye/loda-arc-challenge
+loda_arc_challenge_repository = "$HOME/git/loda-arc-challenge"
+
+
+# --- MINER FILTER MODE ---
+
+# Search only for "new" programs. Don't waste time mining for "existing" programs.
+[miner_filter_mode]
+type = "new"
+
+# Search for both "new" programs and "existing" programs.
+# [miner_filter_mode]
+# type = "all"
+
+# --- MINER CPU STRATEGY ---
+
+# Make use of all the cpu's.
+[miner_cpu_strategy]
+type = "max"
+
+# Only use half of available the cpu's.
+# [miner_cpu_strategy]
+# type = "half"
+
+# Only use 1 core. Useful for debugging. 
+# [miner_cpu_strategy]
+# type = "min"
+
+# Use specified number of core. 
+# Useful if auto-detect of number of cpus doesn't work.
+# [miner_cpu_strategy]
+# type = "cpu"
+# [miner_cpu_strategy.content]
+# count = 8

@@ -1,65 +1,53 @@
-# LODA Lab
+# LODA-RUST
 
-Hi, I'm Simon Strandgaard. I'm a fan of the [On-Line Encyclopedia of Integer Sequences® (OEIS®)](http://oeis.org/) and a fan of AI. 
-This is my attempt at doing a crossover of both. This is experimental stuff.
+Web editor for the [LODA language](https://loda-lang.org/) so programs can run in the browser.
 
-This repo is inspired by [Christian Krause's LODA project](https://github.com/ckrause/loda) for mining integer sequences.
-LODA has proved to be remarkable good at making programs that correspond to OEIS integer sequences.
+<br>
+
+**Examples to try out:**
+
+<table>
+<tr>
+<td><a href="https://loda-lang.org/edit/?oeis=2487"><img src="documents/a002487_program.jpg"><br>▶️ Run program</a></td>
+<td><a href="https://loda-lang.org/edit/?oeis=2487"><img src="documents/a002487_plot.jpg"></a></td>
+</tr>
+<tr>
+<td><a href="https://loda-lang.org/edit/?oeis=3188"><img src="documents/a003188_program.jpg"><br>▶️ Run program</a></td>
+<td><a href="https://loda-lang.org/edit/?oeis=3188"><img src="documents/a003188_plot.jpg"></a></td>
+</tr>
+<tr>
+<td><a href="https://loda-lang.org/edit/?oeis=10"><img src="documents/a000010_program.jpg"><br>▶️ Run program</a></td>
+<td><a href="https://loda-lang.org/edit/?oeis=10"><img src="documents/a000010_plot.jpg"></a><br><img width="1000" height="1" /></td>
+</tr>
+</table>
+
+---
+
+# What is LODA-RUST
+
+LODA-RUST is a Rust implementation of the [LODA-CPP project](https://github.com/loda-lang/loda-cpp).
+
+The web editor uses LODA-RUST to run LODA programs in the browser.
+
+The LODA-RUST command line interface is available for Linux/macOS/Windows. It can do these things:
+- Evaluate a LODA program.
+- Identify recurring patterns across LODA programs.
+- Experimental LODA miner.
+
+[LODA-RUST install guide](documents/install.md)
 
 
-# Usage - Basics
+# Mining using LODA-RUST
 
-### Print 10 terms
+Please instead use [Christian Krause's c++ LODA miner](https://github.com/loda-lang/loda-cpp), it's better.
 
-Evaluate program for the A000079 oeis sequence, printing 10 terms.
+The LODA-RUST miner is experimental, and not yet as good. 
 
-```
-PROMPT> cargo run -- eval 79 -t 10
-1,2,4,8,16,32,64,128,256,512
-PROMPT>
-```
-
-### Print dependencies
-
-Print dependencies of a program for the A000073 oeis sequence.
-
-```
-PROMPT> cargo run -- deps 73
-73,232508,301657
-PROMPT>
-```
-
-# Usage - Advanced
-
-### Run tests
-
-```
-PROMPT> cargo test
-```
+[LODA-RUST mining guide](/documents/mining.md) and [verbose guide to mining on raspberrypi](https://github.com/loda-lang/loda-rust/blob/develop/documents/mining-on-raspberrypi.md).
 
 
-### Run with backtrace enabled
+# Contribute
 
-This is useful if there is a crash.
+If you have CPU to spare, run the LODA miner and help discover new programs.
 
-```
-PROMPT> RUST_BACKTRACE=1 cargo run -- eval 79 -t 64
-```
-
-### Run and print instructions
-
-Evaluate program for the A000079 oeis sequence, processing 2 terms and printing the instructions.
-
-```
-PROMPT> cargo run -- eval 79 -t 2 --instructions
-INPUT: a(0)
-mov $1,2     [0,0] => [0,2]
-pow $1,$0    [0,2] => [0,1]
-OUTPUT: a(0) = 1
-INPUT: a(1)
-mov $1,2     [1,0] => [1,2]
-pow $1,$0    [1,2] => [1,2]
-OUTPUT: a(1) = 2
-PROMPT>
-```
-
+[Join the LODA community on Discord](https://loda-lang.org/discord)

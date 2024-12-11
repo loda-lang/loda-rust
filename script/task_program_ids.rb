@@ -1,9 +1,6 @@
 #!/usr/bin/env ruby
 
 =begin
-Prerequisits:
-The 'dotenv' gem. Install it using `$ gem install dotenv`
-https://github.com/bkeepers/dotenv
 
 This script traverses all the programs inside the LODA program rootdir.
 It looks for all the LODA assembly programs there are.
@@ -21,10 +18,9 @@ This script outputs a `program_ids.csv` file, with this format:
 =end
 
 require 'csv'
-require 'dotenv'
-Dotenv.load('../.env')
+require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = ENV['LODA_PROGRAM_ROOTDIR']
+LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 
 output_filename = 'data/program_ids.csv'
 
@@ -65,13 +61,12 @@ def integers_from_filenames(filenames)
 end
 
 
-filenames = obtain_nested_names(LODA_PROGRAM_ROOTDIR)
+filenames = obtain_nested_names(LODA_PROGRAMS_OEIS)
 program_ids = integers_from_filenames(filenames)
 
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id"]
     program_ids.each_with_index do |program_id, index|
         csv << [program_id.to_s]
-        # break if index == 10
     end
 end

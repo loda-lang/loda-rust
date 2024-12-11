@@ -1,0 +1,106 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="robots" content="noindex">
+<!-- LODA-RUST WASM project was last updated: 2024 Dec 11. -->
+<title>Edit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="format-detection" content="telephone=no">
+<link rel="stylesheet" href="web/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="web/codemirror/theme/idea.css">
+<script src="web/codemirror/lib/codemirror.js"></script>
+<script src="web/codemirror/addon/mode/simple.js"></script>
+<script src="web/codemirror/addon/selection/active-line.js"></script>
+<script src="web/codemirror/addon/edit/trailingspace.js"></script>
+<script src="web/codemirror/addon/display/placeholder.js"></script>
+<script src="web/codemirror_mode_loda.js"></script>
+<link media="all" rel="stylesheet" type="text/css" href="web/loda_rust_web.css">
+<script src="web/chart-js/chart.min.js"></script>
+<script src="web/promise-worker/promise-worker.js"></script>
+<script src="index.js"></script>
+</head>
+
+<body onload="body_onload()" onbeforeunload="return body_onbeforeunload()">
+
+<div id="overlay">
+  <div id="overlay-message">Initializing&hellip;</div>
+</div>
+
+<header class="top-banner-container-outer" id="top-banner">
+  <div class="top-banner-container-inner">
+    <div class="top-banner-item top-banner-item-left">
+      &#9888;
+    </div>
+    <div class="top-banner-item top-banner-item-center">
+      There was a problem sending the data. Please try again.<br>
+      <span id="top-banner-item-center-content">No details available.</span>
+    </div>
+    <div class="top-banner-item top-banner-item-right">
+      &#9888;
+    </div>
+  </div>
+</header>
+  
+<header class="titlebar-container">
+  <div class="titlebar-item titlebar-item-left">
+    <button class="seconday-button" onclick="gPageController.showInfo()">LODA Language</button>
+  </div>
+
+  <div class="titlebar-item titlebar-item-center">Edit</div>
+
+  <div class="titlebar-item titlebar-item-right">
+    <button class="seconday-button" onclick="gPageController.stopAction()">Stop (Esc)</button>
+    <button id="run-button" class="primary-button" onclick="gPageController.runAction()">Run (Ctrl+Enter)</button>
+  </div>
+</header>
+
+<main id="splitview-outer">
+  <div id="splitview-inner">
+
+    <div id="editor-outer">
+      <textarea id="editor-inner" placeholder="Content goes here&hellip;"> </textarea>
+    </div>
+
+    <div id="output-outer">
+
+      <div id="output-interactive-ui">
+        <div id="graph-scaling">
+          <button id="graph-scaling-auto" class="selected" onclick="gPageController.useAutoScalingAction()">Auto</button>
+          <button id="graph-scaling-linear" class="not-selected" onclick="gPageController.useLinearScalingAction()">Linear</button>
+          <button id="graph-scaling-logarithmic" class="not-selected" onclick="gPageController.useLogarithmicScalingAction()">Log</button>
+        </div>
+
+        <div id="output-count">
+          <button id="output-count-10" class="selected" onclick="gPageController.show10TermsAction()">10</button>
+          <button id="output-count-100" class="not-selected" onclick="gPageController.show100TermsAction()">100</button>
+          <button id="output-count-1000" class="not-selected" onclick="gPageController.show1000TermsAction()">1000</button>
+        </div>
+      </div>
+
+      <div id="output-chart-container">
+        <canvas id="output-chart"></canvas>
+      </div>
+
+      <div id="output-inner">
+        Output Area
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer id="page-footer">
+  <div id="page-footer-item0" class="page-footer-item">
+    Link to this program
+    <div class="copy-program-link-to-clipboard-tooltip-area">
+      <button onclick="gPageController.copyProgramURLToClipboard()" onmouseout="gPageController.hideCopyToClipboardTooltip()">
+        <span class="tooltiptext" id="copy-program-link-to-clipboard-tooltip-text">Copy to clipboard</span>
+        Copy
+      </button>
+    </div>
+  </div>
+  <div id="page-footer-item1" class="page-footer-item">
+    Report bugs or suggest features: <a target="_blank" href="https://loda-lang.org/discord">Join our Discord</a>
+  </div>
+</footer>
+
+</body>
+</html>
