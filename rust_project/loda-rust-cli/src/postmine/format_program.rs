@@ -62,15 +62,12 @@ impl FormatProgram {
     }
 
     pub fn build(&self) -> anyhow::Result<String> {
-        let parsed_program_with_optional_offset: ParsedProgram = match ParsedProgram::parse_program(&self.program_content) {
+        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&self.program_content) {
             Ok(value) => value,
             Err(error) => {
                 return Err(anyhow::anyhow!("Parse program from {:?} error: {:?} content: {:?}", &self.program_path, error, self.program_content));
             }
         };
-        let offset: Option<i32> = parsed_program_with_optional_offset.optional_offset;
-        let parsed_program: ParsedProgram = parsed_program_with_optional_offset.without_offset();
-
     
         // Don't load dependencies from the file system,
         // by pretending that all the dependencies are empty programs
@@ -135,7 +132,7 @@ impl FormatProgram {
         }
 
         // Optional offset
-        if let Some(offset) = offset {
+        if let Some(offset) = parsed_program.optional_offset {
             serializer.append_empty_line();
             serializer.append_raw(format!("#offset {}", offset));
         }
