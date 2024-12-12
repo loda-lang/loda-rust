@@ -3,14 +3,24 @@ use super::{BoxNode, Node, ProgramCache, ProgramRunnerManager, ProgramSerializer
 type BoxNodeVec = Vec<BoxNode>;
 
 pub struct Program {
-    node_vec: BoxNodeVec
+    node_vec: BoxNodeVec,
+    offset: Option<i32>,
 }
 
 impl Program {
     pub fn new() -> Self {
         Program {
-            node_vec: vec!()
+            node_vec: vec!(),
+            offset: None,
         }
+    }
+
+    pub fn set_offset(&mut self, offset: Option<i32>) {
+        self.offset = offset;
+    }
+
+    pub fn offset(&self) -> Option<i32> {
+        self.offset
     }
 
     pub fn push<T: Node + 'static>(&mut self, node: T) {
