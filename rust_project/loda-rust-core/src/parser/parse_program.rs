@@ -15,13 +15,6 @@ impl ParsedProgram {
             instruction_vec: vec!()
         }
     }
-
-    pub fn without_offset(self) -> Self {
-        Self {
-            optional_offset: None,
-            instruction_vec: self.instruction_vec
-        }
-    }
 }
 
 impl fmt::Display for ParsedProgram {

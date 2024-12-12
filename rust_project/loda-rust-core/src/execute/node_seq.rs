@@ -68,7 +68,7 @@ impl Node for NodeSeq {
 
         // Invoke the actual run() function
         let input_value = RegisterValue(input);
-        let run_result = self.program_runner_rc.run(
+        let run_result = self.program_runner_rc.run_without_offset(
             input_value, 
             state.run_mode(), 
             &mut step_count, 

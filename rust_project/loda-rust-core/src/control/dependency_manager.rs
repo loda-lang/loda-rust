@@ -524,4 +524,32 @@ mod tests {
         let runner: Rc::<ProgramRunner> = dm.load(247).unwrap();
         assert_eq!(runner.inspect(10), "0,3,10,25,56,119,246,501,1012,2035");
     }
+
+    #[test]
+    fn test_70001_offset_positive() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/offset");
+        let runner: Rc::<ProgramRunner> = dm.load(183634).unwrap();
+        assert_eq!(runner.inspect(6), "44,136,452,1576,5684,21016");
+    }
+
+    #[test]
+    fn test_70002_offset_positive() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/offset");
+        let runner: Rc::<ProgramRunner> = dm.load(203).unwrap();
+        assert_eq!(runner.inspect(6), "1,3,4,7,6,12");
+    }
+
+    #[test]
+    fn test_70003_offset_depends_on_another_program_with_offset() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/offset");
+        let runner: Rc::<ProgramRunner> = dm.load(223069).unwrap();
+        assert_eq!(runner.inspect(5), "16,150,1080,6627,36552");
+    }
+
+    #[test]
+    fn test_70004_offset_depends_on_another_program_with_offset() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/offset");
+        let runner: Rc::<ProgramRunner> = dm.load(9194).unwrap();
+        assert_eq!(runner.inspect(10), "1,1,1,1,1,6,1,1,1,2");
+    }
 }

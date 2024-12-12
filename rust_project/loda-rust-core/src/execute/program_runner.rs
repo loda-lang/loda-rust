@@ -26,7 +26,30 @@ impl ProgramRunner {
         input: RegisterValue,
         run_mode: RunMode, 
         step_count: &mut u64, 
-        step_count_limit: u64, 
+        step_count_limit: u64,
+        node_register_limit: NodeRegisterLimit, 
+        node_loop_limit: NodeLoopLimit,
+        cache: &mut ProgramCache
+    ) -> anyhow::Result<RegisterValue> {
+        let value_adjusted: BigInt = input.0 + self.program.offset().unwrap_or(0);
+        let input_adjusted = RegisterValue(value_adjusted);
+        self.run_without_offset(
+            input_adjusted, 
+            run_mode, 
+            step_count, 
+            step_count_limit, 
+            node_register_limit, 
+            node_loop_limit, 
+            cache
+        )
+    }
+
+    pub fn run_without_offset(
+        &self, 
+        input: RegisterValue,
+        run_mode: RunMode, 
+        step_count: &mut u64, 
+        step_count_limit: u64,
         node_register_limit: NodeRegisterLimit, 
         node_loop_limit: NodeLoopLimit,
         cache: &mut ProgramCache
