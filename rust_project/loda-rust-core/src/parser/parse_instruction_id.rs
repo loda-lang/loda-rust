@@ -29,8 +29,8 @@ impl ParseInstructionId for InstructionId {
             "bxo" => Ok(Self::BitwiseXor),
             "cmp" => Ok(Self::Compare),
             "dif" => Ok(Self::DivideIf),
-            "dir" => Ok(Self::DigitalRoot),
-            "dis" => Ok(Self::DigitSum),
+            "dgr" => Ok(Self::DigitalRoot),
+            "dgs" => Ok(Self::DigitSum),
             "div" => Ok(Self::Divide),
             "equ" => Ok(Self::Equal),
             "gcd" => Ok(Self::GCD),
@@ -111,8 +111,12 @@ mod tests {
             assert_eq!(instruction_id, InstructionId::NthRoot);
         }
         {
-            let instruction_id: InstructionId = InstructionId::parse("dis", 1).expect("InstructionId");
+            let instruction_id: InstructionId = InstructionId::parse("dgs", 1).expect("InstructionId");
             assert_eq!(instruction_id, InstructionId::DigitSum);
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("dgr", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::DigitalRoot);
         }
         {
             let instruction_id: InstructionId = InstructionId::parse("lps", 1).expect("InstructionId");
