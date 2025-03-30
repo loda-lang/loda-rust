@@ -11,6 +11,7 @@ pub trait Semantics {
     fn multiply(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn divide(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn divide_if(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn divide_if_repeat(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn modulo(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn power(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn gcd(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
@@ -66,6 +67,12 @@ impl Semantics for SemanticsWithoutLimits {
 
     fn divide_if(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_divide_if(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn divide_if_repeat(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_divide_if_repeat(x, y);
         let value = result?;
         Ok(value)
     }
@@ -214,6 +221,12 @@ impl Semantics for SemanticsWithSmallLimits {
 
     fn divide_if(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_divide_if(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn divide_if_repeat(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_divide_if_repeat(x, y);
         let value = result?;
         Ok(value)
     }

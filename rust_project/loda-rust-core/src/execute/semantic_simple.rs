@@ -125,6 +125,23 @@ pub trait SemanticSimpleConfig {
         }
     }
 
+    fn compute_divide_if_repeat(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        let mut last_result: BigInt = x.clone();
+        loop {
+            let result: BigInt = self.compute_divide_if(&last_result, y)?;
+            if result.abs() == last_result.abs() {
+                break;
+            }
+            last_result = result;
+        }
+        Ok(last_result)
+    }
+
     fn compute_modulo(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
         if let Some(value_max_bits) = self.value_max_bits() {
             if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
@@ -495,6 +512,7 @@ mod tests {
         Multiply,
         Divide,
         DivideIf,
+        DivideIfRepeat,
         Modulo,
         GCD,
         Compare,
@@ -533,6 +551,7 @@ mod tests {
             ComputeMode::Multiply       => config.compute_multiply(&x, &y),
             ComputeMode::Divide         => config.compute_divide(&x, &y),
             ComputeMode::DivideIf       => config.compute_divide_if(&x, &y),
+            ComputeMode::DivideIfRepeat => config.compute_divide_if_repeat(&x, &y),
             ComputeMode::Modulo         => config.compute_modulo(&x, &y),
             ComputeMode::GCD            => config.compute_gcd(&x, &y),
             ComputeMode::Compare        => config.compute_compare(&x, &y),
@@ -805,6 +824,43 @@ mod tests {
         assert_eq!(compute_divideif(1, -0x80000000), "InputOutOfRange");
         assert_eq!(compute_divideif(1, 0x80000001), "InputOutOfRange");
         assert_eq!(compute_divideif(1, -0x80000001), "InputOutOfRange");
+    }
+
+    fn compute_divideifrepeat(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(32);
+        compute(&config, ComputeMode::DivideIfRepeat, left, right)
+    }
+
+    #[test]
+    fn test_60004_divideifrepeat_remainder_zero() {
+        assert_eq!(compute_divideifrepeat(50, 5), "2");
+        assert_eq!(compute_divideifrepeat(0, 3), "0");
+        assert_eq!(compute_divideifrepeat(0, -3), "0");
+        assert_eq!(compute_divideifrepeat(1, -1), "1");
+        assert_eq!(compute_divideifrepeat(6, -3), "-2");
+    }
+
+    #[test]
+    fn test_60005_divideifrepeat_divisionbyzero() {
+        assert_eq!(compute_divideifrepeat(-100, 0), "-100");
+        assert_eq!(compute_divideifrepeat(0, 0), "0");
+        assert_eq!(compute_divideifrepeat(100, 0), "100");
+    }
+
+    #[test]
+    fn test_60006_divideifrepeat_inputoutofrange() {
+        assert_eq!(compute_divideifrepeat(0x7fffffff, 0x7fffffff), "1");
+        assert_eq!(compute_divideifrepeat(-0x7fffffff, -0x7fffffff), "1");
+        assert_eq!(compute_divideifrepeat(0x80000000, 1), "InputOutOfRange");
+        assert_eq!(compute_divideifrepeat(-0x80000000, 1), "InputOutOfRange");
+        assert_eq!(compute_divideifrepeat(0x80000001, 2), "InputOutOfRange");
+        assert_eq!(compute_divideifrepeat(-0x80000001, 2), "InputOutOfRange");
+        assert_eq!(compute_divideifrepeat(1, 0x7fffffff), "1");
+        assert_eq!(compute_divideifrepeat(1, -0x7fffffff), "1");
+        assert_eq!(compute_divideifrepeat(1, 0x80000000), "InputOutOfRange");
+        assert_eq!(compute_divideifrepeat(1, -0x80000000), "InputOutOfRange");
+        assert_eq!(compute_divideifrepeat(1, 0x80000001), "InputOutOfRange");
+        assert_eq!(compute_divideifrepeat(1, -0x80000001), "InputOutOfRange");
     }
 
     fn compute_modulo(left: i64, right: i64) -> String {
