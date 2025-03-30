@@ -46,6 +46,7 @@ impl NodeCalc {
             InstructionId::Multiply       => S::multiply(target, source),
             InstructionId::Divide         => S::divide(target, source),
             InstructionId::DivideIf       => S::divide_if(target, source),
+            InstructionId::DivideIfRepeat => S::divide_if_repeat(target, source),
             InstructionId::Modulo         => S::modulo(target, source),
             InstructionId::Power          => S::power(target, source),
             InstructionId::GCD            => S::gcd(target, source),

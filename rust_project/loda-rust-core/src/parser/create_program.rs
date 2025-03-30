@@ -418,6 +418,10 @@ impl CreateProgram {
                     let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
+                InstructionId::DivideIfRepeat => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
                 InstructionId::Modulo => {
                     let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
