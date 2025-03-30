@@ -13,6 +13,7 @@ pub enum InstructionId {
     DigitalRoot,
     Divide,
     DivideIf,
+    DivideIfRepeat,
     Equal,
     GCD,
     GreaterOrEqual,
@@ -48,6 +49,7 @@ impl fmt::Display for InstructionId {
             Self::DigitSum       => "dgs",
             Self::Divide         => "div",
             Self::DivideIf       => "dif",
+            Self::DivideIfRepeat => "dir",
             Self::Equal          => "equ",
             Self::GCD            => "gcd",
             Self::GreaterOrEqual => "geq",
@@ -91,6 +93,7 @@ mod tests {
     #[test]
     fn test_20000_to_string() {
         assert_eq!(InstructionId::DivideIf.to_string(), "dif");
+        assert_eq!(InstructionId::DivideIfRepeat.to_string(), "dir");
         assert_eq!(InstructionId::Multiply.to_string(), "mul");
         assert_eq!(InstructionId::Truncate.to_string(), "trn");
         
