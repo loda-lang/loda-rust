@@ -45,7 +45,7 @@ impl SubcommandPattern {
         similarity_csv_paths.sort();
         let number_of_similarity_csv_paths = similarity_csv_paths.len();
         if number_of_similarity_csv_paths <= 0 {
-            error!("Expected 1 or more similarity csv files, but there are none to analyze");
+            error!("Expected 1 or more similarity csv files, but there are none to analyze. ERROR-ID: 71b88ad4-b719-4d45-be7c-8393a8352faf");
             return;
         }
         debug!("number of similarity csv files: {}", number_of_similarity_csv_paths);
@@ -64,7 +64,7 @@ impl SubcommandPattern {
         }
         let number_of_items_in_csv_hashmap = program_id_to_csv_hashmap.len();
         if number_of_items_in_csv_hashmap <= 0 {
-            error!("Expected 1 or more similarity csv files, but there are none to analyze");
+            error!("Expected 1 or more similarity csv files, but there are none to analyze. ERROR-ID: 3c69a917-7580-4283-8642-f92888990715");
             return;
         }
         debug!("number of unique program_ids in csv hashmap: {:?}", number_of_items_in_csv_hashmap);
