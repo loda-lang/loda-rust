@@ -466,6 +466,10 @@ impl CreateProgram {
                     let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
+                InstructionId::LargestExponent => {
+                    let node = self.create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
                 InstructionId::Equal => {
                     let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
