@@ -2,6 +2,7 @@ use chrono::prelude::*;
 use chrono::Duration;
 use std::path::Path;
 use std::fs;
+use regex::Regex;
 
 #[derive(Debug)]
 pub struct AnalyticsTimestampFile {
@@ -38,10 +39,14 @@ impl AnalyticsTimestampFile {
     }
 
     fn parse_utc_string(utc_string: &String) -> anyhow::Result<DateTime<Utc>> {
+        let re = Regex::new(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$").unwrap();
+        if !re.is_match(utc_string) {
+            return Err(anyhow::anyhow!("Input does not strictly match RFC3339. utc_string: {:?}", utc_string));
+        }
         let datetime: DateTime<FixedOffset> = match DateTime::parse_from_rfc3339(utc_string) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("Cannot parse timestamp file as UTC. path: {:?} error: {:?}", utc_string, error));
+                return Err(anyhow::anyhow!("Cannot parse timestamp file as UTC. utc_string: {:?} error: {:?}", utc_string, error));
             }
         };
         let datetime: DateTime<Utc> = datetime.with_timezone(&Utc);
