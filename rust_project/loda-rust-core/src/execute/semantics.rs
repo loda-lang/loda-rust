@@ -23,6 +23,7 @@ pub trait Semantics {
     fn nthroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn digitsum(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn digitalroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn largestexponent(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn equal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn notequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn lessorequal(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
@@ -139,6 +140,12 @@ impl Semantics for SemanticsWithoutLimits {
 
     fn digitalroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_digitalroot(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn largestexponent(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_largestexponent(x, y);
         let value = result?;
         Ok(value)
     }
@@ -293,6 +300,12 @@ impl Semantics for SemanticsWithSmallLimits {
 
     fn digitalroot(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_digitalroot(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn largestexponent(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_largestexponent(x, y);
         let value = result?;
         Ok(value)
     }
