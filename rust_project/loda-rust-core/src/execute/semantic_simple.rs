@@ -54,7 +54,7 @@ pub trait SemanticSimpleConfig {
                 return Err(SemanticSimpleError::InputOutOfRange);
             }
         }
-        let z: BigInt = x - y;
+        let z: BigInt = x - y.clone();
         if let Some(value_max_bits) = self.value_max_bits() {
             if z.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::OutputOutOfRange);
@@ -376,6 +376,30 @@ pub trait SemanticSimpleConfig {
         Ok(result)
     }
 
+    fn compute_largestexponent(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if *y == BigInt::zero() || *y == BigInt::one() {
+            return Ok(BigInt::zero());
+        }
+
+        let mut xx: BigInt = x.abs();
+        let yy: BigInt = y.abs();
+        let mut r: BigInt = BigInt::zero();
+        loop {
+            let aaa: BigInt = self.compute_divide_if(&xx, &yy)?;
+            if aaa == xx {
+                break;
+            }
+            xx = aaa;
+            r += BigInt::one();
+        }
+        Ok(r)
+    }
+    
     fn compute_equal(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
         if let Some(value_max_bits) = self.value_max_bits() {
             if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
@@ -529,6 +553,7 @@ mod tests {
         BitwiseAnd,
         BitwiseOr,
         BitwiseXor,
+        LargestExponent,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -568,6 +593,7 @@ mod tests {
             ComputeMode::BitwiseAnd     => config.compute_bitwiseand(&x, &y),
             ComputeMode::BitwiseOr      => config.compute_bitwiseor(&x, &y),
             ComputeMode::BitwiseXor     => config.compute_bitwisexor(&x, &y),
+            ComputeMode::LargestExponent => config.compute_largestexponent(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -1341,5 +1367,117 @@ mod tests {
         assert_eq!(compute_bitwisexor("-9223372036854775807", "9223372036854775808"), "-18446744073709551615");
         assert_eq!(compute_bitwisexor("-9223372036854775807", "-9223372036854775808"), "18446744073709551615");
         assert_eq!(compute_bitwisexor("3148244321913096809130", "1574122160956548404565"), "4722366482869645213695");
+    }
+
+    fn compute_largestexponent(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(32);
+        compute(&config, ComputeMode::LargestExponent, left, right)
+    }
+
+    #[test]
+    fn test_230000_largestexponent() {
+        assert_eq!(compute_largestexponent(-4, -5), "0");
+        assert_eq!(compute_largestexponent(-4, -4), "1");
+        assert_eq!(compute_largestexponent(-4, -3), "0");
+        assert_eq!(compute_largestexponent(-4, -2), "2");
+        assert_eq!(compute_largestexponent(-4, -1), "0");
+        assert_eq!(compute_largestexponent(-4, 0), "0");
+        assert_eq!(compute_largestexponent(-4, 1), "0");
+        assert_eq!(compute_largestexponent(-4, 2), "2");
+        assert_eq!(compute_largestexponent(-4, 3), "0");
+        assert_eq!(compute_largestexponent(-4, 4), "1");
+        assert_eq!(compute_largestexponent(-4, 5), "0");
+        assert_eq!(compute_largestexponent(-4, 6), "0");
+        assert_eq!(compute_largestexponent(-4, 7), "0");
+        assert_eq!(compute_largestexponent(-4, 8), "0");
+        assert_eq!(compute_largestexponent(0, -2), "0");
+        assert_eq!(compute_largestexponent(0, -1), "0");
+        assert_eq!(compute_largestexponent(0, 0), "0");
+        assert_eq!(compute_largestexponent(0, 1), "0");
+        assert_eq!(compute_largestexponent(0, 2), "0");
+        assert_eq!(compute_largestexponent(1, -1), "0");
+        assert_eq!(compute_largestexponent(1, -1), "0");
+        assert_eq!(compute_largestexponent(1, 0), "0");
+        assert_eq!(compute_largestexponent(1, 1), "0");
+        assert_eq!(compute_largestexponent(1, 2), "0");
+        assert_eq!(compute_largestexponent(2, -3), "0");
+        assert_eq!(compute_largestexponent(2, -2), "1");
+        assert_eq!(compute_largestexponent(2, -1), "0");
+        assert_eq!(compute_largestexponent(2, 0), "0");
+        assert_eq!(compute_largestexponent(2, 1), "0");
+        assert_eq!(compute_largestexponent(2, 2), "1");
+        assert_eq!(compute_largestexponent(2, 3), "0");
+        assert_eq!(compute_largestexponent(2, 4), "0");
+        assert_eq!(compute_largestexponent(4, -5), "0");
+        assert_eq!(compute_largestexponent(4, -4), "1");
+        assert_eq!(compute_largestexponent(4, -3), "0");
+        assert_eq!(compute_largestexponent(4, -2), "2");
+        assert_eq!(compute_largestexponent(4, -1), "0");
+        assert_eq!(compute_largestexponent(4, 0), "0");
+        assert_eq!(compute_largestexponent(4, 1), "0");
+        assert_eq!(compute_largestexponent(4, 2), "2");
+        assert_eq!(compute_largestexponent(4, 3), "0");
+        assert_eq!(compute_largestexponent(4, 4), "1");
+        assert_eq!(compute_largestexponent(4, 5), "0");
+        assert_eq!(compute_largestexponent(9, 1), "0");
+        assert_eq!(compute_largestexponent(9, 2), "0");
+        assert_eq!(compute_largestexponent(9, 3), "2");
+        assert_eq!(compute_largestexponent(9, 4), "0");
+        assert_eq!(compute_largestexponent(9, 5), "0");
+        assert_eq!(compute_largestexponent(9, 9), "1");
+        assert_eq!(compute_largestexponent(9, 10), "0");
+        assert_eq!(compute_largestexponent(16, 2), "4");
+        assert_eq!(compute_largestexponent(16, 4), "2");
+        assert_eq!(compute_largestexponent(36, 2), "2");
+        assert_eq!(compute_largestexponent(36, 3), "2");
+        assert_eq!(compute_largestexponent(36, 4), "1");
+        assert_eq!(compute_largestexponent(36, 5), "0");
+        assert_eq!(compute_largestexponent(36, 6), "2");
+        assert_eq!(compute_largestexponent(36, 7), "0");
+    }
+
+    #[test]
+    fn test_230000_largestexponent_big_values() {
+        assert_eq!(compute_largestexponent(0x7fffffff, 0x7fffffff), "1");
+        assert_eq!(compute_largestexponent(0x7fffffff, -0x7fffffff), "1");
+        assert_eq!(compute_largestexponent(-0x7fffffff, 0x7fffffff), "1");
+        assert_eq!(compute_largestexponent(-0x7fffffff, -0x7fffffff), "1");
+        assert_eq!(compute_largestexponent(0x7fffffff, 0), "0");
+        assert_eq!(compute_largestexponent(-0x7fffffff, 0), "0");
+        assert_eq!(compute_largestexponent(0x7fffffff, 1), "0");
+        assert_eq!(compute_largestexponent(-0x7fffffff, 1), "0");
+        assert_eq!(compute_largestexponent(0x7fffffff, 2), "0");
+        assert_eq!(compute_largestexponent(-0x7fffffff, 2), "0");
+        assert_eq!(compute_largestexponent(0x7fffffff, 3), "0");
+        assert_eq!(compute_largestexponent(-0x7fffffff, 3), "0");
+        assert_eq!(compute_largestexponent(0x80000000, 1), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(-0x80000000, 1), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(0x80000001, 2), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(-0x80000001, 2), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(1, 0x7fffffff), "0");
+        assert_eq!(compute_largestexponent(1, -0x7fffffff), "0");
+        assert_eq!(compute_largestexponent(2, 0x7fffffff), "0");
+        assert_eq!(compute_largestexponent(2, -0x7fffffff), "0");
+        assert_eq!(compute_largestexponent(1, 0x80000000), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(1, -0x80000000), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(1, 0x80000001), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(1, -0x80000001), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(0x10000, 0x100), "2");
+        assert_eq!(compute_largestexponent(-0x10000, 0x100), "2");
+        assert_eq!(compute_largestexponent(0x1000000, 0x1000), "2");
+        assert_eq!(compute_largestexponent(-0x1000000, 0x1000), "2");
+        assert_eq!(compute_largestexponent(0x100000000, 0x10000), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(-0x100000000, 0x10000), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(0x10000000000, 0x100000), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(-0x10000000000, 0x100000), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(0x10000, -0x100), "2");
+        assert_eq!(compute_largestexponent(-0x10000, -0x100), "2");
+        assert_eq!(compute_largestexponent(0x1000000, -0x1000), "2");
+        assert_eq!(compute_largestexponent(-0x1000000, -0x1000), "2");
+        assert_eq!(compute_largestexponent(0x100000000, -0x10000), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(-0x100000000, -0x10000), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(0x10000000000, -0x100000), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(-0x10000000000, -0x100000), "InputOutOfRange");
+        assert_eq!(compute_largestexponent(0x1000001, 0x1000), "0");
     }
 }
