@@ -66,6 +66,7 @@ impl NodeCalc {
             InstructionId::BitwiseOr       => S::bitwiseor(target, source),
             InstructionId::BitwiseXor      => S::bitwisexor(target, source),
             InstructionId::LargestExponent => S::largestexponent(target, source),
+            InstructionId::Factorial => S::Factorial(target, source),
             _ => {
                 error!("unsupported instruction: {:?}", self.instruction_id);
                 return Err(EvalError::UnsupportedInstruction);
