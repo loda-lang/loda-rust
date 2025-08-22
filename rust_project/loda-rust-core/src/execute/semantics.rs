@@ -31,6 +31,7 @@ pub trait Semantics {
     fn bitwiseand(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn bitwiseor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn bitwisexor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    fn factorial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
 }
 
 pub struct SemanticsWithoutLimits {}
@@ -191,6 +192,12 @@ impl Semantics for SemanticsWithoutLimits {
         let value = result?;
         Ok(value)
     }
+    
+    fn factorial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_factorial(x, y);
+        let value = result?;
+        Ok(value)
+    }
 }
 
 pub struct SemanticsWithSmallLimits {}
@@ -348,6 +355,12 @@ impl Semantics for SemanticsWithSmallLimits {
 
     fn bitwisexor(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_bitwisexor(x, y);
+        let value = result?;
+        Ok(value)
+    }
+    
+    fn factorial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_factorial(x, y);
         let value = result?;
         Ok(value)
     }
