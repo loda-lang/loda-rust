@@ -496,6 +496,37 @@ pub trait SemanticSimpleConfig {
         }
         Ok(x_xor_y)
     }
+
+    fn compute_fac(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+              let mut z: BigInt = BigInt::one();
+        if y.is_zero() {
+            return Ok(BigInt::one());
+        }
+             if !y.is_positive() {
+                          y = y.abs();z = BigInt::from(-1);
+             }
+             let mut t: BigInt = BigInt::one();
+             while !y.is_zero() {
+                          t = t * x;
+                          y = y - BigInt::one();
+                          x = x + z;
+if let Some(value_max_bits) = self.value_max_bits() {
+            if t.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+                         if t.is_zero() {
+                              return Ok(t)
+                         }
+             }
+             return Ok(t)
+    }
+    
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -554,6 +585,7 @@ mod tests {
         BitwiseOr,
         BitwiseXor,
         LargestExponent,
+        Factorial,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -594,6 +626,7 @@ mod tests {
             ComputeMode::BitwiseOr      => config.compute_bitwiseor(&x, &y),
             ComputeMode::BitwiseXor     => config.compute_bitwisexor(&x, &y),
             ComputeMode::LargestExponent => config.compute_largestexponent(&x, &y),
+            ComputeMode::Factorial => config.compute_fac(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),

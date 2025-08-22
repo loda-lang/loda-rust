@@ -34,6 +34,7 @@ impl ParseInstructionId for InstructionId {
             "dif" => Ok(Self::DivideIf),
             "dir" => Ok(Self::DivideIfRepeat),
             "equ" => Ok(Self::Equal),
+            "fac" => Ok(Self::Factorial),
             "gcd" => Ok(Self::GCD),
             "geq" => Ok(Self::GreaterOrEqual),
             "lex" => Ok(Self::LargestExponent),
@@ -127,6 +128,10 @@ mod tests {
         {
             let instruction_id: InstructionId = InstructionId::parse("lex", 1).expect("InstructionId");
             assert_eq!(instruction_id, InstructionId::LargestExponent);
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("fac", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::Factorial);
         }
         {
             let instruction_id: InstructionId = InstructionId::parse("lps", 1).expect("InstructionId");
