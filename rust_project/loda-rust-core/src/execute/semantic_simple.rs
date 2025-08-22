@@ -497,34 +497,36 @@ pub trait SemanticSimpleConfig {
         Ok(x_xor_y)
     }
 
-    fn compute_fac(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+    fn compute_factorial(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
         if let Some(value_max_bits) = self.value_max_bits() {
             if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::InputOutOfRange);
             }
         }
-              let mut z: BigInt = BigInt::one();
-        if y.is_zero() {
-            return Ok(BigInt::one());
+        let y_abs: BigInt = y.abs();
+        let d: BigInt;
+        if y.is_negative() {
+            d = BigInt::from(-1);
+        } else {
+            d = BigInt::one();
         }
-             if !y.is_positive() {
-                          y = y.abs();z = BigInt::from(-1);
-             }
-             let mut t: BigInt = BigInt::one();
-             while !y.is_zero() {
-                          t = t * x;
-                          y = y - BigInt::one();
-                          x = x + z;
-if let Some(value_max_bits) = self.value_max_bits() {
-            if t.bits() >= value_max_bits {
-                return Err(SemanticSimpleError::InputOutOfRange);
+        let mut n: BigInt = x.clone();
+        let mut res: BigInt = BigInt::one();
+        let mut i: BigInt = BigInt::zero();
+        while i < y_abs {
+            res = res * &n;
+            if let Some(value_max_bits) = self.value_max_bits() {
+                if res.bits() >= value_max_bits {
+                    return Err(SemanticSimpleError::InputOutOfRange);
+                }
             }
+            if res.is_zero() {
+                return Ok(res);
+            }
+            i += BigInt::one();
+            n += &d;
         }
-                         if t.is_zero() {
-                              return Ok(t)
-                         }
-             }
-             return Ok(t)
+        return Ok(res)
     }
     
 }
@@ -626,7 +628,7 @@ mod tests {
             ComputeMode::BitwiseOr      => config.compute_bitwiseor(&x, &y),
             ComputeMode::BitwiseXor     => config.compute_bitwisexor(&x, &y),
             ComputeMode::LargestExponent => config.compute_largestexponent(&x, &y),
-            ComputeMode::Factorial => config.compute_fac(&x, &y),
+            ComputeMode::Factorial      => config.compute_factorial(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -1512,5 +1514,31 @@ mod tests {
         assert_eq!(compute_largestexponent(0x10000000000, -0x100000), "InputOutOfRange");
         assert_eq!(compute_largestexponent(-0x10000000000, -0x100000), "InputOutOfRange");
         assert_eq!(compute_largestexponent(0x1000001, 0x1000), "0");
+    }
+
+    fn compute_factorial(left: &str, right: &str) -> String {
+        let config = SemanticSimpleConfigLimited::new(256);
+        compute_with_strings(&config, ComputeMode::Factorial, left, right)
+    }
+
+    #[test]
+    fn test_240000_factorial() {
+        assert_eq!(compute_factorial("5", "3"), "210");
+        assert_eq!(compute_factorial("7", "1"), "7");
+        assert_eq!(compute_factorial("7", "2"), "56");
+        assert_eq!(compute_factorial("7", "3"), "504");
+        assert_eq!(compute_factorial("10", "4"), "17160");
+        assert_eq!(compute_factorial("3", "5"), "2520");
+        assert_eq!(compute_factorial("0", "1"), "0");
+        assert_eq!(compute_factorial("-3", "2"), "6");
+        assert_eq!(compute_factorial("5", "-3"), "60");
+        assert_eq!(compute_factorial("3", "-4"), "0");
+        assert_eq!(compute_factorial("0", "-3"), "0");
+        assert_eq!(compute_factorial("-2", "-3"), "-24");
+        assert_eq!(compute_factorial("2", "-1"), "2");
+        assert_eq!(compute_factorial("-2", "-1"), "-2");
+        assert_eq!(compute_factorial("7", "0"), "1");
+        assert_eq!(compute_factorial("0", "0"), "1");
+        assert_eq!(compute_factorial("0", "1997033086455602947751843564052382159634403601309973139507743808"), "0");
     }
 }

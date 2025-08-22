@@ -192,10 +192,9 @@ impl Semantics for SemanticsWithoutLimits {
         let value = result?;
         Ok(value)
     }
-
     
     fn factorial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_fac(x, y);
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_factorial(x, y);
         let value = result?;
         Ok(value)
     }
@@ -361,7 +360,7 @@ impl Semantics for SemanticsWithSmallLimits {
     }
     
     fn factorial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_fac(x, y);
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_factorial(x, y);
         let value = result?;
         Ok(value)
     }

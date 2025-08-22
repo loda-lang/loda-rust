@@ -53,7 +53,7 @@ impl fmt::Display for InstructionId {
             Self::DivideIf        => "dif",
             Self::DivideIfRepeat  => "dir",
             Self::Equal           => "equ",
-            Self::Factorial           => "fac",
+            Self::Factorial       => "fac",
             Self::GCD             => "gcd",
             Self::GreaterOrEqual  => "geq",
             Self::LargestExponent => "lex",
