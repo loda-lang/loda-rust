@@ -382,4 +382,156 @@ mod tests {
         );
         assert_eq!(runner.inspect(7), "0,1,2,3,4,4,4");
     }
+
+    #[test]
+    fn test_30000_memory_op_clr_positive_length() {
+        let input = r#"
+        mov $1,5
+        mov $2,10
+        mov $3,15
+        clr $1,2
+        mov $0,$3
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        // After clearing $1 and $2, $3 should still be 15
+        let result = runner.inspect(1);
+        assert_eq!(result, "15");
+    }
+
+    #[test]
+    fn test_30001_memory_op_fil_positive_length() {
+        let input = r#"
+        mov $1,7
+        mov $2,10
+        mov $3,15
+        fil $1,3
+        mov $0,$3
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        // All three registers should be filled with value 7
+        let result = runner.inspect(1);
+        assert_eq!(result, "7");
+    }
+
+    #[test]
+    fn test_30002_memory_op_rol_positive_length() {
+        let input = r#"
+        mov $1,10
+        mov $2,20
+        mov $3,30
+        rol $1,3
+        mov $0,$3
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        // After rotate left, $3 should have the original $1 value
+        let result = runner.inspect(1);
+        assert_eq!(result, "10");
+    }
+
+    #[test]
+    fn test_30003_memory_op_ror_positive_length() {
+        let input = r#"
+        mov $1,10
+        mov $2,20
+        mov $3,30
+        ror $1,3
+        mov $0,$1
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        // After rotate right, $1 should have the original $3 value
+        let result = runner.inspect(1);
+        assert_eq!(result, "30");
+    }
+
+    #[test]
+    fn test_30004_memory_op_clr_negative_length() {
+        let input = r#"
+        mov $1,5
+        mov $2,10
+        mov $3,15
+        clr $3,-2
+        mov $0,$1
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        // $1 should remain unchanged
+        let result = runner.inspect(1);
+        assert_eq!(result, "5");
+    }
+
+    #[test]
+    fn test_30005_memory_op_fil_negative_length() {
+        let input = r#"
+        mov $1,5
+        mov $2,10
+        mov $3,20
+        fil $3,-2
+        mov $0,$2
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        // $2 should be filled with $3's value (20)
+        let result = runner.inspect(1);
+        assert_eq!(result, "20");
+    }
+
+    #[test]
+    fn test_30006_memory_op_rol_negative_length() {
+        let input = r#"
+        mov $1,10
+        mov $2,20
+        mov $3,30
+        rol $3,-2
+        mov $0,$3
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        // After rotate left with negative length, $3 should have $2 value
+        let result = runner.inspect(1);
+        assert_eq!(result, "20");
+    }
+
+    #[test]
+    fn test_30007_memory_op_ror_negative_length() {
+        let input = r#"
+        mov $1,10
+        mov $2,20
+        mov $3,30
+        ror $3,-2
+        mov $0,$3
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        // After rotate right with negative length, $3 should have $2 value
+        let result = runner.inspect(1);
+        assert_eq!(result, "20");
+    }
 }
