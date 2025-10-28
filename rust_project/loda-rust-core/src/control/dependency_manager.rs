@@ -552,4 +552,39 @@ mod tests {
         let runner: Rc::<ProgramRunner> = dm.load(9194).unwrap();
         assert_eq!(runner.inspect(10), "1,1,1,1,1,6,1,1,1,2");
     }
+
+    #[test]
+    fn test_80000_instruction_rol() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/memory_operations");
+        let runner: Rc::<ProgramRunner> = dm.load(78).unwrap();
+        assert_eq!(runner.inspect(10), "0,0,0,1,1,2,4,8,15,29");
+    }
+
+    #[test]
+    fn test_80001_instruction_rol() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/memory_operations");
+        let runner: Rc::<ProgramRunner> = dm.load(10873).unwrap();
+        assert_eq!(runner.inspect(10), "0,1,2,3,0,1,2,3,0,1");
+    }
+
+    #[test]
+    fn test_80002_instruction_ror() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/memory_operations");
+        let runner: Rc::<ProgramRunner> = dm.load(803).unwrap();
+        assert_eq!(runner.inspect(10), "0,0,8,4,8,16,24,44,80,144");
+    }
+
+    #[test]
+    fn test_80003_instruction_fil() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/memory_operations");
+        let runner: Rc::<ProgramRunner> = dm.load(7395).unwrap();
+        assert_eq!(runner.inspect(10), "2,2,2,2,2,2,2,2,2,2");
+    }
+
+    #[test]
+    fn test_80004_instruction_clr() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/memory_operations");
+        let runner: Rc::<ProgramRunner> = dm.load(355989).unwrap();
+        assert_eq!(runner.inspect(10), "1,3,6,30,60,420,840,7560,15120,166320");
+    }
 }
