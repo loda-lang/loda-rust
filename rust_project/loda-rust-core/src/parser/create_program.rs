@@ -7,6 +7,7 @@ use crate::execute::node_loop_register::*;
 use crate::execute::node_loop_simple::*;
 use crate::execute::node_loop_slow::*;
 use crate::execute::node_seq::*;
+use crate::execute::NodeMemoryOp;
 use crate::execute::compiletime_error::*;
 use crate::execute::NodeUnofficialFunction;
 use crate::execute::NodeUnofficialLoopSubtract;
@@ -502,6 +503,22 @@ impl CreateProgram {
                     let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
+                InstructionId::Clear => {
+                    let node = self.create_node_memory_op(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Fill => {
+                    let node = self.create_node_memory_op(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::RotateLeft => {
+                    let node = self.create_node_memory_op(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::RotateRight => {
+                    let node = self.create_node_memory_op(&instruction)?;
+                    program.push_boxed(node);
+                },
                 InstructionId::EvalSequence => {
                     let node = create_node_seq(&instruction)?;
                     program.push_boxed(node);
@@ -527,6 +544,19 @@ impl CreateProgram {
         let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
         let node = NodeCalc::new(
             self.node_calc_semantic_mode, 
+            instruction.instruction_id.clone(), 
+            parameter0.clone(), 
+            parameter1.clone()
+        );
+        let node_wrapped = Box::new(node);
+        return Ok(node_wrapped);
+    }
+
+    fn create_node_memory_op(&self, instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
+        instruction.expect_two_parameters()?;
+        let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
+        let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
+        let node = NodeMemoryOp::new(
             instruction.instruction_id.clone(), 
             parameter0.clone(), 
             parameter1.clone()
